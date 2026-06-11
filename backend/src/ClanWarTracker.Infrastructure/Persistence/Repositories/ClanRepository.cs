@@ -36,8 +36,7 @@ public class PlayerRepository(AppDbContext db) : IPlayerRepository
         db.Players.Where(p => p.ClanId == clanId).ToListAsync(ct);
 
     public Task<List<Player>> GetAllLinkedAsync(CancellationToken ct = default) =>
-        db.Players
-            .Include(p => p.Clan)
+        db.Players.Include(p => p.Clan)
             .Where(p => p.TelegramUserId != null)
             .ToListAsync(ct);
 

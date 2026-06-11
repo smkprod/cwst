@@ -10,11 +10,11 @@ builder.Services.AddScoped<GetClanStatusUseCase>();
 builder.Services.AddScoped<GetPlayerStatsUseCase>();
 builder.Services.AddScoped<GetClanHistoryUseCase>();
 builder.Services.AddScoped<GetSeasonStatsUseCase>();
+builder.Services.AddScoped<GetGlobalTopUseCase>();
 builder.Services.AddScoped<NudgePlayersUseCase>();
 builder.Services.AddScoped<SetClanPlanUseCase>();
 builder.Services.AddScoped<LinkPlayerUseCase>();
 builder.Services.AddScoped<SetupClanUseCase>();
-builder.Services.AddScoped<GetGlobalTopUseCase>();
 builder.Services.AddControllers();
 
 builder.Services.AddCors(o => o.AddDefaultPolicy(p => p
@@ -26,6 +26,16 @@ var app = builder.Build();
 
 // Схема БД при старте: SQLite — миграции, PostgreSQL (Render) — EnsureCreated, с ретраями
 await DependencyInjection.InitDatabaseAsync(app.Services);
+
+// Логируем outbound IP — нужно для настройки токена Clash Royale API
+try
+{
+    using var ipHttp = new HttpClient();
+    var ip = await ipHttp.GetStringAsync("https://api.ipify.org");
+    app.Services.GetRequiredService<ILogger<Program>>()
+        .LogInformation("=== OUTBOUND IP: {Ip} (добавь в токен CR API на developer.clashroyale.com) ===", ip.Trim());
+}
+catch { /* не критично */ }
 
 app.UseCors();
 app.UseMiddleware<TelegramAuthMiddleware>();

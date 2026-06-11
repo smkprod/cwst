@@ -3,70 +3,59 @@ using ClanWarTracker.Domain.Interfaces;
 
 namespace ClanWarTracker.Application.UseCases;
 
+/// <summary>
+/// Глобальный топ среди игроков, привязавших аккаунт к боту (/link), по всем кланам сервиса.
+/// Слава суммируется по финальным снимкам последних недель — как в истории игрока.
+/// </summary>
 public class GetGlobalTopUseCase(IPlayerRepository players, IWarSnapshotRepository snapshots)
 {
     private const int WeeksWindow = 8;
 
-    public async Task<GlobalTopDto> ExecuteAsync(long? callerTelegramUserId, CancellationToken ct = default)
+    public async Task<GlobalTopDto> ExecuteAsync(long? meTelegramId = null, CancellationToken ct = default)
     {
         var linked = await players.GetAllLinkedAsync(ct);
-        if (linked.Count == 0)
-            return new GlobalTopDto(WeeksWindow, 0, []);
+        if (linked.Count == 0) return new GlobalTopDto(WeeksWindow, 0, []);
 
-        var tags = linked.Select(p => p.PlayerTag).ToHashSet();
-        var history = await snapshots.GetPlayersHistoryAsync(tags, WeeksWindow, ct);
+        var tags = linked.Select(p => p.PlayerTag)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        var rows = await snapshots.GetPlayersHistoryAsync(tags, WeeksWindow, ct);
 
-        // Determine the global week cutoff: N most recent distinct (SeasonId, SectionIndex) pairs
-        var weekKeys = history
-            .Select(r => (r.Snapshot!.SeasonId, r.Snapshot.SectionIndex))
-            .Distinct()
-            .OrderByDescending(k => k.SeasonId).ThenByDescending(k => k.SectionIndex)
-            .Take(WeeksWindow)
-            .ToHashSet();
+        var historyByTag = rows
+            .GroupBy(r => r.PlayerTag, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
 
-        var inWindow = history.Where(r =>
-            weekKeys.Contains((r.Snapshot!.SeasonId, r.Snapshot.SectionIndex))).ToList();
+        // Один тег мог быть привязан из нескольких групп — берём первую запись
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var items = new List<GlobalTopPlayerDto>();
+        foreach (var p in linked)
+        {
+            if (!seen.Add(p.PlayerTag)) continue;
 
-        var byPlayer = inWindow.GroupBy(r => r.PlayerTag).ToList();
+            var hist = historyByTag.GetValueOrDefault(p.PlayerTag) ?? [];
+            var totalFame = hist.Sum(h => h.Fame);
+            var totalDecks = hist.Sum(h => h.DecksUsed);
 
-        var playerLookup = linked.ToDictionary(p => p.PlayerTag);
-        var callerTag = callerTelegramUserId.HasValue
-            ? linked.FirstOrDefault(p => p.TelegramUserId == callerTelegramUserId)?.PlayerTag
-            : null;
+            items.Add(new GlobalTopPlayerDto(
+                PlayerTag: p.PlayerTag,
+                Name: p.Name,
+                ClanName: p.Clan?.Name ?? "—",
+                TotalFame: totalFame,
+                WeeksParticipated: hist.Count(h => h.Fame > 0),
+                BestWeekFame: hist.Count > 0 ? hist.Max(h => h.Fame) : 0,
+                AvgFamePerAttack: totalFame > 0 && totalDecks > 0
+                    ? Math.Round(Math.Clamp((double)totalFame / totalDecks, 100, 250), 1)
+                    : 0,
+                Rank: 0,
+                IsMe: meTelegramId is not null && p.TelegramUserId == meTelegramId));
+        }
 
-        var ranked = byPlayer
-            .Select(g =>
-            {
-                var totalFame = g.Sum(r => r.Fame);
-                var totalDecks = g.Sum(r => r.DecksUsed);
-                var bestWeek = g.Max(r => r.Fame);
-                var avg = totalDecks > 0 ? Math.Round((double)totalFame / totalDecks, 1) : 0.0;
-                var player = playerLookup.GetValueOrDefault(g.Key);
-                return new
-                {
-                    PlayerTag = g.Key,
-                    Name = player?.Name ?? g.Key,
-                    ClanName = player?.Clan?.Name ?? "—",
-                    TotalFame = totalFame,
-                    WeeksParticipated = g.Count(),
-                    BestWeekFame = bestWeek,
-                    AvgFamePerAttack = avg,
-                };
-            })
-            .OrderByDescending(x => x.TotalFame)
+        var ranked = items
+            .OrderByDescending(i => i.TotalFame)
+            .ThenByDescending(i => i.WeeksParticipated)
+            .Select((i, idx) => i with { Rank = idx + 1 })
             .ToList();
 
-        var dtos = ranked.Select((x, i) => new GlobalTopPlayerDto(
-            PlayerTag: x.PlayerTag,
-            Name: x.Name,
-            ClanName: x.ClanName,
-            TotalFame: x.TotalFame,
-            WeeksParticipated: x.WeeksParticipated,
-            BestWeekFame: x.BestWeekFame,
-            AvgFamePerAttack: x.AvgFamePerAttack,
-            Rank: i + 1,
-            IsMe: x.PlayerTag == callerTag)).ToList();
-
-        return new GlobalTopDto(WeeksWindow, dtos.Count, dtos);
+        return new GlobalTopDto(WeeksWindow, ranked.Count, ranked);
     }
 }

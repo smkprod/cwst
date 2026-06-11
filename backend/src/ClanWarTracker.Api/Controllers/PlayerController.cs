@@ -13,6 +13,17 @@ public class PlayerController(
     GetPlayerStatsUseCase getStats,
     GetGlobalTopUseCase getGlobalTop) : ControllerBase
 {
+    /// <summary>
+    /// GET /api/players/top — глобальный топ игроков, привязавших аккаунт к боту,
+    /// по всем кланам сервиса (слава за последние недели).
+    /// </summary>
+    [HttpGet("top")]
+    public async Task<IActionResult> GlobalTop(CancellationToken ct)
+    {
+        var userId = (long)HttpContext.Items["TelegramUserId"]!;
+        return Ok(await getGlobalTop.ExecuteAsync(userId, ct));
+    }
+
     /// <summary>GET /api/players/me — текущий привязанный игрок.</summary>
     [HttpGet("me")]
     public async Task<IActionResult> Me(CancellationToken ct)
@@ -39,15 +50,6 @@ public class PlayerController(
                 : NotFound(new { error = "not_in_current_war", message = "Игрока нет в текущем составе войны" });
         }
         return Ok(stats);
-    }
-
-    /// <summary>GET /api/players/top — глобальный топ за последние 8 недель (только привязанные).</summary>
-    [HttpGet("top")]
-    public async Task<IActionResult> GlobalTop(CancellationToken ct)
-    {
-        var userId = HttpContext.Items.TryGetValue("TelegramUserId", out var uid) ? (long?)uid : null;
-        var result = await getGlobalTop.ExecuteAsync(userId, ct);
-        return Ok(result);
     }
 
     /// <summary>

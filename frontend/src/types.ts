@@ -174,7 +174,7 @@ export interface SeasonStats {
   players: SeasonPlayer[]
 }
 
-/* --- Глобальный топ --- */
+/* --- Глобальный топ бота (все кланы, привязанные игроки) --- */
 export interface GlobalTopPlayer {
   playerTag: string
   name: string
