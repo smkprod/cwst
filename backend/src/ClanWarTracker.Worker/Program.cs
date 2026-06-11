@@ -41,4 +41,33 @@ try
 }
 catch { /* не критично */ }
 
+// Разрешённые IP внутри токена CR (JWT payload) — сверить с OUTBOUND IP выше
+try
+{
+    var logger = host.Services.GetRequiredService<ILogger<Program>>();
+    var crToken = DependencyInjection.CleanToken(builder.Configuration["CLASH_ROYALE_API_TOKEN"])
+                  ?? DependencyInjection.CleanToken(builder.Configuration["ClashRoyale:ApiToken"]);
+    if (crToken is null)
+    {
+        logger.LogWarning("=== CR TOKEN: не задан вообще! ===");
+    }
+    else
+    {
+        var payload = crToken.Split('.')[1].Replace('-', '+').Replace('_', '/');
+        payload = payload.PadRight(payload.Length + (4 - payload.Length % 4) % 4, '=');
+        using var json = System.Text.Json.JsonDocument.Parse(Convert.FromBase64String(payload));
+        var cidrs = json.RootElement.GetProperty("limits").EnumerateArray()
+            .Where(l => l.TryGetProperty("cidrs", out _))
+            .SelectMany(l => l.GetProperty("cidrs").EnumerateArray().Select(c => c.GetString()))
+            .ToList();
+        logger.LogInformation("=== CR TOKEN: разрешённые IP: {Cidrs} — должны совпадать с OUTBOUND IP ===",
+            string.Join(", ", cidrs));
+    }
+}
+catch (Exception ex)
+{
+    host.Services.GetRequiredService<ILogger<Program>>()
+        .LogWarning("Не удалось разобрать токен CR: {Error}", ex.Message);
+}
+
 host.Run();
