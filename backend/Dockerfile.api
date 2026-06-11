@@ -2,31 +2,31 @@
 FROM node:20-alpine AS frontend-build
 WORKDIR /frontend-src
 
-# Копируем файлы фронтенда (исходим из структуры, что папка frontend лежит на одном уровне с backend)
-# Так как Render ставит контекст сборки в папку backend, проверим путь:
-COPY ../frontend/package*.json ./
+# Копируем package.json напрямую из папки фронтенда
+COPY frontend/package*.json ./
 RUN npm install
 
-COPY ../frontend/ ./
+# Копируем весь исходный код фронтенда
+COPY frontend/ ./
 RUN npm run build
 
 # === ЭТАП 2: Собираем .NET API ===
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
+# Копируем всё содержимое репозитория
 COPY . .
 
-RUN dotnet restore src/ClanWarTracker.Api/ClanWarTracker.Api.csproj
-RUN dotnet publish src/ClanWarTracker.Api/ClanWarTracker.Api.csproj -c Release -o /app/publish
+RUN dotnet restore backend/src/ClanWarTracker.Api/ClanWarTracker.Api.csproj
+RUN dotnet publish backend/src/ClanWarTracker.Api/ClanWarTracker.Api.csproj -c Release -o /app/publish
 
 # === ЭТАП 3: Финальный образ ===
 FROM mcr.microsoft.com/dotnet/aspnet:9.0
 WORKDIR /app
 
-# Копируем скомпилированный C# код
 COPY --from=build /app/publish .
 
-# Копируем собранный фронтенд в папку wwwroot, откуда .NET умеет его раздавать
+# Копируем собранный фронтенд в папку wwwroot
 COPY --from=frontend-build /frontend-src/dist ./wwwroot
 
 ENTRYPOINT ["dotnet", "ClanWarTracker.Api.dll"]
