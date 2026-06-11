@@ -1,0 +1,442 @@
+/* Цвета наследуем из темы Telegram, с фолбэками под тёмную тему */
+:root {
+  --bg: var(--tg-theme-bg-color, #17212b);
+  --bg-card: var(--tg-theme-secondary-bg-color, #232e3c);
+  --text: var(--tg-theme-text-color, #f5f5f5);
+  --muted: var(--tg-theme-hint-color, #708499);
+  --accent: var(--tg-theme-button-color, #5288c1);
+
+  --green: #31b545;
+  --red: #e53935;
+  --yellow: #f0a821;
+  --purple: #9c6bff;
+  --gold: #ffc83d;
+}
+
+* { box-sizing: border-box; margin: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 15px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+main { padding: 12px 12px 24px; max-width: 480px; margin: 0 auto; }
+main.with-tabbar { padding-bottom: 80px; }
+
+.center { padding: 48px 24px; text-align: center; display: grid; gap: 12px; justify-items: center; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+
+.fade-in { animation: fadeIn 0.25s ease; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+.spinner {
+  width: 28px; height: 28px;
+  border: 3px solid var(--bg-card);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* --- Карточки --- */
+.card {
+  background: var(--bg-card);
+  border-radius: 16px;
+  padding: 14px;
+  margin-bottom: 10px;
+}
+.card-title { font-size: 14px; font-weight: 700; }
+.card-title-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+
+.section-title { font-size: 17px; font-weight: 700; margin: 4px 4px 12px; }
+
+/* --- Шапка войны --- */
+.war-header { padding: 4px 4px 14px; }
+.war-header-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.war-header h1 { font-size: 19px; font-weight: 700; }
+
+.badge { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+.badge-war { background: rgba(229, 57, 53, 0.18); color: #ff7a76; }
+.badge-training { background: rgba(82, 136, 193, 0.18); color: #7fb2e5; }
+
+.deadline { margin-top: 8px; color: var(--muted); font-size: 14px; }
+.deadline strong { color: var(--yellow); }
+
+.progress-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+.progress-track { flex: 1; height: 8px; border-radius: 999px; background: var(--bg-card); overflow: hidden; }
+.progress-fill { height: 100%; background: var(--green); border-radius: 999px; transition: width 0.4s ease; }
+.progress-label { font-size: 13px; color: var(--muted); white-space: nowrap; }
+
+/* --- Прогноз клана --- */
+.forecast-card {
+  background: linear-gradient(135deg, rgba(156, 107, 255, 0.16), rgba(82, 136, 193, 0.10)), var(--bg-card);
+  border: 1px solid rgba(156, 107, 255, 0.25);
+}
+
+.trend-chip { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+.trend-ahead { background: rgba(49, 181, 69, 0.18); color: #5fd573; }
+.trend-onpace { background: rgba(82, 136, 193, 0.18); color: #7fb2e5; }
+.trend-behind { background: rgba(229, 57, 53, 0.18); color: #ff7a76; }
+
+.forecast-numbers { display: flex; align-items: stretch; gap: 12px; margin: 6px 0 12px; }
+.forecast-block { flex: 1; display: grid; gap: 2px; justify-items: center; text-align: center; }
+.forecast-divider { width: 1px; background: rgba(255, 255, 255, 0.08); }
+.forecast-value { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+.forecast-caption { font-size: 12px; color: var(--muted); }
+.forecast-delta { font-size: 11px; color: #5fd573; font-weight: 600; }
+.muted-delta { color: var(--muted); font-weight: 400; }
+
+.confidence-row { display: flex; align-items: center; gap: 8px; }
+.confidence-label { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.confidence-track { flex: 1; height: 5px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+.confidence-fill { height: 100%; border-radius: 999px; transition: width 0.4s ease; }
+.conf-high { background: var(--green); }
+.conf-mid { background: var(--yellow); }
+.conf-low { background: var(--red); }
+.confidence-pct { font-size: 11px; color: var(--muted); min-width: 30px; text-align: right; }
+
+/* --- Полоска статов клана --- */
+.stats-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; }
+.stat-chip {
+  background: var(--bg-card); border-radius: 12px; padding: 8px 4px;
+  display: grid; gap: 1px; justify-items: center; text-align: center;
+}
+.stat-chip-icon { font-size: 14px; }
+.stat-chip-value { font-size: 14px; font-weight: 700; }
+.stat-chip-label { font-size: 10px; color: var(--muted); }
+
+/* --- Список игроков --- */
+.player-list { list-style: none; padding: 0; display: grid; gap: 6px; }
+
+.player-card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  border-left: 3px solid transparent;
+  overflow: hidden;
+}
+.row-played   { border-left-color: var(--green); }
+.row-notplayed{ border-left-color: var(--red); }
+.row-timeleft { border-left-color: var(--yellow); }
+
+.player-me { outline: 1px solid rgba(156, 107, 255, 0.45); }
+
+.player-row {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; background: none; border: none; color: inherit;
+  font: inherit; text-align: left; cursor: pointer;
+  padding: 10px 12px;
+}
+
+.status-icon { font-size: 16px; }
+
+.player-info { flex: 1; min-width: 0; display: grid; }
+.player-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.unlinked { color: var(--muted); font-weight: 400; font-size: 12px; }
+.player-fame { font-size: 12px; color: var(--muted); }
+
+.me-badge {
+  background: var(--purple); color: #fff; font-size: 10px; font-weight: 700;
+  border-radius: 6px; padding: 1px 5px; margin-right: 6px; vertical-align: 1px;
+}
+
+.chevron { color: var(--muted); font-size: 18px; transition: transform 0.2s ease; }
+.chevron-open { transform: rotate(90deg); }
+
+.player-details { padding: 0 12px 12px; }
+.detail-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+.detail-cell {
+  background: rgba(255, 255, 255, 0.04); border-radius: 10px;
+  padding: 8px 10px; display: grid; gap: 1px;
+}
+.detail-value { font-size: 15px; font-weight: 700; }
+.detail-accent { color: var(--purple); }
+.detail-label { font-size: 11px; color: var(--muted); }
+
+/* --- Точки колод --- */
+.deck-dots { display: flex; align-items: center; gap: 4px; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); opacity: 0.35; }
+.dot-used { background: var(--green); opacity: 1; }
+.deck-count { font-size: 12px; color: var(--muted); margin-left: 4px; min-width: 26px; }
+
+/* --- Рейтинг --- */
+.mvp-banner {
+  background: linear-gradient(135deg, rgba(255, 200, 61, 0.18), rgba(255, 200, 61, 0.05));
+  border: 1px solid rgba(255, 200, 61, 0.3);
+  color: var(--gold);
+  border-radius: 12px; padding: 10px 14px; font-size: 14px; margin-bottom: 14px;
+}
+.mvp-banner strong { color: var(--text); }
+
+.podium { display: flex; align-items: flex-end; gap: 8px; margin-bottom: 16px; padding: 0 4px; }
+.podium-spot {
+  flex: 1; display: grid; justify-items: center; gap: 3px; min-width: 0;
+}
+.podium-medal { font-size: 26px; }
+.podium-name {
+  font-size: 12px; font-weight: 700; max-width: 100%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.podium-fame { font-size: 11px; color: var(--muted); }
+.podium-bar { width: 100%; border-radius: 8px 8px 0 0; }
+.podium-1 .podium-bar { height: 56px; background: linear-gradient(180deg, var(--gold), rgba(255, 200, 61, 0.25)); }
+.podium-2 .podium-bar { height: 38px; background: linear-gradient(180deg, #c0c8d4, rgba(192, 200, 212, 0.25)); }
+.podium-3 .podium-bar { height: 26px; background: linear-gradient(180deg, #cd8f56, rgba(205, 143, 86, 0.25)); }
+.podium-me .podium-name { color: var(--purple); }
+
+.rating-list { list-style: none; padding: 0; display: grid; gap: 5px; }
+.rating-row {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--bg-card); border-radius: 10px; padding: 9px 12px;
+}
+.rating-me { outline: 1px solid rgba(156, 107, 255, 0.45); }
+.rating-rank { color: var(--muted); font-size: 13px; font-weight: 700; min-width: 30px; }
+.rating-name { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rating-avg { font-size: 11px; }
+.rating-fame { font-size: 13px; font-weight: 600; white-space: nowrap; }
+
+/* --- Моя статистика --- */
+.me-header { padding: 4px 4px 12px; }
+.me-title-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.me-name { font-size: 19px; font-weight: 700; }
+
+.perf-chip { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+.perf-top { background: rgba(255, 90, 60, 0.18); color: #ff8a65; }
+.perf-above { background: rgba(49, 181, 69, 0.18); color: #5fd573; }
+.perf-mid { background: rgba(82, 136, 193, 0.18); color: #7fb2e5; }
+.perf-below { background: rgba(112, 132, 153, 0.18); color: var(--muted); }
+
+.me-ring-card { display: flex; align-items: center; gap: 16px; }
+
+.ring-wrap { position: relative; width: 120px; height: 120px; flex-shrink: 0; }
+.ring-svg { width: 100%; height: 100%; }
+.ring-bg { fill: none; stroke: rgba(255, 255, 255, 0.07); stroke-width: 10; }
+.ring-fg {
+  fill: none; stroke: var(--purple); stroke-width: 10; stroke-linecap: round;
+  transition: stroke-dasharray 0.6s ease;
+}
+.ring-center {
+  position: absolute; inset: 0; display: grid; place-content: center; text-align: center; gap: 0;
+}
+.ring-pct { font-size: 22px; font-weight: 800; }
+.ring-caption { font-size: 10px; color: var(--muted); }
+
+.ring-side { flex: 1; display: grid; gap: 12px; }
+.ring-fact { display: grid; gap: 2px; }
+.ring-fact-value { font-size: 18px; font-weight: 800; }
+.ring-fact-label { font-size: 11px; color: var(--muted); }
+.mini-track { height: 4px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); overflow: hidden; margin-top: 4px; }
+.mini-fill { height: 100%; background: var(--green); border-radius: 999px; }
+
+.me-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 12px; }
+.me-stat { display: grid; gap: 2px; margin-bottom: 0; }
+.me-stat-value { font-size: 20px; font-weight: 800; }
+.me-stat-label { font-size: 11px; color: var(--muted); }
+.me-stat-delta { font-size: 11px; font-weight: 600; }
+.delta-up { color: #5fd573; }
+.delta-down { color: #ff7a76; }
+.me-stat-accent {
+  background: linear-gradient(135deg, rgba(156, 107, 255, 0.16), rgba(82, 136, 193, 0.08)), var(--bg-card);
+  border: 1px solid rgba(156, 107, 255, 0.22);
+}
+.me-stat-accent .me-stat-value { color: var(--purple); }
+
+/* --- Кнопки --- */
+.btn {
+  background: var(--accent); color: #fff; border: none;
+  border-radius: 10px; padding: 10px 20px; font-size: 15px; font-weight: 600;
+  cursor: pointer;
+}
+.btn:disabled { opacity: 0.6; }
+
+.btn-share { width: 100%; padding: 13px; border-radius: 12px; }
+
+.btn-nudge {
+  width: 100%; margin-bottom: 10px; padding: 12px; border-radius: 12px;
+  background: linear-gradient(135deg, #e53935, #c62828);
+}
+
+.nudge-result {
+  border-radius: 12px; padding: 11px 14px; font-size: 14px; margin-bottom: 10px; text-align: center;
+}
+.nudge-ok { background: rgba(49, 181, 69, 0.14); color: #5fd573; }
+.nudge-fail { background: rgba(229, 57, 53, 0.14); color: #ff7a76; }
+
+.cmd {
+  background: var(--bg-card); padding: 8px 14px; border-radius: 8px;
+  font-family: ui-monospace, monospace; font-size: 15px; color: var(--yellow);
+}
+
+/* --- Pro-замки --- */
+.forecast-locked { opacity: 0.92; }
+.pro-chip {
+  background: linear-gradient(135deg, var(--gold), #ff9f43);
+  color: #1a1a1a; font-size: 11px; font-weight: 800;
+  padding: 2px 8px; border-radius: 999px; letter-spacing: 0.5px;
+}
+
+/* --- История войн --- */
+.history-weeks {
+  display: flex; align-items: flex-end; gap: 8px;
+  height: 110px; padding: 0 2px; margin-bottom: 12px;
+}
+.history-week { flex: 1; display: grid; justify-items: center; gap: 2px; height: 100%; grid-template-rows: 1fr auto auto; }
+.history-bar-wrap { display: flex; align-items: flex-end; width: 100%; height: 100%; }
+.history-bar {
+  width: 100%; border-radius: 6px 6px 2px 2px;
+  background: linear-gradient(180deg, var(--accent), rgba(82, 136, 193, 0.35));
+  transition: height 0.5s ease;
+}
+.history-bar-colosseum { background: linear-gradient(180deg, var(--gold), rgba(255, 200, 61, 0.35)); }
+.history-fame { font-size: 11px; font-weight: 700; }
+.history-label { font-size: 10px; color: var(--muted); }
+
+.history-latest { border-top: 1px solid rgba(255, 255, 255, 0.06); padding-top: 10px; display: grid; gap: 8px; }
+.history-latest-title { font-size: 13px; font-weight: 700; }
+.history-days { display: flex; gap: 6px; flex-wrap: wrap; }
+.history-day {
+  background: rgba(255, 255, 255, 0.04); border-radius: 8px; padding: 5px 9px;
+  display: grid; gap: 0; justify-items: center;
+}
+.history-day-num { font-size: 10px; color: var(--muted); }
+.history-day-fame { font-size: 13px; font-weight: 700; color: #5fd573; }
+.history-top { overflow: hidden; text-overflow: ellipsis; }
+
+/* --- Панель владельца --- */
+.owner-hint { margin: -6px 4px 12px; }
+.owner-list { list-style: none; padding: 0; display: grid; gap: 8px; }
+.owner-card { margin-bottom: 0; }
+.owner-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.owner-card-info { display: grid; gap: 1px; min-width: 0; }
+.owner-clan-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.owner-expiry { margin-top: 4px; }
+
+.plan-badge { font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px; letter-spacing: 0.5px; }
+.plan-pro { background: linear-gradient(135deg, var(--gold), #ff9f43); color: #1a1a1a; }
+.plan-free { background: rgba(112, 132, 153, 0.25); color: var(--muted); }
+
+.owner-actions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+.btn-mini {
+  background: rgba(82, 136, 193, 0.2); color: #7fb2e5; border: none;
+  border-radius: 8px; padding: 7px 11px; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.btn-mini:disabled { opacity: 0.5; }
+.btn-mini-danger { background: rgba(229, 57, 53, 0.16); color: #ff7a76; }
+
+.owner-delete { margin-left: auto; }
+.owner-delete-hint { margin: 8px 2px 0; }
+
+/* --- Настройка автонапоминаний --- */
+.reminder-options { display: flex; flex-wrap: wrap; gap: 6px; }
+.reminder-active { background: var(--accent); color: #fff; }
+
+/* --- Инфо-окно игрока (bottom sheet) --- */
+.modal-backdrop {
+  position: fixed; inset: 0; z-index: 50;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.modal-sheet {
+  width: 100%; max-width: 480px;
+  background: var(--bg);
+  border-radius: 20px 20px 0 0;
+  padding: 8px 16px calc(20px + env(safe-area-inset-bottom));
+  max-height: 85vh; overflow-y: auto;
+}
+.fade-up { animation: slideUp 0.25s ease; }
+@keyframes slideUp {
+  from { transform: translateY(40px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+.modal-grip {
+  width: 36px; height: 4px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18); margin: 4px auto 12px;
+}
+.modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.modal-title-wrap { display: grid; gap: 2px; min-width: 0; }
+.modal-name { font-size: 18px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.modal-close {
+  background: var(--bg-card); border: none; color: var(--muted);
+  width: 30px; height: 30px; border-radius: 50%; font-size: 13px; cursor: pointer; flex-shrink: 0;
+}
+.modal-status {
+  border-radius: 10px; padding: 9px 12px; font-size: 13px; margin-bottom: 12px;
+}
+.status-played { background: rgba(49, 181, 69, 0.13); color: #5fd573; }
+.status-timeleft { background: rgba(240, 168, 33, 0.13); color: var(--yellow); }
+.status-notplayed { background: rgba(229, 57, 53, 0.13); color: #ff7a76; }
+
+.modal-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.modal-stat {
+  background: var(--bg-card); border-radius: 12px; padding: 11px 12px; display: grid; gap: 2px;
+}
+.modal-stat-accent {
+  background: linear-gradient(135deg, rgba(156, 107, 255, 0.16), rgba(82, 136, 193, 0.08)), var(--bg-card);
+  border: 1px solid rgba(156, 107, 255, 0.22);
+}
+.modal-stat-accent .modal-stat-value { color: var(--purple); }
+.modal-stat-value { font-size: 18px; font-weight: 800; }
+.modal-stat-label { font-size: 11px; color: var(--muted); }
+.modal-extra { margin-top: 10px; }
+
+/* --- Переключатель Неделя/Сезон --- */
+.rating-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 4px 4px 12px; }
+.segmented {
+  display: flex; background: var(--bg-card); border-radius: 10px; padding: 3px; gap: 2px;
+}
+.segment {
+  background: none; border: none; color: var(--muted);
+  font: inherit; font-size: 13px; font-weight: 600;
+  padding: 6px 14px; border-radius: 8px; cursor: pointer;
+}
+.segment-active { background: var(--accent); color: #fff; }
+
+.season-meta { margin: 0 4px 10px; }
+
+/* --- Кликабельные строки рейтинга --- */
+.rating-list button.rating-row {
+  width: 100%; border: none; font: inherit; color: inherit; text-align: left; cursor: pointer;
+}
+button.podium-spot { background: none; border: none; font: inherit; color: inherit; cursor: pointer; padding: 0; }
+
+/* --- Сезонная карточка в «Я» --- */
+.season-card { margin-top: 0; }
+.season-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 4px; }
+.season-cell {
+  background: rgba(255, 255, 255, 0.04); border-radius: 10px; padding: 9px 11px; display: grid; gap: 1px;
+}
+.season-value { font-size: 17px; font-weight: 800; }
+.season-label { font-size: 11px; color: var(--muted); }
+
+/* --- Нижние вкладки --- */
+.tabbar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  display: flex; justify-content: space-around;
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  max-width: 480px; margin: 0 auto;
+}
+.tab {
+  flex: 1; display: grid; justify-items: center; gap: 1px;
+  background: none; border: none; color: var(--muted);
+  font: inherit; cursor: pointer; padding: 5px 0; border-radius: 10px;
+}
+.tab-active { color: var(--text); }
+.tab-active .tab-icon { transform: scale(1.15); }
+.tab-icon { font-size: 19px; transition: transform 0.15s ease; }
+.tab-label { font-size: 10px; font-weight: 600; }
+
+@media (prefers-reduced-motion: reduce) {
+  .progress-fill, .confidence-fill, .ring-fg, .chevron, .tab-icon { transition: none; }
+  .fade-in { animation: none; }
+  .spinner { animation-duration: 1.5s; }
+}

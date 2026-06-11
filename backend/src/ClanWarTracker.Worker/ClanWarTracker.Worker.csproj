@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ClanWarTracker.Application\ClanWarTracker.Application.csproj" />
+    <ProjectReference Include="..\ClanWarTracker.Infrastructure\ClanWarTracker.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>
