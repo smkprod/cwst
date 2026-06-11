@@ -1,14 +1,11 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
-# Копируем всё из контекста сборки
 COPY . .
 
-# Путь идет через папку backend
-RUN dotnet restore backend/src/ClanWarTracker.Worker/ClanWarTracker.Worker.csproj
-
-# Публикуем с правильным путем
-RUN dotnet publish backend/src/ClanWarTracker.Worker/ClanWarTracker.Worker.csproj -c Release -o /app/publish
+# Путь начинается сразу с src/
+RUN dotnet restore src/ClanWarTracker.Worker/ClanWarTracker.Worker.csproj
+RUN dotnet publish src/ClanWarTracker.Worker/ClanWarTracker.Worker.csproj -c Release -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:9.0
 WORKDIR /app
