@@ -37,8 +37,10 @@ export default function App() {
         setState({ kind: 'notLinked' })
       } else if (e instanceof ApiError && (e.code === 'no_init_data' || e.code === 'bad_init_data')) {
         setState({ kind: 'notInTelegram' })
+      } else if (e instanceof ApiError && e.status === 500) {
+        setState({ kind: 'error', message: 'Ошибка сервера — проверьте логи API или попробуйте позже' })
       } else {
-        setState({ kind: 'error', message: e instanceof Error ? e.message : 'Ошибка сети' })
+        setState({ kind: 'error', message: e instanceof Error && e.message ? e.message : 'Ошибка сети' })
       }
     }
   }, [])
