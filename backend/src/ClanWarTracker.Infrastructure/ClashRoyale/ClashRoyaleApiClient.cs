@@ -81,6 +81,11 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
     public async Task<string?> GetPlayerNameAsync(string playerTag, CancellationToken ct = default)
     {
         var resp = await http.GetAsync($"players/{Encode(playerTag)}", ct);
+        if (resp.StatusCode == HttpStatusCode.NotFound) return null;
+        if (resp.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.Unauthorized)
+            throw new InvalidOperationException(
+                "CR API отклонил ключ (403). Ключ привязан к IP — создай новый на developer.clashroyale.com " +
+                "с IP сервера (Render: Settings → Outbound IPs) и обнови CLASH_ROYALE_API_TOKEN.");
         if (!resp.IsSuccessStatusCode) return null;
         var player = await resp.Content.ReadFromJsonAsync<NamedEntity>(cancellationToken: ct);
         return player?.Name;
@@ -89,6 +94,11 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
     public async Task<string?> GetClanNameAsync(string clanTag, CancellationToken ct = default)
     {
         var resp = await http.GetAsync($"clans/{Encode(clanTag)}", ct);
+        if (resp.StatusCode == HttpStatusCode.NotFound) return null;
+        if (resp.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.Unauthorized)
+            throw new InvalidOperationException(
+                "CR API отклонил ключ (403). Ключ привязан к IP — создай новый на developer.clashroyale.com " +
+                "с IP сервера (Render: Settings → Outbound IPs) и обнови CLASH_ROYALE_API_TOKEN.");
         if (!resp.IsSuccessStatusCode) return null;
         var clan = await resp.Content.ReadFromJsonAsync<NamedEntity>(cancellationToken: ct);
         return clan?.Name;
@@ -101,6 +111,10 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         {
             entry.AbsoluteExpirationRelativeToNow = CacheTtl;
             var resp = await http.GetAsync($"players/{Encode(playerTag)}", ct);
+            if (resp.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.Unauthorized)
+                throw new InvalidOperationException(
+                    "CR API отклонил ключ (403). Ключ привязан к IP — создай новый на developer.clashroyale.com " +
+                    "с IP сервера (Render: Settings → Outbound IPs) и обнови CLASH_ROYALE_API_TOKEN.");
             if (!resp.IsSuccessStatusCode) return null;
             var player = await resp.Content.ReadFromJsonAsync<PlayerWithClan>(cancellationToken: ct);
             return player?.Clan?.Tag;
