@@ -30,9 +30,11 @@ public static class DependencyInjection
 
         services.AddMemoryCache();
 
-        // Токены: сперва плоские env-переменные (хостинг), затем appsettings (локально)
-        var crToken = config["CLASH_ROYALE_API_TOKEN"] ?? config["ClashRoyale:ApiToken"];
-        var botToken = config["TELEGRAM_BOT_TOKEN"] ?? config["Telegram:BotToken"];
+        // Токены: сперва плоские env-переменные (хостинг), затем appsettings (локально).
+        // CleanToken убирает переносы строк/пробелы — длинные ключи часто вставляют с разрывами,
+        // а заголовок Authorization падает с FormatException на любом \n.
+        var crToken = CleanToken(config["CLASH_ROYALE_API_TOKEN"]) ?? CleanToken(config["ClashRoyale:ApiToken"]);
+        var botToken = CleanToken(config["TELEGRAM_BOT_TOKEN"]) ?? CleanToken(config["Telegram:BotToken"]);
 
         services.AddHttpClient<IClashRoyaleApi, ClashRoyaleApiClient>(http =>
         {
@@ -76,6 +78,14 @@ public static class DependencyInjection
                 await Task.Delay(TimeSpan.FromSeconds(3 * attempt));
             }
         }
+    }
+
+    /// <summary>Убирает все пробельные символы (включая \r\n) из токена. null, если пусто.</summary>
+    public static string? CleanToken(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return null;
+        var cleaned = string.Concat(raw.Where(c => !char.IsWhiteSpace(c)));
+        return cleaned.Length > 0 ? cleaned : null;
     }
 
     /// <summary>
