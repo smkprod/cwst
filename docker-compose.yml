@@ -1,5 +1,5 @@
-# Локальная разработка: только PostgreSQL.
-# Запуск: docker compose up -d
+version: '3.8'
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -11,6 +11,24 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+
+  api:
+    image: clanwartracker-api
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.api
+    ports:
+      - "5000:8080" # Снаружи 5000, внутри контейнера .NET 8 слушает 8080
+    depends_on:
+      - postgres
+
+  worker:
+    image: clanwartracker-worker
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.worker
+    depends_on:
+      - postgres
 
 volumes:
   pgdata:
