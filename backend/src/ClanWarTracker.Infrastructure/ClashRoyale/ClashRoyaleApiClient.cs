@@ -67,7 +67,8 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
                     {
                         Tag = c!.Tag,
                         Name = c.Name,
-                        Fame = c.Fame,
+                        // c.Fame во время военного дня часто 0 — реальная слава в сумме участников
+                        Fame = Math.Max(c.Fame, c.Participants?.Sum(p => p.Fame) ?? 0),
                         PeriodPoints = c.PeriodPoints,
                         ParticipantCount = c.Participants?.Count ?? 0,
                         DecksUsedToday = c.Participants?.Sum(p => p.DecksUsedToday) ?? 0,
