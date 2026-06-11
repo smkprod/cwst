@@ -16,11 +16,15 @@ public class SetupClanUseCase(IClashRoyaleApi crApi, IClanRepository clans)
         var name = await crApi.GetClanNameAsync(clanTag, ct);
         if (name is null) return null;
 
-        var existing = await clans.GetByChatIdAsync(chatId, ct);
+        // Ищем запись для этого чата ИЛИ для этого тега (мог остаться от старого чата)
+        var existing = await clans.GetByChatIdAsync(chatId, ct)
+                       ?? await clans.GetByTagAsync(clanTag, ct);
+
         if (existing is not null)
         {
             existing.ClanTag = clanTag;
             existing.Name = name;
+            existing.TelegramChatId = chatId;
         }
         else
         {

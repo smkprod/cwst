@@ -16,7 +16,8 @@ public static class DependencyInjection
     {
         // БД: на хостинге (Render) — PostgreSQL через env DATABASE_URL,
         // локально — SQLite из ConnectionStrings:Default
-        var databaseUrl = config["DATABASE_URL"];
+        // Trim: хвостовой пробел/перенос строки при вставке в Render ломает строку подключения
+        var databaseUrl = config["DATABASE_URL"]?.Trim();
         if (!string.IsNullOrEmpty(databaseUrl))
         {
             services.AddDbContext<AppDbContext>(o =>
@@ -36,9 +37,15 @@ public static class DependencyInjection
         var crToken = CleanToken(config["CLASH_ROYALE_API_TOKEN"]) ?? CleanToken(config["ClashRoyale:ApiToken"]);
         var botToken = CleanToken(config["TELEGRAM_BOT_TOKEN"]) ?? CleanToken(config["Telegram:BotToken"]);
 
+        // База CR API настраивается: на хостинге с плавающим IP (Render free) используем
+        // прокси RoyaleAPI (https://proxy.royaleapi.dev/v1/) — в ключе тогда один IP 45.79.218.79.
+        var crBaseUrl = config["CLASH_ROYALE_API_BASE_URL"]?.Trim();
+        if (string.IsNullOrEmpty(crBaseUrl)) crBaseUrl = "https://api.clashroyale.com/v1/";
+        if (!crBaseUrl.EndsWith('/')) crBaseUrl += "/";
+
         services.AddHttpClient<IClashRoyaleApi, ClashRoyaleApiClient>(http =>
         {
-            http.BaseAddress = new Uri("https://api.clashroyale.com/v1/");
+            http.BaseAddress = new Uri(crBaseUrl);
             http.DefaultRequestHeaders.Authorization =
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", crToken);
         });
@@ -104,7 +111,9 @@ public static class DependencyInjection
         var port = uri.Port > 0 ? uri.Port : 5432;
         var database = uri.AbsolutePath.TrimStart('/');
 
+        // Internal Render host (dpg-*) не требует SSL; внешние хосты — требуют.
+        // SSL Mode=Prefer: используем SSL если доступен, иначе без него.
         return $"Host={uri.Host};Port={port};Database={database};Username={user};Password={pass};" +
-               "SSL Mode=Require;Trust Server Certificate=true";
+               "SSL Mode=Prefer;Trust Server Certificate=true";
     }
 }

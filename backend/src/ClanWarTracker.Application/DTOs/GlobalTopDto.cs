@@ -1,5 +1,6 @@
 namespace ClanWarTracker.Application.DTOs;
 
+/// <summary>Игрок в глобальном топе бота (среди привязавших аккаунт, по всем кланам).</summary>
 public record GlobalTopPlayerDto(
     string PlayerTag,
     string Name,
@@ -11,7 +12,4 @@ public record GlobalTopPlayerDto(
     int Rank,
     bool IsMe);
 
-public record GlobalTopDto(
-    int WeeksWindow,
-    int PlayersTracked,
-    IReadOnlyList<GlobalTopPlayerDto> Players);
+public record GlobalTopDto(int WeeksWindow, int PlayersTracked, List<GlobalTopPlayerDto> Players);

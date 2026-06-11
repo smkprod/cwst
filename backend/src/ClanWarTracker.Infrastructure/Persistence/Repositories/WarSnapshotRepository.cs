@@ -73,9 +73,10 @@ public class WarSnapshotRepository(AppDbContext db) : IWarSnapshotRepository
             .ToList();
     }
 
-    public async Task<List<PlayerWarSnapshot>> GetPlayersHistoryAsync(
-        IReadOnlyCollection<string> playerTags, int weeks, CancellationToken ct = default)
+    public async Task<List<PlayerWarSnapshot>> GetPlayersHistoryAsync(IReadOnlyCollection<string> playerTags,
+        int weeks, CancellationToken ct = default)
     {
+        // Аналог GetPlayerHistoryAsync, но одним запросом на всех привязанных игроков
         var rows = await db.PlayerWarSnapshots
             .Include(p => p.Snapshot)!.ThenInclude(s => s!.Clan)
             .Where(p => playerTags.Contains(p.PlayerTag))
@@ -86,13 +87,11 @@ public class WarSnapshotRepository(AppDbContext db) : IWarSnapshotRepository
             .GroupBy(r => (r.PlayerTag, r.Snapshot!.SeasonId, r.Snapshot.SectionIndex, r.Snapshot.ClanId))
             .Select(g => g.OrderByDescending(r => r.Snapshot!.PeriodIndex)
                           .ThenByDescending(r => r.Snapshot!.CapturedAtUtc).First())
-            .Where(r =>
-            {
-                // Keep only snapshots within the requested week window (globally, not per-player)
-                return true; // filtering by weeks done in use-case for simplicity
-            })
-            .OrderByDescending(r => r.Snapshot!.SeasonId)
-            .ThenByDescending(r => r.Snapshot!.SectionIndex)
+            .GroupBy(r => r.PlayerTag)
+            .SelectMany(g => g
+                .OrderByDescending(r => r.Snapshot!.SeasonId)
+                .ThenByDescending(r => r.Snapshot!.SectionIndex)
+                .Take(weeks))
             .ToList();
     }
 
