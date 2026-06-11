@@ -41,7 +41,8 @@ public record PlayerStatusDto(
     int ProjectedWeekFame,    // прогноз славы к концу недели
     int Rank,                 // место в клане по славе
     string Status,            // "played" | "timeLeft" | "notPlayed"
-    bool IsLinked);
+    bool IsLinked,
+    int ConsecutiveWars);     // Pro: сколько недель подряд участвовал (0 на Free)
 
 public record ClanStatsDto(
     int TotalFame,

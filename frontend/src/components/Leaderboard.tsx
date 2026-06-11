@@ -4,6 +4,7 @@ import type { GlobalTop, Plan, PlayerStatus, SeasonStats } from '../types'
 import { fmt } from '../lib/format'
 import { haptic } from '../lib/telegram'
 import { PlayerInfoModal } from './PlayerInfoModal'
+import { HistoryCard } from './HistoryCard'
 
 interface Props {
   players: PlayerStatus[]
@@ -92,9 +93,16 @@ export function Leaderboard({ players, myPlayerTag, plan }: Props) {
         </div>
       </div>
 
-      {mode === 'week' && <WeekBoard players={players} myPlayerTag={myPlayerTag} onOpen={openByTag} />}
+      {mode === 'week' && <WeekBoard players={players} myPlayerTag={myPlayerTag} onOpen={openByTag} plan={plan} />}
       {mode === 'season' && <SeasonBoard state={season} myPlayerTag={myPlayerTag} onOpen={openByTag} />}
       {mode === 'global' && <GlobalBoard state={global} />}
+
+      {mode !== 'global' && (
+        <>
+          <div style={{ height: 12 }} />
+          <HistoryCard plan={plan} />
+        </>
+      )}
 
       {selected && (
         <PlayerInfoModal
@@ -108,8 +116,8 @@ export function Leaderboard({ players, myPlayerTag, plan }: Props) {
 }
 
 /* --- Недельный зачёт --- */
-function WeekBoard({ players, myPlayerTag, onOpen }: {
-  players: PlayerStatus[]; myPlayerTag?: string; onOpen: (tag: string) => void
+function WeekBoard({ players, myPlayerTag, onOpen, plan }: {
+  players: PlayerStatus[]; myPlayerTag?: string; onOpen: (tag: string) => void; plan: Plan
 }) {
   const sorted = [...players].sort((a, b) => a.rank - b.rank)
   const podium = sorted.slice(0, 3)
@@ -158,6 +166,11 @@ function WeekBoard({ players, myPlayerTag, onOpen }: {
               <span className="rating-name">
                 {p.name}
                 {p.playerTag === myPlayerTag && <span className="me-badge">ты</span>}
+                {plan === 'pro' && p.consecutiveWars >= 3 && (
+                  <span className="streak-badge" title={`${p.consecutiveWars} недель подряд`}>
+                    🔥{p.consecutiveWars}
+                  </span>
+                )}
               </span>
               <span className="rating-avg muted">{p.avgFamePerAttack > 0 ? `${Math.round(p.avgFamePerAttack)}/атака` : ''}</span>
               <span className="rating-fame">{fmt(p.fame)} 🏅</span>
