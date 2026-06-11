@@ -4,6 +4,7 @@ import { haptic } from './lib/telegram'
 import type { ClanStatus } from './types'
 import { WarHeader } from './components/WarHeader'
 import { ForecastCard } from './components/ForecastCard'
+import { RaceCard } from './components/RaceCard'
 import { StatsStrip } from './components/StatsStrip'
 import { PlayerList } from './components/PlayerList'
 import { Leaderboard } from './components/Leaderboard'
@@ -17,6 +18,7 @@ import { LinkPrompt } from './components/LinkPrompt'
 type State =
   | { kind: 'loading' }
   | { kind: 'notLinked' }
+  | { kind: 'notInTelegram' }
   | { kind: 'error'; message: string }
   | { kind: 'ready'; data: ClanStatus }
 
@@ -33,6 +35,8 @@ export default function App() {
     } catch (e) {
       if (e instanceof ApiError && e.code === 'player_not_linked') {
         setState({ kind: 'notLinked' })
+      } else if (e instanceof ApiError && (e.code === 'no_init_data' || e.code === 'bad_init_data')) {
+        setState({ kind: 'notInTelegram' })
       } else {
         setState({ kind: 'error', message: e instanceof Error ? e.message : 'Ошибка сети' })
       }
@@ -60,6 +64,17 @@ export default function App() {
       )
     case 'notLinked':
       return <LinkPrompt />
+    case 'notInTelegram':
+      return (
+        <div className="center">
+          <p style={{ fontSize: 40, margin: 0 }}>🔒</p>
+          <p><strong>Открой приложение через Telegram</strong></p>
+          <p className="muted small" style={{ maxWidth: 280, textAlign: 'center' }}>
+            Зайди в группу клана или в чат с ботом и открой Mini App кнопкой —
+            при открытии по обычной ссылке Telegram не передаёт данные для входа.
+          </p>
+        </div>
+      )
     case 'error':
       return (
         <div className="center">
@@ -85,6 +100,7 @@ export default function App() {
             {tab === 'war' && (
               <div className="fade-in">
                 <WarHeader status={data} />
+                <RaceCard race={data.race} periodType={data.periodType} />
                 <ForecastCard forecast={data.forecast} stats={data.stats} periodType={data.periodType} />
                 <StatsStrip stats={data.stats} />
                 {data.isAdmin && isPro && data.periodType !== 'training' && (

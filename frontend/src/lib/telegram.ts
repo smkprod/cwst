@@ -10,6 +10,7 @@ interface TelegramWebApp {
     notificationOccurred(type: 'error' | 'success' | 'warning'): void
   }
   openTelegramLink?(url: string): void
+  openLink?(url: string): void
 }
 
 declare global {
@@ -34,6 +35,12 @@ export function haptic(style: 'light' | 'medium' | 'heavy' = 'light') {
 
 export function hapticNotify(type: 'error' | 'success' | 'warning') {
   tg?.HapticFeedback?.notificationOccurred(type)
+}
+
+/** Открыть внешнюю ссылку (браузер поверх Mini App). */
+export function openExternalLink(url: string) {
+  if (tg?.openLink) tg.openLink(url)
+  else window.open(url, '_blank')
 }
 
 /** Поделиться текстом через нативный share-диалог Telegram. */

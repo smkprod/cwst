@@ -143,18 +143,18 @@ public class WarForecastService
         var warDaysPassed = WarDaysPassed(war.PeriodIndex);
         var remainingWarDays = RemainingWarDays(war.PeriodIndex);
 
-        // 1) средняя слава за атаку: у самого игрока, иначе по клану, иначе база 150.
-        //    Всегда в игровых границах 100..250 за колоду.
-        var avgFame = p.DecksUsed > 0
-            ? ClampFamePerDeck((double)p.Fame / p.DecksUsed)
+        // 1) средняя слава за ВОЕННУЮ атаку (тренировочные колоды не считаем —
+        //    они входят в DecksUsed, но славы не дают). Границы по правилам: 100..250.
+        var avgFame = p.WarDecksUsed > 0
+            ? ClampFamePerDeck((double)p.Fame / p.WarDecksUsed)
             : ClampFamePerDeck(clanAvgFamePerAttack > 0 ? clanAvgFamePerAttack : BaselineFamePerDeck);
 
         if (!canStillAttack)
             return new PlayerProjection(avgFame, p.Fame, p.Fame);
 
-        // 2) посещаемость: как полно игрок использует свои 4 колоды в среднем за день войны
+        // 2) посещаемость: как полно игрок использует свои 4 военные колоды в среднем за день
         var attendance = warDaysPassed > 0
-            ? Math.Clamp(p.DecksUsed / (double)(warDaysPassed * DecksPerDayPerPlayer), 0, 1)
+            ? Math.Clamp(p.WarDecksUsed / (double)(warDaysPassed * DecksPerDayPerPlayer), 0, 1)
             : (war.IsWarDay ? 0.85 : 0.7); // на старте — оптимистичная база
 
         // 3) сегодня атаки возможны только в военный день (тренировка славы не даёт)
