@@ -10,7 +10,8 @@ namespace ClanWarTracker.Api.Controllers;
 public class PlayerController(
     IPlayerRepository players,
     IWarSnapshotRepository snapshots,
-    GetPlayerStatsUseCase getStats) : ControllerBase
+    GetPlayerStatsUseCase getStats,
+    GetGlobalTopUseCase getGlobalTop) : ControllerBase
 {
     /// <summary>GET /api/players/me — текущий привязанный игрок.</summary>
     [HttpGet("me")]
@@ -38,6 +39,15 @@ public class PlayerController(
                 : NotFound(new { error = "not_in_current_war", message = "Игрока нет в текущем составе войны" });
         }
         return Ok(stats);
+    }
+
+    /// <summary>GET /api/players/top — глобальный топ за последние 8 недель (только привязанные).</summary>
+    [HttpGet("top")]
+    public async Task<IActionResult> GlobalTop(CancellationToken ct)
+    {
+        var userId = HttpContext.Items.TryGetValue("TelegramUserId", out var uid) ? (long?)uid : null;
+        var result = await getGlobalTop.ExecuteAsync(userId, ct);
+        return Ok(result);
     }
 
     /// <summary>

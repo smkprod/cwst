@@ -1,5 +1,5 @@
 import { initData } from './telegram'
-import type { ClanHistory, ClanStatus, MyStats, NudgeResult, OwnerClan, PlayerHistory, SeasonStats } from '../types'
+import type { ClanHistory, ClanStatus, GlobalTop, MyStats, NudgeResult, OwnerClan, PlayerHistory, SeasonStats } from '../types'
 
 // Если мы на Render (production), BASE должен быть пустой строкой '', чтобы запросы шли на тот же домен.
 // Для локальной разработки (Development) оставляем localhost:5000.
@@ -48,6 +48,7 @@ export const api = {
     }),
   getMyClanHistory: (weeks = 8) => request<ClanHistory>(`/api/clans/my/history?weeks=${weeks}`),
   getMyClanSeason: () => request<SeasonStats>('/api/clans/my/season'),
+  getGlobalTop: () => request<GlobalTop>('/api/players/top'),
 
   // Панель владельца
   ownerGetClans: () => request<OwnerClan[]>('/api/owner/clans'),
