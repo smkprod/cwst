@@ -3,7 +3,7 @@ WORKDIR /src
 
 COPY . .
 
-# Убираем backend/, оставляем только src/
+# Путь строго с src/ (без backend/)
 RUN dotnet restore src/ClanWarTracker.Api/ClanWarTracker.Api.csproj
 RUN dotnet publish src/ClanWarTracker.Api/ClanWarTracker.Api.csproj -c Release -o /app/publish
 
