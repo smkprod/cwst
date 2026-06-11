@@ -2,31 +2,16 @@
 FROM node:20-alpine AS frontend-build
 WORKDIR /frontend-src
 
-# Копируем package.json напрямую из папки фронтенда
+# Запрашиваем переменную у сборщика Docker
+ARG VITE_API_URL
+# Делаем её доступной для Vite во время npm run build
+ENV VITE_API_URL=$VITE_API_URL
+
 COPY frontend/package*.json ./
 RUN npm install
 
-# Копируем весь исходный код фронтенда
 COPY frontend/ ./
 RUN npm run build
 
 # === ЭТАП 2: Собираем .NET API ===
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
-WORKDIR /src
-
-# Копируем всё содержимое репозитория
-COPY . .
-
-RUN dotnet restore backend/src/ClanWarTracker.Api/ClanWarTracker.Api.csproj
-RUN dotnet publish backend/src/ClanWarTracker.Api/ClanWarTracker.Api.csproj -c Release -o /app/publish
-
-# === ЭТАП 3: Финальный образ ===
-FROM mcr.microsoft.com/dotnet/aspnet:9.0
-WORKDIR /app
-
-COPY --from=build /app/publish .
-
-# Копируем собранный фронтенд в папку wwwroot
-COPY --from=frontend-build /frontend-src/dist ./wwwroot
-
-ENTRYPOINT ["dotnet", "ClanWarTracker.Api.dll"]
+# ... дальше всё без изменений ...
