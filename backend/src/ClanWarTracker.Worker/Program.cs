@@ -22,4 +22,14 @@ var host = builder.Build();
 // Воркер тоже создаёт схему БД: на хостинге он может стартовать раньше API
 await DependencyInjection.InitDatabaseAsync(host.Services);
 
+// Логируем outbound IP — нужно для настройки токена Clash Royale API
+try
+{
+    using var http = new HttpClient();
+    var ip = await http.GetStringAsync("https://api.ipify.org");
+    host.Services.GetRequiredService<ILogger<Program>>()
+        .LogInformation("=== OUTBOUND IP: {Ip} (добавь в токен CR API на developer.clashroyale.com) ===", ip.Trim());
+}
+catch { /* не критично */ }
+
 host.Run();
