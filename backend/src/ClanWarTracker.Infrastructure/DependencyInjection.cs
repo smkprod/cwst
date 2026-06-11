@@ -37,9 +37,15 @@ public static class DependencyInjection
         var crToken = CleanToken(config["CLASH_ROYALE_API_TOKEN"]) ?? CleanToken(config["ClashRoyale:ApiToken"]);
         var botToken = CleanToken(config["TELEGRAM_BOT_TOKEN"]) ?? CleanToken(config["Telegram:BotToken"]);
 
+        // База CR API настраивается: на хостинге с плавающим IP (Render free) используем
+        // прокси RoyaleAPI (https://proxy.royaleapi.dev/v1/) — в ключе тогда один IP 45.79.218.79.
+        var crBaseUrl = config["CLASH_ROYALE_API_BASE_URL"]?.Trim();
+        if (string.IsNullOrEmpty(crBaseUrl)) crBaseUrl = "https://api.clashroyale.com/v1/";
+        if (!crBaseUrl.EndsWith('/')) crBaseUrl += "/";
+
         services.AddHttpClient<IClashRoyaleApi, ClashRoyaleApiClient>(http =>
         {
-            http.BaseAddress = new Uri("https://api.clashroyale.com/v1/");
+            http.BaseAddress = new Uri(crBaseUrl);
             http.DefaultRequestHeaders.Authorization =
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", crToken);
         });
