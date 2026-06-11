@@ -43,6 +43,36 @@ public class WarSnapshotRepository(AppDbContext db) : IWarSnapshotRepository
             .OrderBy(s => s.SectionIndex).ThenBy(s => s.PeriodIndex)
             .ToListAsync(ct);
 
+    public Task<WarSnapshot?> GetSnapshotAsync(int clanId, int seasonId, int sectionIndex, int periodIndex,
+        CancellationToken ct = default) =>
+        db.WarSnapshots
+            .Include(s => s.Players)
+            .FirstOrDefaultAsync(s =>
+                s.ClanId == clanId &&
+                s.SeasonId == seasonId &&
+                s.SectionIndex == sectionIndex &&
+                s.PeriodIndex == periodIndex, ct);
+
+    public async Task<List<PlayerWarSnapshot>> GetPlayerHistoryAsync(string playerTag, int weeks,
+        CancellationToken ct = default)
+    {
+        // Все записи игрока (масштабы MVP позволяют), финал недели выбираем в памяти
+        var rows = await db.PlayerWarSnapshots
+            .Include(p => p.Snapshot)!.ThenInclude(s => s!.Clan)
+            .Where(p => p.PlayerTag == playerTag)
+            .ToListAsync(ct);
+
+        return rows
+            .Where(r => r.Snapshot is not null)
+            .GroupBy(r => (r.Snapshot!.SeasonId, r.Snapshot.SectionIndex, r.Snapshot.ClanId))
+            .Select(g => g.OrderByDescending(r => r.Snapshot!.PeriodIndex)
+                          .ThenByDescending(r => r.Snapshot!.CapturedAtUtc).First())
+            .OrderByDescending(r => r.Snapshot!.SeasonId)
+            .ThenByDescending(r => r.Snapshot!.SectionIndex)
+            .Take(weeks)
+            .ToList();
+    }
+
     public async Task<int?> GetLatestSeasonIdAsync(int clanId, CancellationToken ct = default) =>
         await db.WarSnapshots
             .Where(s => s.ClanId == clanId)

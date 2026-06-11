@@ -4,7 +4,8 @@ export interface PlayerStatus {
   playerTag: string
   name: string
   decksUsedToday: number
-  decksUsed: number          // суммарно за неделю
+  decksUsed: number          // суммарно за неделю (включая тренировку)
+  warDecksUsed: number       // только военные атаки
   fame: number
   repairPoints: number
   boatAttacks: number
@@ -40,6 +41,39 @@ export interface ClanForecast {
 
 export type Plan = 'free' | 'pro'
 
+/** Один клан в таблице гонки недели. */
+export interface RaceClan {
+  tag: string
+  name: string
+  position: number           // 1..5
+  fame: number
+  periodPoints: number       // очки текущего дня
+  projectedFame: number      // прогноз славы к концу недели
+  avgFamePerAttack: number
+  decksUsedToday: number
+  maxDecksToday: number
+  isOurClan: boolean
+  isFinished: boolean
+}
+
+/** История войн игрока (по данным сервиса). */
+export interface PlayerWeekHistory {
+  seasonId: number
+  sectionIndex: number
+  isColosseum: boolean
+  clanTag: string
+  clanName: string
+  fame: number
+  decksUsed: number
+  avgFamePerAttack: number
+}
+
+export interface PlayerHistory {
+  playerTag: string
+  royaleApiUrl: string
+  weeks: PlayerWeekHistory[]
+}
+
 export interface ClanStatus {
   clanTag: string
   clanName: string
@@ -50,6 +84,7 @@ export interface ClanStatus {
   plan: Plan
   stats: ClanStats
   forecast: ClanForecast | null   // null на Free-тарифе
+  race: RaceClan[]                // ситуация в гонке (все кланы недели)
   players: PlayerStatus[]
   myPlayerTag?: string       // тег текущего пользователя (если /my/status)
   isAdmin?: boolean          // админ ли текущий пользователь в группе клана

@@ -10,13 +10,29 @@ public record ClanStatusDto(
     string Plan,              // "free" | "pro"
     ClanStatsDto Stats,
     ClanForecastDto? Forecast, // null на Free-тарифе
+    List<RaceClanDto> Race,   // все кланы гонки, отсортированы по месту
     List<PlayerStatusDto> Players);
+
+/// <summary>Один клан в таблице гонки (наш или соперник).</summary>
+public record RaceClanDto(
+    string Tag,
+    string Name,
+    int Position,             // 1..5 (финишировавшие выше)
+    int Fame,                 // слава за неделю
+    int PeriodPoints,         // очки текущего дня
+    int ProjectedFame,        // прогноз славы к концу недели
+    double AvgFamePerAttack,  // средняя слава за военную атаку
+    int DecksUsedToday,
+    int MaxDecksToday,
+    bool IsOurClan,
+    bool IsFinished);
 
 public record PlayerStatusDto(
     string PlayerTag,
     string Name,
     int DecksUsedToday,
-    int DecksUsed,            // суммарно за неделю
+    int DecksUsed,            // суммарно за неделю (включая тренировку)
+    int WarDecksUsed,         // только военные атаки
     int Fame,
     int RepairPoints,
     int BoatAttacks,

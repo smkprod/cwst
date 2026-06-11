@@ -332,6 +332,58 @@ main.with-tabbar { padding-bottom: 80px; }
 .owner-delete { margin-left: auto; }
 .owner-delete-hint { margin: 8px 2px 0; }
 
+/* --- Гонка недели (standings, стиль cwstats) --- */
+.race-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.race-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px; border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+}
+.race-ours {
+  background: rgba(82, 136, 193, 0.12);
+  outline: 1px solid rgba(82, 136, 193, 0.35);
+}
+.race-pos {
+  flex: none; width: 26px; height: 26px; border-radius: 8px;
+  display: grid; place-items: center;
+  font-size: 13px; font-weight: 800;
+  background: rgba(255, 255, 255, 0.08); color: var(--muted);
+}
+.race-pos-gold { background: linear-gradient(135deg, var(--gold), #ff9f43); color: #1a1a1a; }
+.race-info { flex: 1; min-width: 0; display: grid; gap: 3px; }
+.race-name {
+  font-size: 14px; font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.race-bar-track { height: 4px; border-radius: 999px; background: rgba(255, 255, 255, 0.07); overflow: hidden; }
+.race-bar-fill { height: 100%; border-radius: 999px; background: rgba(255, 255, 255, 0.25); transition: width 0.4s ease; }
+.race-bar-ours { background: var(--accent); }
+.race-numbers { flex: none; display: grid; gap: 2px; justify-items: end; }
+.race-fame { font-size: 15px; font-weight: 700; }
+.race-projected { font-size: 11px; color: var(--muted); }
+
+/* --- История игрока в модалке --- */
+.history-block { margin-top: 14px; }
+.history-title { margin-bottom: 8px; }
+.history-weeks { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 6px; }
+.history-week-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 9px; border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+}
+.history-week-badge {
+  flex: none; min-width: 30px; text-align: center;
+  font-size: 12px; font-weight: 800; padding: 3px 5px; border-radius: 7px;
+  background: rgba(82, 136, 193, 0.18); color: #7fb2e5;
+}
+.history-week-info { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.history-week-clan {
+  font-size: 13px; font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.history-week-fame { flex: none; font-size: 13px; font-weight: 700; }
+.history-royaleapi { width: 100%; }
+
 /* --- Настройка автонапоминаний --- */
 .reminder-options { display: flex; flex-wrap: wrap; gap: 6px; }
 .reminder-active { background: var(--accent); color: #fff; }

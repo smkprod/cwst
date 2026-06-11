@@ -34,4 +34,15 @@ public interface IWarSnapshotRepository
 
     /// <summary>Последний сезон, по которому есть данные. null — снимков ещё нет.</summary>
     Task<int?> GetLatestSeasonIdAsync(int clanId, CancellationToken ct = default);
+
+    /// <summary>Один снимок по полному ключу (с игроками). null — не снимали.</summary>
+    Task<WarSnapshot?> GetSnapshotAsync(int clanId, int seasonId, int sectionIndex, int periodIndex,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// История игрока по всем кланам сервиса: финальный снимок каждой недели,
+    /// где игрок участвовал (новые недели первыми). Snapshot и Clan загружены.
+    /// </summary>
+    Task<List<PlayerWarSnapshot>> GetPlayerHistoryAsync(string playerTag, int weeks,
+        CancellationToken ct = default);
 }

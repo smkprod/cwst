@@ -10,6 +10,7 @@ public class GetPlayerStatsUseCase(
     IClashRoyaleApi crApi,
     IClanRepository clans,
     IPlayerRepository players,
+    IWarSnapshotRepository snapshots,
     WarForecastService forecast,
     GetSeasonStatsUseCase seasonStats)
 {
@@ -31,10 +32,18 @@ public class GetPlayerStatsUseCase(
         var now = DateTime.UtcNow;
         var hoursLeft = Math.Max(0, (int)war.TimeLeft(now).TotalHours);
 
-        var totalDecksUsed = war.Participants.Sum(p => p.DecksUsed);
+        // Военные колоды: убираем тренировочные бои из DecksUsed (см. GetClanStatusUseCase)
+        if (war.IsWarDay && war.PeriodIndex > 3)
+        {
+            var firstWarDay = await snapshots.GetSnapshotAsync(
+                clan.Id, war.SeasonId, war.SectionIndex, periodIndex: 3, ct);
+            WarForecastService.RefineWarDecks(war, firstWarDay);
+        }
+
+        var totalWarDecks = war.Participants.Sum(p => p.WarDecksUsed);
         var totalFame = war.Participants.Sum(p => p.Fame);
         // Фолбэк 150 = 50% винрейта (победа 200 / поражение 100)
-        var clanAvgFamePerAttack = totalDecksUsed > 0 ? (double)totalFame / totalDecksUsed : 150.0;
+        var clanAvgFamePerAttack = totalWarDecks > 0 ? (double)totalFame / totalWarDecks : 150.0;
 
         var projection = forecast.ProjectPlayer(me, war, hoursLeft, clanAvgFamePerAttack);
 

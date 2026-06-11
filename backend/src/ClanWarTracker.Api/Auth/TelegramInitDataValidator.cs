@@ -1,56 +1,73 @@
 using System.Security.Cryptography;
 using System.Text;
-using System.Web;
 
 namespace ClanWarTracker.Api.Auth;
 
+/// <summary>
+/// Валидация initData Telegram Mini App по официальной схеме:
+/// https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app
+///
+/// data_check_string собирается из ДЕКОДИРОВАННЫХ значений (Uri.UnescapeDataString,
+/// который в отличие от HttpUtility.ParseQueryString не превращает '+' в пробел),
+/// пары сортируются по ключу, 'hash' исключается.
+/// </summary>
 public static class TelegramInitDataValidator
 {
+    /// <summary>Максимальный возраст initData — сутки (защита от replay).</summary>
+    private const long MaxAgeSeconds = 86400;
+
     public static bool TryValidate(string initData, string botToken, out long telegramUserId)
     {
         telegramUserId = 0;
-
         if (string.IsNullOrWhiteSpace(initData)) return false;
 
-        // 1. Разбиваем сырую строку на пары Ключ=Значение БЕЗ автоматического декодирования
-        var rawPairs = initData.Split('&')
-            .Select(part => part.Split('=', 2))
-            .Where(parts => parts.Length == 2)
-            .ToDictionary(parts => parts[0], parts => parts[1]);
+        // 1. Разбираем query string вручную и декодируем значения ровно один раз
+        var pairs = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var part in initData.Split('&'))
+        {
+            var kv = part.Split('=', 2);
+            if (kv.Length != 2) continue;
+            pairs[kv[0]] = Uri.UnescapeDataString(kv[1]);
+        }
 
-        if (!rawPairs.TryGetValue("hash", out var incomingHash)) return false;
+        if (!pairs.TryGetValue("hash", out var incomingHash) || incomingHash.Length == 0)
+            return false;
 
-        // 2. Собираем data_check_string из оригинальных (закодированных!) значений
-        var sortedPairs = rawPairs
+        // 2. data_check_string: все пары кроме hash, сортировка по ключу, join '\n'
+        var dataCheckString = string.Join('\n', pairs
             .Where(p => p.Key != "hash")
             .OrderBy(p => p.Key, StringComparer.Ordinal)
-            .Select(p => $"{p.Key}={p.Value}");
+            .Select(p => $"{p.Key}={p.Value}"));
 
-        var dataCheckString = string.Join('\n', sortedPairs);
-
-        // 3. Считаем хэш
+        // 3. HMAC-SHA256: secret = HMAC("WebAppData", botToken), hash = HMAC(secret, dcs)
         var secret = HMACSHA256.HashData(Encoding.UTF8.GetBytes("WebAppData"), Encoding.UTF8.GetBytes(botToken));
         var computed = HMACSHA256.HashData(secret, Encoding.UTF8.GetBytes(dataCheckString));
         var computedHex = Convert.ToHexString(computed).ToLowerInvariant();
 
         if (!CryptographicOperations.FixedTimeEquals(
-                Encoding.UTF8.GetBytes(computedHex), Encoding.UTF8.GetBytes(incomingHash)))
+                Encoding.UTF8.GetBytes(computedHex),
+                Encoding.UTF8.GetBytes(incomingHash.ToLowerInvariant())))
             return false;
 
-        // 4. Проверяем дату (ее декодировать не нужно, там просто цифры)
-        if (rawPairs.TryGetValue("auth_date", out var authDateStr) && long.TryParse(authDateStr, out var authDate))
+        // 4. Свежесть
+        if (pairs.TryGetValue("auth_date", out var authDateStr) && long.TryParse(authDateStr, out var authDate))
         {
             var age = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - authDate;
-            if (age > 86400) return false;
+            if (age > MaxAgeSeconds) return false;
         }
 
-        // 5. А вот теперь, когда хэш сошелся, достаем JSON пользователя и ДЕКОДИРУЕМ его для парсинга ID
-        if (!rawPairs.TryGetValue("user", out var rawUserJson)) return false;
-        
-        var decodedUserJson = HttpUtility.UrlDecode(rawUserJson); // Декодируем только тут!
+        // 5. Хэш сошёлся — достаём id пользователя
+        if (!pairs.TryGetValue("user", out var userJson)) return false;
 
-        using var doc = System.Text.Json.JsonDocument.Parse(decodedUserJson);
-        telegramUserId = doc.RootElement.GetProperty("id").GetInt64();
-        return true;
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(userJson);
+            telegramUserId = doc.RootElement.GetProperty("id").GetInt64();
+            return telegramUserId != 0;
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return false;
+        }
     }
 }

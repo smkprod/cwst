@@ -8,6 +8,7 @@ public class GetClanStatusUseCase(
     IClashRoyaleApi crApi,
     IClanRepository clans,
     IPlayerRepository players,
+    IWarSnapshotRepository snapshots,
     WarForecastService forecast)
 {
     /// <summary>За сколько часов до конца дня жёлтый статус превращается в красный.</summary>
@@ -32,11 +33,21 @@ public class GetClanStatusUseCase(
         var now = DateTime.UtcNow;
         var hoursLeft = Math.Max(0, (int)war.TimeLeft(now).TotalHours);
 
-        // Средняя слава за атаку по клану (используется как фолбэк для тех, кто ещё не атаковал).
+        // Уточняем военные колоды по снапшоту первого военного дня:
+        // CR API в DecksUsed считает и тренировочные бои, занижая «славу/атаку»
+        if (clan is not null && war.IsWarDay && war.PeriodIndex > 3)
+        {
+            var firstWarDay = await snapshots.GetSnapshotAsync(
+                clan.Id, war.SeasonId, war.SectionIndex, periodIndex: 3, ct);
+            WarForecastService.RefineWarDecks(war, firstWarDay);
+        }
+
+        // Средняя слава за военную атаку по клану (фолбэк для тех, кто ещё не атаковал).
         // Фолбэк 150 = 50% винрейта (победа 200 / поражение 100).
         var totalDecksUsed = war.Participants.Sum(p => p.DecksUsed);
+        var totalWarDecks = war.Participants.Sum(p => p.WarDecksUsed);
         var totalFame = war.Participants.Sum(p => p.Fame);
-        var clanAvgFamePerAttack = totalDecksUsed > 0 ? (double)totalFame / totalDecksUsed : 150.0;
+        var clanAvgFamePerAttack = totalWarDecks > 0 ? (double)totalFame / totalWarDecks : 150.0;
 
         // В списке участников API могут висеть ушедшие из клана (записей больше 50).
         // Атаковать дальше могут только реальные члены клана — берём 50 самых активных.
@@ -70,6 +81,7 @@ public class GetClanStatusUseCase(
                 Name: x.Participant.Name,
                 DecksUsedToday: x.Participant.DecksUsedToday,
                 DecksUsed: x.Participant.DecksUsed,
+                WarDecksUsed: x.Participant.WarDecksUsed,
                 Fame: x.Participant.Fame,
                 RepairPoints: x.Participant.RepairPoints,
                 BoatAttacks: x.Participant.BoatAttacks,
@@ -101,6 +113,8 @@ public class GetClanStatusUseCase(
             ? forecast.BuildClanForecast(war, playerDtos, hoursLeft)
             : null;
 
+        var race = BuildRace(war, clanAvgFamePerAttack);
+
         return new ClanStatusDto(
             ClanTag: war.ClanTag,
             ClanName: clan?.Name ?? war.ClanTag,
@@ -111,7 +125,73 @@ public class GetClanStatusUseCase(
             Plan: plan == Domain.Enums.PlanTier.Pro ? "pro" : "free",
             Stats: stats,
             Forecast: clanForecast,
+            Race: race,
             Players: playerDtos);
+    }
+
+    /// <summary>
+    /// Таблица гонки: все кланы недели с прогнозом финальной славы (стиль RoyaleAPI:
+    /// прогноз = текущая слава + оставшиеся колоды × средняя слава за колоду × активность).
+    /// </summary>
+    private List<RaceClanDto> BuildRace(Domain.Entities.WarStatus war, double ourAvgFamePerAttack)
+    {
+        var remainingWarDays = war.PeriodIndex < 3 ? 4 : Math.Clamp(6 - war.PeriodIndex, 0, 4);
+
+        var rows = war.RaceClans.Select(c =>
+        {
+            var rosterSize = Math.Min(Math.Max(c.ParticipantCount, 1), MaxClanMembers);
+            var maxDecksToday = war.IsWarDay ? rosterSize * DecksPerDayPerPlayer : 0;
+            var isOurs = string.Equals(c.Tag, war.ClanTag, StringComparison.OrdinalIgnoreCase);
+
+            // Средняя слава за колоду: для своего клана — точная (военные колоды),
+            // для соперников — оценка по неделе в игровых границах 100..250
+            double avg;
+            if (isOurs)
+                avg = ourAvgFamePerAttack;
+            else if (war.IsWarDay && war.PeriodIndex == 3 && c.DecksUsedToday > 0)
+                avg = (double)c.Fame / c.DecksUsedToday; // первый военный день — точно
+            else if (c.DecksUsed > 0)
+                avg = (double)c.Fame / c.DecksUsed;      // включает тренировку — нижняя оценка
+            else
+                avg = 150;
+            avg = Math.Clamp(avg, 100, 250);
+
+            // Активность: какую долю сегодняшних колод клан реально использует
+            var participation = maxDecksToday > 0
+                ? Math.Clamp((double)c.DecksUsedToday / maxDecksToday, 0.4, 1.0)
+                : 0.7;
+
+            var decksLeftToday = Math.Max(0, maxDecksToday - c.DecksUsedToday);
+            var futureDecks = remainingWarDays * rosterSize * DecksPerDayPerPlayer;
+            var projected = c.IsFinished
+                ? c.Fame
+                : c.Fame + (int)Math.Round((decksLeftToday + futureDecks) * participation * avg);
+
+            return new
+            {
+                c.Tag, c.Name, c.Fame, c.PeriodPoints, c.IsFinished,
+                c.DecksUsedToday, MaxDecksToday = maxDecksToday,
+                Avg = Math.Round(avg, 1), Projected = projected, IsOurs = isOurs,
+            };
+        })
+        // Места: финишировавшие выше всех, дальше по славе
+        .OrderByDescending(r => r.IsFinished)
+        .ThenByDescending(r => r.Fame)
+        .Select((r, i) => new RaceClanDto(
+            Tag: r.Tag,
+            Name: r.Name,
+            Position: i + 1,
+            Fame: r.Fame,
+            PeriodPoints: r.PeriodPoints,
+            ProjectedFame: r.Projected,
+            AvgFamePerAttack: r.Avg,
+            DecksUsedToday: r.DecksUsedToday,
+            MaxDecksToday: r.MaxDecksToday,
+            IsOurClan: r.IsOurs,
+            IsFinished: r.IsFinished))
+        .ToList();
+
+        return rows;
     }
 
     public static WarPlayStatus Classify(int decksUsed, int hoursLeft, bool isWarDay)
