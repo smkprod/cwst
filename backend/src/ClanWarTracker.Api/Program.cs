@@ -14,6 +14,7 @@ builder.Services.AddScoped<NudgePlayersUseCase>();
 builder.Services.AddScoped<SetClanPlanUseCase>();
 builder.Services.AddScoped<LinkPlayerUseCase>();
 builder.Services.AddScoped<SetupClanUseCase>();
+builder.Services.AddScoped<GetGlobalTopUseCase>();
 builder.Services.AddControllers();
 
 builder.Services.AddCors(o => o.AddDefaultPolicy(p => p
