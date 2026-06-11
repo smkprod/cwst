@@ -26,6 +26,16 @@ var app = builder.Build();
 // Схема БД при старте: SQLite — миграции, PostgreSQL (Render) — EnsureCreated, с ретраями
 await DependencyInjection.InitDatabaseAsync(app.Services);
 
+// Логируем outbound IP — нужно для настройки токена Clash Royale API
+try
+{
+    using var ipHttp = new HttpClient();
+    var ip = await ipHttp.GetStringAsync("https://api.ipify.org");
+    app.Services.GetRequiredService<ILogger<Program>>()
+        .LogInformation("=== OUTBOUND IP: {Ip} (добавь в токен CR API на developer.clashroyale.com) ===", ip.Trim());
+}
+catch { /* не критично */ }
+
 app.UseCors();
 app.UseMiddleware<TelegramAuthMiddleware>();
 app.MapControllers();
