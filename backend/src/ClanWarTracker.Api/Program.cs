@@ -25,7 +25,7 @@ builder.Services.AddCors(o => o.AddDefaultPolicy(p => p
 
 var app = builder.Build();
 
-// Автоматические миграции при старте (для MVP; в проде — отдельный шаг CI/CD)
+// Автоматические миграции при старте
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -36,5 +36,16 @@ app.UseCors();
 app.UseMiddleware<TelegramAuthMiddleware>();
 app.MapControllers();
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+
+// ==========================================
+// ДОБАВЬТЕ ЭТИ СТРОКИ СЮДА (ПЕРЕД app.Run())
+// ==========================================
+app.UseDefaultFiles(); // Ищет index.html в папке wwwroot по умолчанию
+app.UseStaticFiles();  // Разрешает раздачу js, css, картинок из wwwroot
+
+// Если пользователь перейдет по любому другому пути (например, в самом React-роутере),
+// сервер вернет ему index.html, чтобы фронтенд сам обработал этот роут
+app.MapFallbackToFile("index.html"); 
+// ==========================================
 
 app.Run();
