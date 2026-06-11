@@ -17,6 +17,8 @@ public interface IPlayerRepository
 {
     Task<Player?> GetByTelegramIdAsync(long telegramUserId, CancellationToken ct = default);
     Task<List<Player>> GetByClanIdAsync(int clanId, CancellationToken ct = default);
+    /// <summary>Все игроки, привязавшие Telegram (/link), с загруженным кланом.</summary>
+    Task<List<Player>> GetAllLinkedAsync(CancellationToken ct = default);
     Task AddAsync(Player player, CancellationToken ct = default);
     Task SaveChangesAsync(CancellationToken ct = default);
 }
@@ -44,5 +46,12 @@ public interface IWarSnapshotRepository
     /// где игрок участвовал (новые недели первыми). Snapshot и Clan загружены.
     /// </summary>
     Task<List<PlayerWarSnapshot>> GetPlayerHistoryAsync(string playerTag, int weeks,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// То же, что GetPlayerHistoryAsync, но для набора игроков сразу
+    /// (глобальный топ): до N последних недель на каждого игрока.
+    /// </summary>
+    Task<List<PlayerWarSnapshot>> GetPlayersHistoryAsync(IReadOnlyCollection<string> playerTags, int weeks,
         CancellationToken ct = default);
 }

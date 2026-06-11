@@ -16,7 +16,8 @@ public static class DependencyInjection
     {
         // БД: на хостинге (Render) — PostgreSQL через env DATABASE_URL,
         // локально — SQLite из ConnectionStrings:Default
-        var databaseUrl = config["DATABASE_URL"];
+        // Trim: хвостовой пробел/перенос строки при вставке в Render ломает строку подключения
+        var databaseUrl = config["DATABASE_URL"]?.Trim();
         if (!string.IsNullOrEmpty(databaseUrl))
         {
             services.AddDbContext<AppDbContext>(o =>
