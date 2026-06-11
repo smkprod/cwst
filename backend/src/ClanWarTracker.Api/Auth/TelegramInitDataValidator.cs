@@ -4,47 +4,52 @@ using System.Web;
 
 namespace ClanWarTracker.Api.Auth;
 
-/// <summary>
-/// Валидация initData из Telegram Mini App.
-/// Алгоритм: secret = HMAC_SHA256(key: "WebAppData", data: bot_token);
-///           hash   = HMAC_SHA256(key: secret, data: data_check_string).
-/// https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app
-/// </summary>
 public static class TelegramInitDataValidator
 {
     public static bool TryValidate(string initData, string botToken, out long telegramUserId)
     {
         telegramUserId = 0;
-        var query = HttpUtility.ParseQueryString(initData);
-        var hash = query["hash"];
-        if (string.IsNullOrEmpty(hash)) return false;
 
-        // data_check_string: все поля кроме hash, отсортированы, через \n
-        var pairs = query.AllKeys!
-            .Where(k => k is not null && k != "hash")
-            .OrderBy(k => k, StringComparer.Ordinal)
-            .Select(k => $"{k}={query[k]}");
-        var dataCheckString = string.Join('\n', pairs);
+        if (string.IsNullOrWhiteSpace(initData)) return false;
 
+        // 1. Разбиваем сырую строку на пары Ключ=Значение БЕЗ автоматического декодирования
+        var rawPairs = initData.Split('&')
+            .Select(part => part.Split('=', 2))
+            .Where(parts => parts.Length == 2)
+            .ToDictionary(parts => parts[0], parts => parts[1]);
+
+        if (!rawPairs.TryGetValue("hash", out var incomingHash)) return false;
+
+        // 2. Собираем data_check_string из оригинальных (закодированных!) значений
+        var sortedPairs = rawPairs
+            .Where(p => p.Key != "hash")
+            .OrderBy(p => p.Key, StringComparer.Ordinal)
+            .Select(p => $"{p.Key}={p.Value}");
+
+        var dataCheckString = string.Join('\n', sortedPairs);
+
+        // 3. Считаем хэш
         var secret = HMACSHA256.HashData(Encoding.UTF8.GetBytes("WebAppData"), Encoding.UTF8.GetBytes(botToken));
         var computed = HMACSHA256.HashData(secret, Encoding.UTF8.GetBytes(dataCheckString));
         var computedHex = Convert.ToHexString(computed).ToLowerInvariant();
 
         if (!CryptographicOperations.FixedTimeEquals(
-                Encoding.UTF8.GetBytes(computedHex), Encoding.UTF8.GetBytes(hash)))
+                Encoding.UTF8.GetBytes(computedHex), Encoding.UTF8.GetBytes(incomingHash)))
             return false;
 
-        // auth_date не старше 24 часов — защита от повторов
-        if (long.TryParse(query["auth_date"], out var authDate))
+        // 4. Проверяем дату (ее декодировать не нужно, там просто цифры)
+        if (rawPairs.TryGetValue("auth_date", out var authDateStr) && long.TryParse(authDateStr, out var authDate))
         {
             var age = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - authDate;
             if (age > 86400) return false;
         }
 
-        // user = {"id":123, ...}
-        var userJson = query["user"];
-        if (userJson is null) return false;
-        using var doc = System.Text.Json.JsonDocument.Parse(userJson);
+        // 5. А вот теперь, когда хэш сошелся, достаем JSON пользователя и ДЕКОДИРУЕМ его для парсинга ID
+        if (!rawPairs.TryGetValue("user", out var rawUserJson)) return false;
+        
+        var decodedUserJson = HttpUtility.UrlDecode(rawUserJson); // Декодируем только тут!
+
+        using var doc = System.Text.Json.JsonDocument.Parse(decodedUserJson);
         telegramUserId = doc.RootElement.GetProperty("id").GetInt64();
         return true;
     }
