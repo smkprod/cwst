@@ -10,8 +10,20 @@ namespace ClanWarTracker.Api.Controllers;
 public class PlayerController(
     IPlayerRepository players,
     IWarSnapshotRepository snapshots,
-    GetPlayerStatsUseCase getStats) : ControllerBase
+    GetPlayerStatsUseCase getStats,
+    GetGlobalTopUseCase getGlobalTop) : ControllerBase
 {
+    /// <summary>
+    /// GET /api/players/top — глобальный топ игроков, привязавших аккаунт к боту,
+    /// по всем кланам сервиса (слава за последние недели).
+    /// </summary>
+    [HttpGet("top")]
+    public async Task<IActionResult> GlobalTop(CancellationToken ct)
+    {
+        var userId = (long)HttpContext.Items["TelegramUserId"]!;
+        return Ok(await getGlobalTop.ExecuteAsync(userId, ct));
+    }
+
     /// <summary>GET /api/players/me — текущий привязанный игрок.</summary>
     [HttpGet("me")]
     public async Task<IActionResult> Me(CancellationToken ct)

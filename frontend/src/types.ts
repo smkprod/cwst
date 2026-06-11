@@ -174,6 +174,25 @@ export interface SeasonStats {
   players: SeasonPlayer[]
 }
 
+/* --- Глобальный топ бота (все кланы, привязанные игроки) --- */
+export interface GlobalTopPlayer {
+  playerTag: string
+  name: string
+  clanName: string
+  totalFame: number
+  weeksParticipated: number
+  bestWeekFame: number
+  avgFamePerAttack: number
+  rank: number
+  isMe: boolean
+}
+
+export interface GlobalTop {
+  weeksWindow: number
+  playersTracked: number
+  players: GlobalTopPlayer[]
+}
+
 /* --- Панель владельца --- */
 export interface OwnerClan {
   id: number

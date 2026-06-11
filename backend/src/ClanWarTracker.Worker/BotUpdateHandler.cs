@@ -125,7 +125,7 @@ public class BotUpdateHandler(
                 HttpRequestException =>
                     "⚠️ Clash Royale API недоступен. Попробуй через пару минут.",
                 Microsoft.EntityFrameworkCore.DbUpdateException or System.Data.Common.DbException =>
-                    "⚠️ База данных недоступна. Админ, проверь DATABASE_URL.",
+                    $"⚠️ База данных недоступна. Админ, проверь DATABASE_URL.\nДетали: {Describe(ex)}",
                 // Временно показываем детали неизвестных ошибок прямо в чате — для отладки деплоя
                 _ => $"⚠️ Ошибка: {Describe(ex)}"
             };

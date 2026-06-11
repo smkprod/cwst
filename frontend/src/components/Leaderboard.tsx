@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, ApiError } from '../lib/api'
-import type { Plan, PlayerStatus, SeasonStats } from '../types'
+import type { GlobalTop, Plan, PlayerStatus, SeasonStats } from '../types'
 import { fmt } from '../lib/format'
 import { haptic } from '../lib/telegram'
 import { PlayerInfoModal } from './PlayerInfoModal'
@@ -11,19 +11,25 @@ interface Props {
   plan: Plan
 }
 
-type Mode = 'week' | 'season'
+type Mode = 'week' | 'season' | 'global'
 type SeasonState =
   | { kind: 'idle' }
   | { kind: 'loading' }
   | { kind: 'locked' }
   | { kind: 'empty' }
   | { kind: 'ready'; data: SeasonStats }
+type GlobalState =
+  | { kind: 'idle' }
+  | { kind: 'loading' }
+  | { kind: 'empty' }
+  | { kind: 'ready'; data: GlobalTop }
 
 const MEDALS = ['🥇', '🥈', '🥉']
 
 export function Leaderboard({ players, myPlayerTag, plan }: Props) {
   const [mode, setMode] = useState<Mode>('week')
   const [season, setSeason] = useState<SeasonState>({ kind: 'idle' })
+  const [global, setGlobal] = useState<GlobalState>({ kind: 'idle' })
   const [selected, setSelected] = useState<PlayerStatus | null>(null)
 
   // Сезон грузим лениво — при первом переключении
@@ -40,6 +46,15 @@ export function Leaderboard({ players, myPlayerTag, plan }: Props) {
         e instanceof ApiError && e.code === 'pro_required' ? { kind: 'locked' } : { kind: 'empty' },
       ))
   }, [mode, season.kind, plan])
+
+  // Глобальный топ тоже лениво
+  useEffect(() => {
+    if (mode !== 'global' || global.kind !== 'idle') return
+    setGlobal({ kind: 'loading' })
+    api.getGlobalTop()
+      .then(data => setGlobal(data.players.length === 0 ? { kind: 'empty' } : { kind: 'ready', data }))
+      .catch(() => setGlobal({ kind: 'empty' }))
+  }, [mode, global.kind])
 
   const switchMode = (m: Mode) => {
     haptic('light')
@@ -69,11 +84,17 @@ export function Leaderboard({ players, myPlayerTag, plan }: Props) {
             className={`segment ${mode === 'season' ? 'segment-active' : ''}`}
             onClick={() => switchMode('season')}
           >Сезон</button>
+          <button
+            role="tab" aria-selected={mode === 'global'}
+            className={`segment ${mode === 'global' ? 'segment-active' : ''}`}
+            onClick={() => switchMode('global')}
+          >🌍 Топ</button>
         </div>
       </div>
 
       {mode === 'week' && <WeekBoard players={players} myPlayerTag={myPlayerTag} onOpen={openByTag} />}
       {mode === 'season' && <SeasonBoard state={season} myPlayerTag={myPlayerTag} onOpen={openByTag} />}
+      {mode === 'global' && <GlobalBoard state={global} />}
 
       {selected && (
         <PlayerInfoModal
@@ -141,6 +162,58 @@ function WeekBoard({ players, myPlayerTag, onOpen }: {
               <span className="rating-avg muted">{p.avgFamePerAttack > 0 ? `${Math.round(p.avgFamePerAttack)}/атака` : ''}</span>
               <span className="rating-fame">{fmt(p.fame)} 🏅</span>
             </button>
+          </li>
+        ))}
+      </ul>
+    </>
+  )
+}
+
+/* --- Глобальный топ бота: привязанные игроки из всех кланов --- */
+function GlobalBoard({ state }: { state: GlobalState }) {
+  if (state.kind === 'loading' || state.kind === 'idle') {
+    return <div className="center"><div className="spinner" /></div>
+  }
+
+  if (state.kind === 'empty') {
+    return (
+      <p className="center muted">
+        Здесь соревнуются игроки из всех кланов бота, привязавшие аккаунт через /link.
+        Данные копятся с каждой неделей войны.
+      </p>
+    )
+  }
+
+  const { data } = state
+  const mvp = data.players[0]
+
+  return (
+    <>
+      <p className="muted small season-meta">
+        Игроки всех кланов бота · окно: {data.weeksWindow} недель · участников: {data.playersTracked}
+      </p>
+
+      {mvp && mvp.totalFame > 0 && (
+        <div className="mvp-banner">
+          👑 Чемпион бота: <strong>{mvp.name}</strong> — {fmt(mvp.totalFame)} славы
+        </div>
+      )}
+
+      <ul className="rating-list">
+        {data.players.map(p => (
+          <li key={p.playerTag}>
+            <div className={`rating-row ${p.isMe ? 'rating-me' : ''}`}>
+              <span className="rating-rank">{p.rank <= 3 ? MEDALS[p.rank - 1] : `#${p.rank}`}</span>
+              <span className="rating-name">
+                {p.name}
+                {p.isMe && <span className="me-badge">ты</span>}
+                <span className="muted small" style={{ display: 'block' }}>{p.clanName}</span>
+              </span>
+              <span className="rating-avg muted">
+                {p.weeksParticipated} нед{p.avgFamePerAttack > 0 ? ` · ${Math.round(p.avgFamePerAttack)}/атака` : ''}
+              </span>
+              <span className="rating-fame">{fmt(p.totalFame)} 🏅</span>
+            </div>
           </li>
         ))}
       </ul>

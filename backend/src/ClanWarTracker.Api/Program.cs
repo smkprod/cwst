@@ -10,6 +10,7 @@ builder.Services.AddScoped<GetClanStatusUseCase>();
 builder.Services.AddScoped<GetPlayerStatsUseCase>();
 builder.Services.AddScoped<GetClanHistoryUseCase>();
 builder.Services.AddScoped<GetSeasonStatsUseCase>();
+builder.Services.AddScoped<GetGlobalTopUseCase>();
 builder.Services.AddScoped<NudgePlayersUseCase>();
 builder.Services.AddScoped<SetClanPlanUseCase>();
 builder.Services.AddScoped<LinkPlayerUseCase>();
