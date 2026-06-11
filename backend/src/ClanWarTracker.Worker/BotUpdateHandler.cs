@@ -118,7 +118,17 @@ public class BotUpdateHandler(
         catch (Exception ex)
         {
             logger.LogError(ex, "Command handling failed: {Text}", text);
-            await Reply(msg, "⚠️ Что-то пошло не так. Попробуй позже.", ct);
+            var hint = ex switch
+            {
+                InvalidOperationException ioe when ioe.Message.Contains("CR API") =>
+                    "⚠️ Clash Royale API отклонил запрос — ключ привязан к другому IP. Админ, проверь CLASH_ROYALE_API_TOKEN.",
+                HttpRequestException =>
+                    "⚠️ Clash Royale API недоступен. Попробуй через пару минут.",
+                Microsoft.EntityFrameworkCore.DbUpdateException or System.Data.Common.DbException =>
+                    "⚠️ База данных недоступна. Админ, проверь DATABASE_URL.",
+                _ => "⚠️ Что-то пошло не так. Попробуй позже."
+            };
+            await Reply(msg, hint, ct);
         }
     }
 
