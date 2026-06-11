@@ -126,10 +126,20 @@ public class BotUpdateHandler(
                     "⚠️ Clash Royale API недоступен. Попробуй через пару минут.",
                 Microsoft.EntityFrameworkCore.DbUpdateException or System.Data.Common.DbException =>
                     "⚠️ База данных недоступна. Админ, проверь DATABASE_URL.",
-                _ => "⚠️ Что-то пошло не так. Попробуй позже."
+                // Временно показываем детали неизвестных ошибок прямо в чате — для отладки деплоя
+                _ => $"⚠️ Ошибка: {Describe(ex)}"
             };
             await Reply(msg, hint, ct);
         }
+    }
+
+    /// <summary>Краткое описание исключения для отладочного ответа в чате.</summary>
+    private static string Describe(Exception ex)
+    {
+        var root = ex;
+        while (root.InnerException is not null) root = root.InnerException;
+        var msg = root.Message.Length > 180 ? root.Message[..180] + "…" : root.Message;
+        return $"{root.GetType().Name}: {msg}";
     }
 
     private static string Period(string p) => p switch
