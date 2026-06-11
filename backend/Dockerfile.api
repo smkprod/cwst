@@ -3,12 +3,13 @@ WORKDIR /src
 
 COPY . .
 
-RUN dotnet restore ClanWarTracker.sln
+# Восстанавливаем через csproj вместо sln
+RUN dotnet restore src/ClanWarTracker.Api/ClanWarTracker.Api.csproj
+
+# Публикуем API
 RUN dotnet publish src/ClanWarTracker.Api/ClanWarTracker.Api.csproj -c Release -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
-
 COPY --from=build /app/publish .
-
 ENTRYPOINT ["dotnet", "ClanWarTracker.Api.dll"]

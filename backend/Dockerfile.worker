@@ -1,14 +1,16 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
+# Копируем всё, что есть в папке backend
 COPY . .
 
-RUN dotnet restore ClanWarTracker.sln
+# ТАК КАК .sln лежит выше, мы восстанавливаем зависимости напрямую через файл .csproj
+RUN dotnet restore src/ClanWarTracker.Worker/ClanWarTracker.Worker.csproj
+
+# Публикуем проект воркера (путь к нему начинается сразу с src/)
 RUN dotnet publish src/ClanWarTracker.Worker/ClanWarTracker.Worker.csproj -c Release -o /app/publish
 
-FROM mcr.microsoft.com/dotnet/runtime:8.0
+FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
-
 COPY --from=build /app/publish .
-
 ENTRYPOINT ["dotnet", "ClanWarTracker.Worker.dll"]
