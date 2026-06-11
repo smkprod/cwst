@@ -1,17 +1,39 @@
-# === ЭТАП 1: Собираем фронтенд ===
+# === ЭТАП 1: Собираем .NET API ===
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS dotnet-build
+WORKDIR /src
+
+# Копируем всё содержимое репозитория
+COPY . .
+
+# Восстанавливаем зависимости и публикуем бэкенд
+RUN dotnet restore backend/src/ClanWarTracker.Api/ClanWarTracker.Api.csproj
+RUN dotnet publish backend/src/ClanWarTracker.Api/ClanWarTracker.Api.csproj -c Release -o /app/publish
+
+# === ЭТАП 2: Собираем фронтенд ===
 FROM node:20-alpine AS frontend-build
 WORKDIR /frontend-src
 
-# Запрашиваем переменную у сборщика Docker
 ARG VITE_API_URL
-# Делаем её доступной для Vite во время npm run build
 ENV VITE_API_URL=$VITE_API_URL
 
+# Копируем файлы фронтенда
 COPY frontend/package*.json ./
 RUN npm install
-
 COPY frontend/ ./
 RUN npm run build
 
-# === ЭТАП 2: Собираем .NET API ===
-# ... дальше всё без изменений ...
+# === ЭТАП 3: Финальный образ, который запустит Render ===
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
+WORKDIR /app
+
+# 1. Забираем скомпилированный C# код из первого этапа
+COPY --from=dotnet-build /app/publish .
+
+# 2. Забираем собранный HTML/JS фронтенд из второго этапа в папку wwwroot
+COPY --from=frontend-build /frontend-src/dist ./wwwroot
+
+# На всякий случай явно укажем порт для .NET внутри контейнера
+ENV ASPNETCORE_URLS=http://0.0.0.0:10000
+EXPOSE 10000
+
+ENTRYPOINT ["dotnet", "ClanWarTracker.Api.dll"]
