@@ -8,7 +8,7 @@ interface Props {
 
 /** Ситуация в гонке: все кланы недели, как standings на cwstats/RoyaleAPI. */
 export function RaceCard({ race, periodType }: Props) {
-  if (race.length === 0) return null
+  if (!race || race.length === 0) return null
 
   const maxFame = Math.max(...race.map(c => Math.max(c.fame, 1)))
 
