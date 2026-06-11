@@ -18,9 +18,10 @@ public class TelegramAuthMiddleware(RequestDelegate next, IConfiguration config,
             return;
         }
 
-        var botToken = Environment.GetEnvironmentVariable("TELEGRAM_BOT_TOKEN")
-                       ?? config["TELEGRAM_BOT_TOKEN"]
-                       ?? config["Telegram:BotToken"];
+        var botToken = ClanWarTracker.Infrastructure.DependencyInjection.CleanToken(
+            Environment.GetEnvironmentVariable("TELEGRAM_BOT_TOKEN")
+            ?? config["TELEGRAM_BOT_TOKEN"]
+            ?? config["Telegram:BotToken"]);
 
         if (string.IsNullOrEmpty(botToken))
         {
