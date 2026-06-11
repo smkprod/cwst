@@ -36,8 +36,8 @@ public class ClanController(
         var isAdmin = await IsClanAdminAsync(clan.TelegramChatId, userId, ct);
         return Ok(new { status.ClanTag, status.ClanName, status.PeriodType, status.PeriodIndex,
                         status.DayEndsAtUtc, status.HoursLeft, status.Plan, status.Stats, status.Forecast,
-                        status.Players, myPlayerTag = player!.PlayerTag, isAdmin, isOwner = IsOwner(userId),
-                        reminderHoursBeforeEnd = clan.ReminderHoursBeforeEnd });
+                        status.Race, status.Players, myPlayerTag = player!.PlayerTag, isAdmin,
+                        isOwner = IsOwner(userId), reminderHoursBeforeEnd = clan.ReminderHoursBeforeEnd });
     }
 
     public record ReminderSettingsRequest(int HoursBeforeEnd);
