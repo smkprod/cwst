@@ -18,4 +18,8 @@ builder.Services.AddHostedService<WarCheckWorker>();
 builder.Services.AddHostedService<BotUpdateHandler>();
 
 var host = builder.Build();
+
+// Воркер тоже создаёт схему БД: на хостинге он может стартовать раньше API
+await DependencyInjection.InitDatabaseAsync(host.Services);
+
 host.Run();

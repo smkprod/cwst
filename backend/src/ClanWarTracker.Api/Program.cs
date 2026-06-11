@@ -1,8 +1,6 @@
 using ClanWarTracker.Api.Auth;
 using ClanWarTracker.Application.UseCases;
 using ClanWarTracker.Infrastructure;
-using ClanWarTracker.Infrastructure.Persistence;
-using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,12 +23,8 @@ builder.Services.AddCors(o => o.AddDefaultPolicy(p => p
 
 var app = builder.Build();
 
-// Автоматические миграции при старте
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
-}
+// Схема БД при старте: SQLite — миграции, PostgreSQL (Render) — EnsureCreated, с ретраями
+await DependencyInjection.InitDatabaseAsync(app.Services);
 
 app.UseCors();
 app.UseMiddleware<TelegramAuthMiddleware>();

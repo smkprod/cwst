@@ -24,6 +24,10 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
 
             var resp = await http.GetAsync($"clans/{Encode(clanTag)}/currentriverrace", ct);
             if (resp.StatusCode == HttpStatusCode.NotFound) return null;
+            if (resp.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.Unauthorized)
+                throw new InvalidOperationException(
+                    "CR API отклонил ключ (403). Ключ привязан к IP — создай новый на developer.clashroyale.com " +
+                    "с IP сервера (Render: Settings → Outbound IPs) и обнови CLASH_ROYALE_API_TOKEN.");
             resp.EnsureSuccessStatusCode();
 
             var race = await resp.Content.ReadFromJsonAsync<RiverRaceResponse>(cancellationToken: ct);
