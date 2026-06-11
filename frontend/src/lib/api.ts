@@ -1,14 +1,23 @@
 import { initData } from './telegram'
 import type { ClanHistory, ClanStatus, MyStats, NudgeResult, OwnerClan, SeasonStats } from '../types'
 
+// Если мы на Render (production), BASE должен быть пустой строкой '', чтобы запросы шли на тот же домен.
+// Для локальной разработки (Development) оставляем localhost:5000.
 const BASE = import.meta.env.DEV 
   ? (import.meta.env.VITE_API_URL ?? 'http://localhost:5000') 
   : '';
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  // КРИТИЧЕСКИЙ ФИКС: Достаем свежайший initData из window прямо в секунду отправки запроса.
+  // Теперь заголовок больше никогда не уйдет на сервер пустым.
+  const liveInitData = window.Telegram?.WebApp?.initData ?? '';
+
   const res = await fetch(`${BASE}${path}`, {
     ...init,
-    headers: { 'X-Telegram-Init-Data': initData, ...init?.headers },
+    headers: { 
+      'X-Telegram-Init-Data': liveInitData, 
+      ...init?.headers 
+    },
   })
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
