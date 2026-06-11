@@ -145,6 +145,10 @@ main.with-tabbar { padding-bottom: 80px; }
   background: var(--purple); color: #fff; font-size: 10px; font-weight: 700;
   border-radius: 6px; padding: 1px 5px; margin-right: 6px; vertical-align: 1px;
 }
+.streak-badge {
+  font-size: 10px; font-weight: 700; margin-left: 4px; vertical-align: 1px;
+  opacity: 0.85;
+}
 
 .chevron { color: var(--muted); font-size: 18px; transition: transform 0.2s ease; }
 .chevron-open { transform: rotate(90deg); }

@@ -75,6 +75,11 @@ public class GetClanStatusUseCase(
             .Select((x, i) => (x.Participant, x.Projection, Rank: i + 1))
             .ToList();
 
+        // Серии побед (Pro): для каждого игрока — сколько недель подряд он участвовал
+        var streaks = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        if (clan is not null && plan == Domain.Enums.PlanTier.Pro)
+            streaks = await ComputeStreaksAsync(clan.Id, war, ct);
+
         var playerDtos = ranked
             .Select(x => new PlayerStatusDto(
                 PlayerTag: x.Participant.PlayerTag,
@@ -90,7 +95,8 @@ public class GetClanStatusUseCase(
                 ProjectedWeekFame: x.Projection.ProjectedWeekFame,
                 Rank: x.Rank,
                 Status: ToApiString(x.Participant.Status),
-                IsLinked: x.Participant.TelegramUserId is not null))
+                IsLinked: x.Participant.TelegramUserId is not null,
+                ConsecutiveWars: streaks.GetValueOrDefault(x.Participant.PlayerTag, 0)))
             // в основном списке UI хочет видеть не сыгравших сверху
             .OrderBy(p => p.Status == "played" ? 1 : p.Status == "timeLeft" ? 0 : -1)
             .ThenByDescending(p => p.Fame)
@@ -192,6 +198,37 @@ public class GetClanStatusUseCase(
         .ToList();
 
         return rows;
+    }
+
+    private async Task<Dictionary<string, int>> ComputeStreaksAsync(
+        int clanId, Domain.Entities.WarStatus war, CancellationToken ct)
+    {
+        // Берём последние 12 недель снапшотов клана
+        var recent = await snapshots.GetByClanAsync(clanId, weeks: 12, ct);
+
+        // Группируем по неделям (SeasonId+SectionIndex), в каждой берём финальный снимок
+        var weekFinals = recent
+            .GroupBy(s => (s.SeasonId, s.SectionIndex))
+            .Select(g => g.OrderByDescending(s => s.PeriodIndex).First())
+            // Пропускаем текущую ещё-не-финальную неделю
+            .Where(s => !(s.SeasonId == war.SeasonId && s.SectionIndex == war.SectionIndex))
+            .OrderByDescending(s => s.SeasonId).ThenByDescending(s => s.SectionIndex)
+            .ToList();
+
+        var result = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var p in war.Participants)
+        {
+            int streak = 0;
+            foreach (var week in weekFinals)
+            {
+                var entry = week.Players.FirstOrDefault(x =>
+                    string.Equals(x.PlayerTag, p.PlayerTag, StringComparison.OrdinalIgnoreCase));
+                if (entry is null || entry.Fame == 0) break;
+                streak++;
+            }
+            result[p.PlayerTag] = streak;
+        }
+        return result;
     }
 
     public static WarPlayStatus Classify(int decksUsed, int hoursLeft, bool isWarDay)

@@ -15,6 +15,7 @@ export interface PlayerStatus {
   rank: number               // место в клане по славе
   status: PlayStatus
   isLinked: boolean
+  consecutiveWars: number    // Pro: недель подряд участвовал (0 = Free или не участвовал)
 }
 
 export interface ClanStats {
@@ -88,6 +89,7 @@ export interface ClanStatus {
   players: PlayerStatus[]
   myPlayerTag?: string       // тег текущего пользователя (если /my/status)
   isAdmin?: boolean          // админ ли текущий пользователь в группе клана
+  isClanLeader?: boolean     // leader или coLeader в CR-клане
   isOwner?: boolean          // владелец сервиса (видит панель ⚙️)
   reminderHoursBeforeEnd?: number // за сколько часов до конца дня шлём автонапоминания
 }

@@ -34,9 +34,14 @@ public class ClanController(
         // Подмешиваем контекст текущего пользователя
         var userId = (long)HttpContext.Items["TelegramUserId"]!;
         var isAdmin = await IsClanAdminAsync(clan.TelegramChatId, userId, ct);
+
+        // Роль в CR-клане (leader/coLeader → доступ к настройкам бота из Mini App)
+        var crRole = await crApi.GetPlayerClanRoleAsync(clan.ClanTag, player!.PlayerTag, ct);
+        var isClanLeader = crRole is "leader" or "coLeader";
+
         return Ok(new { status.ClanTag, status.ClanName, status.PeriodType, status.PeriodIndex,
                         status.DayEndsAtUtc, status.HoursLeft, status.Plan, status.Stats, status.Forecast,
-                        status.Race, status.Players, myPlayerTag = player!.PlayerTag, isAdmin,
+                        status.Race, status.Players, myPlayerTag = player.PlayerTag, isAdmin, isClanLeader,
                         isOwner = IsOwner(userId), reminderHoursBeforeEnd = clan.ReminderHoursBeforeEnd });
     }
 
@@ -103,21 +108,23 @@ public class ClanController(
             : Ok(season);
     }
 
-    /// <summary>POST /api/clans/my/nudge — «пнуть» всех не сыгравших (только админ группы, Pro).</summary>
+    /// <summary>POST /api/clans/my/nudge — «пнуть» всех не сыгравших (Admin/Leader; Free: до 20 чел.).</summary>
     [HttpPost("my/nudge")]
     public async Task<IActionResult> NudgeSlackers(CancellationToken ct)
     {
-        var (_, clan, error) = await ResolvePlayerClanAsync(ct);
+        var (player, clan, error) = await ResolvePlayerClanAsync(ct);
         if (error is not null) return error;
 
-        if (clan!.EffectivePlan(DateTime.UtcNow) != PlanTier.Pro)
-            return StatusCode(403, new { error = "pro_required", message = "«Пнуть всех» доступно на Pro" });
-
         var userId = (long)HttpContext.Items["TelegramUserId"]!;
-        if (!await IsClanAdminAsync(clan.TelegramChatId, userId, ct))
-            return StatusCode(403, new { error = "not_admin", message = "Пинать может только админ группы" });
+        var isAdmin = await IsClanAdminAsync(clan!.TelegramChatId, userId, ct);
+        var crRole = await crApi.GetPlayerClanRoleAsync(clan.ClanTag, player!.PlayerTag, ct);
+        var isClanLeader = crRole is "leader" or "coLeader";
 
-        var result = await nudge.ExecuteAsync(clan.Id, ct);
+        if (!isAdmin && !isClanLeader)
+            return StatusCode(403, new { error = "not_admin", message = "Пинать может только админ группы или лидер клана" });
+
+        var isPro = clan.EffectivePlan(DateTime.UtcNow) == PlanTier.Pro;
+        var result = await nudge.ExecuteAsync(clan.Id, isPro, ct);
         return result is null
             ? Conflict(new { error = "no_war_day", message = "Сейчас не день войны — пинать некого" })
             : Ok(result);
