@@ -105,7 +105,9 @@ public static class DependencyInjection
         var port = uri.Port > 0 ? uri.Port : 5432;
         var database = uri.AbsolutePath.TrimStart('/');
 
+        // Internal Render host (dpg-*) не требует SSL; внешние хосты — требуют.
+        // SSL Mode=Prefer: используем SSL если доступен, иначе без него.
         return $"Host={uri.Host};Port={port};Database={database};Username={user};Password={pass};" +
-               "SSL Mode=Require;Trust Server Certificate=true";
+               "SSL Mode=Prefer;Trust Server Certificate=true";
     }
 }
