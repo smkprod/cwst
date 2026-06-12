@@ -364,13 +364,18 @@ public class GetClanStatusUseCase(
             : activity; // на тренировке судим по активности
 
         var withHistory = players.Where(p => history.ContainsKey(p.PlayerTag)).ToList();
-        var attendance = withHistory.Count > 0
-            ? (int)Math.Round(withHistory.Average(p => history[p.PlayerTag].Reliability))
-            : 50;
 
-        var core = withHistory.Count > 0
-            ? (int)Math.Round(100.0 * withHistory.Count(p => history[p.PlayerTag].Streak >= 2) / withHistory.Count)
-            : 50;
+        // Только игроки с реальными данными (Reliability > 0 = минимум 2 недели истории)
+        var reliableData = withHistory.Where(p => history[p.PlayerTag].Reliability > 0).ToList();
+        var attendance = reliableData.Count > 0
+            ? (int)Math.Round(reliableData.Average(p => history[p.PlayerTag].Reliability))
+            : 50; // нейтральное значение, пока данных < 2 недель
+
+        // Костяк: доля игроков со стриком ≥ 2 среди тех, кто вообще участвовал (Streak > 0)
+        var streakData = withHistory.Where(p => history[p.PlayerTag].Streak > 0).ToList();
+        var core = streakData.Count > 0
+            ? (int)Math.Round(100.0 * streakData.Count(p => history[p.PlayerTag].Streak >= 2) / streakData.Count)
+            : 50; // нейтральное значение, пока нет истории
 
         var health = (int)Math.Round(0.30 * activity + 0.25 * discipline + 0.25 * attendance + 0.20 * core);
         health = Math.Clamp(health, 0, 100);
