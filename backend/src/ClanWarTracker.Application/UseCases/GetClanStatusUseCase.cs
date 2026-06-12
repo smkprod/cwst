@@ -92,10 +92,10 @@ public class GetClanStatusUseCase(
             .Select((x, i) => (x.Participant, x.Projection, Rank: i + 1))
             .ToList();
 
-        // Серии побед (Pro): для каждого игрока — сколько недель подряд он участвовал
-        var streaks = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        // История игроков (Pro): стрики, DNA-архетип и надёжность из прошлых недель
+        var history = new Dictionary<string, PlayerHistoryStats>(StringComparer.OrdinalIgnoreCase);
         if (clan is not null && plan == Domain.Enums.PlanTier.Pro)
-            streaks = await ComputeStreaksAsync(clan.Id, war, ct);
+            history = await ComputeHistoryStatsAsync(clan.Id, war, ct);
 
         var playerDtos = ranked
             .Select(x => new PlayerStatusDto(
@@ -113,8 +113,10 @@ public class GetClanStatusUseCase(
                 Rank: x.Rank,
                 Status: ToApiString(x.Participant.Status),
                 IsLinked: x.Participant.TelegramUserId is not null,
-                ConsecutiveWars: streaks.GetValueOrDefault(x.Participant.PlayerTag, 0),
-                Role: RoleLabel(memberRoles.GetValueOrDefault(x.Participant.PlayerTag))))
+                ConsecutiveWars: history.TryGetValue(x.Participant.PlayerTag, out var h) ? h.Streak : 0,
+                Role: RoleLabel(memberRoles.GetValueOrDefault(x.Participant.PlayerTag)),
+                DnaLabel: history.TryGetValue(x.Participant.PlayerTag, out var h2) ? h2.DnaLabel : null,
+                ReliabilityScore: history.TryGetValue(x.Participant.PlayerTag, out var h3) ? h3.Reliability : 0))
             // в основном списке UI хочет видеть не сыгравших сверху
             .OrderBy(p => p.Status == "played" ? 1 : p.Status == "timeLeft" ? 0 : -1)
             .ThenByDescending(p => p.Fame)
@@ -138,6 +140,11 @@ public class GetClanStatusUseCase(
 
         var race = await BuildRaceAsync(war, clanAvgFamePerAttack, ct);
 
+        // Pro-аналитика: шанс победы + здоровье клана
+        ClanInsightsDto? insights = null;
+        if (plan == Domain.Enums.PlanTier.Pro)
+            insights = BuildInsights(war, playerDtos, race, history);
+
         return new ClanStatusDto(
             ClanTag: war.ClanTag,
             ClanName: clan?.Name ?? war.ClanTag,
@@ -149,7 +156,8 @@ public class GetClanStatusUseCase(
             Stats: stats,
             Forecast: clanForecast,
             Race: race,
-            Players: playerDtos);
+            Players: playerDtos,
+            Insights: insights);
     }
 
     /// <summary>
@@ -227,38 +235,39 @@ public class GetClanStatusUseCase(
         return rows;
     }
 
-    private async Task<Dictionary<string, int>> ComputeStreaksAsync(
+    /// <summary>Накопленная история игрока: стрик, надёжность и DNA-архетип.</summary>
+    private record PlayerHistoryStats(int Streak, int Reliability, string? DnaLabel);
+
+    private async Task<Dictionary<string, PlayerHistoryStats>> ComputeHistoryStatsAsync(
         int clanId, Domain.Entities.WarStatus war, CancellationToken ct)
     {
-        // Стрики зависят только от ФИНАЛОВ прошлых недель — текущая неделя исключается,
-        // поэтому результат можно смело кэшировать (инвалидация — по смене недели + TTL)
-        var cacheKey = $"streaks:{clanId}:{war.SeasonId}:{war.SectionIndex}";
-        if (cache.TryGetValue(cacheKey, out Dictionary<string, int>? cached) && cached is not null)
+        // Всё считается по ФИНАЛАМ прошлых недель — текущая неделя исключается,
+        // поэтому результат можно смело кэшировать (инвалидация — смена недели + TTL)
+        var cacheKey = $"histstats:{clanId}:{war.SeasonId}:{war.SectionIndex}";
+        if (cache.TryGetValue(cacheKey, out Dictionary<string, PlayerHistoryStats>? cached) && cached is not null)
             return cached;
 
-        var result = await ComputeStreaksUncachedAsync(clanId, war, ct);
-        cache.Set(cacheKey, result, TimeSpan.FromMinutes(30));
-        return result;
-    }
-
-    private async Task<Dictionary<string, int>> ComputeStreaksUncachedAsync(
-        int clanId, Domain.Entities.WarStatus war, CancellationToken ct)
-    {
-        // Берём последние 12 недель снапшотов клана
         var recent = await snapshots.GetByClanAsync(clanId, weeks: 12, ct);
 
-        // Группируем по неделям (SeasonId+SectionIndex), в каждой берём финальный снимок
+        // Финальный снимок каждой завершённой недели, новые первыми
         var weekFinals = recent
             .GroupBy(s => (s.SeasonId, s.SectionIndex))
             .Select(g => g.OrderByDescending(s => s.PeriodIndex).First())
-            // Пропускаем текущую ещё-не-финальную неделю
             .Where(s => !(s.SeasonId == war.SeasonId && s.SectionIndex == war.SectionIndex))
             .OrderByDescending(s => s.SeasonId).ThenByDescending(s => s.SectionIndex)
             .ToList();
 
-        var result = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var result = new Dictionary<string, PlayerHistoryStats>(StringComparer.OrdinalIgnoreCase);
+
+        // Средняя слава всех игроков за неделю — база для архетипа «Тащер»
+        var allWeekFames = weekFinals
+            .SelectMany(w => w.Players.Where(p => p.Fame > 0).Select(p => (double)p.Fame))
+            .ToList();
+        var clanAvgWeekFame = allWeekFames.Count > 0 ? allWeekFames.Average() : 0;
+
         foreach (var p in war.Participants)
         {
+            // Стрик: недели подряд с участием, начиная с последней завершённой
             int streak = 0;
             foreach (var week in weekFinals)
             {
@@ -267,10 +276,128 @@ public class GetClanStatusUseCase(
                 if (entry is null || entry.Fame == 0) break;
                 streak++;
             }
-            result[p.PlayerTag] = streak;
+
+            // DNA: участие и стабильность за последние 8 завершённых недель
+            var dnaWindow = weekFinals.Take(8).ToList();
+            var fames = dnaWindow
+                .Select(w => (double)(w.Players.FirstOrDefault(x =>
+                    string.Equals(x.PlayerTag, p.PlayerTag, StringComparison.OrdinalIgnoreCase))?.Fame ?? 0))
+                .ToList();
+            var played = fames.Count(f => f > 0);
+
+            if (dnaWindow.Count < 2 || played == 0)
+            {
+                // Слишком мало истории — без ярлыка
+                result[p.PlayerTag] = new PlayerHistoryStats(streak, 0, dnaWindow.Count >= 2 ? "Новичок 🌱" : null);
+                continue;
+            }
+
+            var participation = (double)played / dnaWindow.Count;
+            var playedFames = fames.Where(f => f > 0).ToList();
+            var mean = playedFames.Average();
+            var std = playedFames.Count > 1
+                ? Math.Sqrt(playedFames.Sum(f => (f - mean) * (f - mean)) / playedFames.Count)
+                : 0;
+            var cv = mean > 0 ? std / mean : 0; // коэффициент вариации: 0 — идеально стабилен
+
+            var reliability = (int)Math.Round(100 * (0.65 * participation + 0.35 * (1 - Math.Min(cv, 1))));
+
+            var dna =
+                participation >= 0.75 && clanAvgWeekFame > 0 && mean >= clanAvgWeekFame * 1.3 ? "Тащер 💪"
+                : participation >= 0.75 && cv <= 0.35 ? "Надёжный 🛡"
+                : participation <= 0.35 ? "Балласт 😴"
+                : cv > 0.5 ? "Нестабильный 🎲"
+                : "Стабильный ⚖️";
+
+            result[p.PlayerTag] = new PlayerHistoryStats(streak, Math.Clamp(reliability, 0, 100), dna);
         }
+
+        cache.Set(cacheKey, result, TimeSpan.FromMinutes(30));
         return result;
     }
+
+    /// <summary>
+    /// Pro-аналитика. Шанс победы — эвристика: разница прогнозов наша/лучший соперник,
+    /// нормированная на неопределённость оставшихся атак (логистическая функция).
+    /// Здоровье клана — 4 фактора 0..100 со средневзвешенным итогом.
+    /// </summary>
+    private static ClanInsightsDto BuildInsights(
+        Domain.Entities.WarStatus war,
+        List<PlayerStatusDto> players,
+        List<RaceClanDto> race,
+        Dictionary<string, PlayerHistoryStats> history)
+    {
+        // --- Шанс победы (только в военные дни) ---
+        int? winChance = null, winChanceDown = null;
+        string? topRivalName = null;
+
+        var ours = race.FirstOrDefault(r => r.IsOurClan);
+        var rivals = race.Where(r => !r.IsOurClan).ToList();
+        if (war.IsWarDay && ours is not null && rivals.Count > 0)
+        {
+            var bestRival = rivals
+                .OrderByDescending(r => r.IsFinished ? r.Fame : r.ProjectedFame)
+                .First();
+            topRivalName = bestRival.Name;
+            double rivalProj = bestRival.IsFinished ? bestRival.Fame : bestRival.ProjectedFame;
+
+            // Неопределённость ≈ треть ещё не набранной (прогнозной) славы, минимум 400
+            double uOur = Math.Max(400, (ours.ProjectedFame - ours.Fame) * 0.35);
+            double uRiv = Math.Max(400, (rivalProj - bestRival.Fame) * 0.35);
+            double sigma = Math.Sqrt(uOur * uOur + uRiv * uRiv);
+
+            winChance = ToChance((ours.ProjectedFame - rivalProj) / sigma);
+
+            // Сценарий: не доигравшие сегодня игроки вообще больше не сыграют на неделе
+            var lostFuture = players
+                .Where(p => p.Status != "played")
+                .Sum(p => Math.Max(0, p.ProjectedWeekFame - p.Fame));
+            winChanceDown = ToChance((ours.ProjectedFame - lostFuture - rivalProj) / sigma);
+        }
+
+        // --- Здоровье клана ---
+        var roster = Math.Max(1, players.Count);
+        var activity = (int)Math.Round(100.0 * players.Count(p => p.DecksUsed > 0) / roster);
+
+        var discipline = war.IsWarDay
+            ? (int)Math.Round(100.0 * players.Count(p => p.DecksUsedToday >= 4) / roster)
+            : activity; // на тренировке судим по активности
+
+        var withHistory = players.Where(p => history.ContainsKey(p.PlayerTag)).ToList();
+        var attendance = withHistory.Count > 0
+            ? (int)Math.Round(withHistory.Average(p => history[p.PlayerTag].Reliability))
+            : 50;
+
+        var core = withHistory.Count > 0
+            ? (int)Math.Round(100.0 * withHistory.Count(p => history[p.PlayerTag].Streak >= 2) / withHistory.Count)
+            : 50;
+
+        var health = (int)Math.Round(0.30 * activity + 0.25 * discipline + 0.25 * attendance + 0.20 * core);
+        health = Math.Clamp(health, 0, 100);
+
+        var label = health >= 75 ? "Сильный клан"
+            : health >= 50 ? "Стабильный"
+            : health >= 30 ? "Нестабильный"
+            : "Критично";
+
+        return new ClanInsightsDto(
+            WinChance: winChance,
+            WinChanceIfSlackersOut: winChanceDown,
+            TopRivalName: topRivalName,
+            HealthScore: health,
+            HealthLabel: label,
+            Factors:
+            [
+                new HealthFactorDto("Активность", activity),
+                new HealthFactorDto("Дисциплина 4/4", discipline),
+                new HealthFactorDto("Надёжность состава", attendance),
+                new HealthFactorDto("Костяк (стрики)", core),
+            ]);
+    }
+
+    /// <summary>Логистическая функция → проценты 3..97 (никогда не обещаем 0/100).</summary>
+    private static int ToChance(double z) =>
+        Math.Clamp((int)Math.Round(100.0 / (1.0 + Math.Exp(-1.6 * z))), 3, 97);
 
     private static string? RoleLabel(string? apiRole) => apiRole switch
     {

@@ -17,6 +17,23 @@ export interface PlayerStatus {
   isLinked: boolean
   consecutiveWars: number    // Pro: недель подряд участвовал (0 = Free или не участвовал)
   role?: string              // "Лидер" | "Соруководитель" | "Старейшина" | undefined (рядовой)
+  dnaLabel?: string          // Pro: архетип ("Тащер 💪" и т.п.), undefined — мало данных/Free
+  reliabilityScore: number   // Pro: надёжность 0..100 (0 — нет данных/Free)
+}
+
+/** Pro-аналитика: шанс победы и здоровье клана. */
+export interface HealthFactor {
+  name: string
+  score: number              // 0..100
+}
+
+export interface ClanInsights {
+  winChance: number | null            // % победы; null — тренировка
+  winChanceIfSlackersOut: number | null
+  topRivalName: string | null
+  healthScore: number                 // 0..100
+  healthLabel: string
+  factors: HealthFactor[]
 }
 
 export interface ClanStats {
@@ -89,6 +106,7 @@ export interface ClanStatus {
   forecast: ClanForecast | null   // null на Free-тарифе
   race: RaceClan[]                // ситуация в гонке (все кланы недели)
   players: PlayerStatus[]
+  insights: ClanInsights | null   // Pro-аналитика (null на Free)
   myPlayerTag?: string       // тег текущего пользователя (если /my/status)
   isAdmin?: boolean          // админ ли текущий пользователь в группе клана
   isClanLeader?: boolean     // leader или coLeader в CR-клане

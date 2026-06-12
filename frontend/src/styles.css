@@ -152,6 +152,48 @@ main.with-tabbar { padding-bottom: 80px; }
 .role-icon { font-size: 12px; margin-right: 3px; }
 .race-points { font-size: 11px; font-weight: 600; color: var(--green); }
 .race-meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* --- Pro-аналитика: шанс победы + здоровье клана --- */
+.insights-card { display: grid; gap: 14px; }
+.win-block { display: grid; gap: 8px; }
+.win-row { display: flex; align-items: center; gap: 12px; }
+.win-value { font-size: 34px; font-weight: 800; line-height: 1; }
+.win-good { color: var(--green); }
+.win-mid { color: #e6a23c; }
+.win-bad { color: #e05c5c; }
+.win-info { display: grid; gap: 2px; }
+.win-caption { font-size: 13px; font-weight: 600; }
+.win-track { height: 8px; border-radius: 999px; background: rgba(255,255,255,0.08); overflow: hidden; }
+.win-fill { height: 100%; border-radius: 999px; transition: width 0.5s ease; }
+.fill-good { background: var(--green); }
+.fill-mid { background: #e6a23c; }
+.fill-bad { background: #e05c5c; }
+.win-warning {
+  margin: 0; font-size: 12px; color: #e6a23c;
+  background: rgba(230,162,60,0.1); border-radius: 8px; padding: 6px 10px;
+}
+.health-block { display: grid; gap: 8px; }
+.health-head { display: flex; align-items: baseline; justify-content: space-between; }
+.health-score { font-size: 18px; font-weight: 700; }
+.health-label { font-size: 13px; font-weight: 600; }
+.health-factors { display: grid; gap: 6px; }
+.health-factor { display: grid; grid-template-columns: 120px 1fr 28px; align-items: center; gap: 8px; }
+.health-factor-track { height: 6px; border-radius: 999px; background: rgba(255,255,255,0.08); overflow: hidden; }
+.health-factor-fill { height: 100%; border-radius: 999px; }
+.health-factor-score { text-align: right; color: var(--muted); }
+
+/* --- DNA-профиль игрока в модалке --- */
+.dna-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+.dna-chip {
+  font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+}
+.dna-reliability { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
+.dna-track {
+  display: inline-block; width: 70px; height: 5px; border-radius: 999px;
+  background: rgba(255,255,255,0.08); overflow: hidden;
+}
+.dna-fill { display: block; height: 100%; border-radius: 999px; }
 .player-fame .muted { font-size: 11px; }
 
 .chevron { color: var(--muted); font-size: 18px; transition: transform 0.2s ease; }

@@ -66,6 +66,25 @@ export function PlayerInfoModal({ player: p, isMe, onClose }: Props) {
           {meta.icon} {meta.label} · колоды сегодня: <strong>{p.decksUsedToday}/4</strong>
         </div>
 
+        {/* DNA-профиль игрока (Pro): архетип + надёжность по истории войн */}
+        {p.dnaLabel && (
+          <div className="dna-row">
+            <span className="dna-chip">{p.dnaLabel}</span>
+            {p.reliabilityScore > 0 && (
+              <span className="dna-reliability">
+                надёжность
+                <span className="dna-track">
+                  <span
+                    className={`dna-fill ${p.reliabilityScore >= 70 ? 'fill-good' : p.reliabilityScore >= 45 ? 'fill-mid' : 'fill-bad'}`}
+                    style={{ width: `${p.reliabilityScore}%` }}
+                  />
+                </span>
+                <strong>{p.reliabilityScore}</strong>
+              </span>
+            )}
+          </div>
+        )}
+
         <div className="modal-grid">
           <ModalStat value={fmt(p.fame)} label="🏅 медали за неделю" />
           <ModalStat

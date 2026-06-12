@@ -11,7 +11,20 @@ public record ClanStatusDto(
     ClanStatsDto Stats,
     ClanForecastDto? Forecast, // null на Free-тарифе
     List<RaceClanDto> Race,   // все кланы гонки, отсортированы по месту
-    List<PlayerStatusDto> Players);
+    List<PlayerStatusDto> Players,
+    ClanInsightsDto? Insights); // Pro: прогноз победы + здоровье клана (null на Free)
+
+/// <summary>Один фактор здоровья клана (0..100).</summary>
+public record HealthFactorDto(string Name, int Score);
+
+/// <summary>Pro-аналитика: шанс победы в гонке и «здоровье» клана.</summary>
+public record ClanInsightsDto(
+    int? WinChance,              // % победы в гонке недели; null — тренировка
+    int? WinChanceIfSlackersOut, // тот же %, если не доигравшие так и не сыграют
+    string? TopRivalName,        // главный соперник (по прогнозу)
+    int HealthScore,             // 0..100
+    string HealthLabel,          // "Сильный клан" | "Стабильный" | "Нестабильный" | "Критично"
+    List<HealthFactorDto> Factors);
 
 /// <summary>Один клан в таблице гонки (наш или соперник).</summary>
 public record RaceClanDto(
@@ -44,7 +57,9 @@ public record PlayerStatusDto(
     string Status,            // "played" | "timeLeft" | "notPlayed"
     bool IsLinked,
     int ConsecutiveWars,      // Pro: сколько недель подряд участвовал (0 на Free)
-    string? Role);            // "Лидер" | "Соруководитель" | "Старейшина" | null (обычный)
+    string? Role,             // "Лидер" | "Соруководитель" | "Старейшина" | null (обычный)
+    string? DnaLabel,         // Pro: архетип игрока ("Тащер 💪", "Надёжный 🛡" ...), null — мало данных/Free
+    int ReliabilityScore);    // Pro: надёжность 0..100 (0 — нет данных/Free)
 
 public record ClanStatsDto(
     int TotalFame,
