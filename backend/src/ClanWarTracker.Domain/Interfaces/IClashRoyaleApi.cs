@@ -19,4 +19,11 @@ public interface IClashRoyaleApi
 
     /// <summary>Роль игрока в клане: "leader", "coLeader", "elder", "member". null — не найден.</summary>
     Task<string?> GetPlayerClanRoleAsync(string clanTag, string playerTag, CancellationToken ct = default);
+
+    /// <summary>
+    /// Журнал завершённых войн клана (официальный /riverracelog, до 10 недель):
+    /// места кланов, изменение КВ-трофеев и медали каждого игрока.
+    /// Пустой список — клан не найден или API недоступен.
+    /// </summary>
+    Task<List<RiverRaceLogWeek>> GetRiverRaceLogAsync(string clanTag, CancellationToken ct = default);
 }

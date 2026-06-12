@@ -145,6 +145,26 @@ public class GetClanStatusUseCase(
         if (plan == Domain.Enums.PlanTier.Pro)
             insights = BuildInsights(war, playerDtos, race, history);
 
+        // Журнал прошлых войн: места кланов и очки (официальный /riverracelog)
+        List<WarLogWeekDto> warLog = [];
+        try
+        {
+            var raceLog = await crApi.GetRiverRaceLogAsync(war.ClanTag, ct);
+            warLog = raceLog.Take(6).Select(w => new WarLogWeekDto(
+                SeasonId: w.SeasonId,
+                SectionIndex: w.SectionIndex,
+                IsColosseum: w.IsColosseum,
+                Standings: w.Standings.Select(s => new WarLogClanDto(
+                    Rank: s.Rank,
+                    Name: s.ClanName,
+                    Fame: s.Fame,
+                    TrophyChange: s.TrophyChange,
+                    IsOurClan: string.Equals(s.ClanTag, war.ClanTag, StringComparison.OrdinalIgnoreCase)))
+                    .ToList()))
+                .ToList();
+        }
+        catch { /* журнал не критичен */ }
+
         return new ClanStatusDto(
             ClanTag: war.ClanTag,
             ClanName: clan?.Name ?? war.ClanTag,
@@ -157,7 +177,8 @@ public class GetClanStatusUseCase(
             Forecast: clanForecast,
             Race: race,
             Players: playerDtos,
-            Insights: insights);
+            Insights: insights,
+            WarLog: warLog);
     }
 
     /// <summary>
@@ -254,14 +275,45 @@ public class GetClanStatusUseCase(
             .GroupBy(s => (s.SeasonId, s.SectionIndex))
             .Select(g => g.OrderByDescending(s => s.PeriodIndex).First())
             .Where(s => !(s.SeasonId == war.SeasonId && s.SectionIndex == war.SectionIndex))
-            .OrderByDescending(s => s.SeasonId).ThenByDescending(s => s.SectionIndex)
+            .ToList();
+
+        // Официальный журнал войн (/riverracelog) — даёт до 10 завершённых недель
+        // сразу, не дожидаясь накопления собственных снапшотов
+        List<Domain.Entities.RiverRaceLogWeek> raceLog = [];
+        try { raceLog = await crApi.GetRiverRaceLogAsync(war.ClanTag, ct); }
+        catch { /* журнал не критичен — обойдёмся снапшотами */ }
+
+        // Унифицированные финалы недель: (сезон, неделя) -> медали игроков.
+        // Свои снапшоты приоритетнее (мы точно знаем, что это финал недели).
+        var weekMaps = new Dictionary<(int Season, int Section), Dictionary<string, int>>();
+        foreach (var s in weekFinals)
+            weekMaps[(s.SeasonId, s.SectionIndex)] = s.Players
+                .GroupBy(p => p.PlayerTag, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.First().Fame, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var w in raceLog)
+        {
+            if (weekMaps.ContainsKey((w.SeasonId, w.SectionIndex))) continue;
+            var ours = w.Standings.FirstOrDefault(st =>
+                string.Equals(st.ClanTag, war.ClanTag, StringComparison.OrdinalIgnoreCase));
+            if (ours is null) continue;
+            weekMaps[(w.SeasonId, w.SectionIndex)] = ours.Participants
+                .GroupBy(p => p.PlayerTag, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.First().Fame, StringComparer.OrdinalIgnoreCase);
+        }
+
+        var weeks = weekMaps
+            .Where(kv => !(kv.Key.Season == war.SeasonId && kv.Key.Section == war.SectionIndex))
+            .OrderByDescending(kv => kv.Key.Season).ThenByDescending(kv => kv.Key.Section)
+            .Take(12)
+            .Select(kv => kv.Value)
             .ToList();
 
         var result = new Dictionary<string, PlayerHistoryStats>(StringComparer.OrdinalIgnoreCase);
 
         // Средняя слава всех игроков за неделю — база для архетипа «Тащер»
-        var allWeekFames = weekFinals
-            .SelectMany(w => w.Players.Where(p => p.Fame > 0).Select(p => (double)p.Fame))
+        var allWeekFames = weeks
+            .SelectMany(w => w.Values.Where(f => f > 0).Select(f => (double)f))
             .ToList();
         var clanAvgWeekFame = allWeekFames.Count > 0 ? allWeekFames.Average() : 0;
 
@@ -269,19 +321,16 @@ public class GetClanStatusUseCase(
         {
             // Стрик: недели подряд с участием, начиная с последней завершённой
             int streak = 0;
-            foreach (var week in weekFinals)
+            foreach (var week in weeks)
             {
-                var entry = week.Players.FirstOrDefault(x =>
-                    string.Equals(x.PlayerTag, p.PlayerTag, StringComparison.OrdinalIgnoreCase));
-                if (entry is null || entry.Fame == 0) break;
+                if (week.GetValueOrDefault(p.PlayerTag) == 0) break;
                 streak++;
             }
 
             // DNA: участие и стабильность за последние 8 завершённых недель
-            var dnaWindow = weekFinals.Take(8).ToList();
+            var dnaWindow = weeks.Take(8).ToList();
             var fames = dnaWindow
-                .Select(w => (double)(w.Players.FirstOrDefault(x =>
-                    string.Equals(x.PlayerTag, p.PlayerTag, StringComparison.OrdinalIgnoreCase))?.Fame ?? 0))
+                .Select(w => (double)w.GetValueOrDefault(p.PlayerTag))
                 .ToList();
             var played = fames.Count(f => f > 0);
 

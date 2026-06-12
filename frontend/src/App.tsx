@@ -6,6 +6,7 @@ import { WarHeader } from './components/WarHeader'
 import { ForecastCard } from './components/ForecastCard'
 import { InsightsCard } from './components/InsightsCard'
 import { RaceCard } from './components/RaceCard'
+import { WarLogCard } from './components/WarLogCard'
 import { StatsStrip } from './components/StatsStrip'
 import { PlayerList } from './components/PlayerList'
 import { Leaderboard } from './components/Leaderboard'
@@ -105,6 +106,7 @@ export default function App() {
                 <WarHeader status={data} />
                 <InsightsCard insights={data.insights} plan={data.plan} />
                 <RaceCard race={data.race} periodType={data.periodType} />
+                <WarLogCard log={data.warLog} />
                 <ForecastCard forecast={data.forecast} stats={data.stats} periodType={data.periodType} />
                 <StatsStrip stats={data.stats} />
                 {canManage && data.periodType !== 'training' && (
