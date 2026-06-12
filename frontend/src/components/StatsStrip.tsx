@@ -3,9 +3,9 @@ import { fmt, fmtShort } from '../lib/format'
 
 export function StatsStrip({ stats }: { stats: ClanStats }) {
   const chips = [
-    { icon: '🏅', value: fmt(stats.totalFame), label: 'слава недели' },
+    { icon: '🏅', value: fmt(stats.totalFame), label: 'медали недели' },
     { icon: '🃏', value: `${stats.totalDecksUsedToday}/${stats.maxDecksToday}`, label: 'колод сегодня' },
-    { icon: '⚡', value: fmtShort(Math.round(stats.avgFamePerAttack)), label: 'славы за бой' },
+    { icon: '⚡', value: fmtShort(Math.round(stats.avgFamePerAttack)), label: 'медалей/бой' },
     { icon: '👥', value: String(stats.activePlayers), label: 'активных' },
   ]
 

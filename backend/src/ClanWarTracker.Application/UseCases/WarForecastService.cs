@@ -73,19 +73,18 @@ public class WarForecastService
         var projectedDayFame = players.Sum(p => p.ProjectedDayFame);
         var projectedWeekFame = players.Sum(p => p.ProjectedWeekFame);
 
-        var totalFame = war.Participants.Sum(p => p.Fame);
-        var totalDecksUsedToday = war.Participants.Sum(p => p.DecksUsedToday);
-        var activePlayers = war.Participants.Count(p => p.DecksUsed > 0);
-
-        // Потолок по правилам игры: максимум 50 человек × 4 колоды = 200 атак в день,
-        // сколько бы записей ни висело в списке участников API.
-        var rosterSize = Math.Min(war.Participants.Count, MaxClanMembers);
+        // Используем отфильтрованный состав (players), а не war.Participants — иначе
+        // бывшие участники клана искажают статистику прогноза.
+        var totalFame = players.Sum(p => p.Fame);
+        var totalDecksUsedToday = players.Sum(p => p.DecksUsedToday);
+        var activePlayers = players.Count(p => p.DecksUsed > 0);
+        var rosterSize = players.Count;
         var maxDecksToday = rosterSize * DecksPerDayPerPlayer;
         var expectedRemainingAttacks = war.IsWarDay
             ? Math.Clamp(maxDecksToday - totalDecksUsedToday, 0, maxDecksToday)
             : 0;
 
-        var totalWarDecksUsed = war.Participants.Sum(p => p.WarDecksUsed);
+        var totalWarDecksUsed = players.Sum(p => p.WarDecksUsed);
         var clanAvgFamePerAttack = ClampFamePerDeck(
             totalWarDecksUsed > 0 ? (double)totalFame / totalWarDecksUsed : BaselineFamePerDeck);
 

@@ -16,6 +16,7 @@ export interface PlayerStatus {
   status: PlayStatus
   isLinked: boolean
   consecutiveWars: number    // Pro: недель подряд участвовал (0 = Free или не участвовал)
+  role?: string              // "Лидер" | "Соруководитель" | "Старейшина" | undefined (рядовой)
 }
 
 export interface ClanStats {

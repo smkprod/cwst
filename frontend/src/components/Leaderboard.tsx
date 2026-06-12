@@ -132,7 +132,7 @@ function WeekBoard({ players, myPlayerTag, onOpen, plan }: {
     <>
       {mvp && mvp.fame > 0 && (
         <div className="mvp-banner">
-          👑 MVP недели: <strong>{mvp.name}</strong> — {fmt(mvp.fame)} славы
+          👑 MVP недели: <strong>{mvp.name}</strong> — {fmt(mvp.fame)} медалей
         </div>
       )}
 
@@ -208,7 +208,7 @@ function GlobalBoard({ state }: { state: GlobalState }) {
 
       {mvp && mvp.totalFame > 0 && (
         <div className="mvp-banner">
-          👑 Чемпион бота: <strong>{mvp.name}</strong> — {fmt(mvp.totalFame)} славы
+          👑 Чемпион бота: <strong>{mvp.name}</strong> — {fmt(mvp.totalFame)} медалей
         </div>
       )}
 
@@ -249,7 +249,7 @@ function SeasonBoard({ state, myPlayerTag, onOpen }: {
           <div className="card-title">🏆 Сезонный зачёт</div>
           <span className="pro-chip">PRO</span>
         </div>
-        <p className="muted small">Кто больше всех набил славы за сезон (~месяц КВ) — доступно на тарифе Pro. 🔒</p>
+        <p className="muted small">Кто больше всех набил медалей за сезон (~месяц КВ) — доступно на тарифе Pro. 🔒</p>
       </section>
     )
   }
@@ -273,7 +273,7 @@ function SeasonBoard({ state, myPlayerTag, onOpen }: {
 
       {mvp && mvp.totalFame > 0 && (
         <div className="mvp-banner">
-          👑 MVP сезона: <strong>{mvp.name}</strong> — {fmt(mvp.totalFame)} славы
+          👑 MVP сезона: <strong>{mvp.name}</strong> — {fmt(mvp.totalFame)} медалей
         </div>
       )}
 
