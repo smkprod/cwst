@@ -13,7 +13,7 @@ const STATUS_META: Record<PlayStatus, { icon: string; cls: string }> = {
 /** Компактные значки ролей вместо текстовой плашки — чтобы не съедать место у ника. */
 const ROLE_ICON: Record<string, string> = {
   'Лидер': '👑',
-  'Соруководитель': '🎖',
+  'Соруководитель': '⚜️',
   'Старейшина': '⭐',
 }
 
