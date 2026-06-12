@@ -110,6 +110,12 @@ export interface WarLogWeek {
   standings: WarLogClan[]    // отсортированы по месту
 }
 
+/** Журнал войн произвольного клана (модалка из гонки). */
+export interface ClanWarLog {
+  clanTag: string
+  weeks: WarLogWeek[]        // isOurClan в standings помечает запрошенный клан
+}
+
 export interface ClanStatus {
   clanTag: string
   clanName: string

@@ -1,5 +1,8 @@
+import { useState } from 'react'
 import type { ClanStatus, RaceClan } from '../types'
 import { fmt } from '../lib/format'
+import { haptic } from '../lib/telegram'
+import { ClanWarLogModal } from './ClanWarLogModal'
 
 interface Props {
   race: RaceClan[]
@@ -8,10 +11,17 @@ interface Props {
 
 /** Ситуация в гонке: все кланы недели, как standings на cwstats/RoyaleAPI. */
 export function RaceCard({ race, periodType }: Props) {
+  const [selected, setSelected] = useState<RaceClan | null>(null)
+
   if (!race || race.length === 0) return null
 
   const maxFame = Math.max(...race.map(c => Math.max(c.fame, 1)))
   const isWarDay = periodType === 'warDay' || periodType === 'colosseum'
+
+  const open = (c: RaceClan) => {
+    haptic('light')
+    setSelected(c)
+  }
 
   return (
     <section className="card race-card">
@@ -31,41 +41,45 @@ export function RaceCard({ race, periodType }: Props) {
           ].filter(Boolean).join(' · ')
 
           return (
-            <li key={c.tag} className={`race-row ${c.isOurClan ? 'race-ours' : ''}`}>
-              <span className={`race-pos ${c.position === 1 ? 'race-pos-gold' : ''}`}>{c.position}</span>
+            <li key={c.tag}>
+              <button className={`race-row ${c.isOurClan ? 'race-ours' : ''}`} onClick={() => open(c)}>
+                <span className={`race-pos ${c.position === 1 ? 'race-pos-gold' : ''}`}>{c.position}</span>
 
-              <div className="race-info">
-                <span className="race-name">
-                  {c.name}
-                  {c.isOurClan && <span className="me-badge">мы</span>}
-                  {c.isFinished && ' 🏁'}
-                </span>
-                <div className="race-bar-track">
-                  <div
-                    className={`race-bar-fill ${c.isOurClan ? 'race-bar-ours' : ''}`}
-                    style={{ width: `${Math.max(3, Math.round((c.fame / maxFame) * 100))}%` }}
-                  />
+                <div className="race-info">
+                  <span className="race-name">
+                    {c.name}
+                    {c.isOurClan && <span className="me-badge">мы</span>}
+                    {c.isFinished && ' 🏁'}
+                  </span>
+                  <div className="race-bar-track">
+                    <div
+                      className={`race-bar-fill ${c.isOurClan ? 'race-bar-ours' : ''}`}
+                      style={{ width: `${Math.max(3, Math.round((c.fame / maxFame) * 100))}%` }}
+                    />
+                  </div>
+                  {meta && <span className="race-meta muted small">{meta}</span>}
                 </div>
-                {meta && <span className="race-meta muted small">{meta}</span>}
-              </div>
 
-              <div className="race-numbers">
-                <span className="race-fame">{fmt(c.fame)}</span>
-                {isWarDay && c.periodPoints > 0 && (
-                  <span className="race-points" title="Медали за сегодня">
-                    +{fmt(c.periodPoints)}
-                  </span>
-                )}
-                {!c.isFinished && isWarDay && (
-                  <span className="race-projected" title="Прогноз к концу недели">
-                    🔮 {fmt(c.projectedFame)}
-                  </span>
-                )}
-              </div>
+                <div className="race-numbers">
+                  <span className="race-fame">{fmt(c.fame)}</span>
+                  {isWarDay && c.periodPoints > 0 && (
+                    <span className="race-points" title="Медали за сегодня">
+                      +{fmt(c.periodPoints)}
+                    </span>
+                  )}
+                  {!c.isFinished && isWarDay && (
+                    <span className="race-projected" title="Прогноз к концу недели">
+                      🔮 {fmt(c.projectedFame)}
+                    </span>
+                  )}
+                </div>
+              </button>
             </li>
           )
         })}
       </ul>
+
+      {selected && <ClanWarLogModal clan={selected} onClose={() => setSelected(null)} />}
     </section>
   )
 }
