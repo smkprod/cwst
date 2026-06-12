@@ -3,6 +3,7 @@ using ClanWarTracker.Domain.Entities;
 using ClanWarTracker.Domain.Enums;
 using ClanWarTracker.Domain.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using Telegram.Bot;
 using Telegram.Bot.Types.Enums;
 
@@ -19,6 +20,7 @@ public class ClanController(
     IClanRepository clans,
     IClashRoyaleApi crApi,
     ITelegramBotClient bot,
+    IMemoryCache cache,
     IConfiguration config) : ControllerBase
 {
     /// <summary>GET /api/clans/my/status — статус войны клана текущего пользователя.</summary>
@@ -137,7 +139,7 @@ public class ClanController(
         if (player is null)
             return (null, null, NotFound(new { error = "player_not_linked", message = "Сначала привяжи тег: /link #ТЕГ" }));
 
-        var clan = (await clans.GetAllAsync(ct)).FirstOrDefault(c => c.Id == player.ClanId);
+        var clan = await clans.GetByIdAsync(player.ClanId, ct);
 
         // Авто-переключение: если игрок в CR сейчас в другом клане,
         // и этот клан зарегистрирован в сервисе — следуем за игроком.
@@ -171,14 +173,21 @@ public class ClanController(
     private async Task<bool> IsClanAdminAsync(long chatId, long userId, CancellationToken ct)
     {
         if (chatId == 0) return false;
-        try
+
+        // Кэш 5 минут: /my/status опрашивается каждым открытым Mini App раз в минуту,
+        // а GetChatMember — живой сетевой вызов к Telegram (сотни мс на каждый запрос)
+        return await cache.GetOrCreateAsync($"tgadmin:{chatId}:{userId}", async entry =>
         {
-            var member = await bot.GetChatMember(chatId, userId, ct);
-            return member.Status is ChatMemberStatus.Administrator or ChatMemberStatus.Creator;
-        }
-        catch
-        {
-            return false; // бот не в чате / чат удалён — не админ
-        }
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
+            try
+            {
+                var member = await bot.GetChatMember(chatId, userId, ct);
+                return member.Status is ChatMemberStatus.Administrator or ChatMemberStatus.Creator;
+            }
+            catch
+            {
+                return false; // бот не в чате / чат удалён — не админ
+            }
+        });
     }
 }

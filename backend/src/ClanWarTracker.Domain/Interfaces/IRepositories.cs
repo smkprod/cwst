@@ -5,6 +5,7 @@ namespace ClanWarTracker.Domain.Interfaces;
 public interface IClanRepository
 {
     Task<Clan?> GetByChatIdAsync(long chatId, CancellationToken ct = default);
+    Task<Clan?> GetByIdAsync(int id, CancellationToken ct = default);
     Task<Clan?> GetByTagAsync(string clanTag, CancellationToken ct = default);
     Task<List<Clan>> GetAllAsync(CancellationToken ct = default);
     Task AddAsync(Clan clan, CancellationToken ct = default);

@@ -1,6 +1,7 @@
 using ClanWarTracker.Application.DTOs;
 using ClanWarTracker.Domain.Enums;
 using ClanWarTracker.Domain.Interfaces;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace ClanWarTracker.Application.UseCases;
 
@@ -9,6 +10,7 @@ public class GetClanStatusUseCase(
     IClanRepository clans,
     IPlayerRepository players,
     IWarSnapshotRepository snapshots,
+    IMemoryCache cache,
     WarForecastService forecast)
 {
     /// <summary>За сколько часов до конца дня жёлтый статус превращается в красный.</summary>
@@ -216,6 +218,20 @@ public class GetClanStatusUseCase(
     }
 
     private async Task<Dictionary<string, int>> ComputeStreaksAsync(
+        int clanId, Domain.Entities.WarStatus war, CancellationToken ct)
+    {
+        // Стрики зависят только от ФИНАЛОВ прошлых недель — текущая неделя исключается,
+        // поэтому результат можно смело кэшировать (инвалидация — по смене недели + TTL)
+        var cacheKey = $"streaks:{clanId}:{war.SeasonId}:{war.SectionIndex}";
+        if (cache.TryGetValue(cacheKey, out Dictionary<string, int>? cached) && cached is not null)
+            return cached;
+
+        var result = await ComputeStreaksUncachedAsync(clanId, war, ct);
+        cache.Set(cacheKey, result, TimeSpan.FromMinutes(30));
+        return result;
+    }
+
+    private async Task<Dictionary<string, int>> ComputeStreaksUncachedAsync(
         int clanId, Domain.Entities.WarStatus war, CancellationToken ct)
     {
         // Берём последние 12 недель снапшотов клана

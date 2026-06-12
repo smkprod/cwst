@@ -1,7 +1,15 @@
+# Лимит логов: без него json-логи контейнеров растут бесконечно и забивают диск
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   db:
     image: postgres:18-alpine
     restart: unless-stopped
+    logging: *default-logging
     environment:
       POSTGRES_DB: clanwar
       POSTGRES_USER: clanwar
@@ -20,6 +28,7 @@ services:
       context: .
       dockerfile: backend/Dockerfile.api
     restart: unless-stopped
+    logging: *default-logging
     environment:
       DATABASE_URL: postgres://clanwar:${POSTGRES_PASSWORD}@db:5432/clanwar
       CLASH_ROYALE_API_TOKEN: ${CLASH_ROYALE_API_TOKEN}
@@ -33,6 +42,7 @@ services:
       context: backend
       dockerfile: Dockerfile.worker
     restart: unless-stopped
+    logging: *default-logging
     environment:
       DATABASE_URL: postgres://clanwar:${POSTGRES_PASSWORD}@db:5432/clanwar
       CLASH_ROYALE_API_TOKEN: ${CLASH_ROYALE_API_TOKEN}
@@ -46,6 +56,7 @@ services:
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
+    logging: *default-logging
     ports:
       - "80:80"
       - "443:443"
