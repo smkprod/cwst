@@ -136,7 +136,7 @@ public class GetClanStatusUseCase(
             ? forecast.BuildClanForecast(war, playerDtos, hoursLeft)
             : null;
 
-        var race = BuildRace(war, clanAvgFamePerAttack);
+        var race = await BuildRaceAsync(war, clanAvgFamePerAttack, ct);
 
         return new ClanStatusDto(
             ClanTag: war.ClanTag,
@@ -153,12 +153,21 @@ public class GetClanStatusUseCase(
     }
 
     /// <summary>
-    /// Таблица гонки: все кланы недели с прогнозом финальной славы (стиль RoyaleAPI:
-    /// прогноз = текущая слава + оставшиеся колоды × средняя слава за колоду × активность).
+    /// Таблица гонки: все кланы недели с прогнозом финальных медалей (стиль RoyaleAPI:
+    /// прогноз = текущие медали + оставшиеся колоды × среднее медалей за колоду × активность).
     /// </summary>
-    private List<RaceClanDto> BuildRace(Domain.Entities.WarStatus war, double ourAvgFamePerAttack)
+    private async Task<List<RaceClanDto>> BuildRaceAsync(
+        Domain.Entities.WarStatus war, double ourAvgFamePerAttack, CancellationToken ct)
     {
         var remainingWarDays = war.PeriodIndex < 3 ? 4 : Math.Clamp(6 - war.PeriodIndex, 0, 4);
+
+        // КВ-трофеи каждого клана гонки (кэш 1 час в клиенте; ошибки не критичны)
+        var trophies = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var c in war.RaceClans)
+        {
+            try { trophies[c.Tag] = await crApi.GetClanWarTrophiesAsync(c.Tag, ct) ?? 0; }
+            catch { trophies[c.Tag] = 0; }
+        }
 
         var rows = war.RaceClans.Select(c =>
         {
@@ -210,6 +219,7 @@ public class GetClanStatusUseCase(
             AvgFamePerAttack: r.Avg,
             DecksUsedToday: r.DecksUsedToday,
             MaxDecksToday: r.MaxDecksToday,
+            WarTrophies: trophies.GetValueOrDefault(r.Tag, 0),
             IsOurClan: r.IsOurs,
             IsFinished: r.IsFinished))
         .ToList();

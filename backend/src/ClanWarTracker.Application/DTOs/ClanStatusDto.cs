@@ -18,12 +18,13 @@ public record RaceClanDto(
     string Tag,
     string Name,
     int Position,             // 1..5 (финишировавшие выше)
-    int Fame,                 // слава за неделю
-    int PeriodPoints,         // очки текущего дня
-    int ProjectedFame,        // прогноз славы к концу недели
-    double AvgFamePerAttack,  // средняя слава за военную атаку
+    int Fame,                 // медали за неделю
+    int PeriodPoints,         // медали текущего дня
+    int ProjectedFame,        // прогноз медалей к концу недели
+    double AvgFamePerAttack,  // среднее медалей за военную атаку
     int DecksUsedToday,
     int MaxDecksToday,
+    int WarTrophies,          // КВ-трофеи клана (0 — не удалось получить)
     bool IsOurClan,
     bool IsFinished);
 

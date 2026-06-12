@@ -175,6 +175,19 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         return roles.TryGetValue(playerTag, out var role) ? role : null;
     }
 
+    public async Task<int?> GetClanWarTrophiesAsync(string clanTag, CancellationToken ct = default)
+    {
+        // Трофеи меняются только по итогам недели — кэш на час
+        return await cache.GetOrCreateAsync($"wartrophies:{clanTag}", async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
+            var resp = await http.GetAsync($"clans/{Encode(clanTag)}", ct);
+            if (!resp.IsSuccessStatusCode) return (int?)null;
+            var clan = await resp.Content.ReadFromJsonAsync<ClanProfile>(cancellationToken: ct);
+            return clan?.ClanWarTrophies;
+        });
+    }
+
     private async Task<ClanMembersResponse?> GetCachedMembersAsync(string clanTag, CancellationToken ct)
     {
         return await cache.GetOrCreateAsync($"clanrole:{clanTag}", async entry =>
@@ -187,6 +200,7 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
     }
 
     private record NamedEntity([property: JsonPropertyName("name")] string Name);
+    private record ClanProfile([property: JsonPropertyName("clanWarTrophies")] int? ClanWarTrophies);
 
     private record PlayerWithClan([property: JsonPropertyName("clan")] ClanRef? Clan);
     private record ClanRef([property: JsonPropertyName("tag")] string Tag);
