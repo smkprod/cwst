@@ -150,11 +150,8 @@ main.with-tabbar { padding-bottom: 80px; }
   opacity: 0.85;
 }
 .role-icon { font-size: 12px; margin-right: 3px; }
-.race-points { font-size: 11px; display: block; }
-.race-trophies {
-  font-size: 10px; font-weight: 600; color: var(--muted);
-  margin-left: 6px; white-space: nowrap;
-}
+.race-points { font-size: 11px; font-weight: 600; color: var(--green); }
+.race-meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .player-fame .muted { font-size: 11px; }
 
 .chevron { color: var(--muted); font-size: 18px; transition: transform 0.2s ease; }
