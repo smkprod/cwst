@@ -516,6 +516,37 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 .season-value { font-size: 17px; font-weight: 800; }
 .season-label { font-size: 11px; color: var(--muted); }
 
+/* --- Журнал войн (riverracelog) --- */
+.warlog-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.warlog-week { border-radius: 12px; overflow: hidden; }
+.warlog-row {
+  width: 100%; display: flex; align-items: center; gap: 10px;
+  background: rgba(255, 255, 255, 0.03); border: none; border-radius: 12px;
+  font: inherit; color: inherit; text-align: left; cursor: pointer;
+  padding: 9px 10px;
+}
+.warlog-info { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.warlog-place { font-size: 14px; font-weight: 700; }
+.warlog-numbers { display: grid; justify-items: end; gap: 1px; }
+.warlog-trophy { font-size: 12px; font-weight: 700; }
+.trophy-up { color: var(--green, #4cd07d); }
+.trophy-down { color: var(--red, #ff6b6b); }
+.warlog-chevron {
+  color: var(--muted); font-size: 18px; font-weight: 700;
+  transition: transform 0.15s ease;
+}
+.warlog-chevron-open { transform: rotate(90deg); }
+.warlog-standings { list-style: none; margin: 4px 0 2px; padding: 0 4px; display: grid; gap: 3px; }
+.warlog-standing {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px; border-radius: 10px;
+}
+.warlog-standing-name {
+  flex: 1; min-width: 0; font-size: 13px; font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.warlog-standing .warlog-trophy { min-width: 38px; text-align: right; }
+
 /* --- Нижние вкладки --- */
 .tabbar {
   position: fixed; bottom: 0; left: 0; right: 0;

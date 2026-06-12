@@ -188,6 +188,51 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         });
     }
 
+    public async Task<List<RiverRaceLogWeek>> GetRiverRaceLogAsync(string clanTag, CancellationToken ct = default)
+    {
+        // Журнал меняется только по итогам недели (понедельник ~10:00 UTC) — кэш 6 часов
+        var result = await cache.GetOrCreateAsync($"racelog:{clanTag}", async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(6);
+
+            var resp = await http.GetAsync($"clans/{Encode(clanTag)}/riverracelog?limit=10", ct);
+            if (!resp.IsSuccessStatusCode)
+            {
+                // Ошибку не кэшируем надолго — попробуем снова через 5 минут
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
+                return new List<RiverRaceLogWeek>();
+            }
+
+            var log = await resp.Content.ReadFromJsonAsync<RiverRaceLogResponse>(cancellationToken: ct);
+            return (log?.Items ?? [])
+                .Select(w => new RiverRaceLogWeek
+                {
+                    SeasonId = w.SeasonId,
+                    SectionIndex = w.SectionIndex,
+                    Standings = (w.Standings ?? [])
+                        .Where(s => s?.Clan?.Tag is not null)
+                        .OrderBy(s => s!.Rank)
+                        .Select(s => new RiverRaceLogStanding
+                        {
+                            Rank = s!.Rank,
+                            TrophyChange = s.TrophyChange,
+                            ClanTag = s.Clan!.Tag,
+                            ClanName = s.Clan.Name,
+                            Fame = s.Clan.Fame,
+                            Participants = (s.Clan.Participants ?? [])
+                                .Select(p => new RiverRaceLogPlayer
+                                {
+                                    PlayerTag = p.Tag,
+                                    Name = p.Name,
+                                    Fame = p.Fame,
+                                    DecksUsed = p.DecksUsed,
+                                }).ToList(),
+                        }).ToList(),
+                }).ToList();
+        });
+        return result ?? [];
+    }
+
     private async Task<ClanMembersResponse?> GetCachedMembersAsync(string clanTag, CancellationToken ct)
     {
         return await cache.GetOrCreateAsync($"clanrole:{clanTag}", async entry =>
@@ -198,6 +243,26 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
             return await resp.Content.ReadFromJsonAsync<ClanMembersResponse>(cancellationToken: ct);
         });
     }
+
+    // ---- JSON-модели журнала войн (/riverracelog) ----
+    private record RiverRaceLogResponse(
+        [property: JsonPropertyName("items")] List<LogItem>? Items);
+
+    private record LogItem(
+        [property: JsonPropertyName("seasonId")] int SeasonId,
+        [property: JsonPropertyName("sectionIndex")] int SectionIndex,
+        [property: JsonPropertyName("standings")] List<LogStanding>? Standings);
+
+    private record LogStanding(
+        [property: JsonPropertyName("rank")] int Rank,
+        [property: JsonPropertyName("trophyChange")] int TrophyChange,
+        [property: JsonPropertyName("clan")] LogClan? Clan);
+
+    private record LogClan(
+        [property: JsonPropertyName("tag")] string Tag,
+        [property: JsonPropertyName("name")] string Name,
+        [property: JsonPropertyName("fame")] int Fame,
+        [property: JsonPropertyName("participants")] List<RaceParticipant>? Participants);
 
     private record NamedEntity([property: JsonPropertyName("name")] string Name);
     private record ClanProfile([property: JsonPropertyName("clanWarTrophies")] int? ClanWarTrophies);

@@ -12,7 +12,22 @@ public record ClanStatusDto(
     ClanForecastDto? Forecast, // null на Free-тарифе
     List<RaceClanDto> Race,   // все кланы гонки, отсортированы по месту
     List<PlayerStatusDto> Players,
-    ClanInsightsDto? Insights); // Pro: прогноз победы + здоровье клана (null на Free)
+    ClanInsightsDto? Insights,  // Pro: прогноз победы + здоровье клана (null на Free)
+    List<WarLogWeekDto> WarLog); // журнал прошлых войн (места кланов и очки)
+
+/// <summary>Одна завершённая неделя из официального журнала войн клана.</summary>
+public record WarLogWeekDto(
+    int SeasonId,
+    int SectionIndex,         // неделя внутри сезона (0..3)
+    bool IsColosseum,
+    List<WarLogClanDto> Standings); // отсортированы по месту
+
+public record WarLogClanDto(
+    int Rank,                 // 1..5
+    string Name,
+    int Fame,                 // медали клана за неделю
+    int TrophyChange,         // +/- КВ-трофеи по итогам
+    bool IsOurClan);
 
 /// <summary>Один фактор здоровья клана (0..100).</summary>
 public record HealthFactorDto(string Name, int Score);

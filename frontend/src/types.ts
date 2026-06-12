@@ -94,6 +94,22 @@ export interface PlayerHistory {
   weeks: PlayerWeekHistory[]
 }
 
+/** Журнал прошлых войн (официальный riverracelog): места кланов и очки. */
+export interface WarLogClan {
+  rank: number               // 1..5
+  name: string
+  fame: number               // медали клана за неделю
+  trophyChange: number       // +/- КВ-трофеи по итогам
+  isOurClan: boolean
+}
+
+export interface WarLogWeek {
+  seasonId: number
+  sectionIndex: number       // неделя внутри сезона (0..3)
+  isColosseum: boolean
+  standings: WarLogClan[]    // отсортированы по месту
+}
+
 export interface ClanStatus {
   clanTag: string
   clanName: string
@@ -107,6 +123,7 @@ export interface ClanStatus {
   race: RaceClan[]                // ситуация в гонке (все кланы недели)
   players: PlayerStatus[]
   insights: ClanInsights | null   // Pro-аналитика (null на Free)
+  warLog: WarLogWeek[]            // журнал прошлых войн (места кланов и очки)
   myPlayerTag?: string       // тег текущего пользователя (если /my/status)
   isAdmin?: boolean          // админ ли текущий пользователь в группе клана
   isClanLeader?: boolean     // leader или coLeader в CR-клане
