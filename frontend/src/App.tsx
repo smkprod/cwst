@@ -4,6 +4,7 @@ import { haptic } from './lib/telegram'
 import type { ClanStatus } from './types'
 import { WarHeader } from './components/WarHeader'
 import { ForecastCard } from './components/ForecastCard'
+import { InsightsCard } from './components/InsightsCard'
 import { RaceCard } from './components/RaceCard'
 import { StatsStrip } from './components/StatsStrip'
 import { PlayerList } from './components/PlayerList'
@@ -102,6 +103,7 @@ export default function App() {
             {tab === 'war' && (
               <div className="fade-in">
                 <WarHeader status={data} />
+                <InsightsCard insights={data.insights} plan={data.plan} />
                 <RaceCard race={data.race} periodType={data.periodType} />
                 <ForecastCard forecast={data.forecast} stats={data.stats} periodType={data.periodType} />
                 <StatsStrip stats={data.stats} />

@@ -43,7 +43,8 @@ public class ClanController(
 
         return Ok(new { status.ClanTag, status.ClanName, status.PeriodType, status.PeriodIndex,
                         status.DayEndsAtUtc, status.HoursLeft, status.Plan, status.Stats, status.Forecast,
-                        status.Race, status.Players, myPlayerTag = player.PlayerTag, isAdmin, isClanLeader,
+                        status.Race, status.Players, status.Insights, myPlayerTag = player.PlayerTag,
+                        isAdmin, isClanLeader,
                         isOwner = IsOwner(userId), reminderHoursBeforeEnd = clan.ReminderHoursBeforeEnd });
     }
 
