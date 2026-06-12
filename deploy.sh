@@ -1,22 +1,18 @@
 #!/usr/bin/env bash
-# Деплой на VPS: пулл, пересборка, перезапуск + уборка за докером.
-# Использование:
-#   ./deploy.sh            — pull + пересборка + перезапуск (текущая ветка)
-#   ./deploy.sh --no-build — pull + перезапуск без пересборки (если код образов не менялся)
-#   ./deploy.sh ветка      — то же, но с явной веткой
+# Деплой на VPS: скачивает готовые образы с ghcr.io (собраны в GitHub Actions)
+# и перезапускает контейнеры. На сервере ничего не компилируется.
+#
+# Использование: ./deploy.sh [ветка]   (по умолчанию — текущая)
+#
+# Перед первым запуском один раз залогинься в ghcr.io:
+#   docker login ghcr.io -u smkprod
+#   (пароль — GitHub PAT с правом read:packages)
 set -euo pipefail
 cd "$(dirname "$0")"
 
-BUILD=1
-BRANCH="$(git rev-parse --abbrev-ref HEAD)"
-for arg in "$@"; do
-  case "$arg" in
-    --no-build) BUILD=0 ;;
-    *) BRANCH="$arg" ;;
-  esac
-done
+BRANCH="${1:-$(git rev-parse --abbrev-ref HEAD)}"
 
-# --- Свап: на VPS с 1 ГБ RAM сборка .NET без свапа вешает сервер намертво ---
+# --- Свап-страховка: пики памяти не должны вешать сервер ---
 if [ "$(swapon --show --noheadings | wc -l)" -eq 0 ]; then
   echo "==> Свапа нет — создаю 2 ГБ /swapfile (одноразово)"
   fallocate -l 2G /swapfile
@@ -30,26 +26,18 @@ if [ "$(swapon --show --noheadings | wc -l)" -eq 0 ]; then
   grep -q '^vm.swappiness' /etc/sysctl.conf || echo 'vm.swappiness=10' >> /etc/sysctl.conf
 fi
 
-echo "==> git pull origin $BRANCH"
+echo "==> git pull origin $BRANCH (для compose/Caddyfile)"
 git pull origin "$BRANCH"
 
-if [ "$BUILD" -eq 1 ]; then
-  # Собираем ПО ОДНОМУ: параллельная сборка api+worker съедает всю память на 1 ГБ VPS.
-  # Контейнеры при этом продолжают работать — даунтайм только на up.
-  echo "==> build api (последовательно, чтобы не съесть всю RAM)"
-  docker compose -f docker-compose.prod.yml build api
-  echo "==> build worker"
-  docker compose -f docker-compose.prod.yml build worker
-fi
+echo "==> docker compose pull (скачиваем свежие образы с ghcr.io)"
+docker compose -f docker-compose.prod.yml pull api worker
 
 echo "==> docker compose up"
 docker compose -f docker-compose.prod.yml up -d
 
-# Уборка: висячие образы от прошлых сборок и build cache старше 7 дней.
-# Без этого каждый `--build` оставляет на диске старый образ (~300 МБ × 2 сервиса).
+# Уборка: старые версии образов копятся после каждого pull
 echo "==> docker cleanup"
 docker image prune -f
-docker builder prune -f --filter "until=168h"
 
 echo "==> done"
 docker compose -f docker-compose.prod.yml ps
