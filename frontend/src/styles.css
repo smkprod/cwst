@@ -149,12 +149,7 @@ main.with-tabbar { padding-bottom: 80px; }
   font-size: 10px; font-weight: 700; margin-left: 4px; vertical-align: 1px;
   opacity: 0.85;
 }
-.role-badge {
-  font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em;
-  background: color-mix(in srgb, var(--accent) 15%, transparent);
-  color: var(--accent); border-radius: 4px; padding: 1px 4px; margin-right: 4px;
-  vertical-align: 1px;
-}
+.role-icon { font-size: 12px; margin-right: 3px; }
 .race-points { font-size: 11px; display: block; }
 .race-trophies {
   font-size: 10px; font-weight: 600; color: var(--muted);
