@@ -50,7 +50,7 @@ public class GetClanStatusUseCase(
         var clanAvgFamePerAttack = totalWarDecks > 0 ? (double)totalFame / totalWarDecks : 150.0;
 
         // В списке участников API могут висеть ушедшие из клана (записей больше 50).
-        // Атаковать дальше могут только реальные члены клана — берём 50 самых активных.
+        // Берём 50 самых активных — они и есть текущий состав.
         var roster = war.Participants
             .OrderByDescending(p => p.DecksUsedToday)
             .ThenByDescending(p => p.DecksUsed)
@@ -59,15 +59,20 @@ public class GetClanStatusUseCase(
             .Select(p => p.PlayerTag)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        // Расчёт по каждому игроку + прогноз
-        var enriched = war.Participants.Select(p =>
-        {
-            p.TelegramUserId = linked.GetValueOrDefault(p.PlayerTag);
-            p.Status = Classify(p.DecksUsedToday, hoursLeft, war.IsWarDay);
-            var proj = forecast.ProjectPlayer(p, war, hoursLeft, clanAvgFamePerAttack,
-                canStillAttack: roster.Contains(p.PlayerTag));
-            return (Participant: p, Projection: proj);
-        }).ToList();
+        // Гейтинг плана — нужен ниже для прогноза и серий
+        var plan = clan?.EffectivePlan(now) ?? Domain.Enums.PlanTier.Free;
+
+        // Расчёт по каждому игроку + прогноз; только участники из текущего состава (roster)
+        var enriched = war.Participants
+            .Where(p => roster.Contains(p.PlayerTag))
+            .Select(p =>
+            {
+                p.TelegramUserId = linked.GetValueOrDefault(p.PlayerTag);
+                p.Status = Classify(p.DecksUsedToday, hoursLeft, war.IsWarDay);
+                var proj = forecast.ProjectPlayer(p, war, hoursLeft, clanAvgFamePerAttack,
+                    canStillAttack: true);
+                return (Participant: p, Projection: proj);
+            }).ToList();
 
         // Ранги по славе (1 = больше всех)
         var ranked = enriched
@@ -113,8 +118,7 @@ public class GetClanStatusUseCase(
             PlayersNotPlayed: playerDtos.Count(p => p.Status == "notPlayed"),
             AvgFamePerAttack: Math.Round(clanAvgFamePerAttack, 1));
 
-        // Гейтинг: прогноз — Pro-фича; кланам не из БД (просмотр по тегу) — Free
-        var plan = clan?.EffectivePlan(now) ?? Domain.Enums.PlanTier.Free;
+        // Прогноз — Pro-фича; кланам не из БД (просмотр по тегу) — Free
         var clanForecast = plan == Domain.Enums.PlanTier.Pro
             ? forecast.BuildClanForecast(war, playerDtos, hoursLeft)
             : null;
