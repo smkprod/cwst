@@ -23,10 +23,10 @@ services:
       timeout: 5s
       retries: 12
 
+  # Образы собираются в GitHub Actions (.github/workflows/docker-build.yml)
+  # и скачиваются с ghcr.io — на VPS с 1 ГБ RAM ничего не компилируется.
   api:
-    build:
-      context: .
-      dockerfile: backend/Dockerfile.api
+    image: ghcr.io/smkprod/cwst-api:latest
     restart: unless-stopped
     logging: *default-logging
     environment:
@@ -38,9 +38,7 @@ services:
         condition: service_healthy
 
   worker:
-    build:
-      context: backend
-      dockerfile: Dockerfile.worker
+    image: ghcr.io/smkprod/cwst-worker:latest
     restart: unless-stopped
     logging: *default-logging
     environment:
