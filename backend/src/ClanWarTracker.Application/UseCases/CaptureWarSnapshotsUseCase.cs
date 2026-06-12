@@ -21,6 +21,15 @@ public class CaptureWarSnapshotsUseCase(
             var war = await crApi.GetCurrentWarAsync(clan.ClanTag, ct);
             if (war is null || !war.IsWarDay) continue;
 
+            // Сохраняем только текущий состав (≤50 самых активных), чтобы ушедшие
+            // из клана участники не попадали в историю и статистику.
+            var roster = war.Participants
+                .OrderByDescending(p => p.DecksUsedToday)
+                .ThenByDescending(p => p.DecksUsed)
+                .ThenByDescending(p => p.Fame)
+                .Take(50)
+                .ToList();
+
             await snapshots.UpsertAsync(new WarSnapshot
             {
                 ClanId = clan.Id,
@@ -29,10 +38,10 @@ public class CaptureWarSnapshotsUseCase(
                 PeriodIndex = war.PeriodIndex,
                 PeriodType = war.PeriodType,
                 CapturedAtUtc = DateTime.UtcNow,
-                TotalFame = war.Participants.Sum(p => p.Fame),
-                TotalDecksUsed = war.Participants.Sum(p => p.DecksUsed),
-                ParticipantCount = war.Participants.Count,
-                Players = war.Participants.Select(p => new PlayerWarSnapshot
+                TotalFame = roster.Sum(p => p.Fame),
+                TotalDecksUsed = roster.Sum(p => p.DecksUsed),
+                ParticipantCount = roster.Count,
+                Players = roster.Select(p => new PlayerWarSnapshot
                 {
                     PlayerTag = p.PlayerTag,
                     Name = p.Name,
