@@ -31,7 +31,7 @@ export function ForecastCard({ forecast, stats, periodType }: Props) {
           <span className="pro-chip">PRO</span>
         </div>
         <p className="muted small">
-          Сколько славы клан наберёт к концу дня и недели, тренд и точность прогноза —
+          Сколько медалей клан наберёт к концу дня и недели, тренд и точность прогноза —
           доступно на тарифе Pro. 🔒
         </p>
       </section>

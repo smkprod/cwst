@@ -36,13 +36,14 @@ public record PlayerStatusDto(
     int Fame,
     int RepairPoints,
     int BoatAttacks,
-    double AvgFamePerAttack,  // средняя слава за атаку
-    int ProjectedDayFame,     // прогноз славы к концу текущего дня
-    int ProjectedWeekFame,    // прогноз славы к концу недели
-    int Rank,                 // место в клане по славе
+    double AvgFamePerAttack,  // среднее медалей за атаку
+    int ProjectedDayFame,     // прогноз медалей к концу текущего дня
+    int ProjectedWeekFame,    // прогноз медалей к концу недели
+    int Rank,                 // место в клане по медалям
     string Status,            // "played" | "timeLeft" | "notPlayed"
     bool IsLinked,
-    int ConsecutiveWars);     // Pro: сколько недель подряд участвовал (0 на Free)
+    int ConsecutiveWars,      // Pro: сколько недель подряд участвовал (0 на Free)
+    string? Role);            // "Лидер" | "Соруководитель" | "Старейшина" | null (обычный)
 
 public record ClanStatsDto(
     int TotalFame,

@@ -42,30 +42,40 @@ public class GetClanStatusUseCase(
             WarForecastService.RefineWarDecks(war, firstWarDay);
         }
 
-        // Средняя слава за военную атаку по клану (фолбэк для тех, кто ещё не атаковал).
-        // Фолбэк 150 = 50% винрейта (победа 200 / поражение 100).
-        var totalDecksUsed = war.Participants.Sum(p => p.DecksUsed);
-        var totalWarDecks = war.Participants.Sum(p => p.WarDecksUsed);
-        var totalFame = war.Participants.Sum(p => p.Fame);
+        // Получаем актуальный состав клана из API (кэш 5 мин), чтобы не показывать
+        // ушедших участников — в CR API их может быть >50 в списке войны.
+        var memberRoles = await crApi.GetClanMemberRolesAsync(war.ClanTag, ct);
+        HashSet<string> rosterTags;
+        if (memberRoles.Count > 0)
+        {
+            rosterTags = memberRoles.Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        }
+        else
+        {
+            // Фолбэк: 50 самых активных (если API клана недоступен)
+            rosterTags = war.Participants
+                .OrderByDescending(p => p.DecksUsedToday)
+                .ThenByDescending(p => p.DecksUsed)
+                .ThenByDescending(p => p.Fame)
+                .Take(MaxClanMembers)
+                .Select(p => p.PlayerTag)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        }
+
+        // Фильтруем участников к текущему составу
+        var roster = war.Participants.Where(p => rosterTags.Contains(p.PlayerTag)).ToList();
+
+        // Средние медали за военную атаку (фолбэк 150 = 50% винрейта)
+        var totalDecksUsed = roster.Sum(p => p.DecksUsed);
+        var totalWarDecks = roster.Sum(p => p.WarDecksUsed);
+        var totalFame = roster.Sum(p => p.Fame);
         var clanAvgFamePerAttack = totalWarDecks > 0 ? (double)totalFame / totalWarDecks : 150.0;
 
-        // В списке участников API могут висеть ушедшие из клана (записей больше 50).
-        // Берём 50 самых активных — они и есть текущий состав.
-        var roster = war.Participants
-            .OrderByDescending(p => p.DecksUsedToday)
-            .ThenByDescending(p => p.DecksUsed)
-            .ThenByDescending(p => p.Fame)
-            .Take(MaxClanMembers)
-            .Select(p => p.PlayerTag)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        // Гейтинг плана — нужен ниже для прогноза и серий
+        // Гейтинг плана
         var plan = clan?.EffectivePlan(now) ?? Domain.Enums.PlanTier.Free;
 
-        // Расчёт по каждому игроку + прогноз; только участники из текущего состава (roster)
-        var enriched = war.Participants
-            .Where(p => roster.Contains(p.PlayerTag))
-            .Select(p =>
+        // Расчёт по каждому игроку + прогноз
+        var enriched = roster.Select(p =>
             {
                 p.TelegramUserId = linked.GetValueOrDefault(p.PlayerTag);
                 p.Status = Classify(p.DecksUsedToday, hoursLeft, war.IsWarDay);
@@ -101,7 +111,8 @@ public class GetClanStatusUseCase(
                 Rank: x.Rank,
                 Status: ToApiString(x.Participant.Status),
                 IsLinked: x.Participant.TelegramUserId is not null,
-                ConsecutiveWars: streaks.GetValueOrDefault(x.Participant.PlayerTag, 0)))
+                ConsecutiveWars: streaks.GetValueOrDefault(x.Participant.PlayerTag, 0),
+                Role: RoleLabel(memberRoles.GetValueOrDefault(x.Participant.PlayerTag))))
             // в основном списке UI хочет видеть не сыгравших сверху
             .OrderBy(p => p.Status == "played" ? 1 : p.Status == "timeLeft" ? 0 : -1)
             .ThenByDescending(p => p.Fame)
@@ -109,11 +120,11 @@ public class GetClanStatusUseCase(
 
         var stats = new ClanStatsDto(
             TotalFame: totalFame,
-            TotalRepairPoints: war.Participants.Sum(p => p.RepairPoints),
-            TotalDecksUsedToday: war.Participants.Sum(p => p.DecksUsedToday),
+            TotalRepairPoints: roster.Sum(p => p.RepairPoints),
+            TotalDecksUsedToday: roster.Sum(p => p.DecksUsedToday),
             TotalDecksUsedWeek: totalDecksUsed,
-            MaxDecksToday: Math.Min(war.Participants.Count, MaxClanMembers) * DecksPerDayPerPlayer,
-            ActivePlayers: war.Participants.Count(p => p.DecksUsed > 0),
+            MaxDecksToday: roster.Count * DecksPerDayPerPlayer,
+            ActivePlayers: roster.Count(p => p.DecksUsed > 0),
             PlayersPlayed: playerDtos.Count(p => p.Status == "played"),
             PlayersNotPlayed: playerDtos.Count(p => p.Status == "notPlayed"),
             AvgFamePerAttack: Math.Round(clanAvgFamePerAttack, 1));
@@ -234,6 +245,14 @@ public class GetClanStatusUseCase(
         }
         return result;
     }
+
+    private static string? RoleLabel(string? apiRole) => apiRole switch
+    {
+        "leader" => "Лидер",
+        "coLeader" => "Соруководитель",
+        "elder" => "Старейшина",
+        _ => null   // "member" — не отображаем
+    };
 
     public static WarPlayStatus Classify(int decksUsed, int hoursLeft, bool isWarDay)
     {

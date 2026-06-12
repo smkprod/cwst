@@ -96,7 +96,7 @@ public class SendDailyReportUseCase(
             isWeekFinal
                 ? $"🏁 {(isColosseum ? "Колизей" : "Война")} завершён{(isColosseum ? "" : "а")}! Итоги последнего дня:"
                 : $"🌙 День {dayNumber} войны завершён!",
-            $"🏅 Слава за день: {dayFame:N0}",
+            $"🏅 Медали за день: {dayFame:N0}",
         };
 
         if (top.Count > 0)

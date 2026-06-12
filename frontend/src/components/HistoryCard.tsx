@@ -63,7 +63,7 @@ export function HistoryCard({ plan }: { plan: Plan }) {
               <div
                 className={`history-bar ${w.isColosseum ? 'history-bar-colosseum' : ''}`}
                 style={{ height: `${Math.max(8, Math.round((w.finalFame / maxWeekFame) * 100))}%` }}
-                title={`${fmt(w.finalFame)} славы`}
+                title={`${fmt(w.finalFame)} медалей`}
               />
             </div>
             <span className="history-fame">{fmtShort(w.finalFame)}</span>

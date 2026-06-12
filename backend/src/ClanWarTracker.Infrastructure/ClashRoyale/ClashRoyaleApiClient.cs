@@ -162,18 +162,28 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         [property: JsonPropertyName("decksUsed")] int DecksUsed,
         [property: JsonPropertyName("decksUsedToday")] int DecksUsedToday);
 
+    public async Task<Dictionary<string, string>> GetClanMemberRolesAsync(string clanTag, CancellationToken ct = default)
+    {
+        var members = await GetCachedMembersAsync(clanTag, ct);
+        return members?.Items?.ToDictionary(m => m.Tag, m => m.Role, StringComparer.OrdinalIgnoreCase)
+               ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+    }
+
     public async Task<string?> GetPlayerClanRoleAsync(string clanTag, string playerTag, CancellationToken ct = default)
     {
-        var cacheKey = $"clanrole:{clanTag}";
-        var members = await cache.GetOrCreateAsync(cacheKey, async entry =>
+        var roles = await GetClanMemberRolesAsync(clanTag, ct);
+        return roles.TryGetValue(playerTag, out var role) ? role : null;
+    }
+
+    private async Task<ClanMembersResponse?> GetCachedMembersAsync(string clanTag, CancellationToken ct)
+    {
+        return await cache.GetOrCreateAsync($"clanrole:{clanTag}", async entry =>
         {
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
             var resp = await http.GetAsync($"clans/{Encode(clanTag)}/members", ct);
             if (!resp.IsSuccessStatusCode) return null;
             return await resp.Content.ReadFromJsonAsync<ClanMembersResponse>(cancellationToken: ct);
         });
-        return members?.Items?.FirstOrDefault(m =>
-            string.Equals(m.Tag, playerTag, StringComparison.OrdinalIgnoreCase))?.Role;
     }
 
     private record NamedEntity([property: JsonPropertyName("name")] string Name);

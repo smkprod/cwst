@@ -49,10 +49,10 @@ export function MyStatsView() {
     shareToTelegram(
       `⚔️ Мои результаты в Clan War (${s.clanName}):\n` +
       `🏅 Слава: ${fmt(s.fame)} (#${s.rank} в клане)\n` +
-      `⚡ ${Math.round(s.avgFamePerAttack)} славы за атаку\n` +
+      `⚡ ${Math.round(s.avgFamePerAttack)} медалей за атаку\n` +
       `🔮 Прогноз недели: ${fmt(s.projectedWeekFame)}\n` +
       (s.season ? `🗓 За сезон: ${fmt(s.season.totalFame)} (#${s.season.rank})\n` : '') +
-      `Мой вклад: ${s.contributionPercent}% славы клана 💪`,
+      `Мой вклад: ${s.contributionPercent}% медалей клана 💪`,
     )
   }
 
@@ -72,7 +72,7 @@ export function MyStatsView() {
         <div className="ring-side">
           <div className="ring-fact">
             <span className="ring-fact-value">{fmt(s.fame)}</span>
-            <span className="ring-fact-label">🏅 слава за неделю</span>
+            <span className="ring-fact-label">🏅 медали за неделю</span>
           </div>
           <div className="ring-fact">
             <span className="ring-fact-value">{s.decksUsedToday}/4</span>
@@ -85,7 +85,7 @@ export function MyStatsView() {
       <div className="me-grid">
         <div className="card me-stat">
           <span className="me-stat-value">{s.avgFamePerAttack > 0 ? Math.round(s.avgFamePerAttack) : '—'}</span>
-          <span className="me-stat-label">слава / атака</span>
+          <span className="me-stat-label">медали / атака</span>
           {s.avgFamePerAttack > 0 && vsClan !== 0 && (
             <span className={`me-stat-delta ${vsClan > 0 ? 'delta-up' : 'delta-down'}`}>
               {vsClan > 0 ? '▲' : '▼'} {Math.abs(vsClan)}% от среднего по клану
@@ -115,7 +115,7 @@ export function MyStatsView() {
           <div className="season-grid">
             <div className="season-cell">
               <span className="season-value">{fmt(s.season.totalFame)}</span>
-              <span className="season-label">🏅 слава за сезон</span>
+              <span className="season-label">🏅 медали за сезон</span>
             </div>
             <div className="season-cell">
               <span className="season-value">#{s.season.rank}</span>

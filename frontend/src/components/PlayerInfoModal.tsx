@@ -57,7 +57,7 @@ export function PlayerInfoModal({ player: p, isMe, onClose }: Props) {
               {isMe && <span className="me-badge">ты</span>}
               {p.name}
             </h3>
-            <span className="muted small">{p.playerTag} · #{p.rank} в клане{!p.isLinked && ' · нет TG'}</span>
+            <span className="muted small">{p.playerTag} · #{p.rank} в клане{p.role && ` · ${p.role}`}{!p.isLinked && ' · нет TG'}</span>
           </div>
           <button className="modal-close" onClick={close} aria-label="Закрыть">✕</button>
         </div>
@@ -67,12 +67,12 @@ export function PlayerInfoModal({ player: p, isMe, onClose }: Props) {
         </div>
 
         <div className="modal-grid">
-          <ModalStat value={fmt(p.fame)} label="🏅 слава за неделю" />
+          <ModalStat value={fmt(p.fame)} label="🏅 медали за неделю" />
           <ModalStat
             value={p.avgFamePerAttack > 0 ? String(Math.round(p.avgFamePerAttack)) : '—'}
-            label="⚡ слава за военный бой"
+            label="⚡ медалей за бой"
           />
-          <ModalStat value={String(p.warDecksUsed)} label="⚔️ военных атак" />
+          <ModalStat value={String(p.warDecksUsed)} label="⚔️ атак всего" />
           <ModalStat value={p.boatAttacks > 0 ? String(p.boatAttacks) : '—'} label="🚤 атаки лодки" />
           <ModalStat value={fmt(p.projectedDayFame)} label="🔮 прогноз на день" accent />
           <ModalStat value={fmt(p.projectedWeekFame)} label="🔮 прогноз недели" accent />
