@@ -1,3 +1,4 @@
+using ClanWarTracker.Application.DTOs;
 using ClanWarTracker.Application.UseCases;
 using ClanWarTracker.Domain.Entities;
 using ClanWarTracker.Domain.Enums;
@@ -78,6 +79,32 @@ public class ClanController(
     {
         var status = await getStatus.ExecuteAsync("#" + tag.ToUpperInvariant(), ct);
         return status is null ? NotFound(new { error = "war_not_found" }) : Ok(status);
+    }
+
+    /// <summary>
+    /// GET /api/clans/{tag}/warlog — журнал прошлых войн любого клана из официального
+    /// riverracelog (tag без #). IsOurClan помечает запрошенный клан.
+    /// </summary>
+    [HttpGet("{tag}/warlog")]
+    public async Task<IActionResult> GetClanWarLog(string tag, CancellationToken ct)
+    {
+        var clanTag = "#" + tag.TrimStart('#').ToUpperInvariant();
+        var log = await crApi.GetRiverRaceLogAsync(clanTag, ct);
+
+        var weeks = log.Select(w => new WarLogWeekDto(
+            SeasonId: w.SeasonId,
+            SectionIndex: w.SectionIndex,
+            IsColosseum: w.IsColosseum,
+            Standings: w.Standings.Select(s => new WarLogClanDto(
+                Rank: s.Rank,
+                Name: s.ClanName,
+                Fame: s.Fame,
+                TrophyChange: s.TrophyChange,
+                IsOurClan: string.Equals(s.ClanTag, clanTag, StringComparison.OrdinalIgnoreCase)))
+                .ToList()))
+            .ToList();
+
+        return Ok(new { clanTag, weeks });
     }
 
     /// <summary>GET /api/clans/my/history?weeks=8 — история войн по неделям (Pro).</summary>

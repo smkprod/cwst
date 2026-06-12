@@ -389,6 +389,11 @@ main.with-tabbar { padding-bottom: 80px; }
   padding: 8px; border-radius: 12px;
   background: rgba(255, 255, 255, 0.03);
 }
+/* Строка гонки — кнопка (тап открывает журнал войн клана) */
+button.race-row {
+  width: 100%; border: none; font: inherit; color: inherit;
+  text-align: left; cursor: pointer;
+}
 .race-ours {
   background: rgba(82, 136, 193, 0.12);
   outline: 1px solid rgba(82, 136, 193, 0.35);
@@ -432,7 +437,11 @@ main.with-tabbar { padding-bottom: 80px; }
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .history-week-fame { flex: none; font-size: 13px; font-weight: 700; }
-.history-royaleapi { width: 100%; }
+.history-royaleapi {
+  display: block; width: 100%; margin-top: 12px;
+  position: relative; z-index: 1;
+  background: #234059; /* непрозрачный, чтобы не просвечивал сквозь строки */
+}
 
 /* --- Настройка автонапоминаний --- */
 .reminder-options { display: flex; flex-wrap: wrap; gap: 6px; }
