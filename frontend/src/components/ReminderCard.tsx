@@ -45,12 +45,16 @@ export function ReminderCard({ initialHours, plan, linkedCount }: Props) {
         {savedAt !== null && <span className="trend-chip trend-ahead">✓ сохранено</span>}
       </div>
       <p className="muted small" style={{ margin: '0 0 10px' }}>
-        Бот напомнит тем, кто не отыграл все 4/4 колоды, за {hours} ч до конца военного дня
-        (день заканчивается в 10:00 UTC).
+        Бот пришлёт личное сообщение в Telegram тем, кто не отыграл все 4/4 колоды, за {hours} ч
+        до конца военного дня (день заканчивается в 10:00 UTC). В групповой чат уходит общая сводка.
+      </p>
+      <p className="muted small" style={{ margin: '0 0 10px' }}>
+        💬 Личные напоминания: <strong>Free</strong> — до {FREE_DM_LIMIT} игроков,{' '}
+        <strong>Pro</strong> — всем привязанным без лимита.
       </p>
       {showUpsell && (
         <p className="muted small reminder-upsell" style={{ margin: '0 0 10px' }}>
-          🔒 Персональные напоминания включены для {FREE_DM_LIMIT} из {linkedCount} игроков.{' '}
+          🔒 Сейчас личные напоминания идут {FREE_DM_LIMIT} из {linkedCount} привязанных игроков.{' '}
           <span className="pro-chip">PRO</span> снимает лимит.
         </p>
       )}

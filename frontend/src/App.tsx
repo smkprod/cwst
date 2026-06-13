@@ -13,6 +13,7 @@ import { Leaderboard } from './components/Leaderboard'
 import { MyStatsView } from './components/MyStatsView'
 import { NudgeButton } from './components/NudgeButton'
 import { ReminderCard } from './components/ReminderCard'
+import { AboutCard } from './components/AboutCard'
 import { OwnerPanel } from './components/OwnerPanel'
 import { LinkPrompt } from './components/LinkPrompt'
 
@@ -130,6 +131,8 @@ export default function App() {
             {tab === 'me' && (
               <div className="fade-in">
                 <MyStatsView />
+                <div style={{ height: 12 }} />
+                <AboutCard plan={data.plan} />
               </div>
             )}
             {tab === 'owner' && data.isOwner && (
