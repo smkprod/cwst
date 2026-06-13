@@ -40,6 +40,7 @@ export function ForecastCard({ forecast, stats, periodType }: Props) {
 
   const trend = TREND_META[forecast.trend]
   const dayGain = forecast.projectedDayFame - stats.totalFame
+  const hasCI = forecast.projectedDayFameLow > 0 && forecast.projectedDayFameHigh > 0
 
   return (
     <section className="card forecast-card">
@@ -49,17 +50,26 @@ export function ForecastCard({ forecast, stats, periodType }: Props) {
       </div>
 
       <div className="forecast-numbers">
-        <div className="forecast-block">
+        {/* Primary: day fame */}
+        <div className="forecast-block forecast-block-primary">
+          <span className="forecast-label-small">🏅 к концу дня</span>
           <span className="forecast-value">{fmt(forecast.projectedDayFame)}</span>
-          <span className="forecast-caption">🏅 к концу дня</span>
-          {dayGain > 0 && <span className="forecast-delta">+{fmt(dayGain)} ожидаем</span>}
+          {dayGain > 0 && (
+            <span className="forecast-delta">+{fmt(dayGain)} ожидаем</span>
+          )}
+          {hasCI && (
+            <span className="forecast-ci muted small">
+              {fmt(forecast.projectedDayFameLow)} – {fmt(forecast.projectedDayFameHigh)}
+            </span>
+          )}
         </div>
-        <div className="forecast-divider" />
-        <div className="forecast-block">
-          <span className="forecast-value">{fmt(forecast.projectedWeekFame)}</span>
-          <span className="forecast-caption">🏆 к концу недели</span>
-          <span className="forecast-delta muted-delta">
-            осталось атак: ~{forecast.expectedRemainingAttacksToday}
+
+        {/* Secondary: week fame */}
+        <div className="forecast-week-row">
+          <span className="forecast-week-label muted small">🏆 к концу недели:</span>
+          <span className="forecast-week-value">{fmt(forecast.projectedWeekFame)}</span>
+          <span className="forecast-week-attacks muted small">
+            атак осталось: ~{forecast.expectedRemainingAttacksToday}
           </span>
         </div>
       </div>

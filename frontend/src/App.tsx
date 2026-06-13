@@ -113,7 +113,11 @@ export default function App() {
                   <NudgeButton notPlayedCount={notFinished} isPro={isPro} />
                 )}
                 {canManage && (
-                  <ReminderCard initialHours={data.reminderHoursBeforeEnd ?? 3} />
+                  <ReminderCard
+                    initialHours={data.reminderHoursBeforeEnd ?? 3}
+                    plan={data.plan}
+                    linkedCount={data.players.filter(p => p.isLinked).length}
+                  />
                 )}
                 <PlayerList players={data.players} myPlayerTag={data.myPlayerTag} />
               </div>

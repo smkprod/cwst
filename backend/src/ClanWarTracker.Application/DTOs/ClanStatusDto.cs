@@ -92,7 +92,9 @@ public record ClanForecastDto(
     int ProjectedWeekFame,        // прогноз славы к концу недели (4 военных дня)
     int ExpectedRemainingAttacksToday, // ожидаемые оставшиеся атаки
     int Confidence,               // 0..100 — насколько надёжен прогноз
-    string Trend);                // "ahead" | "onPace" | "behind" — относительно среднего темпа
+    string Trend,                 // "ahead" | "onPace" | "behind" — относительно среднего темпа
+    int ProjectedDayFameLow,      // -1σ нижняя граница прогноза дня (игровой min)
+    int ProjectedDayFameHigh);    // +1σ верхняя граница прогноза дня
 
 /// <summary>Детальная статистика для текущего игрока (в Mini App).</summary>
 public record MyStatsDto(
