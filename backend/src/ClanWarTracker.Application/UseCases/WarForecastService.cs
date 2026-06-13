@@ -172,21 +172,33 @@ public class WarForecastService
         IReadOnlyList<PlayerStatusDto> players,
         int hoursLeft)
     {
-        var projectedDayFame = players.Sum(p => p.ProjectedDayFame);
-        var projectedWeekFame = players.Sum(p => p.ProjectedWeekFame);
-
         var totalFame = players.Sum(p => p.Fame);
         var totalDecksUsedToday = players.Sum(p => p.DecksUsedToday);
         var activePlayers = players.Count(p => p.DecksUsed > 0);
         var rosterSize = players.Count;
         var maxDecksToday = rosterSize * DecksPerDayPerPlayer;
-        var expectedRemainingAttacks = war.IsWarDay
-            ? Math.Clamp(maxDecksToday - totalDecksUsedToday, 0, maxDecksToday)
-            : 0;
 
         var totalWarDecksUsed = players.Sum(p => p.WarDecksUsed);
         var clanAvgFamePerAttack = ClampFamePerDeck(
             totalWarDecksUsed > 0 ? (double)totalFame / totalWarDecksUsed : BaselineFamePerDeck);
+
+        // Прогноз в стиле RoyaleAPI: считаем, что оставшиеся колоды будут сыграны
+        // по средней силе клана. Активный клан доигрывает почти всё — занижаем
+        // участие только у самого дедлайна (мало часов до конца дня).
+        var remainingDecksToday = war.IsWarDay
+            ? Math.Max(0, maxDecksToday - totalDecksUsedToday)
+            : 0;
+        var dayParticipation = Math.Clamp(hoursLeft / 3.0, 0.6, 1.0);
+        var expectedRemainingAttacks = (int)Math.Round(remainingDecksToday * dayParticipation);
+
+        var projectedDayFame = totalFame
+            + (int)Math.Round(remainingDecksToday * dayParticipation * clanAvgFamePerAttack);
+
+        // Прогноз на неделю: будущие военные дни играются почти полным составом.
+        var remainingWarDays = RemainingWarDays(war.PeriodIndex);
+        var futureDecks = remainingWarDays * maxDecksToday;
+        var projectedWeekFame = projectedDayFame
+            + (int)Math.Round(futureDecks * 0.9 * clanAvgFamePerAttack);
 
         // Trend: ожидаемый итог текущего дня vs средняя по завершённым дням
         var warDaysPassed = WarDaysPassed(war.PeriodIndex);

@@ -89,8 +89,8 @@ export function ForecastCard({ forecast, stats, periodType }: Props) {
         <summary>Как считается прогноз?</summary>
         <p className="muted small">
           За сегодня: <strong>~{forecast.expectedRemainingAttacksToday}</strong> оставшихся атак клана ×
-          средние медали за атаку (по истории каждого игрока за прошлые войны и его сегодняшней игре).
-          Учитывается, успеют ли игроки доиграть до конца дня.
+          средние медали клана за атаку. Как на RoyaleAPI — считаем, что почти все
+          оставшиеся колоды будут сыграны до конца дня.
         </p>
         <p className="muted small">
           К концу недели: то же, но до конца всех 4 военных дней. «Диапазон» — это разброс ±1σ
