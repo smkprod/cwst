@@ -89,7 +89,7 @@ export function PlayerInfoModal({ player: p, isMe, onClose }: Props) {
           <ModalStat value={fmt(p.fame)} label="🏅 медали за неделю" />
           <ModalStat
             value={p.avgFamePerAttack > 0 ? String(Math.round(p.avgFamePerAttack)) : '—'}
-            label="⚡ медалей за бой"
+            label="⚡ в среднем за атаку"
           />
           <ModalStat value={String(p.warDecksUsed)} label="⚔️ атак всего" />
           <ModalStat value={p.boatAttacks > 0 ? String(p.boatAttacks) : '—'} label="🚤 атаки лодки" />
@@ -100,6 +100,11 @@ export function PlayerInfoModal({ player: p, isMe, onClose }: Props) {
         {p.repairPoints > 0 && (
           <p className="muted small modal-extra">🔧 Очки ремонта: {fmt(p.repairPoints)}</p>
         )}
+
+        <p className="muted small modal-extra">
+          🔮 Прогноз = текущие медали + ожидаемые оставшиеся атаки, умноженные на средние
+          медали за атаку этого игрока (по его прошлым войнам). Чем больше истории — тем точнее.
+        </p>
 
         {/* История прошлых войн — как Race Log на cwstats */}
         <div className="history-block">
@@ -115,7 +120,7 @@ export function PlayerInfoModal({ player: p, isMe, onClose }: Props) {
           )}
 
           {historyState === 'ready' && history && history.weeks.length > 0 && (
-            <ul className="history-weeks">
+            <ul className="history-week-list">
               {history.weeks.map(w => (
                 <li key={`${w.seasonId}-${w.sectionIndex}-${w.clanTag}`} className="history-week-row">
                   <span className="history-week-badge">

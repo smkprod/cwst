@@ -84,6 +84,20 @@ export function ForecastCard({ forecast, stats, periodType }: Props) {
         </div>
         <span className="confidence-pct">{forecast.confidence}%</span>
       </div>
+
+      <details className="forecast-help">
+        <summary>Как считается прогноз?</summary>
+        <p className="muted small">
+          За сегодня: <strong>~{forecast.expectedRemainingAttacksToday}</strong> оставшихся атак клана ×
+          средние медали за атаку (по истории каждого игрока за прошлые войны и его сегодняшней игре).
+          Учитывается, успеют ли игроки доиграть до конца дня.
+        </p>
+        <p className="muted small">
+          К концу недели: то же, но до конца всех 4 военных дней. «Диапазон» — это разброс ±1σ
+          (как может лечь реальный результат). Чем больше сыграно дней и чем активнее клан —
+          тем выше точность.
+        </p>
+      </details>
     </section>
   )
 }
