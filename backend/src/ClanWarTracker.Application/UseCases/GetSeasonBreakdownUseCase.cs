@@ -16,13 +16,25 @@ public class GetSeasonBreakdownUseCase(IClashRoyaleApi crApi)
         var war = await crApi.GetCurrentWarAsync(clanTag, ct);
         var log = await crApi.GetRiverRaceLogAsync(clanTag, ct);
 
-        var seasonId = war?.SeasonId ?? log.FirstOrDefault()?.SeasonId ?? 0;
-        if (seasonId == 0) return null;
+        // ВАЖНО: /currentriverrace НЕ отдаёт seasonId (приходит 0), поэтому текущий
+        // сезон определяем по журналу: сезон самой свежей завершённой недели.
+        // Если это был колизей (section 3) — сезон завершён, текущий = следующий.
+        int seasonId;
+        if (log.Count > 0)
+        {
+            var newest = log[0]; // журнал отсортирован: свежие недели первыми
+            seasonId = newest.SectionIndex >= 3 ? newest.SeasonId + 1 : newest.SeasonId;
+        }
+        else
+        {
+            seasonId = war?.SeasonId ?? 0;
+        }
+        if (seasonId == 0 && war is null) return null;
 
         // sectionIndex -> накопитель недели
         var weeks = new Dictionary<int, WeekAcc>();
 
-        // 1) Завершённые недели текущего сезона из официального журнала (пофамильно)
+        // 1) Завершённые недели ТЕКУЩЕГО сезона из официального журнала (пофамильно)
         foreach (var w in log.Where(w => w.SeasonId == seasonId))
         {
             var ours = w.Standings.FirstOrDefault(s =>
@@ -35,8 +47,8 @@ public class GetSeasonBreakdownUseCase(IClashRoyaleApi crApi)
             weeks[w.SectionIndex] = acc;
         }
 
-        // 2) Текущая (идущая) неделя из live-гонки — только участники клана
-        if (war is not null)
+        // 2) Текущая (идущая) неделя из live-гонки — если её секции ещё нет в журнале
+        if (war is not null && !weeks.ContainsKey(war.SectionIndex))
         {
             var memberTags = await crApi.GetClanMemberRolesAsync(clanTag, ct);
             var roster = memberTags.Count > 0
@@ -49,7 +61,7 @@ public class GetSeasonBreakdownUseCase(IClashRoyaleApi crApi)
                 acc.Players[p.PlayerTag] = (p.Name, p.Fame, p.DecksUsed);
                 acc.ClanFame += p.Fame;
             }
-            weeks[war.SectionIndex] = acc; // перезаписывает запись журнала, если совпала
+            weeks[war.SectionIndex] = acc;
         }
 
         if (weeks.Count == 0) return null;
