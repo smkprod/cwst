@@ -93,7 +93,7 @@ export function Leaderboard({ players, myPlayerTag, plan }: Props) {
         </div>
       </div>
 
-      {mode === 'week' && <WeekBoard players={players} myPlayerTag={myPlayerTag} onOpen={openByTag} plan={plan} />}
+      {mode === 'week' && <WeekBoard players={players} myPlayerTag={myPlayerTag} onOpen={openByTag} plan={plan} onShowSeason={() => switchMode('season')} />}
       {mode === 'season' && <SeasonBoard state={season} myPlayerTag={myPlayerTag} onOpen={openByTag} />}
       {mode === 'global' && <GlobalBoard state={global} />}
 
@@ -116,8 +116,8 @@ export function Leaderboard({ players, myPlayerTag, plan }: Props) {
 }
 
 /* --- Недельный зачёт --- */
-function WeekBoard({ players, myPlayerTag, onOpen, plan }: {
-  players: PlayerStatus[]; myPlayerTag?: string; onOpen: (tag: string) => void; plan: Plan
+function WeekBoard({ players, myPlayerTag, onOpen, plan, onShowSeason }: {
+  players: PlayerStatus[]; myPlayerTag?: string; onOpen: (tag: string) => void; plan: Plan; onShowSeason: () => void
 }) {
   const sorted = [...players].sort((a, b) => a.rank - b.rank)
   const podium = sorted.slice(0, 3)
@@ -130,6 +130,10 @@ function WeekBoard({ players, myPlayerTag, onOpen, plan }: {
 
   return (
     <>
+      <button className="season-shortcut-btn" onClick={onShowSeason}>
+        📅 Рейтинг за весь сезон (W1 → Колизей) →
+      </button>
+
       {mvp && mvp.fame > 0 && (
         <div className="mvp-banner">
           👑 MVP недели: <strong>{mvp.name}</strong> — {fmt(mvp.fame)} медалей
