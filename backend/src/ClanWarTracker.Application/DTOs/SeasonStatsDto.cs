@@ -23,3 +23,28 @@ public record MySeasonDto(
     int WeeksParticipated,
     int BestWeekFame,
     int WeeksTracked);
+
+/// <summary>
+/// Разбивка текущего сезона по неделям: каждая война отдельно + общий зачёт.
+/// Завершённые недели — из официального журнала (пофамильно), текущая — из live-гонки.
+/// </summary>
+public record SeasonBreakdownDto(
+    int SeasonId,
+    int CurrentSectionIndex,        // идущая сейчас неделя сезона
+    List<SeasonWeekDto> Weeks,      // по возрастанию SectionIndex (Война 1, Война 2, …)
+    List<SeasonPlayerDto> SeasonTotal); // агрегат по всем неделям сезона
+
+public record SeasonWeekDto(
+    int SectionIndex,
+    string Label,                   // "Война 1" / "Колизей"
+    bool IsColosseum,
+    bool IsCurrent,                 // эта неделя идёт прямо сейчас
+    int ClanFame,                   // суммарные медали клана за неделю
+    List<SeasonWeekPlayerDto> Players); // отсортированы по медалям
+
+public record SeasonWeekPlayerDto(
+    string PlayerTag,
+    string Name,
+    int Fame,
+    int DecksUsed,
+    int Rank);

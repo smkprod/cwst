@@ -221,6 +221,31 @@ export interface SeasonStats {
   players: SeasonPlayer[]
 }
 
+/* --- Разбивка сезона по неделям (Pro): каждая война + общий зачёт --- */
+export interface SeasonWeekPlayer {
+  playerTag: string
+  name: string
+  fame: number
+  decksUsed: number
+  rank: number
+}
+
+export interface SeasonWeek {
+  sectionIndex: number
+  label: string              // "Война 1" / "Колизей"
+  isColosseum: boolean
+  isCurrent: boolean         // эта неделя идёт прямо сейчас
+  clanFame: number
+  players: SeasonWeekPlayer[]
+}
+
+export interface SeasonBreakdown {
+  seasonId: number
+  currentSectionIndex: number
+  weeks: SeasonWeek[]        // по возрастанию (Война 1, Война 2, …)
+  seasonTotal: SeasonPlayer[]
+}
+
 /* --- Глобальный топ бота (все кланы, привязанные игроки) --- */
 export interface GlobalTopPlayer {
   playerTag: string
