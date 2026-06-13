@@ -26,4 +26,7 @@ public interface IClashRoyaleApi
     /// Пустой список — клан не найден или API недоступен.
     /// </summary>
     Task<List<RiverRaceLogWeek>> GetRiverRaceLogAsync(string clanTag, CancellationToken ct = default);
+
+    /// <summary>Полный профиль игрока: уровень, трофеи, клан, карты. null — не найден.</summary>
+    Task<CrPlayerInfo?> GetPlayerInfoAsync(string playerTag, CancellationToken ct = default);
 }

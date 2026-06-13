@@ -109,8 +109,8 @@ export default function App() {
                 <WarHeader status={data} />
                 <InsightsCard insights={data.insights} plan={data.plan} />
                 <RaceCard race={data.race} periodType={data.periodType} />
-                <WarLogCard log={data.warLog} />
                 <ForecastCard forecast={data.forecast} stats={data.stats} periodType={data.periodType} />
+                <WarLogCard log={data.warLog} />
                 <StatsStrip stats={data.stats} />
                 {canManage && data.periodType !== 'training' && (
                   <NudgeButton notPlayedCount={notFinished} isPro={isPro} />
