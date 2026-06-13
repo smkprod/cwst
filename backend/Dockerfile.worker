@@ -1,11 +1,15 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
-COPY . .
-
-# Путь начинается сразу с src/
+# Сначала только csproj — слой restore кэшируется, пока не меняются зависимости
+COPY src/ClanWarTracker.Domain/ClanWarTracker.Domain.csproj src/ClanWarTracker.Domain/
+COPY src/ClanWarTracker.Application/ClanWarTracker.Application.csproj src/ClanWarTracker.Application/
+COPY src/ClanWarTracker.Infrastructure/ClanWarTracker.Infrastructure.csproj src/ClanWarTracker.Infrastructure/
+COPY src/ClanWarTracker.Worker/ClanWarTracker.Worker.csproj src/ClanWarTracker.Worker/
 RUN dotnet restore src/ClanWarTracker.Worker/ClanWarTracker.Worker.csproj
-RUN dotnet publish src/ClanWarTracker.Worker/ClanWarTracker.Worker.csproj -c Release -o /app/publish
+
+COPY src/ src/
+RUN dotnet publish src/ClanWarTracker.Worker/ClanWarTracker.Worker.csproj -c Release -o /app/publish --no-restore
 
 FROM mcr.microsoft.com/dotnet/aspnet:9.0
 WORKDIR /app

@@ -14,6 +14,12 @@ public class Clan
     public PlanTier PlanTier { get; set; } = PlanTier.Free;
     public DateTime? PlanExpiresAtUtc { get; set; }      // null = бессрочно
 
+    /// <summary>
+    /// Какие стадии напоминания об окончании Pro уже отправлены за текущий оплаченный период.
+    /// Сбрасывается в None при каждом продлении Pro.
+    /// </summary>
+    public PlanReminderStage PlanReminderStageSent { get; set; } = PlanReminderStage.None;
+
     public List<Player> Players { get; set; } = [];
 
     /// <summary>Действующий тариф с учётом срока: просроченный Pro = Free.</summary>

@@ -11,19 +11,48 @@ public record ClanStatusDto(
     ClanStatsDto Stats,
     ClanForecastDto? Forecast, // null на Free-тарифе
     List<RaceClanDto> Race,   // все кланы гонки, отсортированы по месту
-    List<PlayerStatusDto> Players);
+    List<PlayerStatusDto> Players,
+    ClanInsightsDto? Insights,  // Pro: прогноз победы + здоровье клана (null на Free)
+    List<WarLogWeekDto> WarLog); // журнал прошлых войн (места кланов и очки)
+
+/// <summary>Одна завершённая неделя из официального журнала войн клана.</summary>
+public record WarLogWeekDto(
+    int SeasonId,
+    int SectionIndex,         // неделя внутри сезона (0..3)
+    bool IsColosseum,
+    List<WarLogClanDto> Standings); // отсортированы по месту
+
+public record WarLogClanDto(
+    int Rank,                 // 1..5
+    string Name,
+    int Fame,                 // медали клана за неделю
+    int TrophyChange,         // +/- КВ-трофеи по итогам
+    bool IsOurClan);
+
+/// <summary>Один фактор здоровья клана (0..100).</summary>
+public record HealthFactorDto(string Name, int Score);
+
+/// <summary>Pro-аналитика: шанс победы в гонке и «здоровье» клана.</summary>
+public record ClanInsightsDto(
+    int? WinChance,              // % победы в гонке недели; null — тренировка
+    int? WinChanceIfSlackersOut, // тот же %, если не доигравшие так и не сыграют
+    string? TopRivalName,        // главный соперник (по прогнозу)
+    int HealthScore,             // 0..100
+    string HealthLabel,          // "Сильный клан" | "Стабильный" | "Нестабильный" | "Критично"
+    List<HealthFactorDto> Factors);
 
 /// <summary>Один клан в таблице гонки (наш или соперник).</summary>
 public record RaceClanDto(
     string Tag,
     string Name,
     int Position,             // 1..5 (финишировавшие выше)
-    int Fame,                 // слава за неделю
-    int PeriodPoints,         // очки текущего дня
-    int ProjectedFame,        // прогноз славы к концу недели
-    double AvgFamePerAttack,  // средняя слава за военную атаку
+    int Fame,                 // медали за неделю
+    int PeriodPoints,         // медали текущего дня
+    int ProjectedFame,        // прогноз медалей к концу недели
+    double AvgFamePerAttack,  // среднее медалей за военную атаку
     int DecksUsedToday,
     int MaxDecksToday,
+    int WarTrophies,          // КВ-трофеи клана (0 — не удалось получить)
     bool IsOurClan,
     bool IsFinished);
 
@@ -36,12 +65,16 @@ public record PlayerStatusDto(
     int Fame,
     int RepairPoints,
     int BoatAttacks,
-    double AvgFamePerAttack,  // средняя слава за атаку
-    int ProjectedDayFame,     // прогноз славы к концу текущего дня
-    int ProjectedWeekFame,    // прогноз славы к концу недели
-    int Rank,                 // место в клане по славе
+    double AvgFamePerAttack,  // среднее медалей за атаку
+    int ProjectedDayFame,     // прогноз медалей к концу текущего дня
+    int ProjectedWeekFame,    // прогноз медалей к концу недели
+    int Rank,                 // место в клане по медалям
     string Status,            // "played" | "timeLeft" | "notPlayed"
-    bool IsLinked);
+    bool IsLinked,
+    int ConsecutiveWars,      // Pro: сколько недель подряд участвовал (0 на Free)
+    string? Role,             // "Лидер" | "Соруководитель" | "Старейшина" | null (обычный)
+    string? DnaLabel,         // Pro: архетип игрока ("Тащер 💪", "Надёжный 🛡" ...), null — мало данных/Free
+    int ReliabilityScore);    // Pro: надёжность 0..100 (0 — нет данных/Free)
 
 public record ClanStatsDto(
     int TotalFame,
@@ -59,7 +92,9 @@ public record ClanForecastDto(
     int ProjectedWeekFame,        // прогноз славы к концу недели (4 военных дня)
     int ExpectedRemainingAttacksToday, // ожидаемые оставшиеся атаки
     int Confidence,               // 0..100 — насколько надёжен прогноз
-    string Trend);                // "ahead" | "onPace" | "behind" — относительно среднего темпа
+    string Trend,                 // "ahead" | "onPace" | "behind" — относительно среднего темпа
+    int ProjectedDayFameLow,      // -1σ нижняя граница прогноза дня (игровой min)
+    int ProjectedDayFameHigh);    // +1σ верхняя граница прогноза дня
 
 /// <summary>Детальная статистика для текущего игрока (в Mini App).</summary>
 public record MyStatsDto(

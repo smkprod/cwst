@@ -36,8 +36,10 @@ public class WarSnapshotRepository(AppDbContext db) : IWarSnapshotRepository
         await db.SaveChangesAsync(ct);
     }
 
+    // Чтения ниже — AsNoTracking: эти снимки никогда не изменяются после выборки,
+    // а трекинг сотен PlayerWarSnapshot заметно нагружает EF на каждый запрос.
     public Task<List<WarSnapshot>> GetBySeasonAsync(int clanId, int seasonId, CancellationToken ct = default) =>
-        db.WarSnapshots
+        db.WarSnapshots.AsNoTracking()
             .Include(s => s.Players)
             .Where(s => s.ClanId == clanId && s.SeasonId == seasonId)
             .OrderBy(s => s.SectionIndex).ThenBy(s => s.PeriodIndex)
@@ -45,7 +47,7 @@ public class WarSnapshotRepository(AppDbContext db) : IWarSnapshotRepository
 
     public Task<WarSnapshot?> GetSnapshotAsync(int clanId, int seasonId, int sectionIndex, int periodIndex,
         CancellationToken ct = default) =>
-        db.WarSnapshots
+        db.WarSnapshots.AsNoTracking()
             .Include(s => s.Players)
             .FirstOrDefaultAsync(s =>
                 s.ClanId == clanId &&
@@ -57,7 +59,7 @@ public class WarSnapshotRepository(AppDbContext db) : IWarSnapshotRepository
         CancellationToken ct = default)
     {
         // Все записи игрока (масштабы MVP позволяют), финал недели выбираем в памяти
-        var rows = await db.PlayerWarSnapshots
+        var rows = await db.PlayerWarSnapshots.AsNoTracking()
             .Include(p => p.Snapshot)!.ThenInclude(s => s!.Clan)
             .Where(p => p.PlayerTag == playerTag)
             .ToListAsync(ct);
@@ -77,7 +79,7 @@ public class WarSnapshotRepository(AppDbContext db) : IWarSnapshotRepository
         int weeks, CancellationToken ct = default)
     {
         // Аналог GetPlayerHistoryAsync, но одним запросом на всех привязанных игроков
-        var rows = await db.PlayerWarSnapshots
+        var rows = await db.PlayerWarSnapshots.AsNoTracking()
             .Include(p => p.Snapshot)!.ThenInclude(s => s!.Clan)
             .Where(p => playerTags.Contains(p.PlayerTag))
             .ToListAsync(ct);
@@ -115,7 +117,7 @@ public class WarSnapshotRepository(AppDbContext db) : IWarSnapshotRepository
         if (weekKeys.Count == 0) return [];
 
         var minSeason = weekKeys.Min(k => k.SeasonId);
-        var snapshots = await db.WarSnapshots
+        var snapshots = await db.WarSnapshots.AsNoTracking()
             .Include(s => s.Players)
             .Where(s => s.ClanId == clanId && s.SeasonId >= minSeason)
             .OrderByDescending(s => s.SeasonId)

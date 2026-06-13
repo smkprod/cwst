@@ -10,6 +10,7 @@ namespace ClanWarTracker.Api.Controllers;
 public class PlayerController(
     IPlayerRepository players,
     IWarSnapshotRepository snapshots,
+    IClashRoyaleApi crApi,
     GetPlayerStatsUseCase getStats,
     GetGlobalTopUseCase getGlobalTop) : ControllerBase
 {
@@ -53,31 +54,69 @@ public class PlayerController(
     }
 
     /// <summary>
-    /// GET /api/players/{tag}/history — история войн игрока по данным сервиса:
-    /// в каких кланах играл и сколько славы набивал по неделям (tag без #).
-    /// Покрывает только кланы, подключённые к боту; полная история — на RoyaleAPI.
+    /// GET /api/players/{tag}/history — история войн игрока по неделям (tag без #).
+    /// Источники: собственные снапшоты сервиса + официальный журнал войн его
+    /// текущего клана (/riverracelog, до 10 недель). Полная история — на RoyaleAPI.
     /// </summary>
     [HttpGet("{tag}/history")]
     public async Task<IActionResult> History(string tag, [FromQuery] int weeks, CancellationToken ct)
     {
         var playerTag = "#" + tag.TrimStart('#').ToUpperInvariant();
-        var rows = await snapshots.GetPlayerHistoryAsync(
-            playerTag, weeks is > 0 and <= 26 ? weeks : 12, ct);
+        var maxWeeks = weeks is > 0 and <= 26 ? weeks : 12;
+        var rows = await snapshots.GetPlayerHistoryAsync(playerTag, maxWeeks, ct);
+
+        var merged = rows.Select(r => new PlayerWeekHistoryDto(
+            SeasonId: r.Snapshot!.SeasonId,
+            SectionIndex: r.Snapshot.SectionIndex,
+            IsColosseum: r.Snapshot.PeriodType == "colosseum",
+            ClanTag: r.Snapshot.Clan?.ClanTag ?? "",
+            ClanName: r.Snapshot.Clan?.Name ?? "—",
+            Fame: r.Fame,
+            DecksUsed: r.DecksUsed,
+            AvgFamePerAttack: r.Fame > 0 && r.DecksUsed > 0
+                ? Math.Round(Math.Clamp((double)r.Fame / r.DecksUsed, 100, 250), 1)
+                : 0)).ToList();
+
+        // Дополняем недостающие недели официальным журналом текущего клана игрока
+        try
+        {
+            var clanTag = await crApi.GetPlayerClanTagAsync(playerTag, ct);
+            if (clanTag is not null)
+            {
+                var seen = merged.Select(m => (m.SeasonId, m.SectionIndex)).ToHashSet();
+                var log = await crApi.GetRiverRaceLogAsync(clanTag, ct);
+                foreach (var w in log)
+                {
+                    if (seen.Contains((w.SeasonId, w.SectionIndex))) continue;
+                    var standing = w.Standings.FirstOrDefault(s =>
+                        string.Equals(s.ClanTag, clanTag, StringComparison.OrdinalIgnoreCase));
+                    var me = standing?.Participants.FirstOrDefault(p =>
+                        string.Equals(p.PlayerTag, playerTag, StringComparison.OrdinalIgnoreCase));
+                    if (me is null || me.Fame == 0) continue;
+
+                    merged.Add(new PlayerWeekHistoryDto(
+                        SeasonId: w.SeasonId,
+                        SectionIndex: w.SectionIndex,
+                        IsColosseum: w.IsColosseum,
+                        ClanTag: standing!.ClanTag,
+                        ClanName: standing.ClanName,
+                        Fame: me.Fame,
+                        DecksUsed: me.DecksUsed,
+                        AvgFamePerAttack: me.Fame > 0 && me.DecksUsed > 0
+                            ? Math.Round(Math.Clamp((double)me.Fame / me.DecksUsed, 100, 250), 1)
+                            : 0));
+                }
+            }
+        }
+        catch { /* журнал недоступен — показываем только свои данные */ }
 
         var dto = new PlayerHistoryDto(
             PlayerTag: playerTag,
             RoyaleApiUrl: $"https://royaleapi.com/player/{Uri.EscapeDataString(playerTag.TrimStart('#'))}",
-            Weeks: rows.Select(r => new PlayerWeekHistoryDto(
-                SeasonId: r.Snapshot!.SeasonId,
-                SectionIndex: r.Snapshot.SectionIndex,
-                IsColosseum: r.Snapshot.PeriodType == "colosseum",
-                ClanTag: r.Snapshot.Clan?.ClanTag ?? "",
-                ClanName: r.Snapshot.Clan?.Name ?? "—",
-                Fame: r.Fame,
-                DecksUsed: r.DecksUsed,
-                AvgFamePerAttack: r.Fame > 0 && r.DecksUsed > 0
-                    ? Math.Round(Math.Clamp((double)r.Fame / r.DecksUsed, 100, 250), 1)
-                    : 0)).ToList());
+            Weeks: merged
+                .OrderByDescending(m => m.SeasonId).ThenByDescending(m => m.SectionIndex)
+                .Take(maxWeeks)
+                .ToList());
 
         return Ok(dto);
     }

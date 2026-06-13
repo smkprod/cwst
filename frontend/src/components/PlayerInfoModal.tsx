@@ -57,7 +57,7 @@ export function PlayerInfoModal({ player: p, isMe, onClose }: Props) {
               {isMe && <span className="me-badge">ты</span>}
               {p.name}
             </h3>
-            <span className="muted small">{p.playerTag} · #{p.rank} в клане{!p.isLinked && ' · нет TG'}</span>
+            <span className="muted small">{p.playerTag} · #{p.rank} в клане{p.role && ` · ${p.role}`}{!p.isLinked && ' · нет TG'}</span>
           </div>
           <button className="modal-close" onClick={close} aria-label="Закрыть">✕</button>
         </div>
@@ -66,13 +66,32 @@ export function PlayerInfoModal({ player: p, isMe, onClose }: Props) {
           {meta.icon} {meta.label} · колоды сегодня: <strong>{p.decksUsedToday}/4</strong>
         </div>
 
+        {/* DNA-профиль игрока (Pro): архетип + надёжность по истории войн */}
+        {p.dnaLabel && (
+          <div className="dna-row">
+            <span className="dna-chip">{p.dnaLabel}</span>
+            {p.reliabilityScore > 0 && (
+              <span className="dna-reliability">
+                надёжность
+                <span className="dna-track">
+                  <span
+                    className={`dna-fill ${p.reliabilityScore >= 70 ? 'fill-good' : p.reliabilityScore >= 45 ? 'fill-mid' : 'fill-bad'}`}
+                    style={{ width: `${p.reliabilityScore}%` }}
+                  />
+                </span>
+                <strong>{p.reliabilityScore}</strong>
+              </span>
+            )}
+          </div>
+        )}
+
         <div className="modal-grid">
-          <ModalStat value={fmt(p.fame)} label="🏅 слава за неделю" />
+          <ModalStat value={fmt(p.fame)} label="🏅 медали за неделю" />
           <ModalStat
             value={p.avgFamePerAttack > 0 ? String(Math.round(p.avgFamePerAttack)) : '—'}
-            label="⚡ слава за военный бой"
+            label="⚡ в среднем за атаку"
           />
-          <ModalStat value={String(p.warDecksUsed)} label="⚔️ военных атак" />
+          <ModalStat value={String(p.warDecksUsed)} label="⚔️ атак всего" />
           <ModalStat value={p.boatAttacks > 0 ? String(p.boatAttacks) : '—'} label="🚤 атаки лодки" />
           <ModalStat value={fmt(p.projectedDayFame)} label="🔮 прогноз на день" accent />
           <ModalStat value={fmt(p.projectedWeekFame)} label="🔮 прогноз недели" accent />
@@ -81,6 +100,11 @@ export function PlayerInfoModal({ player: p, isMe, onClose }: Props) {
         {p.repairPoints > 0 && (
           <p className="muted small modal-extra">🔧 Очки ремонта: {fmt(p.repairPoints)}</p>
         )}
+
+        <p className="muted small modal-extra">
+          🔮 Прогноз = текущие медали + ожидаемые оставшиеся атаки, умноженные на средние
+          медали за атаку этого игрока (по его прошлым войнам). Чем больше истории — тем точнее.
+        </p>
 
         {/* История прошлых войн — как Race Log на cwstats */}
         <div className="history-block">
@@ -96,7 +120,7 @@ export function PlayerInfoModal({ player: p, isMe, onClose }: Props) {
           )}
 
           {historyState === 'ready' && history && history.weeks.length > 0 && (
-            <ul className="history-weeks">
+            <ul className="history-week-list">
               {history.weeks.map(w => (
                 <li key={`${w.seasonId}-${w.sectionIndex}-${w.clanTag}`} className="history-week-row">
                   <span className="history-week-badge">

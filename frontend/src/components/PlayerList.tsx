@@ -10,6 +10,13 @@ const STATUS_META: Record<PlayStatus, { icon: string; cls: string }> = {
   notPlayed: { icon: '❌', cls: 'row-notplayed' },
 }
 
+/** Компактные значки ролей вместо текстовой плашки — чтобы не съедать место у ника. */
+const ROLE_ICON: Record<string, string> = {
+  'Лидер': '👑',
+  'Соруководитель': '⚜️',
+  'Старейшина': '⭐',
+}
+
 interface Props {
   players: PlayerStatus[]
   myPlayerTag?: string
@@ -40,10 +47,16 @@ export function PlayerList({ players, myPlayerTag }: Props) {
                 <div className="player-info">
                   <span className="player-name">
                     {isMe && <span className="me-badge">ты</span>}
+                    {p.role && ROLE_ICON[p.role] && (
+                      <span className="role-icon" title={p.role}>{ROLE_ICON[p.role]}</span>
+                    )}
                     {p.name}
                     {!p.isLinked && <span className="unlinked" title="Не привязан к Telegram"> · нет TG</span>}
                   </span>
-                  <span className="player-fame">#{p.rank} · {fmt(p.fame)} 🏅</span>
+                  <span className="player-fame">
+                    #{p.rank} · {fmt(p.fame)} 🏅
+                    {p.warDecksUsed > 0 && <span className="muted"> · {p.warDecksUsed} атак</span>}
+                  </span>
                 </div>
                 <DeckDots used={p.decksUsedToday} />
                 <span className="chevron">›</span>

@@ -4,14 +4,16 @@ import { haptic } from './lib/telegram'
 import type { ClanStatus } from './types'
 import { WarHeader } from './components/WarHeader'
 import { ForecastCard } from './components/ForecastCard'
+import { InsightsCard } from './components/InsightsCard'
 import { RaceCard } from './components/RaceCard'
+import { WarLogCard } from './components/WarLogCard'
 import { StatsStrip } from './components/StatsStrip'
 import { PlayerList } from './components/PlayerList'
 import { Leaderboard } from './components/Leaderboard'
-import { HistoryCard } from './components/HistoryCard'
 import { MyStatsView } from './components/MyStatsView'
 import { NudgeButton } from './components/NudgeButton'
 import { ReminderCard } from './components/ReminderCard'
+import { AboutCard } from './components/AboutCard'
 import { OwnerPanel } from './components/OwnerPanel'
 import { LinkPrompt } from './components/LinkPrompt'
 
@@ -87,6 +89,7 @@ export default function App() {
     case 'ready': {
       const { data } = state
       const isPro = data.plan === 'pro'
+      const canManage = data.isAdmin || data.isClanLeader
       const notFinished = data.players.filter(p => p.status !== 'played').length
 
       const tabs: { id: Tab; icon: string; label: string }[] = [
@@ -102,14 +105,20 @@ export default function App() {
             {tab === 'war' && (
               <div className="fade-in">
                 <WarHeader status={data} />
+                <InsightsCard insights={data.insights} plan={data.plan} />
                 <RaceCard race={data.race} periodType={data.periodType} />
+                <WarLogCard log={data.warLog} />
                 <ForecastCard forecast={data.forecast} stats={data.stats} periodType={data.periodType} />
                 <StatsStrip stats={data.stats} />
-                {data.isAdmin && isPro && data.periodType !== 'training' && (
-                  <NudgeButton notPlayedCount={notFinished} />
+                {canManage && data.periodType !== 'training' && (
+                  <NudgeButton notPlayedCount={notFinished} isPro={isPro} />
                 )}
-                {data.isAdmin && (
-                  <ReminderCard initialHours={data.reminderHoursBeforeEnd ?? 3} />
+                {canManage && (
+                  <ReminderCard
+                    initialHours={data.reminderHoursBeforeEnd ?? 3}
+                    plan={data.plan}
+                    linkedCount={data.players.filter(p => p.isLinked).length}
+                  />
                 )}
                 <PlayerList players={data.players} myPlayerTag={data.myPlayerTag} />
               </div>
@@ -117,13 +126,13 @@ export default function App() {
             {tab === 'rating' && (
               <div className="fade-in">
                 <Leaderboard players={data.players} myPlayerTag={data.myPlayerTag} plan={data.plan} />
-                <div style={{ height: 12 }} />
-                <HistoryCard plan={data.plan} />
               </div>
             )}
             {tab === 'me' && (
               <div className="fade-in">
                 <MyStatsView />
+                <div style={{ height: 12 }} />
+                <AboutCard plan={data.plan} />
               </div>
             )}
             {tab === 'owner' && data.isOwner && (

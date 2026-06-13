@@ -18,6 +18,11 @@ public class SetClanPlanUseCase(IClanRepository clans)
             ? DateTime.UtcNow.AddDays(days.Value)
             : null;
 
+        // При продлении/изменении Pro сбрасываем стадию напоминаний об окончании,
+        // чтобы новый срок получил свои оповещения за 7 и 3 дня.
+        if (tier == PlanTier.Pro)
+            clan.PlanReminderStageSent = Domain.Enums.PlanReminderStage.None;
+
         await clans.SaveChangesAsync(ct);
         return true;
     }

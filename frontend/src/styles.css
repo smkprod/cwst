@@ -85,13 +85,27 @@ main.with-tabbar { padding-bottom: 80px; }
 .trend-onpace { background: rgba(82, 136, 193, 0.18); color: #7fb2e5; }
 .trend-behind { background: rgba(229, 57, 53, 0.18); color: #ff7a76; }
 
-.forecast-numbers { display: flex; align-items: stretch; gap: 12px; margin: 6px 0 12px; }
-.forecast-block { flex: 1; display: grid; gap: 2px; justify-items: center; text-align: center; }
-.forecast-divider { width: 1px; background: rgba(255, 255, 255, 0.08); }
-.forecast-value { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+.forecast-numbers { display: flex; flex-direction: column; gap: 8px; margin: 6px 0 12px; }
+.forecast-block { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; }
+.forecast-block-primary { padding: 8px 0 6px; }
+.forecast-label-small { font-size: 12px; color: var(--muted); margin-bottom: 2px; }
+.forecast-value { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; }
 .forecast-caption { font-size: 12px; color: var(--muted); }
-.forecast-delta { font-size: 11px; color: #5fd573; font-weight: 600; }
+.forecast-delta { font-size: 12px; color: #5fd573; font-weight: 600; }
+.forecast-ci { font-size: 11px; opacity: 0.7; margin-top: 1px; }
+.forecast-week-row { display: flex; align-items: center; gap: 8px; justify-content: center; flex-wrap: wrap; padding: 4px 0; border-top: 1px solid rgba(255,255,255,0.07); }
+.forecast-week-label { font-size: 12px; }
+.forecast-week-value { font-size: 15px; font-weight: 700; }
+.forecast-week-attacks { font-size: 11px; }
 .muted-delta { color: var(--muted); font-weight: 400; }
+.forecast-help { margin-top: 10px; }
+.forecast-help summary {
+  cursor: pointer; font-size: 12px; font-weight: 600; color: #c8a8ff;
+  list-style: none; user-select: none;
+}
+.forecast-help summary::-webkit-details-marker { display: none; }
+.forecast-help summary::before { content: 'ℹ️ '; }
+.forecast-help p { margin: 8px 0 0; }
 
 .confidence-row { display: flex; align-items: center; gap: 8px; }
 .confidence-label { font-size: 11px; color: var(--muted); white-space: nowrap; }
@@ -145,6 +159,56 @@ main.with-tabbar { padding-bottom: 80px; }
   background: var(--purple); color: #fff; font-size: 10px; font-weight: 700;
   border-radius: 6px; padding: 1px 5px; margin-right: 6px; vertical-align: 1px;
 }
+.streak-badge {
+  font-size: 10px; font-weight: 700; margin-left: 4px; vertical-align: 1px;
+  opacity: 0.85;
+}
+.role-icon { font-size: 12px; margin-right: 3px; }
+.race-points { font-size: 11px; font-weight: 600; color: var(--green); }
+.race-meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* --- Pro-аналитика: шанс победы + здоровье клана --- */
+.insights-card { display: grid; gap: 14px; }
+.win-block { display: grid; gap: 8px; }
+.win-row { display: flex; align-items: center; gap: 12px; }
+.win-value { font-size: 34px; font-weight: 800; line-height: 1; }
+.win-good { color: var(--green); }
+.win-mid { color: #e6a23c; }
+.win-bad { color: #e05c5c; }
+.win-info { display: grid; gap: 2px; }
+.win-caption { font-size: 13px; font-weight: 600; }
+.win-track { height: 8px; border-radius: 999px; background: rgba(255,255,255,0.08); overflow: hidden; }
+.win-fill { height: 100%; border-radius: 999px; transition: width 0.5s ease; }
+.fill-good { background: var(--green); }
+.fill-mid { background: #e6a23c; }
+.fill-bad { background: #e05c5c; }
+.win-warning {
+  margin: 0; font-size: 12px; color: #e6a23c;
+  background: rgba(230,162,60,0.1); border-radius: 8px; padding: 6px 10px;
+}
+.health-block { display: grid; gap: 8px; }
+.health-head { display: flex; align-items: baseline; justify-content: space-between; }
+.health-score { font-size: 18px; font-weight: 700; }
+.health-label { font-size: 13px; font-weight: 600; }
+.health-factors { display: grid; gap: 6px; }
+.health-factor { display: grid; grid-template-columns: 120px 1fr 28px; align-items: center; gap: 8px; }
+.health-factor-track { height: 6px; border-radius: 999px; background: rgba(255,255,255,0.08); overflow: hidden; }
+.health-factor-fill { height: 100%; border-radius: 999px; }
+.health-factor-score { text-align: right; color: var(--muted); }
+
+/* --- DNA-профиль игрока в модалке --- */
+.dna-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+.dna-chip {
+  font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+}
+.dna-reliability { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
+.dna-track {
+  display: inline-block; width: 70px; height: 5px; border-radius: 999px;
+  background: rgba(255,255,255,0.08); overflow: hidden;
+}
+.dna-fill { display: block; height: 100%; border-radius: 999px; }
+.player-fame .muted { font-size: 11px; }
 
 .chevron { color: var(--muted); font-size: 18px; transition: transform 0.2s ease; }
 .chevron-open { transform: rotate(90deg); }
@@ -166,6 +230,22 @@ main.with-tabbar { padding-bottom: 80px; }
 .deck-count { font-size: 12px; color: var(--muted); margin-left: 4px; min-width: 26px; }
 
 /* --- Рейтинг --- */
+.season-shortcut-btn {
+  display: block;
+  width: 100%;
+  text-align: center;
+  background: rgba(156, 107, 255, 0.10);
+  border: 1px solid rgba(156, 107, 255, 0.22);
+  border-radius: 10px;
+  color: #c8a8ff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 12px;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+.season-shortcut-btn:active { opacity: 0.75; }
+
 .mvp-banner {
   background: linear-gradient(135deg, rgba(255, 200, 61, 0.18), rgba(255, 200, 61, 0.05));
   border: 1px solid rgba(255, 200, 61, 0.3);
@@ -280,6 +360,27 @@ main.with-tabbar { padding-bottom: 80px; }
   color: #1a1a1a; font-size: 11px; font-weight: 800;
   padding: 2px 8px; border-radius: 999px; letter-spacing: 0.5px;
 }
+.free-chip {
+  background: rgba(255, 255, 255, 0.10); color: var(--muted);
+  font-size: 11px; font-weight: 800;
+  padding: 2px 8px; border-radius: 999px; letter-spacing: 0.5px;
+}
+
+/* --- Гид по приложению (вкладка «Я») --- */
+.about-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.about-item { display: flex; gap: 10px; align-items: flex-start; }
+.about-item.about-locked { opacity: 0.6; }
+.about-icon { flex: none; font-size: 18px; line-height: 1.3; }
+.about-text { display: grid; gap: 2px; min-width: 0; }
+.about-title { font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.about-tag {
+  font-size: 10px; font-weight: 700; color: var(--gold);
+  background: rgba(255, 200, 61, 0.14); padding: 1px 6px; border-radius: 999px;
+}
+.about-upsell {
+  margin: 12px 0 0; padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
 
 /* --- История войн --- */
 .history-weeks {
@@ -339,6 +440,11 @@ main.with-tabbar { padding-bottom: 80px; }
   padding: 8px; border-radius: 12px;
   background: rgba(255, 255, 255, 0.03);
 }
+/* Строка гонки — кнопка (тап открывает журнал войн клана) */
+button.race-row {
+  width: 100%; border: none; font: inherit; color: inherit;
+  text-align: left; cursor: pointer;
+}
 .race-ours {
   background: rgba(82, 136, 193, 0.12);
   outline: 1px solid rgba(82, 136, 193, 0.35);
@@ -365,7 +471,8 @@ main.with-tabbar { padding-bottom: 80px; }
 /* --- История игрока в модалке --- */
 .history-block { margin-top: 14px; }
 .history-title { margin-bottom: 8px; }
-.history-weeks { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 6px; }
+/* Список прошлых войн в модалке игрока (не путать с баром .history-weeks в HistoryCard) */
+.history-week-list { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 6px; }
 .history-week-row {
   display: flex; align-items: center; gap: 10px;
   padding: 7px 9px; border-radius: 10px;
@@ -382,7 +489,10 @@ main.with-tabbar { padding-bottom: 80px; }
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .history-week-fame { flex: none; font-size: 13px; font-weight: 700; }
-.history-royaleapi { width: 100%; }
+.history-royaleapi {
+  display: block; width: 100%; margin-top: 12px;
+  background: #234059;
+}
 
 /* --- Настройка автонапоминаний --- */
 .reminder-options { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -449,6 +559,24 @@ main.with-tabbar { padding-bottom: 80px; }
 }
 .segment-active { background: var(--accent); color: #fff; }
 
+/* Выпадающий список периода рейтинга (Война 1 / Война 2 / Весь сезон / Топ) */
+.rating-select {
+  background: var(--bg-card);
+  color: var(--text);
+  font: inherit; font-size: 13px; font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 8px 30px 8px 12px;
+  cursor: pointer;
+  max-width: 60%;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M2 4l4 4 4-4' stroke='%239aa0aa' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+.rating-select:focus { outline: none; border-color: var(--accent); }
+
 .season-meta { margin: 0 4px 10px; }
 
 /* --- Кликабельные строки рейтинга --- */
@@ -465,6 +593,37 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 }
 .season-value { font-size: 17px; font-weight: 800; }
 .season-label { font-size: 11px; color: var(--muted); }
+
+/* --- Журнал войн (riverracelog) --- */
+.warlog-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.warlog-week { border-radius: 12px; overflow: hidden; }
+.warlog-row {
+  width: 100%; display: flex; align-items: center; gap: 10px;
+  background: rgba(255, 255, 255, 0.03); border: none; border-radius: 12px;
+  font: inherit; color: inherit; text-align: left; cursor: pointer;
+  padding: 9px 10px;
+}
+.warlog-info { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.warlog-place { font-size: 14px; font-weight: 700; }
+.warlog-numbers { display: grid; justify-items: end; gap: 1px; }
+.warlog-trophy { font-size: 12px; font-weight: 700; }
+.trophy-up { color: var(--green, #4cd07d); }
+.trophy-down { color: var(--red, #ff6b6b); }
+.warlog-chevron {
+  color: var(--muted); font-size: 18px; font-weight: 700;
+  transition: transform 0.15s ease;
+}
+.warlog-chevron-open { transform: rotate(90deg); }
+.warlog-standings { list-style: none; margin: 4px 0 2px; padding: 0 4px; display: grid; gap: 3px; }
+.warlog-standing {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px; border-radius: 10px;
+}
+.warlog-standing-name {
+  flex: 1; min-width: 0; font-size: 13px; font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.warlog-standing .warlog-trophy { min-width: 38px; text-align: right; }
 
 /* --- Нижние вкладки --- */
 .tabbar {
