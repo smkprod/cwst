@@ -616,14 +616,49 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 .warlog-chevron-open { transform: rotate(90deg); }
 .warlog-standings { list-style: none; margin: 4px 0 2px; padding: 0 4px; display: grid; gap: 3px; }
 .warlog-standing {
-  display: flex; align-items: center; gap: 8px;
-  padding: 6px 8px; border-radius: 10px;
+  border-radius: 10px; overflow: hidden;
 }
 .warlog-standing-name {
   flex: 1; min-width: 0; font-size: 13px; font-weight: 600;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .warlog-standing .warlog-trophy { min-width: 38px; text-align: right; }
+
+.warlog-clan-row {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; background: none; border: none; color: inherit; font: inherit;
+  cursor: pointer; padding: 6px 8px; text-align: left;
+}
+.warlog-clan-row-plain { cursor: default; }
+.warlog-clan-row:not(.warlog-clan-row-plain):active { opacity: 0.7; }
+
+.warlog-players {
+  list-style: none; margin: 2px 0 6px 16px; padding: 0 8px; display: grid; gap: 2px;
+  border-left: 2px solid rgba(255,255,255,0.08);
+}
+.warlog-player-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 4px; font-size: 13px;
+}
+.warlog-player-rank { min-width: 28px; color: var(--muted); font-size: 12px; }
+.warlog-player-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.warlog-player-row .race-fame { min-width: 64px; text-align: right; }
+
+/* --- Поиск игрока --- */
+.search-row { display: flex; gap: 8px; }
+.search-input {
+  flex: 1; background: var(--bg); border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px; color: var(--text); font: inherit; font-size: 15px;
+  padding: 10px 12px; outline: none;
+}
+.search-input:focus { border-color: var(--accent); }
+.search-btn { padding: 10px 16px; white-space: nowrap; }
+
+.search-week-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 0;
+}
+.search-week-row .warlog-standing-name { flex: 1; }
 
 /* --- Нижние вкладки --- */
 .tabbar {

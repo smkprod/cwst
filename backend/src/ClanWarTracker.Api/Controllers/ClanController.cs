@@ -102,39 +102,37 @@ public class ClanController(
                 Name: s.ClanName,
                 Fame: s.Fame,
                 TrophyChange: s.TrophyChange,
-                IsOurClan: string.Equals(s.ClanTag, clanTag, StringComparison.OrdinalIgnoreCase)))
+                IsOurClan: string.Equals(s.ClanTag, clanTag, StringComparison.OrdinalIgnoreCase),
+                Players: s.Participants
+                    .OrderByDescending(p => p.Fame)
+                    .Select(p => new WarLogPlayerDto(p.Name, p.Fame, p.DecksUsed))
+                    .ToList()))
                 .ToList()))
             .ToList();
 
         return Ok(new { clanTag, weeks });
     }
 
-    /// <summary>GET /api/clans/my/history?weeks=8 — история войн по неделям (Pro).</summary>
+    /// <summary>GET /api/clans/my/history?weeks=8 — история войн по неделям.</summary>
     [HttpGet("my/history")]
     public async Task<IActionResult> GetMyClanHistory([FromQuery] int weeks, CancellationToken ct)
     {
         var (player, clan, error) = await ResolvePlayerClanAsync(ct);
         if (error is not null) return error;
 
-        if (clan!.EffectivePlan(DateTime.UtcNow) != PlanTier.Pro)
-            return StatusCode(403, new { error = "pro_required", message = "История войн доступна на Pro" });
-
         var history = await getHistory.ExecuteAsync(
-            clan.Id, weeks is > 0 and <= 26 ? weeks : 8, player!.PlayerTag, ct);
+            clan!.Id, weeks is > 0 and <= 26 ? weeks : 8, player!.PlayerTag, ct);
         return Ok(history);
     }
 
-    /// <summary>GET /api/clans/my/season — сезонный зачёт: кто сколько набил за сезон (Pro).</summary>
+    /// <summary>GET /api/clans/my/season — сезонный зачёт: кто сколько набил за сезон.</summary>
     [HttpGet("my/season")]
     public async Task<IActionResult> GetMyClanSeason(CancellationToken ct)
     {
         var (_, clan, error) = await ResolvePlayerClanAsync(ct);
         if (error is not null) return error;
 
-        if (clan!.EffectivePlan(DateTime.UtcNow) != PlanTier.Pro)
-            return StatusCode(403, new { error = "pro_required", message = "Сезонный зачёт доступен на Pro" });
-
-        var season = await getSeason.ExecuteAsync(clan.Id, null, ct);
+        var season = await getSeason.ExecuteAsync(clan!.Id, null, ct);
         return season is null
             ? NotFound(new { error = "no_season_data", message = "Данные сезона ещё не накопились" })
             : Ok(season);
@@ -142,7 +140,7 @@ public class ClanController(
 
     /// <summary>
     /// GET /api/clans/my/season-weeks — разбивка сезона по неделям (Война 1, Война 2 …)
-    /// + общий зачёт за сезон. Прошлые недели берутся из официального журнала (Pro).
+    /// + общий зачёт за сезон. Прошлые недели берутся из официального журнала.
     /// </summary>
     [HttpGet("my/season-weeks")]
     public async Task<IActionResult> GetMyClanSeasonWeeks(CancellationToken ct)
@@ -150,10 +148,7 @@ public class ClanController(
         var (_, clan, error) = await ResolvePlayerClanAsync(ct);
         if (error is not null) return error;
 
-        if (clan!.EffectivePlan(DateTime.UtcNow) != PlanTier.Pro)
-            return StatusCode(403, new { error = "pro_required", message = "Разбивка сезона доступна на Pro" });
-
-        var data = await getSeasonBreakdown.ExecuteAsync(clan.ClanTag, ct);
+        var data = await getSeasonBreakdown.ExecuteAsync(clan!.ClanTag, ct);
         return data is null
             ? NotFound(new { error = "no_season_data", message = "Данные сезона ещё не накопились" })
             : Ok(data);
