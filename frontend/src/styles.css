@@ -85,12 +85,18 @@ main.with-tabbar { padding-bottom: 80px; }
 .trend-onpace { background: rgba(82, 136, 193, 0.18); color: #7fb2e5; }
 .trend-behind { background: rgba(229, 57, 53, 0.18); color: #ff7a76; }
 
-.forecast-numbers { display: flex; align-items: stretch; gap: 12px; margin: 6px 0 12px; }
-.forecast-block { flex: 1; display: grid; gap: 2px; justify-items: center; text-align: center; }
-.forecast-divider { width: 1px; background: rgba(255, 255, 255, 0.08); }
-.forecast-value { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+.forecast-numbers { display: flex; flex-direction: column; gap: 8px; margin: 6px 0 12px; }
+.forecast-block { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; }
+.forecast-block-primary { padding: 8px 0 6px; }
+.forecast-label-small { font-size: 12px; color: var(--muted); margin-bottom: 2px; }
+.forecast-value { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; }
 .forecast-caption { font-size: 12px; color: var(--muted); }
-.forecast-delta { font-size: 11px; color: #5fd573; font-weight: 600; }
+.forecast-delta { font-size: 12px; color: #5fd573; font-weight: 600; }
+.forecast-ci { font-size: 11px; opacity: 0.7; margin-top: 1px; }
+.forecast-week-row { display: flex; align-items: center; gap: 8px; justify-content: center; flex-wrap: wrap; padding: 4px 0; border-top: 1px solid rgba(255,255,255,0.07); }
+.forecast-week-label { font-size: 12px; }
+.forecast-week-value { font-size: 15px; font-weight: 700; }
+.forecast-week-attacks { font-size: 11px; }
 .muted-delta { color: var(--muted); font-weight: 400; }
 
 .confidence-row { display: flex; align-items: center; gap: 8px; }

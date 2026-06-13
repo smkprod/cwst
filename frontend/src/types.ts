@@ -56,6 +56,8 @@ export interface ClanForecast {
   expectedRemainingAttacksToday: number
   confidence: number         // 0..100
   trend: ForecastTrend
+  projectedDayFameLow: number   // -1σ нижняя граница прогноза дня
+  projectedDayFameHigh: number  // +1σ верхняя граница прогноза дня
 }
 
 export type Plan = 'free' | 'pro'

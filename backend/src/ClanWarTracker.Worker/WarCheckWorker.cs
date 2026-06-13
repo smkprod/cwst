@@ -49,6 +49,17 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
             {
                 logger.LogError(ex, "Snapshot capture failed");
             }
+
+            try
+            {
+                using var scope = scopeFactory.CreateScope();
+                var expiry = scope.ServiceProvider.GetRequiredService<SendPlanExpiryRemindersUseCase>();
+                await expiry.ExecuteAsync(stoppingToken);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Plan expiry reminder failed");
+            }
         }
         while (await timer.WaitForNextTickAsync(stoppingToken));
     }

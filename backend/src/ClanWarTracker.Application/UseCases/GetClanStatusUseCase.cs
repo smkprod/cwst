@@ -76,13 +76,20 @@ public class GetClanStatusUseCase(
         // Гейтинг плана
         var plan = clan?.EffectivePlan(now) ?? Domain.Enums.PlanTier.Free;
 
+        // История (Pro): стрики, DNA, надёжность и EWMA-профили прогноза.
+        // Загружается ДО enrichment — EWMA передаётся в ProjectPlayer.
+        var history = new Dictionary<string, PlayerHistoryStats>(StringComparer.OrdinalIgnoreCase);
+        if (clan is not null && plan == Domain.Enums.PlanTier.Pro)
+            history = await ComputeHistoryStatsAsync(clan.Id, war, ct);
+
         // Расчёт по каждому игроку + прогноз
         var enriched = roster.Select(p =>
             {
                 p.TelegramUserId = linked.GetValueOrDefault(p.PlayerTag);
                 p.Status = Classify(p.DecksUsedToday, hoursLeft, war.IsWarDay);
+                var histProfile = history.TryGetValue(p.PlayerTag, out var hs) ? hs.ForecastProfile : null;
                 var proj = forecast.ProjectPlayer(p, war, hoursLeft, clanAvgFamePerAttack,
-                    canStillAttack: true);
+                    canStillAttack: true, history: histProfile);
                 return (Participant: p, Projection: proj);
             }).ToList();
 
@@ -91,11 +98,6 @@ public class GetClanStatusUseCase(
             .OrderByDescending(x => x.Participant.Fame)
             .Select((x, i) => (x.Participant, x.Projection, Rank: i + 1))
             .ToList();
-
-        // История игроков (Pro): стрики, DNA-архетип и надёжность из прошлых недель
-        var history = new Dictionary<string, PlayerHistoryStats>(StringComparer.OrdinalIgnoreCase);
-        if (clan is not null && plan == Domain.Enums.PlanTier.Pro)
-            history = await ComputeHistoryStatsAsync(clan.Id, war, ct);
 
         var playerDtos = ranked
             .Select(x => new PlayerStatusDto(
@@ -235,9 +237,12 @@ public class GetClanStatusUseCase(
                 Avg = Math.Round(avg, 1), Projected = projected, IsOurs = isOurs,
             };
         })
-        // Места: финишировавшие выше всех, дальше по славе
+        // Места: финишировавшие выше всех, дальше по накопленной дистанции (fame = медали за неделю).
+        // Тай-брейк: медали текущего дня, затем колоды сегодня (как в cwstats/RoyaleAPI).
         .OrderByDescending(r => r.IsFinished)
         .ThenByDescending(r => r.Fame)
+        .ThenByDescending(r => r.PeriodPoints)
+        .ThenByDescending(r => r.DecksUsedToday)
         .Select((r, i) => new RaceClanDto(
             Tag: r.Tag,
             Name: r.Name,
@@ -256,40 +261,45 @@ public class GetClanStatusUseCase(
         return rows;
     }
 
-    /// <summary>Накопленная история игрока: стрик, надёжность и DNA-архетип.</summary>
-    private record PlayerHistoryStats(int Streak, int Reliability, string? DnaLabel);
+    /// <summary>Накопленная история игрока: стрик, надёжность, DNA-архетип и EWMA-профиль прогноза.</summary>
+    private record PlayerHistoryStats(
+        int Streak,
+        int Reliability,
+        string? DnaLabel,
+        WarForecastService.PlayerHistoryProfile? ForecastProfile = null);
+
+    /// <summary>Обёртка для хранения медалей + колод в унифицированном weekly map.</summary>
+    private record WeekPlayerData(int Fame, int Decks);
 
     private async Task<Dictionary<string, PlayerHistoryStats>> ComputeHistoryStatsAsync(
         int clanId, Domain.Entities.WarStatus war, CancellationToken ct)
     {
-        // Всё считается по ФИНАЛАМ прошлых недель — текущая неделя исключается,
-        // поэтому результат можно смело кэшировать (инвалидация — смена недели + TTL)
         var cacheKey = $"histstats:{clanId}:{war.SeasonId}:{war.SectionIndex}";
         if (cache.TryGetValue(cacheKey, out Dictionary<string, PlayerHistoryStats>? cached) && cached is not null)
             return cached;
 
         var recent = await snapshots.GetByClanAsync(clanId, weeks: 12, ct);
 
-        // Финальный снимок каждой завершённой недели, новые первыми
         var weekFinals = recent
             .GroupBy(s => (s.SeasonId, s.SectionIndex))
             .Select(g => g.OrderByDescending(s => s.PeriodIndex).First())
             .Where(s => !(s.SeasonId == war.SeasonId && s.SectionIndex == war.SectionIndex))
             .ToList();
 
-        // Официальный журнал войн (/riverracelog) — даёт до 10 завершённых недель
-        // сразу, не дожидаясь накопления собственных снапшотов
         List<Domain.Entities.RiverRaceLogWeek> raceLog = [];
         try { raceLog = await crApi.GetRiverRaceLogAsync(war.ClanTag, ct); }
-        catch { /* журнал не критичен — обойдёмся снапшотами */ }
+        catch { /* журнал не критичен */ }
 
-        // Унифицированные финалы недель: (сезон, неделя) -> медали игроков.
-        // Свои снапшоты приоритетнее (мы точно знаем, что это финал недели).
-        var weekMaps = new Dictionary<(int Season, int Section), Dictionary<string, int>>();
+        // Унифицированные финалы: (сезон, неделя) → playerTag → (Fame, DecksUsed)
+        // Своих снапшоты приоритетнее — они содержат точные DecksUsed за войну.
+        var weekMaps = new Dictionary<(int Season, int Section), Dictionary<string, WeekPlayerData>>();
+
         foreach (var s in weekFinals)
             weekMaps[(s.SeasonId, s.SectionIndex)] = s.Players
                 .GroupBy(p => p.PlayerTag, StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(g => g.Key, g => g.First().Fame, StringComparer.OrdinalIgnoreCase);
+                .ToDictionary(g => g.Key,
+                    g => new WeekPlayerData(g.First().Fame, g.First().DecksUsed),
+                    StringComparer.OrdinalIgnoreCase);
 
         foreach (var w in raceLog)
         {
@@ -299,23 +309,30 @@ public class GetClanStatusUseCase(
             if (ours is null) continue;
             weekMaps[(w.SeasonId, w.SectionIndex)] = ours.Participants
                 .GroupBy(p => p.PlayerTag, StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(g => g.Key, g => g.First().Fame, StringComparer.OrdinalIgnoreCase);
+                .ToDictionary(g => g.Key,
+                    g => new WeekPlayerData(g.First().Fame, g.First().DecksUsed),
+                    StringComparer.OrdinalIgnoreCase);
         }
 
         var weeks = weekMaps
             .Where(kv => !(kv.Key.Season == war.SeasonId && kv.Key.Section == war.SectionIndex))
             .OrderByDescending(kv => kv.Key.Season).ThenByDescending(kv => kv.Key.Section)
             .Take(12)
-            .Select(kv => kv.Value)
+            .Select(kv => (IReadOnlyDictionary<string, (int Fame, int Decks)>)
+                kv.Value.ToDictionary(kv2 => kv2.Key, kv2 => (kv2.Value.Fame, kv2.Value.Decks),
+                    StringComparer.OrdinalIgnoreCase))
             .ToList();
 
         var result = new Dictionary<string, PlayerHistoryStats>(StringComparer.OrdinalIgnoreCase);
 
-        // Средняя слава всех игроков за неделю — база для архетипа «Тащер»
         var allWeekFames = weeks
-            .SelectMany(w => w.Values.Where(f => f > 0).Select(f => (double)f))
+            .SelectMany(w => w.Values.Where(v => v.Fame > 0).Select(v => (double)v.Fame))
             .ToList();
         var clanAvgWeekFame = allWeekFames.Count > 0 ? allWeekFames.Average() : 0;
+
+        // Строим EWMA-профили для прогноза одним батчем
+        var allTags = war.Participants.Select(p => p.PlayerTag).ToList();
+        var profiles = WarForecastService.BuildHistoryProfiles(weeks, allTags);
 
         foreach (var p in war.Participants)
         {
@@ -323,21 +340,23 @@ public class GetClanStatusUseCase(
             int streak = 0;
             foreach (var week in weeks)
             {
-                if (week.GetValueOrDefault(p.PlayerTag) == 0) break;
+                if (!week.TryGetValue(p.PlayerTag, out var pd) || pd.Fame == 0) break;
                 streak++;
             }
 
             // DNA: участие и стабильность за последние 8 завершённых недель
             var dnaWindow = weeks.Take(8).ToList();
             var fames = dnaWindow
-                .Select(w => (double)w.GetValueOrDefault(p.PlayerTag))
+                .Select(w => (double)(w.TryGetValue(p.PlayerTag, out var pd) ? pd.Fame : 0))
                 .ToList();
             var played = fames.Count(f => f > 0);
 
+            var profile = profiles.TryGetValue(p.PlayerTag, out var pr) ? pr : null;
+
             if (dnaWindow.Count < 2 || played == 0)
             {
-                // Слишком мало истории — без ярлыка
-                result[p.PlayerTag] = new PlayerHistoryStats(streak, 0, dnaWindow.Count >= 2 ? "Новичок 🌱" : null);
+                result[p.PlayerTag] = new PlayerHistoryStats(
+                    streak, 0, dnaWindow.Count >= 2 ? "Новичок 🌱" : null, profile);
                 continue;
             }
 
@@ -347,7 +366,7 @@ public class GetClanStatusUseCase(
             var std = playedFames.Count > 1
                 ? Math.Sqrt(playedFames.Sum(f => (f - mean) * (f - mean)) / playedFames.Count)
                 : 0;
-            var cv = mean > 0 ? std / mean : 0; // коэффициент вариации: 0 — идеально стабилен
+            var cv = mean > 0 ? std / mean : 0;
 
             var reliability = (int)Math.Round(100 * (0.65 * participation + 0.35 * (1 - Math.Min(cv, 1))));
 
@@ -358,7 +377,8 @@ public class GetClanStatusUseCase(
                 : cv > 0.5 ? "Нестабильный 🎲"
                 : "Стабильный ⚖️";
 
-            result[p.PlayerTag] = new PlayerHistoryStats(streak, Math.Clamp(reliability, 0, 100), dna);
+            result[p.PlayerTag] = new PlayerHistoryStats(
+                streak, Math.Clamp(reliability, 0, 100), dna, profile);
         }
 
         cache.Set(cacheKey, result, TimeSpan.FromMinutes(30));
