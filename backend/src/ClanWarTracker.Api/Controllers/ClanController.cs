@@ -16,6 +16,7 @@ public class ClanController(
     GetClanStatusUseCase getStatus,
     GetClanHistoryUseCase getHistory,
     GetSeasonStatsUseCase getSeason,
+    GetSeasonBreakdownUseCase getSeasonBreakdown,
     NudgePlayersUseCase nudge,
     IPlayerRepository players,
     IClanRepository clans,
@@ -137,6 +138,25 @@ public class ClanController(
         return season is null
             ? NotFound(new { error = "no_season_data", message = "Данные сезона ещё не накопились" })
             : Ok(season);
+    }
+
+    /// <summary>
+    /// GET /api/clans/my/season-weeks — разбивка сезона по неделям (Война 1, Война 2 …)
+    /// + общий зачёт за сезон. Прошлые недели берутся из официального журнала (Pro).
+    /// </summary>
+    [HttpGet("my/season-weeks")]
+    public async Task<IActionResult> GetMyClanSeasonWeeks(CancellationToken ct)
+    {
+        var (_, clan, error) = await ResolvePlayerClanAsync(ct);
+        if (error is not null) return error;
+
+        if (clan!.EffectivePlan(DateTime.UtcNow) != PlanTier.Pro)
+            return StatusCode(403, new { error = "pro_required", message = "Разбивка сезона доступна на Pro" });
+
+        var data = await getSeasonBreakdown.ExecuteAsync(clan.ClanTag, ct);
+        return data is null
+            ? NotFound(new { error = "no_season_data", message = "Данные сезона ещё не накопились" })
+            : Ok(data);
     }
 
     /// <summary>POST /api/clans/my/nudge — «пнуть» всех не сыгравших (Admin/Leader; Free: до 20 чел.).</summary>

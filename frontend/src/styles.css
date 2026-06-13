@@ -530,6 +530,24 @@ button.race-row {
 }
 .segment-active { background: var(--accent); color: #fff; }
 
+/* Выпадающий список периода рейтинга (Война 1 / Война 2 / Весь сезон / Топ) */
+.rating-select {
+  background: var(--bg-card);
+  color: var(--text);
+  font: inherit; font-size: 13px; font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 8px 30px 8px 12px;
+  cursor: pointer;
+  max-width: 60%;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M2 4l4 4 4-4' stroke='%239aa0aa' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+.rating-select:focus { outline: none; border-color: var(--accent); }
+
 .season-meta { margin: 0 4px 10px; }
 
 /* --- Кликабельные строки рейтинга --- */
