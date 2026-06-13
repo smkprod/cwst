@@ -39,11 +39,12 @@ export function ForecastCard({ forecast, stats, periodType }: Props) {
   }
 
   const trend = TREND_META[forecast.trend]
-  // Прирост только за сегодня (не накопленная сумма)
-  const todayGain = Math.max(0, forecast.projectedDayFame - stats.totalFame)
-  const ciLow  = Math.max(0, forecast.projectedDayFameLow  - stats.totalFame)
-  const ciHigh = Math.max(0, forecast.projectedDayFameHigh - stats.totalFame)
-  const hasCI  = ciLow > 0 && ciHigh > 0 && ciHigh > ciLow
+  // Итоговое число медалей клана к концу дня (как на RoyaleAPI)
+  const dayTotal = forecast.projectedDayFame
+  const ciLow  = forecast.projectedDayFameLow
+  const ciHigh = forecast.projectedDayFameHigh
+  const hasCI  = ciHigh > ciLow && ciLow > 0
+  const todayGain = Math.max(0, dayTotal - stats.totalFame)
 
   return (
     <section className="card forecast-card">
@@ -53,14 +54,17 @@ export function ForecastCard({ forecast, stats, periodType }: Props) {
       </div>
 
       <div className="forecast-numbers">
-        {/* Primary: today's gain */}
+        {/* Primary: projected end-of-day total */}
         <div className="forecast-block forecast-block-primary">
-          <span className="forecast-label-small">🏅 ожидаем за сегодня</span>
-          <span className="forecast-value">+{fmt(todayGain)}</span>
+          <span className="forecast-label-small">🏅 медалей к концу дня</span>
+          <span className="forecast-value">{fmt(dayTotal)}</span>
           {hasCI && (
             <span className="forecast-ci muted small">
-              диапазон: +{fmt(ciLow)} – +{fmt(ciHigh)}
+              диапазон: {fmt(ciLow)} – {fmt(ciHigh)}
             </span>
+          )}
+          {todayGain > 0 && (
+            <span className="forecast-ci muted small">+{fmt(todayGain)} за сегодня</span>
           )}
         </div>
 
