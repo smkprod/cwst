@@ -39,12 +39,11 @@ export function ForecastCard({ forecast, stats, periodType }: Props) {
   }
 
   const trend = TREND_META[forecast.trend]
-  // Итоговое число медалей клана к концу дня (как на RoyaleAPI)
+  // Очки клана за СЕГОДНЯШНИЙ военный день к его концу (только этот день, не вся неделя)
   const dayTotal = forecast.projectedDayFame
   const ciLow  = forecast.projectedDayFameLow
   const ciHigh = forecast.projectedDayFameHigh
   const hasCI  = ciHigh > ciLow && ciLow > 0
-  const todayGain = Math.max(0, dayTotal - stats.totalFame)
 
   return (
     <section className="card forecast-card">
@@ -54,17 +53,14 @@ export function ForecastCard({ forecast, stats, periodType }: Props) {
       </div>
 
       <div className="forecast-numbers">
-        {/* Primary: projected end-of-day total */}
+        {/* Primary: projected points for the current war day only */}
         <div className="forecast-block forecast-block-primary">
-          <span className="forecast-label-small">🏅 медалей к концу дня</span>
+          <span className="forecast-label-small">🏅 очков за сегодняшний день</span>
           <span className="forecast-value">{fmt(dayTotal)}</span>
           {hasCI && (
             <span className="forecast-ci muted small">
               диапазон: {fmt(ciLow)} – {fmt(ciHigh)}
             </span>
-          )}
-          {todayGain > 0 && (
-            <span className="forecast-ci muted small">+{fmt(todayGain)} за сегодня</span>
           )}
         </div>
 
@@ -92,9 +88,9 @@ export function ForecastCard({ forecast, stats, periodType }: Props) {
       <details className="forecast-help">
         <summary>Как считается прогноз?</summary>
         <p className="muted small">
-          За сегодня: <strong>~{forecast.expectedRemainingAttacksToday}</strong> оставшихся атак клана ×
-          средние медали клана за атаку. Как на RoyaleAPI — считаем, что почти все
-          оставшиеся колоды будут сыграны до конца дня.
+          За сегодняшний день: набрано сегодня + <strong>~{forecast.expectedRemainingAttacksToday}</strong> оставшихся
+          атак клана × средние медали клана за атаку. Считаем очки только текущего военного дня
+          (как на RoyaleAPI), а не сумму за всю неделю.
         </p>
         <p className="muted small">
           К концу недели: то же, но до конца всех 4 военных дней. «Диапазон» — это разброс ±1σ
