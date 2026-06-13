@@ -75,9 +75,16 @@ public static class DependencyInjection
             try
             {
                 if (db.Database.IsNpgsql())
+                {
                     await db.Database.EnsureCreatedAsync();
+                    // EnsureCreated не добавляет колонки в уже существующие таблицы.
+                    // Идемпотентно дотягиваем схему до текущей модели (для Postgres миграций нет).
+                    await EnsureNpgsqlColumnsAsync(db);
+                }
                 else
+                {
                     await db.Database.MigrateAsync();
+                }
                 return;
             }
             catch when (attempt < 5)
@@ -85,6 +92,18 @@ public static class DependencyInjection
                 await Task.Delay(TimeSpan.FromSeconds(3 * attempt));
             }
         }
+    }
+
+    /// <summary>
+    /// Идемпотентно добавляет недостающие колонки в существующую PostgreSQL-схему.
+    /// Нужно потому, что для Postgres схема создаётся через EnsureCreated (без миграций),
+    /// а он не умеет дотягивать новые поля в уже созданные таблицы.
+    /// Каждая новая колонка модели — одна строка ADD COLUMN IF NOT EXISTS здесь.
+    /// </summary>
+    private static async Task EnsureNpgsqlColumnsAsync(AppDbContext db)
+    {
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Clans\" ADD COLUMN IF NOT EXISTS \"PlanReminderStageSent\" integer NOT NULL DEFAULT 0;");
     }
 
     /// <summary>Убирает все пробельные символы (включая \r\n) из токена. null, если пусто.</summary>
