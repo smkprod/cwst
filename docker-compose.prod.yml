@@ -10,6 +10,9 @@ services:
     image: postgres:18-alpine
     restart: unless-stopped
     logging: *default-logging
+    # Лимит памяти: на VPS с 1 ГБ один контейнер не должен съесть всю RAM
+    mem_limit: 256m
+    mem_reservation: 128m
     environment:
       POSTGRES_DB: clanwar
       POSTGRES_USER: clanwar
@@ -29,10 +32,14 @@ services:
     image: ghcr.io/smkprod/cwst-api:latest
     restart: unless-stopped
     logging: *default-logging
+    # .NET сам видит cgroup-лимит и ужимает GC-кучу под него; workstation GC экономит RAM
+    mem_limit: 320m
+    mem_reservation: 160m
     environment:
       DATABASE_URL: postgres://clanwar:${POSTGRES_PASSWORD}@db:5432/clanwar
       CLASH_ROYALE_API_TOKEN: ${CLASH_ROYALE_API_TOKEN}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      DOTNET_gcServer: "0"
     depends_on:
       db:
         condition: service_healthy
@@ -41,10 +48,13 @@ services:
     image: ghcr.io/smkprod/cwst-worker:latest
     restart: unless-stopped
     logging: *default-logging
+    mem_limit: 256m
+    mem_reservation: 128m
     environment:
       DATABASE_URL: postgres://clanwar:${POSTGRES_PASSWORD}@db:5432/clanwar
       CLASH_ROYALE_API_TOKEN: ${CLASH_ROYALE_API_TOKEN}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      DOTNET_gcServer: "0"
     depends_on:
       db:
         condition: service_healthy
@@ -55,6 +65,8 @@ services:
     image: caddy:2-alpine
     restart: unless-stopped
     logging: *default-logging
+    mem_limit: 64m
+    mem_reservation: 32m
     ports:
       - "80:80"
       - "443:443"
