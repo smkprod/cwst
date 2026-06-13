@@ -120,4 +120,64 @@ public class PlayerController(
 
         return Ok(dto);
     }
+
+    /// <summary>
+    /// GET /api/players/{tag}/profile — полный профиль игрока: уровень, трофеи, клан,
+    /// карты и агрегированная статистика войн из официального журнала.
+    /// </summary>
+    [HttpGet("{tag}/profile")]
+    public async Task<IActionResult> Profile(string tag, CancellationToken ct)
+    {
+        var playerTag = "#" + tag.TrimStart('#').ToUpperInvariant();
+
+        var info = await crApi.GetPlayerInfoAsync(playerTag, ct);
+        if (info is null) return NotFound(new { error = "player_not_found", message = "Игрок не найден" });
+
+        // Статистика войн из журнала текущего клана
+        var weeksPlayed = 0;
+        var totalFame = 0;
+        var totalDecks = 0;
+
+        try
+        {
+            if (info.ClanTag is not null)
+            {
+                var log = await crApi.GetRiverRaceLogAsync(info.ClanTag, ct);
+                foreach (var week in log)
+                {
+                    foreach (var standing in week.Standings)
+                    {
+                        var me = standing.Participants.FirstOrDefault(p =>
+                            string.Equals(p.PlayerTag, playerTag, StringComparison.OrdinalIgnoreCase));
+                        if (me is null || me.Fame == 0) continue;
+                        weeksPlayed++;
+                        totalFame += me.Fame;
+                        totalDecks += me.DecksUsed;
+                    }
+                }
+            }
+        }
+        catch { /* журнал недоступен */ }
+
+        var avgFame = totalDecks > 0
+            ? Math.Round((double)totalFame / totalDecks, 1)
+            : 0;
+
+        var profileDto = new PlayerProfileDto(
+            PlayerTag: info.Tag,
+            Name: info.Name,
+            ExpLevel: info.ExpLevel,
+            Trophies: info.Trophies,
+            ClanWarTrophies: info.ClanWarTrophies,
+            ClanName: info.ClanName,
+            ClanTag: info.ClanTag,
+            ArenaName: info.ArenaName,
+            Cards: info.Cards.Select(c => new PlayerCardDto(c.Name, c.Level, c.MaxLevel, c.IconUrl)).ToList(),
+            WeeksPlayed: weeksPlayed,
+            TotalFame: totalFame,
+            AvgFamePerAttack: avgFame,
+            RoyaleApiUrl: $"https://royaleapi.com/player/{Uri.EscapeDataString(playerTag.TrimStart('#'))}");
+
+        return Ok(profileDto);
+    }
 }

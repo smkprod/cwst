@@ -99,6 +99,24 @@ public record ClanForecastDto(
     int ProjectedDayFameLow,      // -1σ нижняя граница прогноза дня (игровой min)
     int ProjectedDayFameHigh);    // +1σ верхняя граница прогноза дня
 
+/// <summary>Полный профиль игрока из CR API + агрегированная статистика войн.</summary>
+public record PlayerProfileDto(
+    string PlayerTag,
+    string Name,
+    int ExpLevel,
+    int Trophies,
+    int ClanWarTrophies,
+    string? ClanName,
+    string? ClanTag,
+    string? ArenaName,
+    List<PlayerCardDto> Cards,
+    int WeeksPlayed,
+    int TotalFame,
+    double AvgFamePerAttack,
+    string RoyaleApiUrl);
+
+public record PlayerCardDto(string Name, int Level, int MaxLevel, string IconUrl);
+
 /// <summary>Детальная статистика для текущего игрока (в Mini App).</summary>
 public record MyStatsDto(
     string PlayerTag,
