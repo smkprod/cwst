@@ -67,7 +67,8 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
                     {
                         Tag = c!.Tag,
                         Name = c.Name,
-                        Fame = c.Fame,
+                        // c.Fame во время военного дня часто 0 — реальная слава в сумме участников
+                        Fame = Math.Max(c.Fame, c.Participants?.Sum(p => p.Fame) ?? 0),
                         PeriodPoints = c.PeriodPoints,
                         ParticipantCount = c.Participants?.Count ?? 0,
                         DecksUsedToday = c.Participants?.Sum(p => p.DecksUsedToday) ?? 0,
@@ -161,8 +162,115 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         [property: JsonPropertyName("decksUsed")] int DecksUsed,
         [property: JsonPropertyName("decksUsedToday")] int DecksUsedToday);
 
+    public async Task<Dictionary<string, string>> GetClanMemberRolesAsync(string clanTag, CancellationToken ct = default)
+    {
+        var members = await GetCachedMembersAsync(clanTag, ct);
+        return members?.Items?.ToDictionary(m => m.Tag, m => m.Role, StringComparer.OrdinalIgnoreCase)
+               ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+    }
+
+    public async Task<string?> GetPlayerClanRoleAsync(string clanTag, string playerTag, CancellationToken ct = default)
+    {
+        var roles = await GetClanMemberRolesAsync(clanTag, ct);
+        return roles.TryGetValue(playerTag, out var role) ? role : null;
+    }
+
+    public async Task<int?> GetClanWarTrophiesAsync(string clanTag, CancellationToken ct = default)
+    {
+        // Трофеи меняются только по итогам недели — кэш на час
+        return await cache.GetOrCreateAsync($"wartrophies:{clanTag}", async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
+            var resp = await http.GetAsync($"clans/{Encode(clanTag)}", ct);
+            if (!resp.IsSuccessStatusCode) return (int?)null;
+            var clan = await resp.Content.ReadFromJsonAsync<ClanProfile>(cancellationToken: ct);
+            return clan?.ClanWarTrophies;
+        });
+    }
+
+    public async Task<List<RiverRaceLogWeek>> GetRiverRaceLogAsync(string clanTag, CancellationToken ct = default)
+    {
+        // Журнал меняется только по итогам недели (понедельник ~10:00 UTC) — кэш 6 часов
+        var result = await cache.GetOrCreateAsync($"racelog:{clanTag}", async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(6);
+
+            var resp = await http.GetAsync($"clans/{Encode(clanTag)}/riverracelog?limit=10", ct);
+            if (!resp.IsSuccessStatusCode)
+            {
+                // Ошибку не кэшируем надолго — попробуем снова через 5 минут
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
+                return new List<RiverRaceLogWeek>();
+            }
+
+            var log = await resp.Content.ReadFromJsonAsync<RiverRaceLogResponse>(cancellationToken: ct);
+            return (log?.Items ?? [])
+                .Select(w => new RiverRaceLogWeek
+                {
+                    SeasonId = w.SeasonId,
+                    SectionIndex = w.SectionIndex,
+                    Standings = (w.Standings ?? [])
+                        .Where(s => s?.Clan?.Tag is not null)
+                        .OrderBy(s => s!.Rank)
+                        .Select(s => new RiverRaceLogStanding
+                        {
+                            Rank = s!.Rank,
+                            TrophyChange = s.TrophyChange,
+                            ClanTag = s.Clan!.Tag,
+                            ClanName = s.Clan.Name,
+                            Fame = s.Clan.Fame,
+                            Participants = (s.Clan.Participants ?? [])
+                                .Select(p => new RiverRaceLogPlayer
+                                {
+                                    PlayerTag = p.Tag,
+                                    Name = p.Name,
+                                    Fame = p.Fame,
+                                    DecksUsed = p.DecksUsed,
+                                }).ToList(),
+                        }).ToList(),
+                }).ToList();
+        });
+        return result ?? [];
+    }
+
+    private async Task<ClanMembersResponse?> GetCachedMembersAsync(string clanTag, CancellationToken ct)
+    {
+        return await cache.GetOrCreateAsync($"clanrole:{clanTag}", async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
+            var resp = await http.GetAsync($"clans/{Encode(clanTag)}/members", ct);
+            if (!resp.IsSuccessStatusCode) return null;
+            return await resp.Content.ReadFromJsonAsync<ClanMembersResponse>(cancellationToken: ct);
+        });
+    }
+
+    // ---- JSON-модели журнала войн (/riverracelog) ----
+    private record RiverRaceLogResponse(
+        [property: JsonPropertyName("items")] List<LogItem>? Items);
+
+    private record LogItem(
+        [property: JsonPropertyName("seasonId")] int SeasonId,
+        [property: JsonPropertyName("sectionIndex")] int SectionIndex,
+        [property: JsonPropertyName("standings")] List<LogStanding>? Standings);
+
+    private record LogStanding(
+        [property: JsonPropertyName("rank")] int Rank,
+        [property: JsonPropertyName("trophyChange")] int TrophyChange,
+        [property: JsonPropertyName("clan")] LogClan? Clan);
+
+    private record LogClan(
+        [property: JsonPropertyName("tag")] string Tag,
+        [property: JsonPropertyName("name")] string Name,
+        [property: JsonPropertyName("fame")] int Fame,
+        [property: JsonPropertyName("participants")] List<RaceParticipant>? Participants);
+
     private record NamedEntity([property: JsonPropertyName("name")] string Name);
+    private record ClanProfile([property: JsonPropertyName("clanWarTrophies")] int? ClanWarTrophies);
 
     private record PlayerWithClan([property: JsonPropertyName("clan")] ClanRef? Clan);
     private record ClanRef([property: JsonPropertyName("tag")] string Tag);
+    private record ClanMembersResponse([property: JsonPropertyName("items")] List<ClanMember>? Items);
+    private record ClanMember(
+        [property: JsonPropertyName("tag")] string Tag,
+        [property: JsonPropertyName("role")] string Role);
 }

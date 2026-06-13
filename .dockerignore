@@ -1,0 +1,14 @@
+.git
+.gitignore
+**/node_modules
+**/dist
+**/bin
+**/obj
+**/*.db
+**/*.db-shm
+**/*.db-wal
+.env
+.env.*
+!.env.example
+*.md
+docker-compose*.yml

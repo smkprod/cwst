@@ -9,6 +9,9 @@ public class ClanRepository(AppDbContext db) : IClanRepository
     public Task<Clan?> GetByChatIdAsync(long chatId, CancellationToken ct = default) =>
         db.Clans.FirstOrDefaultAsync(c => c.TelegramChatId == chatId, ct);
 
+    public Task<Clan?> GetByIdAsync(int id, CancellationToken ct = default) =>
+        db.Clans.FirstOrDefaultAsync(c => c.Id == id, ct);
+
     public Task<Clan?> GetByTagAsync(string clanTag, CancellationToken ct = default) =>
         db.Clans.FirstOrDefaultAsync(c => c.ClanTag == clanTag, ct);
 
@@ -36,7 +39,8 @@ public class PlayerRepository(AppDbContext db) : IPlayerRepository
         db.Players.Where(p => p.ClanId == clanId).ToListAsync(ct);
 
     public Task<List<Player>> GetAllLinkedAsync(CancellationToken ct = default) =>
-        db.Players.Include(p => p.Clan)
+        db.Players.AsNoTracking()
+            .Include(p => p.Clan)
             .Where(p => p.TelegramUserId != null)
             .ToListAsync(ct);
 

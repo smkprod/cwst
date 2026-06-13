@@ -4,7 +4,7 @@ import { haptic, hapticNotify } from '../lib/telegram'
 
 type NudgeState = 'idle' | 'sending' | 'done' | 'cooldown'
 
-export function NudgeButton({ notPlayedCount }: { notPlayedCount: number }) {
+export function NudgeButton({ notPlayedCount, isPro }: { notPlayedCount: number; isPro: boolean }) {
   const [state, setState] = useState<NudgeState>('idle')
   const [resultText, setResultText] = useState('')
 
@@ -39,7 +39,9 @@ export function NudgeButton({ notPlayedCount }: { notPlayedCount: number }) {
 
   return (
     <button className="btn btn-nudge" onClick={nudge} disabled={state === 'sending'}>
-      {state === 'sending' ? 'Пинаю…' : `👊 Пнуть лентяев (${notPlayedCount})`}
+      {state === 'sending'
+        ? 'Пинаю…'
+        : `👊 Пнуть лентяев (${notPlayedCount})${!isPro && notPlayedCount > 20 ? ' · лимит 20 на Free' : ''}`}
     </button>
   )
 }

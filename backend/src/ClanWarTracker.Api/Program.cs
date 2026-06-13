@@ -10,6 +10,7 @@ builder.Services.AddScoped<GetClanStatusUseCase>();
 builder.Services.AddScoped<GetPlayerStatsUseCase>();
 builder.Services.AddScoped<GetClanHistoryUseCase>();
 builder.Services.AddScoped<GetSeasonStatsUseCase>();
+builder.Services.AddScoped<GetSeasonBreakdownUseCase>();
 builder.Services.AddScoped<GetGlobalTopUseCase>();
 builder.Services.AddScoped<NudgePlayersUseCase>();
 builder.Services.AddScoped<SetClanPlanUseCase>();
@@ -42,15 +43,24 @@ app.UseMiddleware<TelegramAuthMiddleware>();
 app.MapControllers();
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
-// ==========================================
-// ДОБАВЬТЕ ЭТИ СТРОКИ СЮДА (ПЕРЕД app.Run())
-// ==========================================
-app.UseDefaultFiles(); // Ищет index.html в папке wwwroot по умолчанию
-app.UseStaticFiles();  // Разрешает раздачу js, css, картинок из wwwroot
+// Кэширование статики: WebView Телеграма агрессивно кэширует index.html и после
+// деплоя продолжает грузить старый JS-бандл. index.html — всегда перепроверять;
+// /assets/* безопасно кэшировать навсегда (имена файлов содержат хэш содержимого).
+var staticFiles = new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        ctx.Context.Response.Headers.CacheControl =
+            ctx.File.Name.EndsWith(".html", StringComparison.OrdinalIgnoreCase)
+                ? "no-cache, no-store, must-revalidate"
+                : "public, max-age=31536000, immutable";
+    }
+};
 
-// Если пользователь перейдет по любому другому пути (например, в самом React-роутере),
-// сервер вернет ему index.html, чтобы фронтенд сам обработал этот роут
-app.MapFallbackToFile("index.html"); 
-// ==========================================
+app.UseDefaultFiles(); // Ищет index.html в папке wwwroot по умолчанию
+app.UseStaticFiles(staticFiles);
+
+// Любой нефайловый путь (роуты React) → index.html
+app.MapFallbackToFile("index.html", staticFiles);
 
 app.Run();

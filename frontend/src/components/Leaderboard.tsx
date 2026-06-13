@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { api, ApiError } from '../lib/api'
-import type { GlobalTop, Plan, PlayerStatus, SeasonStats } from '../types'
+import type { GlobalTop, Plan, PlayerStatus, SeasonBreakdown, SeasonPlayer, SeasonWeek } from '../types'
 import { fmt } from '../lib/format'
 import { haptic } from '../lib/telegram'
 import { PlayerInfoModal } from './PlayerInfoModal'
+import { HistoryCard } from './HistoryCard'
 
 interface Props {
   players: PlayerStatus[]
@@ -11,13 +12,15 @@ interface Props {
   plan: Plan
 }
 
-type Mode = 'week' | 'season' | 'global'
-type SeasonState =
+// 'current' — идущая неделя (live), 'week-N' — завершённая неделя, 'season' — весь сезон, 'global' — топ бота
+type Selection = 'current' | 'season' | 'global' | `week-${number}`
+
+type BreakdownState =
   | { kind: 'idle' }
   | { kind: 'loading' }
   | { kind: 'locked' }
   | { kind: 'empty' }
-  | { kind: 'ready'; data: SeasonStats }
+  | { kind: 'ready'; data: SeasonBreakdown }
 type GlobalState =
   | { kind: 'idle' }
   | { kind: 'loading' }
@@ -27,39 +30,34 @@ type GlobalState =
 const MEDALS = ['🥇', '🥈', '🥉']
 
 export function Leaderboard({ players, myPlayerTag, plan }: Props) {
-  const [mode, setMode] = useState<Mode>('week')
-  const [season, setSeason] = useState<SeasonState>({ kind: 'idle' })
+  const [sel, setSel] = useState<Selection>('current')
+  const [breakdown, setBreakdown] = useState<BreakdownState>({ kind: 'idle' })
   const [global, setGlobal] = useState<GlobalState>({ kind: 'idle' })
   const [selected, setSelected] = useState<PlayerStatus | null>(null)
 
-  // Сезон грузим лениво — при первом переключении
+  // Разбивку сезона грузим сразу (Pro) — нужна для пунктов списка (прошлые недели, сезон)
   useEffect(() => {
-    if (mode !== 'season' || season.kind !== 'idle') return
+    if (breakdown.kind !== 'idle') return
     if (plan !== 'pro') {
-      setSeason({ kind: 'locked' })
+      setBreakdown({ kind: 'locked' })
       return
     }
-    setSeason({ kind: 'loading' })
-    api.getMyClanSeason()
-      .then(data => setSeason(data.players.length === 0 ? { kind: 'empty' } : { kind: 'ready', data }))
-      .catch(e => setSeason(
+    setBreakdown({ kind: 'loading' })
+    api.getSeasonBreakdown()
+      .then(data => setBreakdown(data.weeks.length === 0 ? { kind: 'empty' } : { kind: 'ready', data }))
+      .catch(e => setBreakdown(
         e instanceof ApiError && e.code === 'pro_required' ? { kind: 'locked' } : { kind: 'empty' },
       ))
-  }, [mode, season.kind, plan])
+  }, [breakdown.kind, plan])
 
-  // Глобальный топ тоже лениво
+  // Глобальный топ — лениво при первом выборе
   useEffect(() => {
-    if (mode !== 'global' || global.kind !== 'idle') return
+    if (sel !== 'global' || global.kind !== 'idle') return
     setGlobal({ kind: 'loading' })
     api.getGlobalTop()
       .then(data => setGlobal(data.players.length === 0 ? { kind: 'empty' } : { kind: 'ready', data }))
       .catch(() => setGlobal({ kind: 'empty' }))
-  }, [mode, global.kind])
-
-  const switchMode = (m: Mode) => {
-    haptic('light')
-    setMode(m)
-  }
+  }, [sel, global.kind])
 
   const openByTag = (tag: string) => {
     const p = players.find(x => x.playerTag === tag)
@@ -69,32 +67,62 @@ export function Leaderboard({ players, myPlayerTag, plan }: Props) {
     }
   }
 
+  // Прошлые (завершённые) недели для выпадающего списка
+  const pastWeeks: SeasonWeek[] = breakdown.kind === 'ready'
+    ? breakdown.data.weeks.filter(w => !w.isCurrent).sort((a, b) => b.sectionIndex - a.sectionIndex)
+    : []
+  const currentWeek = breakdown.kind === 'ready'
+    ? breakdown.data.weeks.find(w => w.isCurrent)
+    : undefined
+  const currentLabel = currentWeek ? `${currentWeek.label} (идёт)` : 'Текущая неделя'
+
+  const onPick = (value: string) => {
+    haptic('light')
+    setSel(value as Selection)
+  }
+
   return (
     <div>
       <div className="rating-head">
         <h2 className="section-title" style={{ margin: 0 }}>🏆 Рейтинг</h2>
-        <div className="segmented" role="tablist">
-          <button
-            role="tab" aria-selected={mode === 'week'}
-            className={`segment ${mode === 'week' ? 'segment-active' : ''}`}
-            onClick={() => switchMode('week')}
-          >Неделя</button>
-          <button
-            role="tab" aria-selected={mode === 'season'}
-            className={`segment ${mode === 'season' ? 'segment-active' : ''}`}
-            onClick={() => switchMode('season')}
-          >Сезон</button>
-          <button
-            role="tab" aria-selected={mode === 'global'}
-            className={`segment ${mode === 'global' ? 'segment-active' : ''}`}
-            onClick={() => switchMode('global')}
-          >🌍 Топ</button>
-        </div>
+        <select
+          className="rating-select"
+          value={sel}
+          onChange={e => onPick(e.target.value)}
+          aria-label="Период рейтинга"
+        >
+          <option value="current">📅 {currentLabel}</option>
+          {pastWeeks.map(w => (
+            <option key={w.sectionIndex} value={`week-${w.sectionIndex}`}>
+              {w.isColosseum ? '🏛 ' : '⚔️ '}{w.label}
+            </option>
+          ))}
+          <option value="season">🏆 Весь сезон{plan !== 'pro' ? ' 🔒' : ''}</option>
+          <option value="global">🌍 Топ бота</option>
+        </select>
       </div>
 
-      {mode === 'week' && <WeekBoard players={players} myPlayerTag={myPlayerTag} onOpen={openByTag} />}
-      {mode === 'season' && <SeasonBoard state={season} myPlayerTag={myPlayerTag} onOpen={openByTag} />}
-      {mode === 'global' && <GlobalBoard state={global} />}
+      {sel === 'current' && (
+        <WeekBoard players={players} myPlayerTag={myPlayerTag} onOpen={openByTag} plan={plan} />
+      )}
+      {sel.startsWith('week-') && (
+        <PastWeekBoard
+          state={breakdown}
+          section={Number(sel.slice('week-'.length))}
+          rosterTags={new Set(players.map(p => p.playerTag))}
+          myPlayerTag={myPlayerTag}
+          onOpen={openByTag}
+        />
+      )}
+      {sel === 'season' && <SeasonBoard state={breakdown} myPlayerTag={myPlayerTag} rosterTags={new Set(players.map(p => p.playerTag))} onOpen={openByTag} />}
+      {sel === 'global' && <GlobalBoard state={global} />}
+
+      {sel !== 'global' && (
+        <>
+          <div style={{ height: 12 }} />
+          <HistoryCard plan={plan} />
+        </>
+      )}
 
       {selected && (
         <PlayerInfoModal
@@ -107,9 +135,9 @@ export function Leaderboard({ players, myPlayerTag, plan }: Props) {
   )
 }
 
-/* --- Недельный зачёт --- */
-function WeekBoard({ players, myPlayerTag, onOpen }: {
-  players: PlayerStatus[]; myPlayerTag?: string; onOpen: (tag: string) => void
+/* --- Недельный зачёт (текущая неделя, live-данные) --- */
+function WeekBoard({ players, myPlayerTag, onOpen, plan }: {
+  players: PlayerStatus[]; myPlayerTag?: string; onOpen: (tag: string) => void; plan: Plan
 }) {
   const sorted = [...players].sort((a, b) => a.rank - b.rank)
   const podium = sorted.slice(0, 3)
@@ -124,7 +152,7 @@ function WeekBoard({ players, myPlayerTag, onOpen }: {
     <>
       {mvp && mvp.fame > 0 && (
         <div className="mvp-banner">
-          👑 MVP недели: <strong>{mvp.name}</strong> — {fmt(mvp.fame)} славы
+          👑 MVP недели: <strong>{mvp.name}</strong> — {fmt(mvp.fame)} медалей
         </div>
       )}
 
@@ -158,12 +186,75 @@ function WeekBoard({ players, myPlayerTag, onOpen }: {
               <span className="rating-name">
                 {p.name}
                 {p.playerTag === myPlayerTag && <span className="me-badge">ты</span>}
+                {plan === 'pro' && p.consecutiveWars >= 3 && (
+                  <span className="streak-badge" title={`${p.consecutiveWars} недель подряд`}>
+                    🔥{p.consecutiveWars}
+                  </span>
+                )}
               </span>
               <span className="rating-avg muted">{p.avgFamePerAttack > 0 ? `${Math.round(p.avgFamePerAttack)}/атака` : ''}</span>
               <span className="rating-fame">{fmt(p.fame)} 🏅</span>
             </button>
           </li>
         ))}
+      </ul>
+    </>
+  )
+}
+
+/* --- Завершённая неделя из официального журнала --- */
+function PastWeekBoard({ state, section, rosterTags, myPlayerTag, onOpen }: {
+  state: BreakdownState; section: number; rosterTags: Set<string>
+  myPlayerTag?: string; onOpen: (tag: string) => void
+}) {
+  if (state.kind === 'loading' || state.kind === 'idle') {
+    return <div className="center"><div className="spinner" /></div>
+  }
+  if (state.kind === 'locked') return <SeasonLock />
+  if (state.kind === 'empty') {
+    return <p className="center muted">Журнал войн пока пуст — данные появятся после первой завершённой недели.</p>
+  }
+
+  const week = state.data.weeks.find(w => w.sectionIndex === section)
+  if (!week || week.players.length === 0) {
+    return <p className="center muted">За эту неделю нет данных по игрокам.</p>
+  }
+
+  const mvp = week.players[0]
+
+  return (
+    <>
+      <p className="muted small season-meta">
+        {week.label} · медалей клана: {fmt(week.clanFame)} · игроков: {week.players.length}
+      </p>
+
+      {mvp && mvp.fame > 0 && (
+        <div className="mvp-banner">
+          👑 MVP недели: <strong>{mvp.name}</strong> — {fmt(mvp.fame)} медалей
+        </div>
+      )}
+
+      <ul className="rating-list">
+        {week.players.map(p => {
+          const clickable = rosterTags.has(p.playerTag)
+          const Tag = clickable ? 'button' : 'div'
+          return (
+            <li key={p.playerTag}>
+              <Tag
+                className={`rating-row ${p.playerTag === myPlayerTag ? 'rating-me' : ''}`}
+                {...(clickable ? { onClick: () => onOpen(p.playerTag) } : {})}
+              >
+                <span className="rating-rank">{p.rank <= 3 ? MEDALS[p.rank - 1] : `#${p.rank}`}</span>
+                <span className="rating-name">
+                  {p.name}
+                  {p.playerTag === myPlayerTag && <span className="me-badge">ты</span>}
+                </span>
+                <span className="rating-avg muted">{p.decksUsed > 0 ? `${p.decksUsed} колод` : ''}</span>
+                <span className="rating-fame">{fmt(p.fame)} 🏅</span>
+              </Tag>
+            </li>
+          )
+        })}
       </ul>
     </>
   )
@@ -195,7 +286,7 @@ function GlobalBoard({ state }: { state: GlobalState }) {
 
       {mvp && mvp.totalFame > 0 && (
         <div className="mvp-banner">
-          👑 Чемпион бота: <strong>{mvp.name}</strong> — {fmt(mvp.totalFame)} славы
+          👑 Чемпион бота: <strong>{mvp.name}</strong> — {fmt(mvp.totalFame)} медалей
         </div>
       )}
 
@@ -221,69 +312,76 @@ function GlobalBoard({ state }: { state: GlobalState }) {
   )
 }
 
-/* --- Сезонный зачёт --- */
-function SeasonBoard({ state, myPlayerTag, onOpen }: {
-  state: SeasonState; myPlayerTag?: string; onOpen: (tag: string) => void
+/* --- Сезонный зачёт: сумма по всем неделям сезона (W1 → Колизей) --- */
+function SeasonBoard({ state, myPlayerTag, rosterTags, onOpen }: {
+  state: BreakdownState; myPlayerTag?: string; rosterTags: Set<string>; onOpen: (tag: string) => void
 }) {
   if (state.kind === 'loading' || state.kind === 'idle') {
     return <div className="center"><div className="spinner" /></div>
   }
-
-  if (state.kind === 'locked') {
-    return (
-      <section className="card forecast-locked">
-        <div className="card-title-row">
-          <div className="card-title">🏆 Сезонный зачёт</div>
-          <span className="pro-chip">PRO</span>
-        </div>
-        <p className="muted small">Кто больше всех набил славы за сезон (~месяц КВ) — доступно на тарифе Pro. 🔒</p>
-      </section>
-    )
-  }
-
+  if (state.kind === 'locked') return <SeasonLock />
   if (state.kind === 'empty') {
     return (
       <p className="center muted">
-        Данные сезона копятся с каждым днём войны — загляни после первого военного дня.
+        Данные сезона появятся после первого военного дня.
       </p>
     )
   }
 
   const { data } = state
-  const mvp = data.players[0]
+  const total: SeasonPlayer[] = data.seasonTotal
+  const mvp = total[0]
 
   return (
     <>
       <p className="muted small season-meta">
-        Сезон #{data.seasonId} · недель с данными: {data.weeksTracked}
+        Сезон #{data.seasonId} · недель в зачёте: {data.weeks.length} (W1 → текущая)
       </p>
 
       {mvp && mvp.totalFame > 0 && (
         <div className="mvp-banner">
-          👑 MVP сезона: <strong>{mvp.name}</strong> — {fmt(mvp.totalFame)} славы
+          👑 MVP сезона: <strong>{mvp.name}</strong> — {fmt(mvp.totalFame)} медалей
         </div>
       )}
 
       <ul className="rating-list">
-        {data.players.map(p => (
-          <li key={p.playerTag}>
-            <button
-              className={`rating-row ${p.playerTag === myPlayerTag ? 'rating-me' : ''}`}
-              onClick={() => onOpen(p.playerTag)}
-            >
-              <span className="rating-rank">{p.rank <= 3 ? MEDALS[p.rank - 1] : `#${p.rank}`}</span>
-              <span className="rating-name">
-                {p.name}
-                {p.playerTag === myPlayerTag && <span className="me-badge">ты</span>}
-              </span>
-              <span className="rating-avg muted">
-                {p.weeksParticipated} нед · луч. {fmt(p.bestWeekFame)}
-              </span>
-              <span className="rating-fame">{fmt(p.totalFame)} 🏅</span>
-            </button>
-          </li>
-        ))}
+        {total.map(p => {
+          const clickable = rosterTags.has(p.playerTag)
+          const Tag = clickable ? 'button' : 'div'
+          return (
+            <li key={p.playerTag}>
+              <Tag
+                className={`rating-row ${p.playerTag === myPlayerTag ? 'rating-me' : ''}`}
+                {...(clickable ? { onClick: () => onOpen(p.playerTag) } : {})}
+              >
+                <span className="rating-rank">{p.rank <= 3 ? MEDALS[p.rank - 1] : `#${p.rank}`}</span>
+                <span className="rating-name">
+                  {p.name}
+                  {p.playerTag === myPlayerTag && <span className="me-badge">ты</span>}
+                </span>
+                <span className="rating-avg muted">
+                  {p.weeksParticipated} нед · луч. {fmt(p.bestWeekFame)}
+                </span>
+                <span className="rating-fame">{fmt(p.totalFame)} 🏅</span>
+              </Tag>
+            </li>
+          )
+        })}
       </ul>
     </>
+  )
+}
+
+function SeasonLock() {
+  return (
+    <section className="card forecast-locked">
+      <div className="card-title-row">
+        <div className="card-title">🏆 Сезон и прошлые войны</div>
+        <span className="pro-chip">PRO</span>
+      </div>
+      <p className="muted small">
+        Рейтинг за каждую прошлую войну (W1, W2 …) и суммарный зачёт за сезон — доступно на тарифе Pro. 🔒
+      </p>
+    </section>
   )
 }

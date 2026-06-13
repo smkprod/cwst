@@ -6,52 +6,152 @@ namespace ClanWarTracker.Application.UseCases;
 /// <summary>
 /// Прогноз славы клана и игроков на конец дня / недели.
 ///
-/// Привязан к реальным правилам River Race:
+/// Правила River Race:
 ///  — война идёт 4 дня (чт–пн), PeriodIndex 3..6; дни 0..2 — тренировка, славы не дают;
 ///  — у игрока 4 колоды в день;
 ///  — слава за колоду ограничена правилами игры: поражение = 100, победа = 200,
 ///    в дуэли победа = 250. Любая сыгранная колода даёт от 100 до 250 славы;
 ///  — в клане максимум 50 человек, т.е. потолок 50 × 4 = 200 атак в день.
-///    В списке участников API могут висеть ушедшие из клана (до 100 записей) —
-///    атаковать дальше могут только реальные члены клана.
 ///
-/// Алгоритм (эвристика, без ML):
-///  avg = clamp(Fame / DecksUsed, 100, 250)        // средняя слава за атаку игрока
-///  attendance = min(1, DecksUsed / (4*warDaysPassed))  // как часто играет
-///  urgency = f(hoursLeft)                          // падает у дедлайна
-///  expectedDecksLeft = (4 - DecksUsedToday) * attendance * urgency
-///  playerDayFame = Fame + expectedDecksLeft * avg
-///  playerWeekFame = playerDayFame + remainingWarDays * 4 * attendance * avg
+/// При наличии истории (riverracelog + снапшоты) использует EWMA по последним
+/// 10 войнам для уточнения средней славы и посещаемости.
 /// </summary>
 public class WarForecastService
 {
-    /// <summary>Стандартная River Race: дни 0..2 — тренировка, 3..6 — война (чт–пн).</summary>
     private const int FirstWarPeriodIndex = 3;
     private const int LastWarPeriodIndex = 6;
     private const int TotalWarDays = 4;
     private const int DecksPerDayPerPlayer = 4;
 
-    /// <summary>В клане не может быть больше 50 человек → максимум 200 атак в день.</summary>
-    private const int MaxClanMembers = 50;
-
-    /// <summary>Минимальная слава за сыгранную колоду — поражение в обычном бою.</summary>
     private const double MinFamePerDeck = 100;
-
-    /// <summary>Максимальная слава за колоду — победа в дуэли.</summary>
     private const double MaxFamePerDeck = 250;
 
-    /// <summary>База для тех, кто ещё не атаковал: 50% винрейта → (200 + 100) / 2.</summary>
+    /// <summary>Базовое среднее для cold start (50% винрейта: (200+100)/2).</summary>
     private const double BaselineFamePerDeck = 150;
+
+    /// <summary>
+    /// Коэффициент затухания EWMA по войнам: свежая война весит в 0.8^1 = 80%
+    /// от самой свежей. Значение 0.8 даёт «полупериод» ≈ 3 войны.
+    /// </summary>
+    private const double EwmaDecay = 0.8;
+
+    /// <summary>Максимум войн для истории прогноза.</summary>
+    private const int HistoryWeeksWindow = 10;
+
+    /// <summary>Минимум войн для использования EWMA (меньше — cold start blend).</summary>
+    private const int ColdStartThreshold = 3;
+
+    /// <summary>
+    /// Крутизна логистической urgency-кривой.
+    /// k=0.4, h0=5 → urgency≈0.95 при 10ч, 0.73 при 5ч, 0.5 при 0ч до дедлайна.
+    /// </summary>
+    private const double UrgencyK = 0.4;
+    private const double UrgencyH0 = 5.0;
+
+    /// <summary>Типичное СКО одной колоды — по биномиальной модели {100,200,250}.</summary>
+    private const double SdPerDeck = 55.0;
+
+    /// <summary>
+    /// Исторический профиль игрока: EWMA средней славы и посещаемости за последние войны.
+    /// Передаётся в ProjectPlayer для точного прогноза.
+    /// </summary>
+    public record PlayerHistoryProfile(
+        /// <summary>EWMA avg(fame/warDeck), 100..250. NaN = нет данных (cold start).</summary>
+        double EwmaFamePerDeck,
+        /// <summary>EWMA доли использованных колод за неделю (0..1). NaN = нет данных.</summary>
+        double EwmaAttendance,
+        /// <summary>Количество недель в профиле (0 = полный cold start).</summary>
+        int WeeksCount);
+
+    /// <summary>
+    /// Строит EWMA-профили для всех игроков по данным прошлых войн.
+    /// Принимает map: (сезон, неделя) → (playerTag → (Fame, DecksUsed)) — уже отсортированный
+    /// по убыванию новизны. Читается одним батчем в вызывающем коде.
+    /// </summary>
+    public static Dictionary<string, PlayerHistoryProfile> BuildHistoryProfiles(
+        IReadOnlyList<IReadOnlyDictionary<string, (int Fame, int Decks)>> weeks,
+        IEnumerable<string> playerTags)
+    {
+        var result = new Dictionary<string, PlayerHistoryProfile>(StringComparer.OrdinalIgnoreCase);
+        var window = weeks.Take(HistoryWeeksWindow).ToList();
+
+        foreach (var tag in playerTags)
+        {
+            double sumFame = 0, sumAtt = 0, sumW = 0;
+            int count = 0;
+
+            for (int t = 0; t < window.Count; t++)
+            {
+                var wt = Math.Pow(EwmaDecay, t);
+                window[t].TryGetValue(tag, out var pd);
+
+                // Посещаемость = использованных колод / максимальных за 4 военных дня
+                var att = Math.Clamp((double)pd.Decks / (TotalWarDays * DecksPerDayPerPlayer), 0, 1);
+                sumAtt += wt * att;
+
+                if (pd.Fame > 0 && pd.Decks > 0)
+                {
+                    var fpd = Math.Clamp((double)pd.Fame / pd.Decks, MinFamePerDeck, MaxFamePerDeck);
+                    sumFame += wt * fpd;
+                }
+                else
+                {
+                    // Не участвовал — вклад нулевой, но вес идёт в знаменатель
+                    sumFame += wt * 0;
+                }
+
+                sumW += wt;
+                if (pd.Fame > 0 || pd.Decks > 0) count++;
+            }
+
+            if (sumW < 1e-9 || window.Count == 0)
+            {
+                result[tag] = new PlayerHistoryProfile(double.NaN, double.NaN, 0);
+                continue;
+            }
+
+            var ewmaAtt = sumAtt / sumW;
+
+            // Если игрок в большинстве недель не участвовал — fame per deck сырой
+            // Вместо делить на suмW (который включает «0» от непосещённых недель)
+            // считаем только по неделям с реальными боями
+            double ewmaFpd;
+            if (count == 0)
+            {
+                ewmaFpd = double.NaN;
+            }
+            else
+            {
+                double sumFameActual = 0, sumWActual = 0;
+                for (int t = 0; t < window.Count; t++)
+                {
+                    var wt = Math.Pow(EwmaDecay, t);
+                    window[t].TryGetValue(tag, out var pd);
+                    if (pd.Fame > 0 && pd.Decks > 0)
+                    {
+                        var fpd = Math.Clamp((double)pd.Fame / pd.Decks, MinFamePerDeck, MaxFamePerDeck);
+                        sumFameActual += wt * fpd;
+                        sumWActual += wt;
+                    }
+                }
+                ewmaFpd = sumWActual > 1e-9
+                    ? Math.Clamp(sumFameActual / sumWActual, MinFamePerDeck, MaxFamePerDeck)
+                    : double.NaN;
+            }
+
+            result[tag] = new PlayerHistoryProfile(ewmaFpd, ewmaAtt, window.Count);
+        }
+
+        return result;
+    }
 
     /// <summary>
     /// Уточняет WarDecksUsed участников по снапшоту первого военного дня недели.
     /// CR API в DecksUsed считает и тренировочные бои (они славы не дают), поэтому
-    /// «слава/атака» без поправки занижена. Тренировочные колоды игрока =
-    /// (DecksUsed − DecksUsedToday) на снапшоте дня 3 — до него шла только тренировка.
+    /// «слава/атака» без поправки занижена.
     /// </summary>
     public static void RefineWarDecks(WarStatus war, WarSnapshot? firstWarDaySnapshot)
     {
-        // Тренировка (0) и первый военный день (DecksUsedToday) уже точны — см. ApiClient
         if (!war.IsWarDay || war.PeriodIndex <= FirstWarPeriodIndex || firstWarDaySnapshot is null)
             return;
 
@@ -63,48 +163,44 @@ public class WarForecastService
         foreach (var p in war.Participants)
         {
             if (!trainingDecks.TryGetValue(p.PlayerTag, out var training)) continue;
-            // Военных колод не меньше, чем сыграно сегодня, и не больше недельного итога
             p.WarDecksUsed = Math.Clamp(p.DecksUsed - training, p.DecksUsedToday, p.DecksUsed);
         }
     }
 
-    public ClanForecastDto BuildClanForecast(WarStatus war, IReadOnlyList<PlayerStatusDto> players, int hoursLeft)
+    public ClanForecastDto BuildClanForecast(
+        WarStatus war,
+        IReadOnlyList<PlayerStatusDto> players,
+        int hoursLeft)
     {
         var projectedDayFame = players.Sum(p => p.ProjectedDayFame);
         var projectedWeekFame = players.Sum(p => p.ProjectedWeekFame);
 
-        var totalFame = war.Participants.Sum(p => p.Fame);
-        var totalDecksUsedToday = war.Participants.Sum(p => p.DecksUsedToday);
-        var activePlayers = war.Participants.Count(p => p.DecksUsed > 0);
-
-        // Потолок по правилам игры: максимум 50 человек × 4 колоды = 200 атак в день,
-        // сколько бы записей ни висело в списке участников API.
-        var rosterSize = Math.Min(war.Participants.Count, MaxClanMembers);
+        var totalFame = players.Sum(p => p.Fame);
+        var totalDecksUsedToday = players.Sum(p => p.DecksUsedToday);
+        var activePlayers = players.Count(p => p.DecksUsed > 0);
+        var rosterSize = players.Count;
         var maxDecksToday = rosterSize * DecksPerDayPerPlayer;
         var expectedRemainingAttacks = war.IsWarDay
             ? Math.Clamp(maxDecksToday - totalDecksUsedToday, 0, maxDecksToday)
             : 0;
 
-        var totalWarDecksUsed = war.Participants.Sum(p => p.WarDecksUsed);
+        var totalWarDecksUsed = players.Sum(p => p.WarDecksUsed);
         var clanAvgFamePerAttack = ClampFamePerDeck(
             totalWarDecksUsed > 0 ? (double)totalFame / totalWarDecksUsed : BaselineFamePerDeck);
 
-        // Trend: сравниваем ожидаемый итог сегодняшнего дня со средней славой за уже
-        // завершённые военные дни (текущий день не учитываем — он ещё идёт).
+        // Trend: ожидаемый итог текущего дня vs средняя по завершённым дням
         var warDaysPassed = WarDaysPassed(war.PeriodIndex);
         var completedWarDays = war.IsWarDay ? warDaysPassed - 1 : warDaysPassed;
 
         string trend;
         if (!war.IsWarDay || completedWarDays <= 0)
         {
-            trend = "onPace"; // первый военный день — сравнивать ещё не с чем
+            trend = "onPace";
         }
         else
         {
-            // Слава, набитая сегодня ≈ сыгранные сегодня колоды × средняя слава за колоду
             var todayFameSoFar = totalDecksUsedToday * clanAvgFamePerAttack;
             var avgDailyFame = Math.Max(1, (totalFame - todayFameSoFar) / completedWarDays);
-            // Полный ожидаемый итог сегодняшнего дня: уже набитое сегодня + остаток прогноза
             var projectedTodayTotal = todayFameSoFar + Math.Max(0, projectedDayFame - totalFame);
 
             if (projectedTodayTotal > avgDailyFame * 1.10)
@@ -115,65 +211,109 @@ public class WarForecastService
                 trend = "onPace";
         }
 
-        // Confidence:
-        //   — растёт по мере того, как война идёт (больше данных)
-        //   — растёт с количеством активных игроков
-        var dataDepth = Math.Clamp(warDaysPassed / (double)TotalWarDays, 0, 1);     // 0..1
+        // Confidence: растёт с глубиной данных войны и активностью клана
+        var dataDepth = Math.Clamp(warDaysPassed / (double)TotalWarDays, 0, 1);
         var participation = rosterSize > 0
             ? Math.Min(1.0, activePlayers / (double)rosterSize)
             : 0;
         var confidence = (int)Math.Round((0.4 + 0.4 * dataDepth + 0.2 * participation) * 100);
         confidence = Math.Clamp(confidence, 30, 95);
 
+        // Доверительный интервал (±1σ) для прогноза дня:
+        // предполагаем нормальное распределение суммы N атак, каждая sd ≈ 55 медалей
+        var sdTotal = Math.Sqrt(expectedRemainingAttacks) * SdPerDeck;
+        var maxDayFame = totalFame + maxDecksToday * (int)MaxFamePerDeck;
+        var low = Math.Clamp(projectedDayFame - (int)sdTotal, totalFame, projectedDayFame);
+        var high = Math.Clamp(projectedDayFame + (int)sdTotal, projectedDayFame, maxDayFame);
+
         return new ClanForecastDto(
             ProjectedDayFame: projectedDayFame,
             ProjectedWeekFame: projectedWeekFame,
             ExpectedRemainingAttacksToday: expectedRemainingAttacks,
             Confidence: confidence,
-            Trend: trend);
+            Trend: trend,
+            ProjectedDayFameLow: war.IsWarDay ? low : projectedDayFame,
+            ProjectedDayFameHigh: war.IsWarDay ? high : projectedDayFame);
     }
 
     /// <param name="canStillAttack">
-    /// false — игрок числится в списке участников, но уже не в клане (свыше 50 мест):
-    /// будущих атак у него не будет, прогноз = текущая слава.
+    /// false — игрок уже не в клане; прогноз = текущая слава.
+    /// </param>
+    /// <param name="history">
+    /// EWMA-профиль из последних 10 войн. null — cold start / Free тариф.
     /// </param>
     public PlayerProjection ProjectPlayer(
-        WarParticipant p, WarStatus war, int hoursLeft, double clanAvgFamePerAttack, bool canStillAttack = true)
+        WarParticipant p, WarStatus war, int hoursLeft, double clanAvgFamePerAttack,
+        bool canStillAttack = true,
+        PlayerHistoryProfile? history = null)
     {
         var warDaysPassed = WarDaysPassed(war.PeriodIndex);
         var remainingWarDays = RemainingWarDays(war.PeriodIndex);
 
-        // 1) средняя слава за ВОЕННУЮ атаку (тренировочные колоды не считаем —
-        //    они входят в DecksUsed, но славы не дают). Границы по правилам: 100..250.
-        var avgFame = p.WarDecksUsed > 0
-            ? ClampFamePerDeck((double)p.Fame / p.WarDecksUsed)
-            : ClampFamePerDeck(clanAvgFamePerAttack > 0 ? clanAvgFamePerAttack : BaselineFamePerDeck);
+        // 1) Средняя слава за ВОЕННУЮ атаку
+        double avgFame;
+        if (p.WarDecksUsed > 0)
+        {
+            // Наблюдаемое на текущей неделе — самый надёжный сигнал
+            avgFame = ClampFamePerDeck((double)p.Fame / p.WarDecksUsed);
+        }
+        else if (history is not null && !double.IsNaN(history.EwmaFamePerDeck))
+        {
+            // Ещё не атаковал на этой неделе — берём EWMA истории
+            avgFame = history.EwmaFamePerDeck;
+        }
+        else
+        {
+            // Cold start: клановый средний или базовый 150
+            avgFame = ClampFamePerDeck(clanAvgFamePerAttack > 0 ? clanAvgFamePerAttack : BaselineFamePerDeck);
+        }
 
         if (!canStillAttack)
             return new PlayerProjection(avgFame, p.Fame, p.Fame);
 
-        // 2) посещаемость: как полно игрок использует свои 4 военные колоды в среднем за день
-        var attendance = warDaysPassed > 0
-            ? Math.Clamp(p.WarDecksUsed / (double)(warDaysPassed * DecksPerDayPerPlayer), 0, 1)
-            : (war.IsWarDay ? 0.85 : 0.7); // на старте — оптимистичная база
+        // 2) Посещаемость: доля использованных военных колод в среднем за день
+        double attendance;
+        if (history is not null && history.WeeksCount >= ColdStartThreshold)
+        {
+            // Есть достаточно истории — смешиваем EWMA с фактом текущей недели
+            var histBase = double.IsNaN(history.EwmaAttendance) ? 0.75 : history.EwmaAttendance;
+            var blendFactor = Math.Clamp(warDaysPassed / (double)TotalWarDays, 0, 1);
+            var currentWeekAtt = warDaysPassed > 0
+                ? Math.Clamp(p.WarDecksUsed / (double)(warDaysPassed * DecksPerDayPerPlayer), 0, 1)
+                : histBase;
+            attendance = (1 - blendFactor) * histBase + blendFactor * currentWeekAtt;
+        }
+        else if (warDaysPassed > 0)
+        {
+            // Мало истории — считаем только по текущей неделе
+            attendance = Math.Clamp(p.WarDecksUsed / (double)(warDaysPassed * DecksPerDayPerPlayer), 0, 1);
+        }
+        else
+        {
+            // Начало войны — оптимистичная база
+            var histBase = history is not null && !double.IsNaN(history.EwmaAttendance)
+                ? history.EwmaAttendance
+                : (war.IsWarDay ? 0.85 : 0.7);
+            attendance = histBase;
+        }
 
-        // 3) сегодня атаки возможны только в военный день (тренировка славы не даёт)
+        // 3) Urgency: гладкая логистика вместо ступенчатой таблицы
         double expectedDecksToday = 0;
         if (war.IsWarDay)
         {
-            var urgency = TimeUrgencyFactor(hoursLeft, p.DecksUsedToday);
+            var urgency = LogisticUrgency(hoursLeft, p.DecksUsedToday);
             var remainingDecksToday = Math.Max(0, DecksPerDayPerPlayer - p.DecksUsedToday);
             expectedDecksToday = remainingDecksToday * attendance * urgency;
         }
 
         var projectedDayFame = (int)Math.Round(p.Fame + expectedDecksToday * avgFame);
 
-        // На неделю: добавляем ожидаемые атаки в оставшиеся (будущие) дни войны
+        // 4) Прогноз на неделю: оставшиеся военные дни × посещаемость × avg
         var expectedDecksFutureDays = remainingWarDays * DecksPerDayPerPlayer * attendance;
         var projectedWeekFame = (int)Math.Round(projectedDayFame + expectedDecksFutureDays * avgFame);
 
-        // Жёсткий потолок по правилам: оставшиеся колоды × 250 славы максимум
-        var maxDayFame = p.Fame + (int)((war.IsWarDay ? DecksPerDayPerPlayer - p.DecksUsedToday : 0) * MaxFamePerDeck);
+        // 5) Жёсткие потолки по правилам игры
+        var maxDayFame = p.Fame + (war.IsWarDay ? (int)((DecksPerDayPerPlayer - p.DecksUsedToday) * MaxFamePerDeck) : 0);
         projectedDayFame = Math.Min(projectedDayFame, maxDayFame);
         var maxWeekFame = maxDayFame + (int)(remainingWarDays * DecksPerDayPerPlayer * MaxFamePerDeck);
         projectedWeekFame = Math.Min(projectedWeekFame, maxWeekFame);
@@ -185,31 +325,27 @@ public class WarForecastService
         Math.Clamp(fame, MinFamePerDeck, MaxFamePerDeck);
 
     /// <summary>
-    /// 1.0 при большом запасе времени; падает к дедлайну, особенно для тех, кто не начал играть.
+    /// Гладкая urgency-кривая через логистическую функцию.
+    /// При hoursLeft ≥ 10 ≈ 0.95; при 5 ч ≈ 0.73; при 0 ≈ 0.5.
+    /// Дополнительный штраф × 0.4 для тех, кто ещё не начал и осталось < 3 ч.
     /// </summary>
-    private static double TimeUrgencyFactor(int hoursLeft, int decksUsedToday)
+    private static double LogisticUrgency(int hoursLeft, int decksUsedToday)
     {
-        if (hoursLeft >= 10) return 0.95;
-        if (hoursLeft >= 6) return 0.85;
-        if (hoursLeft >= 3) return decksUsedToday > 0 ? 0.75 : 0.55;
-        if (hoursLeft >= 1) return decksUsedToday > 0 ? 0.55 : 0.25;
-        return decksUsedToday > 0 ? 0.30 : 0.05; // деадлайн — те, кто не начал, скорее всего сольют
+        var u = 1.0 / (1.0 + Math.Exp(-UrgencyK * (hoursLeft - UrgencyH0)));
+        if (hoursLeft < 3 && decksUsedToday == 0)
+            u *= 0.4; // те, кто не начал у дедлайна — скорее всего не сыграют
+        return Math.Clamp(u, 0.05, 0.97);
     }
 
-    /// <summary>
-    /// Сколько военных дней уже прошло (включая текущий, если он военный).
-    /// PeriodIndex: 0..2 — тренировка, 3..6 — война.
-    /// </summary>
     private static int WarDaysPassed(int periodIndex)
     {
         if (periodIndex < FirstWarPeriodIndex) return 0;
         return Math.Min(TotalWarDays, periodIndex - FirstWarPeriodIndex + 1);
     }
 
-    /// <summary>Сколько полных военных дней ещё впереди (текущий не считаем).</summary>
     private static int RemainingWarDays(int periodIndex)
     {
-        if (periodIndex < FirstWarPeriodIndex) return TotalWarDays;      // тренировка — вся война впереди
+        if (periodIndex < FirstWarPeriodIndex) return TotalWarDays;
         return Math.Clamp(LastWarPeriodIndex - periodIndex, 0, TotalWarDays);
     }
 

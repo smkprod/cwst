@@ -16,8 +16,9 @@ public class NudgePlayersUseCase(
 
     public record NudgeResult(int NotifiedDm, int SkippedCooldown, int UnlinkedCount, bool PostedToChat);
 
+    /// <param name="isPro">Free: рассылка до 20 игроков. Pro: без ограничений.</param>
     /// <returns>null — война не идёт (тренировка) или клан не найден.</returns>
-    public async Task<NudgeResult?> ExecuteAsync(int clanId, CancellationToken ct = default)
+    public async Task<NudgeResult?> ExecuteAsync(int clanId, bool isPro, CancellationToken ct = default)
     {
         var clan = (await clans.GetAllAsync(ct)).FirstOrDefault(c => c.Id == clanId);
         if (clan is null) return null;
@@ -32,7 +33,9 @@ public class NudgePlayersUseCase(
             .Where(p => p.TelegramUserId is not null)
             .ToDictionary(p => p.PlayerTag);
 
-        var slackers = war.Participants.Where(p => p.DecksUsedToday < 4).ToList();
+        var allSlackers = war.Participants.Where(p => p.DecksUsedToday < 4).ToList();
+        // Free: не более 20 человек суммарно получают любые уведомления
+        var slackers = isPro ? allSlackers : allSlackers.Take(20).ToList();
 
         int dm = 0, skipped = 0;
         foreach (var slacker in slackers)

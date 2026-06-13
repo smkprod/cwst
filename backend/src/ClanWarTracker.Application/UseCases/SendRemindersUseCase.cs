@@ -1,3 +1,4 @@
+using ClanWarTracker.Domain.Enums;
 using ClanWarTracker.Domain.Interfaces;
 
 namespace ClanWarTracker.Application.UseCases;
@@ -10,6 +11,12 @@ public class SendRemindersUseCase(
 {
     /// <summary>Минимальный интервал между напоминаниями одному игроку.</summary>
     private static readonly TimeSpan ReminderCooldown = TimeSpan.FromHours(6);
+
+    /// <summary>
+    /// Максимум игроков, которым Free-клан шлёт персональные DM-напоминания.
+    /// Детерминированный выбор: первые N по Player.Id (дата привязки).
+    /// </summary>
+    private const int FreePersonalReminderLimit = 5;
 
     public async Task ExecuteAsync(CancellationToken ct = default)
     {
@@ -25,15 +32,26 @@ public class SendRemindersUseCase(
             if (timeLeft > TimeSpan.FromHours(clan.ReminderHoursBeforeEnd) || timeLeft <= TimeSpan.Zero)
                 continue;
 
-            var linkedPlayers = (await players.GetByClanIdAsync(clan.Id, ct))
+            var isPro = clan.EffectivePlan(now) == PlanTier.Pro;
+
+            // Все привязанные игроки клана, отсортированы по Id (стабильный порядок)
+            var allLinked = (await players.GetByClanIdAsync(clan.Id, ct))
                 .Where(p => p.TelegramUserId is not null)
+                .OrderBy(p => p.Id)
                 .ToDictionary(p => p.PlayerTag);
+
+            // Free-клан: лимитируем теги для персональных DM — первые N по Id
+            var allowedForDm = isPro
+                ? allLinked
+                : allLinked
+                    .Take(FreePersonalReminderLimit)
+                    .ToDictionary(kv => kv.Key, kv => kv.Value);
 
             var slackers = war.Participants.Where(p => p.DecksUsedToday < 4).ToList();
 
             foreach (var slacker in slackers)
             {
-                if (!linkedPlayers.TryGetValue(slacker.PlayerTag, out var player)) continue;
+                if (!allowedForDm.TryGetValue(slacker.PlayerTag, out var player)) continue;
                 if (now - player.LastReminderSentAt < ReminderCooldown) continue; // анти-спам
 
                 var decksLeft = 4 - slacker.DecksUsedToday;
@@ -48,14 +66,21 @@ public class SendRemindersUseCase(
 
             await players.SaveChangesAsync(ct);
 
-            // Сводка в групповой чат, если есть «непривязанные» лентяи
-            var unlinked = slackers.Where(s => !linkedPlayers.ContainsKey(s.PlayerTag)).ToList();
+            // Сводка в групповой чат: непривязанные лентяи + up-sell для Free
+            var unlinked = slackers.Where(s => !allLinked.ContainsKey(s.PlayerTag)).ToList();
+            var parts = new List<string>();
+
             if (unlinked.Count > 0)
-            {
-                var names = string.Join(", ", unlinked.Select(u => u.Name));
-                await notifier.SendToChatAsync(clan.TelegramChatId,
-                    $"⏰ Ещё не доиграли войну: {names}", ct);
-            }
+                parts.Add($"⏰ Ещё не доиграли войну: {string.Join(", ", unlinked.Select(u => u.Name))}");
+
+            // Up-sell: показываем только когда реально был лимит
+            if (!isPro && allLinked.Count > FreePersonalReminderLimit)
+                parts.Add(
+                    $"🔒 Персональные напоминания включены для {FreePersonalReminderLimit} из " +
+                    $"{allLinked.Count} привязанных игроков. Pro снимает лимит.");
+
+            if (parts.Count > 0)
+                await notifier.SendToChatAsync(clan.TelegramChatId, string.Join("\n\n", parts), ct);
         }
     }
 }

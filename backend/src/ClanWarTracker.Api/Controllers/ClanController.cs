@@ -1,8 +1,10 @@
+using ClanWarTracker.Application.DTOs;
 using ClanWarTracker.Application.UseCases;
 using ClanWarTracker.Domain.Entities;
 using ClanWarTracker.Domain.Enums;
 using ClanWarTracker.Domain.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using Telegram.Bot;
 using Telegram.Bot.Types.Enums;
 
@@ -14,11 +16,13 @@ public class ClanController(
     GetClanStatusUseCase getStatus,
     GetClanHistoryUseCase getHistory,
     GetSeasonStatsUseCase getSeason,
+    GetSeasonBreakdownUseCase getSeasonBreakdown,
     NudgePlayersUseCase nudge,
     IPlayerRepository players,
     IClanRepository clans,
     IClashRoyaleApi crApi,
     ITelegramBotClient bot,
+    IMemoryCache cache,
     IConfiguration config) : ControllerBase
 {
     /// <summary>GET /api/clans/my/status — статус войны клана текущего пользователя.</summary>
@@ -34,10 +38,17 @@ public class ClanController(
         // Подмешиваем контекст текущего пользователя
         var userId = (long)HttpContext.Items["TelegramUserId"]!;
         var isAdmin = await IsClanAdminAsync(clan.TelegramChatId, userId, ct);
+
+        // Роль в CR-клане (leader/coLeader → доступ к настройкам бота из Mini App)
+        var crRole = await crApi.GetPlayerClanRoleAsync(clan.ClanTag, player!.PlayerTag, ct);
+        var isClanLeader = crRole is "leader" or "coLeader";
+
         return Ok(new { status.ClanTag, status.ClanName, status.PeriodType, status.PeriodIndex,
                         status.DayEndsAtUtc, status.HoursLeft, status.Plan, status.Stats, status.Forecast,
-                        status.Players, myPlayerTag = player!.PlayerTag, isAdmin, isOwner = IsOwner(userId),
-                        reminderHoursBeforeEnd = clan.ReminderHoursBeforeEnd });
+                        status.Race, status.Players, status.Insights, status.WarLog,
+                        myPlayerTag = player.PlayerTag,
+                        isAdmin, isClanLeader,
+                        isOwner = IsOwner(userId), reminderHoursBeforeEnd = clan.ReminderHoursBeforeEnd });
     }
 
     public record ReminderSettingsRequest(int HoursBeforeEnd);
@@ -72,6 +83,32 @@ public class ClanController(
         return status is null ? NotFound(new { error = "war_not_found" }) : Ok(status);
     }
 
+    /// <summary>
+    /// GET /api/clans/{tag}/warlog — журнал прошлых войн любого клана из официального
+    /// riverracelog (tag без #). IsOurClan помечает запрошенный клан.
+    /// </summary>
+    [HttpGet("{tag}/warlog")]
+    public async Task<IActionResult> GetClanWarLog(string tag, CancellationToken ct)
+    {
+        var clanTag = "#" + tag.TrimStart('#').ToUpperInvariant();
+        var log = await crApi.GetRiverRaceLogAsync(clanTag, ct);
+
+        var weeks = log.Select(w => new WarLogWeekDto(
+            SeasonId: w.SeasonId,
+            SectionIndex: w.SectionIndex,
+            IsColosseum: w.IsColosseum,
+            Standings: w.Standings.Select(s => new WarLogClanDto(
+                Rank: s.Rank,
+                Name: s.ClanName,
+                Fame: s.Fame,
+                TrophyChange: s.TrophyChange,
+                IsOurClan: string.Equals(s.ClanTag, clanTag, StringComparison.OrdinalIgnoreCase)))
+                .ToList()))
+            .ToList();
+
+        return Ok(new { clanTag, weeks });
+    }
+
     /// <summary>GET /api/clans/my/history?weeks=8 — история войн по неделям (Pro).</summary>
     [HttpGet("my/history")]
     public async Task<IActionResult> GetMyClanHistory([FromQuery] int weeks, CancellationToken ct)
@@ -103,21 +140,42 @@ public class ClanController(
             : Ok(season);
     }
 
-    /// <summary>POST /api/clans/my/nudge — «пнуть» всех не сыгравших (только админ группы, Pro).</summary>
-    [HttpPost("my/nudge")]
-    public async Task<IActionResult> NudgeSlackers(CancellationToken ct)
+    /// <summary>
+    /// GET /api/clans/my/season-weeks — разбивка сезона по неделям (Война 1, Война 2 …)
+    /// + общий зачёт за сезон. Прошлые недели берутся из официального журнала (Pro).
+    /// </summary>
+    [HttpGet("my/season-weeks")]
+    public async Task<IActionResult> GetMyClanSeasonWeeks(CancellationToken ct)
     {
         var (_, clan, error) = await ResolvePlayerClanAsync(ct);
         if (error is not null) return error;
 
         if (clan!.EffectivePlan(DateTime.UtcNow) != PlanTier.Pro)
-            return StatusCode(403, new { error = "pro_required", message = "«Пнуть всех» доступно на Pro" });
+            return StatusCode(403, new { error = "pro_required", message = "Разбивка сезона доступна на Pro" });
+
+        var data = await getSeasonBreakdown.ExecuteAsync(clan.ClanTag, ct);
+        return data is null
+            ? NotFound(new { error = "no_season_data", message = "Данные сезона ещё не накопились" })
+            : Ok(data);
+    }
+
+    /// <summary>POST /api/clans/my/nudge — «пнуть» всех не сыгравших (Admin/Leader; Free: до 20 чел.).</summary>
+    [HttpPost("my/nudge")]
+    public async Task<IActionResult> NudgeSlackers(CancellationToken ct)
+    {
+        var (player, clan, error) = await ResolvePlayerClanAsync(ct);
+        if (error is not null) return error;
 
         var userId = (long)HttpContext.Items["TelegramUserId"]!;
-        if (!await IsClanAdminAsync(clan.TelegramChatId, userId, ct))
-            return StatusCode(403, new { error = "not_admin", message = "Пинать может только админ группы" });
+        var isAdmin = await IsClanAdminAsync(clan!.TelegramChatId, userId, ct);
+        var crRole = await crApi.GetPlayerClanRoleAsync(clan.ClanTag, player!.PlayerTag, ct);
+        var isClanLeader = crRole is "leader" or "coLeader";
 
-        var result = await nudge.ExecuteAsync(clan.Id, ct);
+        if (!isAdmin && !isClanLeader)
+            return StatusCode(403, new { error = "not_admin", message = "Пинать может только админ группы или лидер клана" });
+
+        var isPro = clan.EffectivePlan(DateTime.UtcNow) == PlanTier.Pro;
+        var result = await nudge.ExecuteAsync(clan.Id, isPro, ct);
         return result is null
             ? Conflict(new { error = "no_war_day", message = "Сейчас не день войны — пинать некого" })
             : Ok(result);
@@ -130,7 +188,7 @@ public class ClanController(
         if (player is null)
             return (null, null, NotFound(new { error = "player_not_linked", message = "Сначала привяжи тег: /link #ТЕГ" }));
 
-        var clan = (await clans.GetAllAsync(ct)).FirstOrDefault(c => c.Id == player.ClanId);
+        var clan = await clans.GetByIdAsync(player.ClanId, ct);
 
         // Авто-переключение: если игрок в CR сейчас в другом клане,
         // и этот клан зарегистрирован в сервисе — следуем за игроком.
@@ -164,14 +222,21 @@ public class ClanController(
     private async Task<bool> IsClanAdminAsync(long chatId, long userId, CancellationToken ct)
     {
         if (chatId == 0) return false;
-        try
+
+        // Кэш 5 минут: /my/status опрашивается каждым открытым Mini App раз в минуту,
+        // а GetChatMember — живой сетевой вызов к Telegram (сотни мс на каждый запрос)
+        return await cache.GetOrCreateAsync($"tgadmin:{chatId}:{userId}", async entry =>
         {
-            var member = await bot.GetChatMember(chatId, userId, ct);
-            return member.Status is ChatMemberStatus.Administrator or ChatMemberStatus.Creator;
-        }
-        catch
-        {
-            return false; // бот не в чате / чат удалён — не админ
-        }
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
+            try
+            {
+                var member = await bot.GetChatMember(chatId, userId, ct);
+                return member.Status is ChatMemberStatus.Administrator or ChatMemberStatus.Creator;
+            }
+            catch
+            {
+                return false; // бот не в чате / чат удалён — не админ
+            }
+        });
     }
 }
