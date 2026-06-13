@@ -7,17 +7,22 @@ const PLACE_ICONS = ['🥇', '🥈', '🥉', '4', '5']
 
 interface WeeksProps {
   weeks: WarLogWeek[]
-  /** Бейдж у выделенного клана в раскрытой таблице ("мы"); undefined — без бейджа. */
   meLabel?: string
 }
 
-/** Список недель журнала: место выделенного клана; по тапу — полная таблица. */
 export function WarLogWeeks({ weeks, meLabel }: WeeksProps) {
   const [openKey, setOpenKey] = useState<string | null>(null)
+  const [openClan, setOpenClan] = useState<string | null>(null)
 
-  const toggle = (key: string) => {
+  const toggleWeek = (key: string) => {
     haptic('light')
     setOpenKey(k => (k === key ? null : key))
+    setOpenClan(null)
+  }
+
+  const toggleClan = (clanKey: string) => {
+    haptic('light')
+    setOpenClan(k => (k === clanKey ? null : clanKey))
   }
 
   return (
@@ -33,7 +38,7 @@ export function WarLogWeeks({ weeks, meLabel }: WeeksProps) {
 
         return (
           <li key={key} className="warlog-week">
-            <button className="warlog-row" onClick={() => toggle(key)}>
+            <button className="warlog-row" onClick={() => toggleWeek(key)}>
               <span className="history-week-badge">
                 {w.isColosseum ? '🏛' : `W${w.sectionIndex + 1}`}
               </span>
@@ -54,19 +59,46 @@ export function WarLogWeeks({ weeks, meLabel }: WeeksProps) {
 
             {isOpen && (
               <ul className="warlog-standings fade-in">
-                {w.standings.map(s => (
-                  <li key={`${key}-${s.rank}`} className={`warlog-standing ${s.isOurClan ? 'race-ours' : ''}`}>
-                    <span className={`race-pos ${s.rank === 1 ? 'race-pos-gold' : ''}`}>{s.rank}</span>
-                    <span className="warlog-standing-name">
-                      {s.name}
-                      {s.isOurClan && meLabel && <span className="me-badge">{meLabel}</span>}
-                    </span>
-                    <span className="race-fame">{fmt(s.fame)}</span>
-                    <span className={`warlog-trophy ${s.trophyChange > 0 ? 'trophy-up' : s.trophyChange < 0 ? 'trophy-down' : 'muted'}`}>
-                      {s.trophyChange > 0 ? '+' : ''}{s.trophyChange}
-                    </span>
-                  </li>
-                ))}
+                {w.standings.map(s => {
+                  const clanKey = `${key}-${s.rank}`
+                  const hasPlayers = s.players && s.players.length > 0
+                  const isExpanded = openClan === clanKey
+                  return (
+                    <li key={clanKey} className={`warlog-standing ${s.isOurClan ? 'race-ours' : ''}`}>
+                      <button
+                        className={`warlog-clan-row ${hasPlayers ? '' : 'warlog-clan-row-plain'}`}
+                        onClick={() => hasPlayers && toggleClan(clanKey)}
+                        disabled={!hasPlayers}
+                      >
+                        <span className={`race-pos ${s.rank === 1 ? 'race-pos-gold' : ''}`}>{s.rank}</span>
+                        <span className="warlog-standing-name">
+                          {s.name}
+                          {s.isOurClan && meLabel && <span className="me-badge">{meLabel}</span>}
+                        </span>
+                        <span className="race-fame">{fmt(s.fame)}</span>
+                        <span className={`warlog-trophy ${s.trophyChange > 0 ? 'trophy-up' : s.trophyChange < 0 ? 'trophy-down' : 'muted'}`}>
+                          {s.trophyChange > 0 ? '+' : ''}{s.trophyChange}
+                        </span>
+                        {hasPlayers && (
+                          <span className={`warlog-chevron ${isExpanded ? 'warlog-chevron-open' : ''}`} style={{ fontSize: 12 }}>›</span>
+                        )}
+                      </button>
+
+                      {isExpanded && hasPlayers && (
+                        <ul className="warlog-players fade-in">
+                          {s.players!.map((p, i) => (
+                            <li key={p.name} className="warlog-player-row">
+                              <span className="warlog-player-rank">#{i + 1}</span>
+                              <span className="warlog-player-name">{p.name}</span>
+                              <span className="muted small">{p.decksUsed > 0 ? `${p.decksUsed}🃏` : ''}</span>
+                              <span className="race-fame">{fmt(p.fame)} 🏅</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </li>
+                  )
+                })}
               </ul>
             )}
           </li>
@@ -80,7 +112,6 @@ interface Props {
   log: WarLogWeek[]
 }
 
-/** Журнал прошлых войн нашего клана: карточка на вкладке «Война». */
 export function WarLogCard({ log }: Props) {
   if (!log || log.length === 0) return null
 

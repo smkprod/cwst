@@ -135,10 +135,7 @@ public class GetClanStatusUseCase(
             PlayersNotPlayed: playerDtos.Count(p => p.Status == "notPlayed"),
             AvgFamePerAttack: Math.Round(clanAvgFamePerAttack, 1));
 
-        // Прогноз — Pro-фича; кланам не из БД (просмотр по тегу) — Free
-        var clanForecast = plan == Domain.Enums.PlanTier.Pro
-            ? forecast.BuildClanForecast(war, playerDtos, hoursLeft)
-            : null;
+        var clanForecast = forecast.BuildClanForecast(war, playerDtos, hoursLeft);
 
         var race = await BuildRaceAsync(war, clanAvgFamePerAttack, ct);
 
@@ -161,7 +158,11 @@ public class GetClanStatusUseCase(
                     Name: s.ClanName,
                     Fame: s.Fame,
                     TrophyChange: s.TrophyChange,
-                    IsOurClan: string.Equals(s.ClanTag, war.ClanTag, StringComparison.OrdinalIgnoreCase)))
+                    IsOurClan: string.Equals(s.ClanTag, war.ClanTag, StringComparison.OrdinalIgnoreCase),
+                    Players: s.Participants
+                        .OrderByDescending(p => p.Fame)
+                        .Select(p => new WarLogPlayerDto(p.Name, p.Fame, p.DecksUsed))
+                        .ToList()))
                     .ToList()))
                 .ToList();
         }

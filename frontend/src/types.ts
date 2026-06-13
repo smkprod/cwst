@@ -96,6 +96,12 @@ export interface PlayerHistory {
   weeks: PlayerWeekHistory[]
 }
 
+export interface WarLogPlayer {
+  name: string
+  fame: number
+  decksUsed: number
+}
+
 /** Журнал прошлых войн (официальный riverracelog): места кланов и очки. */
 export interface WarLogClan {
   rank: number               // 1..5
@@ -103,6 +109,7 @@ export interface WarLogClan {
   fame: number               // медали клана за неделю
   trophyChange: number       // +/- КВ-трофеи по итогам
   isOurClan: boolean
+  players?: WarLogPlayer[]
 }
 
 export interface WarLogWeek {

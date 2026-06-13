@@ -27,7 +27,10 @@ public record WarLogClanDto(
     string Name,
     int Fame,                 // медали клана за неделю
     int TrophyChange,         // +/- КВ-трофеи по итогам
-    bool IsOurClan);
+    bool IsOurClan,
+    List<WarLogPlayerDto>? Players = null);
+
+public record WarLogPlayerDto(string Name, int Fame, int DecksUsed);
 
 /// <summary>Один фактор здоровья клана (0..100).</summary>
 public record HealthFactorDto(string Name, int Score);

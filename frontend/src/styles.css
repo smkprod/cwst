@@ -625,6 +625,35 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 }
 .warlog-standing .warlog-trophy { min-width: 38px; text-align: right; }
 
+.warlog-clan-row {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; background: none; border: none; color: inherit; font: inherit;
+  cursor: pointer; padding: 0; text-align: left;
+}
+.warlog-clan-row-plain { cursor: default; }
+.warlog-clan-row:not(.warlog-clan-row-plain):hover { opacity: 0.8; }
+
+.warlog-players {
+  list-style: none; margin: 4px 0 2px 20px; padding: 0; display: grid; gap: 2px;
+  border-left: 2px solid rgba(255,255,255,0.08);
+}
+.warlog-player-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 8px; font-size: 13px;
+}
+.warlog-player-rank { min-width: 28px; color: var(--muted); font-size: 12px; }
+.warlog-player-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* --- Поиск игрока --- */
+.search-row { display: flex; gap: 8px; }
+.search-input {
+  flex: 1; background: var(--bg); border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px; color: var(--text); font: inherit; font-size: 15px;
+  padding: 10px 12px; outline: none;
+}
+.search-input:focus { border-color: var(--accent); }
+.search-btn { padding: 10px 16px; white-space: nowrap; }
+
 /* --- Нижние вкладки --- */
 .tabbar {
   position: fixed; bottom: 0; left: 0; right: 0;
