@@ -16,6 +16,7 @@ import { ReminderCard } from './components/ReminderCard'
 import { AboutCard } from './components/AboutCard'
 import { OwnerPanel } from './components/OwnerPanel'
 import { LinkPrompt } from './components/LinkPrompt'
+import { PlayerSearchView } from './components/PlayerSearchView'
 
 type State =
   | { kind: 'loading' }
@@ -24,7 +25,7 @@ type State =
   | { kind: 'error'; message: string }
   | { kind: 'ready'; data: ClanStatus }
 
-type Tab = 'war' | 'rating' | 'me' | 'owner'
+type Tab = 'war' | 'rating' | 'me' | 'search' | 'owner'
 
 export default function App() {
   const [state, setState] = useState<State>({ kind: 'loading' })
@@ -96,6 +97,7 @@ export default function App() {
         { id: 'war', icon: '⚔️', label: 'Война' },
         { id: 'rating', icon: '🏆', label: 'Рейтинг' },
         { id: 'me', icon: '👤', label: 'Я' },
+        { id: 'search', icon: '🔍', label: 'Поиск' },
         ...(data.isOwner ? [{ id: 'owner' as Tab, icon: '⚙️', label: 'Панель' }] : []),
       ]
 
@@ -133,6 +135,11 @@ export default function App() {
                 <MyStatsView />
                 <div style={{ height: 12 }} />
                 <AboutCard plan={data.plan} />
+              </div>
+            )}
+            {tab === 'search' && (
+              <div className="fade-in">
+                <PlayerSearchView />
               </div>
             )}
             {tab === 'owner' && data.isOwner && (
