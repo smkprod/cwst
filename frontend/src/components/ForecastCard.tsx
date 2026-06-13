@@ -31,7 +31,7 @@ export function ForecastCard({ forecast, stats, periodType }: Props) {
           <span className="pro-chip">PRO</span>
         </div>
         <p className="muted small">
-          Сколько медалей клан наберёт к концу дня и недели, тренд и точность прогноза —
+          Сколько медалей клан наберёт за сегодня и за неделю, тренд и точность прогноза —
           доступно на тарифе Pro. 🔒
         </p>
       </section>
@@ -39,8 +39,11 @@ export function ForecastCard({ forecast, stats, periodType }: Props) {
   }
 
   const trend = TREND_META[forecast.trend]
-  const dayGain = forecast.projectedDayFame - stats.totalFame
-  const hasCI = forecast.projectedDayFameLow > 0 && forecast.projectedDayFameHigh > 0
+  // Прирост только за сегодня (не накопленная сумма)
+  const todayGain = Math.max(0, forecast.projectedDayFame - stats.totalFame)
+  const ciLow  = Math.max(0, forecast.projectedDayFameLow  - stats.totalFame)
+  const ciHigh = Math.max(0, forecast.projectedDayFameHigh - stats.totalFame)
+  const hasCI  = ciLow > 0 && ciHigh > 0 && ciHigh > ciLow
 
   return (
     <section className="card forecast-card">
@@ -50,21 +53,18 @@ export function ForecastCard({ forecast, stats, periodType }: Props) {
       </div>
 
       <div className="forecast-numbers">
-        {/* Primary: day fame */}
+        {/* Primary: today's gain */}
         <div className="forecast-block forecast-block-primary">
-          <span className="forecast-label-small">🏅 к концу дня</span>
-          <span className="forecast-value">{fmt(forecast.projectedDayFame)}</span>
-          {dayGain > 0 && (
-            <span className="forecast-delta">+{fmt(dayGain)} ожидаем</span>
-          )}
+          <span className="forecast-label-small">🏅 ожидаем за сегодня</span>
+          <span className="forecast-value">+{fmt(todayGain)}</span>
           {hasCI && (
             <span className="forecast-ci muted small">
-              {fmt(forecast.projectedDayFameLow)} – {fmt(forecast.projectedDayFameHigh)}
+              диапазон: +{fmt(ciLow)} – +{fmt(ciHigh)}
             </span>
           )}
         </div>
 
-        {/* Secondary: week fame */}
+        {/* Secondary: week total */}
         <div className="forecast-week-row">
           <span className="forecast-week-label muted small">🏆 к концу недели:</span>
           <span className="forecast-week-value">{fmt(forecast.projectedWeekFame)}</span>
