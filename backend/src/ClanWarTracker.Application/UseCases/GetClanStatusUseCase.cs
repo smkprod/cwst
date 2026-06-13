@@ -135,10 +135,7 @@ public class GetClanStatusUseCase(
             PlayersNotPlayed: playerDtos.Count(p => p.Status == "notPlayed"),
             AvgFamePerAttack: Math.Round(clanAvgFamePerAttack, 1));
 
-        // Прогноз — Pro-фича; кланам не из БД (просмотр по тегу) — Free
-        var clanForecast = plan == Domain.Enums.PlanTier.Pro
-            ? forecast.BuildClanForecast(war, playerDtos, hoursLeft)
-            : null;
+        var clanForecast = forecast.BuildClanForecast(war, playerDtos, hoursLeft);
 
         var race = await BuildRaceAsync(war, clanAvgFamePerAttack, ct);
 
@@ -161,7 +158,11 @@ public class GetClanStatusUseCase(
                     Name: s.ClanName,
                     Fame: s.Fame,
                     TrophyChange: s.TrophyChange,
-                    IsOurClan: string.Equals(s.ClanTag, war.ClanTag, StringComparison.OrdinalIgnoreCase)))
+                    IsOurClan: string.Equals(s.ClanTag, war.ClanTag, StringComparison.OrdinalIgnoreCase),
+                    Players: s.Participants
+                        .OrderByDescending(p => p.Fame)
+                        .Select(p => new WarLogPlayerDto(p.Name, p.Fame, p.DecksUsed))
+                        .ToList()))
                     .ToList()))
                 .ToList();
         }
@@ -219,10 +220,11 @@ public class GetClanStatusUseCase(
                 avg = 150;
             avg = Math.Clamp(avg, 100, 250);
 
-            // Активность: какую долю сегодняшних колод клан реально использует
+            // Активность (стиль RoyaleAPI): считаем, что почти все оставшиеся колоды
+            // будут сыграны. Высокий пол участия, чтобы прогноз не был занижен.
             var participation = maxDecksToday > 0
-                ? Math.Clamp((double)c.DecksUsedToday / maxDecksToday, 0.4, 1.0)
-                : 0.7;
+                ? Math.Clamp((double)c.DecksUsedToday / maxDecksToday, 0.9, 1.0)
+                : 0.9;
 
             var decksLeftToday = Math.Max(0, maxDecksToday - c.DecksUsedToday);
             var futureDecks = remainingWarDays * rosterSize * DecksPerDayPerPlayer;

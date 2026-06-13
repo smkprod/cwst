@@ -39,11 +39,11 @@ export function ForecastCard({ forecast, stats, periodType }: Props) {
   }
 
   const trend = TREND_META[forecast.trend]
-  // Прирост только за сегодня (не накопленная сумма)
-  const todayGain = Math.max(0, forecast.projectedDayFame - stats.totalFame)
-  const ciLow  = Math.max(0, forecast.projectedDayFameLow  - stats.totalFame)
-  const ciHigh = Math.max(0, forecast.projectedDayFameHigh - stats.totalFame)
-  const hasCI  = ciLow > 0 && ciHigh > 0 && ciHigh > ciLow
+  // Очки клана за СЕГОДНЯШНИЙ военный день к его концу (только этот день, не вся неделя)
+  const dayTotal = forecast.projectedDayFame
+  const ciLow  = forecast.projectedDayFameLow
+  const ciHigh = forecast.projectedDayFameHigh
+  const hasCI  = ciHigh > ciLow && ciLow > 0
 
   return (
     <section className="card forecast-card">
@@ -53,13 +53,13 @@ export function ForecastCard({ forecast, stats, periodType }: Props) {
       </div>
 
       <div className="forecast-numbers">
-        {/* Primary: today's gain */}
+        {/* Primary: projected points for the current war day only */}
         <div className="forecast-block forecast-block-primary">
-          <span className="forecast-label-small">🏅 ожидаем за сегодня</span>
-          <span className="forecast-value">+{fmt(todayGain)}</span>
+          <span className="forecast-label-small">🏅 очков за сегодняшний день</span>
+          <span className="forecast-value">{fmt(dayTotal)}</span>
           {hasCI && (
             <span className="forecast-ci muted small">
-              диапазон: +{fmt(ciLow)} – +{fmt(ciHigh)}
+              диапазон: {fmt(ciLow)} – {fmt(ciHigh)}
             </span>
           )}
         </div>
@@ -88,9 +88,9 @@ export function ForecastCard({ forecast, stats, periodType }: Props) {
       <details className="forecast-help">
         <summary>Как считается прогноз?</summary>
         <p className="muted small">
-          За сегодня: <strong>~{forecast.expectedRemainingAttacksToday}</strong> оставшихся атак клана ×
-          средние медали за атаку (по истории каждого игрока за прошлые войны и его сегодняшней игре).
-          Учитывается, успеют ли игроки доиграть до конца дня.
+          За сегодняшний день: набрано сегодня + <strong>~{forecast.expectedRemainingAttacksToday}</strong> оставшихся
+          атак клана × средние медали клана за атаку. Считаем очки только текущего военного дня,
+          а не сумму за всю неделю.
         </p>
         <p className="muted small">
           К концу недели: то же, но до конца всех 4 военных дней. «Диапазон» — это разброс ±1σ
