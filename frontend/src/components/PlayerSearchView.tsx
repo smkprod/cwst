@@ -92,8 +92,7 @@ export function PlayerSearchView() {
               {state.data.weeks.map(w => (
                 <li
                   key={`${w.seasonId}-${w.sectionIndex}`}
-                  className="warlog-standing"
-                  style={{ padding: '8px 0' }}
+                  className="search-week-row"
                 >
                   <span className="history-week-badge">
                     {w.isColosseum ? '🏛' : `W${w.sectionIndex + 1}`}

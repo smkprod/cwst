@@ -220,10 +220,11 @@ public class GetClanStatusUseCase(
                 avg = 150;
             avg = Math.Clamp(avg, 100, 250);
 
-            // Активность: какую долю сегодняшних колод клан реально использует
+            // Активность (стиль RoyaleAPI): считаем, что почти все оставшиеся колоды
+            // будут сыграны. Высокий пол участия, чтобы прогноз не был занижен.
             var participation = maxDecksToday > 0
-                ? Math.Clamp((double)c.DecksUsedToday / maxDecksToday, 0.4, 1.0)
-                : 0.7;
+                ? Math.Clamp((double)c.DecksUsedToday / maxDecksToday, 0.9, 1.0)
+                : 0.9;
 
             var decksLeftToday = Math.Max(0, maxDecksToday - c.DecksUsedToday);
             var futureDecks = remainingWarDays * rosterSize * DecksPerDayPerPlayer;
