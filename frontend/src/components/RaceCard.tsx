@@ -61,16 +61,22 @@ export function RaceCard({ race, periodType }: Props) {
                 </div>
 
                 <div className="race-numbers">
-                  <span className="race-fame">{fmt(c.fame)}</span>
-                  {isWarDay && c.periodPoints > 0 && (
-                    <span className="race-points" title="Медали за сегодня">
-                      +{fmt(c.periodPoints)}
-                    </span>
-                  )}
-                  {!c.isFinished && isWarDay && c.projectedFame > 0 && (
-                    <span className="race-projected" title="Прогноз к концу дня (avg × 200)">
-                      → {fmt(c.projectedFame)}
-                    </span>
+                  {isWarDay ? (
+                    <>
+                      <span className="race-fame race-fame-today" title="Медали за сегодня">
+                        {fmt(c.periodPoints)}
+                      </span>
+                      <span className="race-projected" title="Всего за неделю">
+                        ∑ {fmt(c.fame)}
+                      </span>
+                      {!c.isFinished && c.projectedFame > 0 && (
+                        <span className="race-projected" title="Прогноз к концу дня (avg × 200)">
+                          → {fmt(c.projectedFame)}
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <span className="race-fame">{fmt(c.fame)}</span>
                   )}
                 </div>
               </button>
