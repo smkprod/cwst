@@ -5,7 +5,7 @@ export function StatsStrip({ stats }: { stats: ClanStats }) {
   const chips = [
     { icon: '🏅', value: fmt(stats.totalFame), label: 'медали недели' },
     { icon: '🃏', value: `${stats.totalDecksUsedToday}/${stats.maxDecksToday}`, label: 'колод сегодня' },
-    { icon: '⚡', value: fmtShort(Math.round(stats.avgFamePerAttack)), label: 'медалей/бой' },
+    { icon: '⚡', value: stats.avgFamePerAttack.toFixed(1), label: 'медалей/бой' },
     { icon: '👥', value: String(stats.activePlayers), label: 'активных' },
   ]
 
