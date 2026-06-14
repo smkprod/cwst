@@ -37,7 +37,7 @@ export function RaceCard({ race, periodType }: Props) {
           const meta = [
             c.warTrophies > 0 ? `🏆 ${fmt(c.warTrophies)}` : null,
             isWarDay ? `🃏 ${c.decksUsedToday}/${c.maxDecksToday}` : null,
-            isWarDay ? `⚡ ${Math.round(c.avgFamePerAttack)}` : null,
+            isWarDay ? `⚡ ${c.avgFamePerAttack.toFixed(1)}` : null,
           ].filter(Boolean).join(' · ')
 
           return (
