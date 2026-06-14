@@ -67,11 +67,11 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
                     {
                         Tag = c!.Tag,
                         Name = c.Name,
-                        // TodayFame = clan.fame из JSON = медали за сегодняшний бой (не накопленные!)
-                        TodayFame = c.Fame,
-                        // Fame (накопленная за неделю) = сумма по участникам (всегда >= TodayFame)
-                        Fame = c.Participants?.Sum(p => p.Fame) ?? c.Fame,
-                        PeriodPoints = c.PeriodPoints,  // очки лодки (boat attack points)
+                        // ВАЖНО (CR API): periodPoints = медали за СЕГОДНЯ, clan.fame = очки лодки.
+                        TodayFame = c.PeriodPoints,     // медали за сегодняшний бой
+                        BoatPoints = c.Fame,            // очки лодки (boat) за сегодня
+                        // Fame (накопленная за неделю) = сумма по участникам
+                        Fame = c.Participants?.Sum(p => p.Fame) ?? c.PeriodPoints,
                         ParticipantCount = c.Participants?.Count ?? 0,
                         DecksUsedToday = c.Participants?.Sum(p => p.DecksUsedToday) ?? 0,
                         DecksUsed = c.Participants?.Sum(p => p.DecksUsed) ?? 0,

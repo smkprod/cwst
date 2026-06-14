@@ -226,14 +226,14 @@ public class GetClanStatusUseCase(
 
             return new
             {
-                c.Tag, c.Name, c.Fame, TodayFame = c.TodayFame, c.PeriodPoints, c.IsFinished,
+                c.Tag, c.Name, c.Fame, TodayFame = c.TodayFame, BoatPoints = c.BoatPoints, c.IsFinished,
                 c.DecksUsedToday, MaxDecksToday = maxDecksToday,
                 Avg = Math.Round(avg, 1), Projected = projected, IsOurs = isOurs,
             };
         })
         .OrderByDescending(r => r.IsFinished)
         .ThenByDescending(r => r.Fame)
-        .ThenByDescending(r => r.PeriodPoints)
+        .ThenByDescending(r => r.TodayFame)
         .ThenByDescending(r => r.DecksUsedToday)
         .Select((r, i) => new RaceClanDto(
             Tag: r.Tag,
@@ -241,7 +241,7 @@ public class GetClanStatusUseCase(
             Position: i + 1,
             Fame: r.Fame,
             TodayFame: r.TodayFame,
-            PeriodPoints: r.PeriodPoints,
+            BoatPoints: r.BoatPoints,
             ProjectedFame: r.Projected,
             AvgFamePerAttack: r.Avg,
             DecksUsedToday: r.DecksUsedToday,

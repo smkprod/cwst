@@ -33,12 +33,12 @@ export function RaceCard({ race, periodType }: Props) {
 
       <ul className="race-list">
         {race.map(c => {
-          // Мета-строка под прогресс-баром: трофеи · лодка · колоды · avg
+          // Мета-строка под прогресс-баром: трофеи · колоды · avg · лодка
           const meta = [
             c.warTrophies > 0 ? `🏆 ${fmt(c.warTrophies)}` : null,
-            isWarDay && c.periodPoints > 0 ? `⚙️ ${fmt(c.periodPoints)}` : null,
             isWarDay ? `🃏 ${c.decksUsedToday}/${c.maxDecksToday}` : null,
             isWarDay && c.decksUsedToday > 0 ? `⚡ ${c.avgFamePerAttack.toFixed(1)}` : null,
+            isWarDay && c.boatPoints > 0 ? `⛵ ${fmt(c.boatPoints)}` : null,
           ].filter(Boolean).join(' · ')
 
           return (

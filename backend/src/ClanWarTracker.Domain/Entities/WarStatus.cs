@@ -25,9 +25,9 @@ public class RaceClanStanding
 {
     public required string Tag { get; set; }
     public required string Name { get; set; }
-    public int Fame { get; set; }                        // слава клана за всю неделю (накопленная)
-    public int TodayFame { get; set; }                   // медали за бои ТОЛЬКО сегодня (clan.fame из JSON)
-    public int PeriodPoints { get; set; }                // очки лодки сегодня (boat attack points)
+    public int Fame { get; set; }                        // медали клана за всю неделю (накопленные, сумма участников)
+    public int TodayFame { get; set; }                   // медали за бои ТОЛЬКО сегодня (periodPoints из JSON)
+    public int BoatPoints { get; set; }                  // очки лодки сегодня (clan.fame из JSON)
     public int ParticipantCount { get; set; }
     public int DecksUsedToday { get; set; }              // сумма по участникам
     public int DecksUsed { get; set; }                   // сумма за неделю (включая тренировку)
