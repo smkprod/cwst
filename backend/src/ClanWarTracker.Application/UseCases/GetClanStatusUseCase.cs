@@ -191,8 +191,6 @@ public class GetClanStatusUseCase(
     private async Task<List<RaceClanDto>> BuildRaceAsync(
         Domain.Entities.WarStatus war, double ourAvgFamePerAttack, CancellationToken ct)
     {
-        var remainingWarDays = war.PeriodIndex < 3 ? 4 : Math.Clamp(6 - war.PeriodIndex, 0, 4);
-
         // КВ-трофеи каждого клана гонки (кэш 1 час в клиенте; ошибки не критичны)
         var trophies = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         foreach (var c in war.RaceClans)
@@ -207,30 +205,24 @@ public class GetClanStatusUseCase(
             var maxDecksToday = war.IsWarDay ? rosterSize * DecksPerDayPerPlayer : 0;
             var isOurs = string.Equals(c.Tag, war.ClanTag, StringComparison.OrdinalIgnoreCase);
 
-            // Средняя слава за колоду: для своего клана — точная (военные колоды),
-            // для соперников — оценка по неделе в игровых границах 100..250
+            // Средняя слава за СЕГОДНЯШНЮЮ атаку: periodPoints / decksUsedToday.
+            // Формула cwstats — не тянем вчерашние дни, не занижаем у нас и не завышаем у них.
             double avg;
-            if (isOurs)
-                avg = ourAvgFamePerAttack;
-            else if (war.IsWarDay && war.PeriodIndex == 3 && c.DecksUsedToday > 0)
-                avg = (double)c.Fame / c.DecksUsedToday; // первый военный день — точно
-            else if (c.DecksUsed > 0)
-                avg = (double)c.Fame / c.DecksUsed;      // включает тренировку — нижняя оценка
+            if (war.IsWarDay && c.DecksUsedToday > 0)
+                avg = (double)c.PeriodPoints / c.DecksUsedToday;
+            else if (isOurs && ourAvgFamePerAttack > 0)
+                avg = ourAvgFamePerAttack; // фолбэк для нас при 0 атак сегодня
             else
-                avg = 150;
+                avg = 150; // cold start для соперников
             avg = Math.Clamp(avg, 100, 250);
 
-            // Активность (стиль RoyaleAPI): считаем, что почти все оставшиеся колоды
-            // будут сыграны. Высокий пол участия, чтобы прогноз не был занижен.
-            var participation = maxDecksToday > 0
-                ? Math.Clamp((double)c.DecksUsedToday / maxDecksToday, 0.9, 1.0)
-                : 0.9;
-
-            var decksLeftToday = Math.Max(0, maxDecksToday - c.DecksUsedToday);
-            var futureDecks = remainingWarDays * rosterSize * DecksPerDayPerPlayer;
+            // Прогноз = avg × maxDecksToday (стиль cwstats: предполагаем полную отдачу).
+            // Только текущий военный день — не суммируем будущие дни.
             var projected = c.IsFinished
                 ? c.Fame
-                : c.Fame + (int)Math.Round((decksLeftToday + futureDecks) * participation * avg);
+                : war.IsWarDay
+                    ? (int)Math.Round(avg * maxDecksToday)
+                    : 0;
 
             return new
             {
@@ -239,8 +231,6 @@ public class GetClanStatusUseCase(
                 Avg = Math.Round(avg, 1), Projected = projected, IsOurs = isOurs,
             };
         })
-        // Места: финишировавшие выше всех, дальше по накопленной дистанции (fame = медали за неделю).
-        // Тай-брейк: медали текущего дня, затем колоды сегодня (как в cwstats/RoyaleAPI).
         .OrderByDescending(r => r.IsFinished)
         .ThenByDescending(r => r.Fame)
         .ThenByDescending(r => r.PeriodPoints)

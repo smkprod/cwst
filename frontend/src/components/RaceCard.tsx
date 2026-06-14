@@ -67,9 +67,9 @@ export function RaceCard({ race, periodType }: Props) {
                       +{fmt(c.periodPoints)}
                     </span>
                   )}
-                  {!c.isFinished && isWarDay && (
-                    <span className="race-projected" title="Прогноз к концу недели">
-                      🔮 {fmt(c.projectedFame)}
+                  {!c.isFinished && isWarDay && c.projectedFame > 0 && (
+                    <span className="race-projected" title="Прогноз к концу дня (avg × 200)">
+                      → {fmt(c.projectedFame)}
                     </span>
                   )}
                 </div>
