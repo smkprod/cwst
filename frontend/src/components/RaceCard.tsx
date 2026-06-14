@@ -33,12 +33,11 @@ export function RaceCard({ race, periodType }: Props) {
 
       <ul className="race-list">
         {race.map(c => {
-          // Мета-строка под прогресс-баром: трофеи · колоды · avg · лодка
+          // Мета-строка под прогресс-баром: трофеи · колоды · avg
           const meta = [
             c.warTrophies > 0 ? `🏆 ${fmt(c.warTrophies)}` : null,
             isWarDay ? `🃏 ${c.decksUsedToday}/${c.maxDecksToday}` : null,
             isWarDay && c.decksUsedToday > 0 ? `⚡ ${c.avgFamePerAttack.toFixed(1)}` : null,
-            isWarDay && c.boatPoints > 0 ? `⛵ ${fmt(c.boatPoints)}` : null,
           ].filter(Boolean).join(' · ')
 
           return (
@@ -65,13 +64,18 @@ export function RaceCard({ race, periodType }: Props) {
                   {isWarDay ? (
                     <>
                       <span className="race-fame race-fame-today" title="Медали за сегодня">
-                        {fmt(c.todayFame)}
+                        {fmt(c.todayFame)} 🏅
                       </span>
-                      <span className="race-projected" title="Всего за неделю">
+                      {c.boatPoints > 0 && (
+                        <span className="race-projected" title="Очки лодки за сегодня">
+                          ⛵ {fmt(c.boatPoints)}
+                        </span>
+                      )}
+                      <span className="race-projected" title="Всего медалей за неделю">
                         ∑ {fmt(c.fame)}
                       </span>
                       {!c.isFinished && c.projectedFame > 0 && (
-                        <span className="race-projected" title="Прогноз к концу дня (avg × 200)">
+                        <span className="race-projected" title="Прогноз медалей к концу дня (avg × 200)">
                           → {fmt(c.projectedFame)}
                         </span>
                       )}
