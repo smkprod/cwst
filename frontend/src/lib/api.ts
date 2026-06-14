@@ -1,5 +1,5 @@
 import { initData } from './telegram'
-import type { ClanHistory, ClanStatus, ClanWarLog, GlobalTop, MyStats, NudgeResult, OwnerClan, PlayerHistory, SeasonBreakdown, SeasonStats } from '../types'
+import type { ClanHistory, ClanStatus, ClanWarLog, GlobalTop, MyStats, NudgeResult, OwnerClan, PlayerHistory, PlayerProfile, SeasonBreakdown, SeasonStats } from '../types'
 
 // Если мы на Render (production), BASE должен быть пустой строкой '', чтобы запросы шли на тот же домен.
 // Для локальной разработки (Development) оставляем localhost:5000.
@@ -39,6 +39,8 @@ export const api = {
   getMyStats: () => request<MyStats>('/api/players/me/stats'),
   getPlayerHistory: (tag: string) =>
     request<PlayerHistory>(`/api/players/${encodeURIComponent(tag.replace('#', ''))}/history`),
+  getPlayerProfile: (tag: string) =>
+    request<PlayerProfile>(`/api/players/${encodeURIComponent(tag.replace('#', ''))}/profile`),
   getClanWarLog: (tag: string) =>
     request<ClanWarLog>(`/api/clans/${encodeURIComponent(tag.replace('#', ''))}/warlog`),
   nudgeSlackers: () => request<NudgeResult>('/api/clans/my/nudge', { method: 'POST' }),

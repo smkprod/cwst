@@ -264,11 +264,72 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         [property: JsonPropertyName("fame")] int Fame,
         [property: JsonPropertyName("participants")] List<RaceParticipant>? Participants);
 
+    public async Task<CrPlayerInfo?> GetPlayerInfoAsync(string playerTag, CancellationToken ct = default)
+    {
+        return await cache.GetOrCreateAsync($"playerinfo:{playerTag}", async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
+            var resp = await http.GetAsync($"players/{Encode(playerTag)}", ct);
+            if (resp.StatusCode == HttpStatusCode.NotFound) return null;
+            if (resp.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.Unauthorized)
+                throw new InvalidOperationException(
+                    "CR API отклонил ключ (403). Ключ привязан к IP — создай новый на developer.clashroyale.com.");
+            if (!resp.IsSuccessStatusCode) return null;
+            var data = await resp.Content.ReadFromJsonAsync<PlayerFullResponse>(cancellationToken: ct);
+            if (data is null) return null;
+            return new CrPlayerInfo
+            {
+                Tag = data.Tag,
+                Name = data.Name,
+                ExpLevel = data.ExpLevel,
+                Trophies = data.Trophies,
+                ClanWarTrophies = data.ClanWarTrophies,
+                ClanTag = data.Clan?.Tag,
+                ClanName = data.Clan?.Name,
+                ArenaName = data.Arena?.Name,
+                Cards = (data.Cards ?? [])
+                    .Where(c => c?.IconUrls?.Medium is not null)
+                    .Select(c => new CrCard
+                    {
+                        Name = c!.Name,
+                        Level = c.Level,
+                        MaxLevel = c.MaxLevel,
+                        IconUrl = c.IconUrls!.Medium!,
+                    })
+                    .OrderByDescending(c => c.Level)
+                    .ThenBy(c => c.Name)
+                    .ToList(),
+            };
+        });
+    }
+
+    private record PlayerFullResponse(
+        [property: JsonPropertyName("tag")] string Tag,
+        [property: JsonPropertyName("name")] string Name,
+        [property: JsonPropertyName("expLevel")] int ExpLevel,
+        [property: JsonPropertyName("trophies")] int Trophies,
+        [property: JsonPropertyName("clanWarTrophies")] int ClanWarTrophies,
+        [property: JsonPropertyName("arena")] ArenaRef? Arena,
+        [property: JsonPropertyName("clan")] ClanRef? Clan,
+        [property: JsonPropertyName("cards")] List<CardResponse>? Cards);
+
+    private record ArenaRef([property: JsonPropertyName("name")] string Name);
+
+    private record CardResponse(
+        [property: JsonPropertyName("name")] string Name,
+        [property: JsonPropertyName("level")] int Level,
+        [property: JsonPropertyName("maxLevel")] int MaxLevel,
+        [property: JsonPropertyName("iconUrls")] CardIconUrls? IconUrls);
+
+    private record CardIconUrls([property: JsonPropertyName("medium")] string? Medium);
+
     private record NamedEntity([property: JsonPropertyName("name")] string Name);
     private record ClanProfile([property: JsonPropertyName("clanWarTrophies")] int? ClanWarTrophies);
 
     private record PlayerWithClan([property: JsonPropertyName("clan")] ClanRef? Clan);
-    private record ClanRef([property: JsonPropertyName("tag")] string Tag);
+    private record ClanRef(
+        [property: JsonPropertyName("tag")] string Tag,
+        [property: JsonPropertyName("name")] string Name = "");
     private record ClanMembersResponse([property: JsonPropertyName("items")] List<ClanMember>? Items);
     private record ClanMember(
         [property: JsonPropertyName("tag")] string Tag,

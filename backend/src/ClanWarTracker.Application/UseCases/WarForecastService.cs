@@ -179,33 +179,37 @@ public class WarForecastService
         var maxDecksToday = rosterSize * DecksPerDayPerPlayer;
 
         var totalWarDecksUsed = players.Sum(p => p.WarDecksUsed);
+        // Исторический avg (по всем военным дням недели) — для прогноза будущих дней.
         var clanAvgFamePerAttack = ClampFamePerDeck(
             totalWarDecksUsed > 0 ? (double)totalFame / totalWarDecksUsed : BaselineFamePerDeck);
 
-        // Очки ТОЛЬКО текущего военного дня (двигают лодку). Накопленная за неделю
-        // слава тут не нужна — нужен итог именно сегодняшнего дня.
+        // Очки ТОЛЬКО текущего военного дня из RaceClans.PeriodPoints.
         var ourClan = war.RaceClans.FirstOrDefault(c =>
             string.Equals(c.Tag, war.ClanTag, StringComparison.OrdinalIgnoreCase));
         var todayPointsSoFar = ourClan?.PeriodPoints ?? 0;
 
-        // Прогноз в стиле RoyaleAPI: считаем, что оставшиеся колоды будут сыграны
-        // по средней силе клана. Активный клан доигрывает почти всё — занижаем
-        // участие только у самого дедлайна (мало часов до конца дня).
         var remainingDecksToday = war.IsWarDay
             ? Math.Max(0, maxDecksToday - totalDecksUsedToday)
             : 0;
-        var dayParticipation = Math.Clamp(hoursLeft / 3.0, 0.6, 1.0);
-        var expectedRemainingAttacks = (int)Math.Round(remainingDecksToday * dayParticipation);
 
-        // Итог СЕГОДНЯШНЕГО дня к его концу = набрано сегодня + оставшиеся колоды × avg
-        var projectedDayFame = todayPointsSoFar
-            + (int)Math.Round(remainingDecksToday * dayParticipation * clanAvgFamePerAttack);
+        // Сегодняшний avg = periodPoints / decksUsedToday (формула cwstats).
+        // Не мешаем вчерашние дни — берём чистый темп только за сегодняшний бой.
+        var todayAvg = war.IsWarDay && totalDecksUsedToday > 0
+            ? ClampFamePerDeck((double)todayPointsSoFar / totalDecksUsedToday)
+            : clanAvgFamePerAttack; // фолбэк: ещё не атаковали сегодня
 
-        // Прогноз накопленной славы к концу недели (все 4 военных дня).
+        // Прогноз дня = todayAvg × maxDecksToday (предполагаем 100% отдачу, как cwstats).
+        var projectedDayFame = war.IsWarDay
+            ? (int)Math.Round(todayAvg * maxDecksToday)
+            : todayPointsSoFar;
+
+        var expectedRemainingAttacks = remainingDecksToday; // 100% участие
+
+        // Прогноз недели =累 накопленная слава + ещё не набрано сегодня + будущие дни.
         var remainingWarDays = RemainingWarDays(war.PeriodIndex);
         var futureDecks = remainingWarDays * maxDecksToday;
         var projectedWeekFame = totalFame
-            + (int)Math.Round(remainingDecksToday * dayParticipation * clanAvgFamePerAttack)
+            + (int)Math.Round(todayAvg * remainingDecksToday)
             + (int)Math.Round(futureDecks * 0.9 * clanAvgFamePerAttack);
 
         // Trend: ожидаемый итог текущего дня vs средняя по завершённым дням
@@ -232,16 +236,15 @@ public class WarForecastService
 
         // Confidence: растёт с глубиной данных войны и активностью клана
         var dataDepth = Math.Clamp(warDaysPassed / (double)TotalWarDays, 0, 1);
-        var participation = rosterSize > 0
+        var attendanceRatio = rosterSize > 0
             ? Math.Min(1.0, activePlayers / (double)rosterSize)
             : 0;
-        var confidence = (int)Math.Round((0.4 + 0.4 * dataDepth + 0.2 * participation) * 100);
+        var confidence = (int)Math.Round((0.4 + 0.4 * dataDepth + 0.2 * attendanceRatio) * 100);
         confidence = Math.Clamp(confidence, 30, 95);
 
-        // Доверительный интервал (±1σ) для очков сегодняшнего дня:
-        // предполагаем нормальное распределение суммы N атак, каждая sd ≈ 55 медалей
+        // Доверительный интервал (±1σ): неопределённость по оставшимся атакам сегодня.
         var sdTotal = Math.Sqrt(expectedRemainingAttacks) * SdPerDeck;
-        var maxDayPoints = todayPointsSoFar + remainingDecksToday * (int)MaxFamePerDeck;
+        var maxDayPoints = (int)(maxDecksToday * MaxFamePerDeck);
         var low = Math.Clamp(projectedDayFame - (int)sdTotal, todayPointsSoFar, projectedDayFame);
         var high = Math.Clamp(projectedDayFame + (int)sdTotal, projectedDayFame, maxDayPoints);
 

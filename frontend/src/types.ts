@@ -253,6 +253,30 @@ export interface SeasonBreakdown {
   seasonTotal: SeasonPlayer[]
 }
 
+/* --- Профиль игрока (поиск по тегу) --- */
+export interface PlayerCard {
+  name: string
+  level: number
+  maxLevel: number
+  iconUrl: string
+}
+
+export interface PlayerProfile {
+  playerTag: string
+  name: string
+  expLevel: number
+  trophies: number
+  clanWarTrophies: number
+  clanName: string | null
+  clanTag: string | null
+  arenaName: string | null
+  cards: PlayerCard[]
+  weeksPlayed: number
+  totalFame: number
+  avgFamePerAttack: number
+  royaleApiUrl: string
+}
+
 /* --- Глобальный топ бота (все кланы, привязанные игроки) --- */
 export interface GlobalTopPlayer {
   playerTag: string

@@ -37,7 +37,7 @@ export function RaceCard({ race, periodType }: Props) {
           const meta = [
             c.warTrophies > 0 ? `🏆 ${fmt(c.warTrophies)}` : null,
             isWarDay ? `🃏 ${c.decksUsedToday}/${c.maxDecksToday}` : null,
-            isWarDay ? `⚡ ${Math.round(c.avgFamePerAttack)}` : null,
+            isWarDay ? `⚡ ${c.avgFamePerAttack.toFixed(1)}` : null,
           ].filter(Boolean).join(' · ')
 
           return (
@@ -67,9 +67,9 @@ export function RaceCard({ race, periodType }: Props) {
                       +{fmt(c.periodPoints)}
                     </span>
                   )}
-                  {!c.isFinished && isWarDay && (
-                    <span className="race-projected" title="Прогноз к концу недели">
-                      🔮 {fmt(c.projectedFame)}
+                  {!c.isFinished && isWarDay && c.projectedFame > 0 && (
+                    <span className="race-projected" title="Прогноз к концу дня (avg × 200)">
+                      → {fmt(c.projectedFame)}
                     </span>
                   )}
                 </div>
