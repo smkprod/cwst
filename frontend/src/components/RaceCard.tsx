@@ -33,11 +33,12 @@ export function RaceCard({ race, periodType }: Props) {
 
       <ul className="race-list">
         {race.map(c => {
-          // Мета-строка под прогресс-баром: трофеи · колоды · медали/бой
+          // Мета-строка под прогресс-баром: трофеи · лодка · колоды · avg
           const meta = [
             c.warTrophies > 0 ? `🏆 ${fmt(c.warTrophies)}` : null,
+            isWarDay && c.periodPoints > 0 ? `⚙️ ${fmt(c.periodPoints)}` : null,
             isWarDay ? `🃏 ${c.decksUsedToday}/${c.maxDecksToday}` : null,
-            isWarDay ? `⚡ ${c.avgFamePerAttack.toFixed(1)}` : null,
+            isWarDay && c.decksUsedToday > 0 ? `⚡ ${c.avgFamePerAttack.toFixed(1)}` : null,
           ].filter(Boolean).join(' · ')
 
           return (
@@ -64,7 +65,7 @@ export function RaceCard({ race, periodType }: Props) {
                   {isWarDay ? (
                     <>
                       <span className="race-fame race-fame-today" title="Медали за сегодня">
-                        {fmt(c.periodPoints)}
+                        {fmt(c.todayFame)}
                       </span>
                       <span className="race-projected" title="Всего за неделю">
                         ∑ {fmt(c.fame)}
