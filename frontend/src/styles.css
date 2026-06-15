@@ -694,12 +694,12 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 }
 .lang-btn {
   background: none; border: none; cursor: pointer;
-  font-size: 16px; padding: 2px 3px; border-radius: 6px;
-  opacity: 0.45; transition: opacity 0.15s;
-  line-height: 1;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.3px;
+  padding: 2px 5px; border-radius: 5px;
+  color: var(--muted); transition: color 0.15s;
 }
-.lang-btn:hover { opacity: 0.75; }
-.lang-btn-active { opacity: 1 !important; }
+.lang-btn:hover { color: var(--text); }
+.lang-btn-active { color: var(--text) !important; }
 
 /* --- Полный профиль игрока (поиск по тегу) --- */
 .profile-header {
