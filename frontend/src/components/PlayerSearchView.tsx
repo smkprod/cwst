@@ -3,6 +3,7 @@ import { api, ApiError } from '../lib/api'
 import type { PlayerProfile } from '../types'
 import { fmt } from '../lib/format'
 import { haptic } from '../lib/telegram'
+import { useT } from '../lib/i18n'
 
 type SearchState =
   | { kind: 'idle' }
@@ -13,6 +14,7 @@ type SearchState =
 export function PlayerSearchView() {
   const [tag, setTag] = useState('')
   const [state, setState] = useState<SearchState>({ kind: 'idle' })
+  const { t } = useT()
 
   const search = async () => {
     const trimmed = tag.trim().replace(/^#+/, '').toUpperCase()
@@ -25,7 +27,7 @@ export function PlayerSearchView() {
     } catch (e) {
       setState({
         kind: 'error',
-        message: e instanceof ApiError ? e.message : 'Игрок не найден',
+        message: e instanceof ApiError ? e.message : t.search.notFound,
       })
     }
   }
@@ -38,16 +40,14 @@ export function PlayerSearchView() {
     <div>
       <section className="card">
         <div className="card-title-row">
-          <div className="card-title">🔍 Поиск игрока</div>
+          <div className="card-title">{t.search.title}</div>
         </div>
-        <p className="muted small" style={{ margin: '0 0 12px' }}>
-          Введи тег игрока (например, #ABC123) — покажем полный профиль.
-        </p>
+        <p className="muted small" style={{ margin: '0 0 12px' }}>{t.search.hint}</p>
         <div className="search-row">
           <input
             className="search-input"
             type="text"
-            placeholder="#ABC123"
+            placeholder={t.search.placeholder}
             value={tag}
             onChange={e => setTag(e.target.value)}
             onKeyDown={onKey}
@@ -55,7 +55,7 @@ export function PlayerSearchView() {
             spellCheck={false}
           />
           <button className="btn search-btn" onClick={search} disabled={state.kind === 'loading'}>
-            {state.kind === 'loading' ? '…' : 'Найти'}
+            {state.kind === 'loading' ? t.search.finding : t.search.find}
           </button>
         </div>
       </section>
@@ -76,10 +76,10 @@ export function PlayerSearchView() {
 }
 
 function PlayerProfileCard({ profile }: { profile: PlayerProfile }) {
+  const { t } = useT()
   return (
     <>
       <section className="card" style={{ marginTop: 12 }}>
-        {/* Шапка */}
         <div className="profile-header">
           <div className="profile-avatar">👤</div>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -96,67 +96,59 @@ function PlayerProfileCard({ profile }: { profile: PlayerProfile }) {
             className="muted small"
             style={{ textDecoration: 'none', flexShrink: 0 }}
           >
-            RoyaleAPI ↗
+            {t.search.royaleApi}
           </a>
         </div>
 
-        {/* Основные статы */}
         <div className="profile-stats">
           <div className="profile-stat">
             <div className="profile-stat-value">👑 {profile.expLevel}</div>
-            <div className="profile-stat-label">Уровень</div>
+            <div className="profile-stat-label">{t.search.level}</div>
           </div>
           <div className="profile-stat">
             <div className="profile-stat-value">🏆 {fmt(profile.trophies)}</div>
-            <div className="profile-stat-label">Кубки</div>
+            <div className="profile-stat-label">{t.search.trophies}</div>
           </div>
           <div className="profile-stat">
             <div className="profile-stat-value">⚔️ {fmt(profile.clanWarTrophies)}</div>
-            <div className="profile-stat-label">КВ кубки</div>
+            <div className="profile-stat-label">{t.search.warTrophies}</div>
           </div>
           {profile.arenaName && (
             <div className="profile-stat" style={{ gridColumn: '1 / -1' }}>
               <div className="profile-stat-value" style={{ fontSize: 13 }}>{profile.arenaName}</div>
-              <div className="profile-stat-label">Арена</div>
+              <div className="profile-stat-label">{t.search.arena}</div>
             </div>
           )}
         </div>
 
-        {/* Статистика войн */}
         {profile.weeksPlayed > 0 && (
           <div className="profile-war-block">
-            <div className="cards-section-title">⚔️ Статистика войн (из журнала клана)</div>
+            <div className="cards-section-title">{t.search.warStats}</div>
             <div className="profile-stats" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
               <div className="profile-stat">
                 <div className="profile-stat-value">{profile.weeksPlayed}</div>
-                <div className="profile-stat-label">Недель</div>
+                <div className="profile-stat-label">{t.search.weeks}</div>
               </div>
               <div className="profile-stat">
                 <div className="profile-stat-value">{fmt(profile.totalFame)}</div>
-                <div className="profile-stat-label">Медали всего</div>
+                <div className="profile-stat-label">{t.search.totalMedals}</div>
               </div>
               <div className="profile-stat">
                 <div className="profile-stat-value">{profile.avgFamePerAttack > 0 ? profile.avgFamePerAttack.toFixed(0) : '—'}</div>
-                <div className="profile-stat-label">За атаку</div>
+                <div className="profile-stat-label">{t.search.perAttack}</div>
               </div>
             </div>
           </div>
         )}
       </section>
 
-      {/* Карты */}
       {profile.cards.length > 0 && (
         <section className="card" style={{ marginTop: 10 }}>
-          <div className="cards-section-title">🃏 Карты ({profile.cards.length})</div>
+          <div className="cards-section-title">{t.search.cards} ({profile.cards.length})</div>
           <div className="cards-grid">
             {profile.cards.map(card => (
               <div key={card.name} className="card-chip">
-                <img
-                  src={card.iconUrl}
-                  alt={card.name}
-                  loading="lazy"
-                  title={card.name}
-                />
+                <img src={card.iconUrl} alt={card.name} loading="lazy" title={card.name} />
                 <div className={`card-chip-level ${card.level >= card.maxLevel ? 'card-chip-maxed' : ''}`}>
                   {card.level}/{card.maxLevel}
                 </div>

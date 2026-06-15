@@ -3,6 +3,7 @@ import { api } from '../lib/api'
 import type { GlobalTop, Plan, PlayerStatus, SeasonBreakdown, SeasonPlayer } from '../types'
 import { fmt } from '../lib/format'
 import { haptic } from '../lib/telegram'
+import { useT } from '../lib/i18n'
 import { PlayerInfoModal } from './PlayerInfoModal'
 import { HistoryCard } from './HistoryCard'
 
@@ -32,8 +33,8 @@ export function Leaderboard({ players, myPlayerTag, plan }: Props) {
   const [breakdown, setBreakdown] = useState<BreakdownState>({ kind: 'idle' })
   const [global, setGlobal] = useState<GlobalState>({ kind: 'idle' })
   const [selected, setSelected] = useState<PlayerStatus | null>(null)
+  const { t } = useT()
 
-  // Разбивку сезона грузим сразу для всех — нужна для сезонного зачёта
   useEffect(() => {
     if (breakdown.kind !== 'idle') return
     setBreakdown({ kind: 'loading' })
@@ -42,7 +43,6 @@ export function Leaderboard({ players, myPlayerTag, plan }: Props) {
       .catch(() => setBreakdown({ kind: 'empty' }))
   }, [breakdown.kind])
 
-  // Глобальный топ — лениво при первом выборе
   useEffect(() => {
     if (sel !== 'global' || global.kind !== 'idle') return
     setGlobal({ kind: 'loading' })
@@ -67,16 +67,16 @@ export function Leaderboard({ players, myPlayerTag, plan }: Props) {
   return (
     <div>
       <div className="rating-head">
-        <h2 className="section-title" style={{ margin: 0 }}>🏆 Рейтинг</h2>
+        <h2 className="section-title" style={{ margin: 0 }}>{t.leaderboard.title}</h2>
         <select
           className="rating-select"
           value={sel}
           onChange={e => onPick(e.target.value)}
-          aria-label="Период рейтинга"
+          aria-label={t.leaderboard.period}
         >
-          <option value="current">📅 Текущая война</option>
-          <option value="season">🏆 Весь сезон</option>
-          <option value="global">🌍 Топ бота</option>
+          <option value="current">{t.leaderboard.current}</option>
+          <option value="season">{t.leaderboard.season}</option>
+          <option value="global">{t.leaderboard.global}</option>
         </select>
       </div>
 
@@ -104,24 +104,24 @@ export function Leaderboard({ players, myPlayerTag, plan }: Props) {
   )
 }
 
-/* --- Недельный зачёт (текущая неделя, live-данные) --- */
 function WeekBoard({ players, myPlayerTag, onOpen, plan }: {
   players: PlayerStatus[]; myPlayerTag?: string; onOpen: (tag: string) => void; plan: Plan
 }) {
+  const { t } = useT()
   const sorted = [...players].sort((a, b) => a.rank - b.rank)
   const podium = sorted.slice(0, 3)
   const rest = sorted.slice(3)
   const mvp = podium[0]
 
   if (sorted.length === 0) {
-    return <p className="center muted">Пока нет данных для рейтинга.</p>
+    return <p className="center muted">{t.leaderboard.noDataCurrent}</p>
   }
 
   return (
     <>
       {mvp && mvp.fame > 0 && (
         <div className="mvp-banner">
-          👑 MVP недели: <strong>{mvp.name}</strong> — {fmt(mvp.fame)} медалей
+          {t.leaderboard.mvpWeek} <strong>{mvp.name}</strong> — {fmt(mvp.fame)} {t.leaderboard.medals}
         </div>
       )}
 
@@ -154,14 +154,14 @@ function WeekBoard({ players, myPlayerTag, onOpen, plan }: {
               <span className="rating-rank">#{p.rank}</span>
               <span className="rating-name">
                 {p.name}
-                {p.playerTag === myPlayerTag && <span className="me-badge">ты</span>}
+                {p.playerTag === myPlayerTag && <span className="me-badge">{t.leaderboard.you}</span>}
                 {plan === 'pro' && p.consecutiveWars >= 3 && (
-                  <span className="streak-badge" title={`${p.consecutiveWars} недель подряд`}>
+                  <span className="streak-badge" title={`${p.consecutiveWars} ${t.leaderboard.streakTitle}`}>
                     🔥{p.consecutiveWars}
                   </span>
                 )}
               </span>
-              <span className="rating-avg muted">{p.avgFamePerAttack > 0 ? `${Math.round(p.avgFamePerAttack)}/атака` : ''}</span>
+              <span className="rating-avg muted">{p.avgFamePerAttack > 0 ? `${Math.round(p.avgFamePerAttack)}${t.leaderboard.perAttack}` : ''}</span>
               <span className="rating-fame">{fmt(p.fame)} 🏅</span>
             </button>
           </li>
@@ -171,19 +171,15 @@ function WeekBoard({ players, myPlayerTag, onOpen, plan }: {
   )
 }
 
-/* --- Глобальный топ бота: привязанные игроки из всех кланов --- */
 function GlobalBoard({ state }: { state: GlobalState }) {
+  const { t } = useT()
+
   if (state.kind === 'loading' || state.kind === 'idle') {
     return <div className="center"><div className="spinner" /></div>
   }
 
   if (state.kind === 'empty') {
-    return (
-      <p className="center muted">
-        Здесь соревнуются игроки из всех кланов бота, привязавшие аккаунт через /link.
-        Данные копятся с каждой неделей войны.
-      </p>
-    )
+    return <p className="center muted">{t.leaderboard.globalEmpty}</p>
   }
 
   const { data } = state
@@ -192,12 +188,12 @@ function GlobalBoard({ state }: { state: GlobalState }) {
   return (
     <>
       <p className="muted small season-meta">
-        Игроки всех кланов бота · окно: {data.weeksWindow} недель · участников: {data.playersTracked}
+        {t.leaderboard.globalMeta} {data.weeksWindow} {t.leaderboard.globalMetaWeeks} {data.playersTracked}
       </p>
 
       {mvp && mvp.totalFame > 0 && (
         <div className="mvp-banner">
-          👑 Чемпион бота: <strong>{mvp.name}</strong> — {fmt(mvp.totalFame)} медалей
+          {t.leaderboard.mvpBot} <strong>{mvp.name}</strong> — {fmt(mvp.totalFame)} {t.leaderboard.medals}
         </div>
       )}
 
@@ -208,11 +204,11 @@ function GlobalBoard({ state }: { state: GlobalState }) {
               <span className="rating-rank">{p.rank <= 3 ? MEDALS[p.rank - 1] : `#${p.rank}`}</span>
               <span className="rating-name">
                 {p.name}
-                {p.isMe && <span className="me-badge">ты</span>}
+                {p.isMe && <span className="me-badge">{t.leaderboard.you}</span>}
                 <span className="muted small" style={{ display: 'block' }}>{p.clanName}</span>
               </span>
               <span className="rating-avg muted">
-                {p.weeksParticipated} нед{p.avgFamePerAttack > 0 ? ` · ${Math.round(p.avgFamePerAttack)}/атака` : ''}
+                {p.weeksParticipated} {t.leaderboard.weeks}{p.avgFamePerAttack > 0 ? ` · ${Math.round(p.avgFamePerAttack)}${t.leaderboard.perAttack}` : ''}
               </span>
               <span className="rating-fame">{fmt(p.totalFame)} 🏅</span>
             </div>
@@ -223,19 +219,16 @@ function GlobalBoard({ state }: { state: GlobalState }) {
   )
 }
 
-/* --- Сезонный зачёт: сумма по всем неделям сезона (W1 → Колизей) --- */
 function SeasonBoard({ state, myPlayerTag, rosterTags, onOpen }: {
   state: BreakdownState; myPlayerTag?: string; rosterTags: Set<string>; onOpen: (tag: string) => void
 }) {
+  const { t } = useT()
+
   if (state.kind === 'loading' || state.kind === 'idle') {
     return <div className="center"><div className="spinner" /></div>
   }
   if (state.kind === 'empty') {
-    return (
-      <p className="center muted">
-        Данные сезона появятся после первого военного дня.
-      </p>
-    )
+    return <p className="center muted">{t.leaderboard.seasonEmpty}</p>
   }
 
   const { data } = state
@@ -245,12 +238,12 @@ function SeasonBoard({ state, myPlayerTag, rosterTags, onOpen }: {
   return (
     <>
       <p className="muted small season-meta">
-        Сезон #{data.seasonId} · недель в зачёте: {data.weeks.length} (W1 → текущая)
+        {t.leaderboard.seasonMeta}{data.seasonId} {t.leaderboard.seasonMetaWeeks} {data.weeks.length} {t.leaderboard.seasonMetaSuffix}
       </p>
 
       {mvp && mvp.totalFame > 0 && (
         <div className="mvp-banner">
-          👑 MVP сезона: <strong>{mvp.name}</strong> — {fmt(mvp.totalFame)} медалей
+          {t.leaderboard.mvpSeason} <strong>{mvp.name}</strong> — {fmt(mvp.totalFame)} {t.leaderboard.medals}
         </div>
       )}
 
@@ -267,10 +260,10 @@ function SeasonBoard({ state, myPlayerTag, rosterTags, onOpen }: {
                 <span className="rating-rank">{p.rank <= 3 ? MEDALS[p.rank - 1] : `#${p.rank}`}</span>
                 <span className="rating-name">
                   {p.name}
-                  {p.playerTag === myPlayerTag && <span className="me-badge">ты</span>}
+                  {p.playerTag === myPlayerTag && <span className="me-badge">{t.leaderboard.you}</span>}
                 </span>
                 <span className="rating-avg muted">
-                  {p.weeksParticipated} нед · луч. {fmt(p.bestWeekFame)}
+                  {p.weeksParticipated} {t.leaderboard.weeks} · {t.leaderboard.best} {fmt(p.bestWeekFame)}
                 </span>
                 <span className="rating-fame">{fmt(p.totalFame)} 🏅</span>
               </Tag>
@@ -281,4 +274,3 @@ function SeasonBoard({ state, myPlayerTag, rosterTags, onOpen }: {
     </>
   )
 }
-

@@ -688,6 +688,19 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
   .spinner { animation-duration: 1.5s; }
 }
 
+/* --- Language switcher --- */
+.lang-switcher {
+  display: flex; gap: 2px; align-items: center;
+}
+.lang-btn {
+  background: none; border: none; cursor: pointer;
+  font-size: 16px; padding: 2px 3px; border-radius: 6px;
+  opacity: 0.45; transition: opacity 0.15s;
+  line-height: 1;
+}
+.lang-btn:hover { opacity: 0.75; }
+.lang-btn-active { opacity: 1 !important; }
+
 /* --- Полный профиль игрока (поиск по тегу) --- */
 .profile-header {
   display: flex; align-items: flex-start; gap: 12px;

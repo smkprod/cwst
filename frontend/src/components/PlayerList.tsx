@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { PlayerStatus, PlayStatus } from '../types'
 import { fmt } from '../lib/format'
 import { haptic } from '../lib/telegram'
+import { useT, roleLabel } from '../lib/i18n'
 import { PlayerInfoModal } from './PlayerInfoModal'
 
 const STATUS_META: Record<PlayStatus, { icon: string; cls: string }> = {
@@ -10,7 +11,6 @@ const STATUS_META: Record<PlayStatus, { icon: string; cls: string }> = {
   notPlayed: { icon: '❌', cls: 'row-notplayed' },
 }
 
-/** Компактные значки ролей вместо текстовой плашки — чтобы не съедать место у ника. */
 const ROLE_ICON: Record<string, string> = {
   'Лидер': '👑',
   'Соруководитель': '⚜️',
@@ -24,9 +24,10 @@ interface Props {
 
 export function PlayerList({ players, myPlayerTag }: Props) {
   const [selected, setSelected] = useState<PlayerStatus | null>(null)
+  const { t } = useT()
 
   if (players.length === 0) {
-    return <p className="center muted">Нет участников войны — возможно, идёт тренировка.</p>
+    return <p className="center muted">{t.players.empty}</p>
   }
 
   const open = (p: PlayerStatus) => {
@@ -40,25 +41,26 @@ export function PlayerList({ players, myPlayerTag }: Props) {
         {players.map(p => {
           const meta = STATUS_META[p.status]
           const isMe = p.playerTag === myPlayerTag
+          const roleName = roleLabel(p.role, t)
           return (
             <li key={p.playerTag} className={`player-card ${meta.cls} ${isMe ? 'player-me' : ''}`}>
               <button className="player-row" onClick={() => open(p)}>
                 <span className="status-icon" aria-label={p.status}>{meta.icon}</span>
                 <div className="player-info">
                   <span className="player-name">
-                    {isMe && <span className="me-badge">ты</span>}
+                    {isMe && <span className="me-badge">{t.leaderboard.you}</span>}
                     {p.role && ROLE_ICON[p.role] && (
-                      <span className="role-icon" title={p.role}>{ROLE_ICON[p.role]}</span>
+                      <span className="role-icon" title={roleName}>{ROLE_ICON[p.role]}</span>
                     )}
                     {p.name}
-                    {!p.isLinked && <span className="unlinked" title="Не привязан к Telegram"> · нет TG</span>}
+                    {!p.isLinked && <span className="unlinked" title={t.players.noTg}> · {t.players.noTg}</span>}
                   </span>
                   <span className="player-fame">
                     #{p.rank} · {fmt(p.fame)} 🏅
                     {p.warDecksUsed > 0 && <span className="muted"> · {p.warDecksUsed} атак</span>}
                   </span>
                 </div>
-                <DeckDots used={p.decksUsedToday} />
+                <DeckDots used={p.decksUsedToday} label={t.players.decksDots} />
                 <span className="chevron">›</span>
               </button>
             </li>
@@ -77,10 +79,9 @@ export function PlayerList({ players, myPlayerTag }: Props) {
   )
 }
 
-/** 4 точки = 4 колоды дня. Заполненные — сыгранные. */
-function DeckDots({ used }: { used: number }) {
+function DeckDots({ used, label }: { used: number; label: string }) {
   return (
-    <div className="deck-dots" aria-label={`${used} из 4 колод`}>
+    <div className="deck-dots" aria-label={`${used} ${label}`}>
       {[0, 1, 2, 3].map(i => (
         <span key={i} className={`dot ${i < used ? 'dot-used' : ''}`} />
       ))}

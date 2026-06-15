@@ -2,17 +2,18 @@ import { useCallback, useEffect, useState } from 'react'
 import { api } from '../lib/api'
 import type { OwnerClan } from '../types'
 import { haptic, hapticNotify } from '../lib/telegram'
+import { useT } from '../lib/i18n'
 
 type State =
   | { kind: 'loading' }
   | { kind: 'error' }
   | { kind: 'ready'; clans: OwnerClan[] }
 
-/** Панель владельца сервиса: выдача тарифов кланам. Видна только аккаунту из Owner:TelegramUserId. */
 export function OwnerPanel() {
   const [state, setState] = useState<State>({ kind: 'loading' })
   const [busy, setBusy] = useState<number | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null)
+  const { t } = useT()
 
   const load = useCallback(() => {
     api.ownerGetClans()
@@ -36,7 +37,6 @@ export function OwnerPanel() {
     }
   }
 
-  // Удаление в два тапа: первый — «точно?», второй — удаляем
   const deleteClan = async (clanId: number) => {
     haptic('medium')
     if (confirmDelete !== clanId) {
@@ -57,13 +57,13 @@ export function OwnerPanel() {
   }
 
   if (state.kind === 'loading') return <div className="center"><div className="spinner" /></div>
-  if (state.kind === 'error') return <p className="center muted">Нет доступа или ошибка сети.</p>
+  if (state.kind === 'error') return <p className="center muted">{t.owner.error}</p>
 
   return (
     <div>
-      <h2 className="section-title">⚙️ Панель владельца</h2>
+      <h2 className="section-title">{t.owner.title}</h2>
       <p className="muted small owner-hint">
-        Кланов: {state.clans.length} · Pro: {state.clans.filter(c => c.plan === 'pro').length}
+        {t.owner.clans} {state.clans.length} · {t.owner.pro} {state.clans.filter(c => c.plan === 'pro').length}
       </p>
 
       <ul className="owner-list">
@@ -72,7 +72,7 @@ export function OwnerPanel() {
             <div className="owner-card-top">
               <div className="owner-card-info">
                 <span className="owner-clan-name">{c.name}</span>
-                <span className="muted small">{c.clanTag} · TG-привязок: {c.linkedPlayers}</span>
+                <span className="muted small">{c.clanTag} · {t.owner.linked} {c.linkedPlayers}</span>
               </div>
               <span className={`plan-badge ${c.plan === 'pro' ? 'plan-pro' : 'plan-free'}`}>
                 {c.plan === 'pro' ? 'PRO' : 'FREE'}
@@ -81,35 +81,33 @@ export function OwnerPanel() {
 
             {c.plan === 'pro' && c.planExpiresAtUtc && (
               <p className="muted small owner-expiry">
-                до {new Date(c.planExpiresAtUtc).toLocaleDateString('ru-RU')}
+                {t.owner.expiry} {new Date(c.planExpiresAtUtc).toLocaleDateString(t.dateLocale)}
               </p>
             )}
 
             <div className="owner-actions">
-              <button className="btn-mini" disabled={busy === c.id} onClick={() => setPlan(c.id, 'pro', 30)}>Pro 30д</button>
-              <button className="btn-mini" disabled={busy === c.id} onClick={() => setPlan(c.id, 'pro', 90)}>Pro 90д</button>
-              <button className="btn-mini" disabled={busy === c.id} onClick={() => setPlan(c.id, 'pro')}>Pro ∞</button>
-              <button className="btn-mini btn-mini-danger" disabled={busy === c.id} onClick={() => setPlan(c.id, 'free')}>Free</button>
+              <button className="btn-mini" disabled={busy === c.id} onClick={() => setPlan(c.id, 'pro', 30)}>{t.owner.pro30}</button>
+              <button className="btn-mini" disabled={busy === c.id} onClick={() => setPlan(c.id, 'pro', 90)}>{t.owner.pro90}</button>
+              <button className="btn-mini" disabled={busy === c.id} onClick={() => setPlan(c.id, 'pro')}>{t.owner.proInf}</button>
+              <button className="btn-mini btn-mini-danger" disabled={busy === c.id} onClick={() => setPlan(c.id, 'free')}>{t.owner.free}</button>
               <button
                 className="btn-mini btn-mini-danger owner-delete"
                 disabled={busy === c.id}
                 onClick={() => deleteClan(c.id)}
                 onBlur={() => setConfirmDelete(null)}
               >
-                {confirmDelete === c.id ? '❗ Точно удалить?' : '🗑 Удалить'}
+                {confirmDelete === c.id ? t.owner.confirmDelete : t.owner.delete}
               </button>
             </div>
             {confirmDelete === c.id && (
-              <p className="muted small owner-delete-hint">
-                Удалит клан, все TG-привязки игроков и историю войн. Нажми ещё раз для подтверждения.
-              </p>
+              <p className="muted small owner-delete-hint">{t.owner.deleteHint}</p>
             )}
           </li>
         ))}
       </ul>
 
       {state.clans.length === 0 && (
-        <p className="center muted">Пока ни одного клана — кланы появляются после /setup в группе.</p>
+        <p className="center muted">{t.owner.noClans}</p>
       )}
     </div>
   )

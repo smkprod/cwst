@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { ClanStatus, RaceClan } from '../types'
 import { fmt } from '../lib/format'
 import { haptic } from '../lib/telegram'
+import { useT } from '../lib/i18n'
 import { ClanWarLogModal } from './ClanWarLogModal'
 
 interface Props {
@@ -9,9 +10,9 @@ interface Props {
   periodType: ClanStatus['periodType']
 }
 
-/** Ситуация в гонке: все кланы недели, как standings на cwstats/RoyaleAPI. */
 export function RaceCard({ race, periodType }: Props) {
   const [selected, setSelected] = useState<RaceClan | null>(null)
+  const { t } = useT()
 
   if (!race || race.length === 0) return null
 
@@ -26,14 +27,13 @@ export function RaceCard({ race, periodType }: Props) {
   return (
     <section className="card race-card">
       <div className="card-title-row">
-        <div className="card-title">⛵ Гонка недели</div>
-        {periodType === 'training' && <span className="muted small">медали с четверга</span>}
-        {periodType === 'colosseum' && <span className="trend-chip trend-onpace">Колизей</span>}
+        <div className="card-title">{t.race.title}</div>
+        {periodType === 'training' && <span className="muted small">{t.race.trainingNote}</span>}
+        {periodType === 'colosseum' && <span className="trend-chip trend-onpace">{t.period.colosseum}</span>}
       </div>
 
       <ul className="race-list">
         {race.map(c => {
-          // Мета-строка под прогресс-баром: трофеи · колоды · avg
           const meta = [
             c.warTrophies > 0 ? `🏆 ${fmt(c.warTrophies)}` : null,
             isWarDay ? `🃏 ${c.decksUsedToday}/${c.maxDecksToday}` : null,
@@ -48,7 +48,7 @@ export function RaceCard({ race, periodType }: Props) {
                 <div className="race-info">
                   <span className="race-name">
                     {c.name}
-                    {c.isOurClan && <span className="me-badge">мы</span>}
+                    {c.isOurClan && <span className="me-badge">{t.race.ours}</span>}
                     {c.isFinished && ' 🏁'}
                   </span>
                   <div className="race-bar-track">
@@ -63,19 +63,19 @@ export function RaceCard({ race, periodType }: Props) {
                 <div className="race-numbers">
                   {isWarDay ? (
                     <>
-                      <span className="race-fame race-fame-today" title="Медали за сегодня">
+                      <span className="race-fame race-fame-today" title={t.race.todayTitle}>
                         {fmt(c.todayFame)} 🏅
                       </span>
                       {c.boatPoints > 0 && (
-                        <span className="race-projected" title="Очки лодки за сегодня">
+                        <span className="race-projected" title={t.race.boatTitle}>
                           ⛵ {fmt(c.boatPoints)}
                         </span>
                       )}
-                      <span className="race-projected" title="Всего медалей за неделю">
+                      <span className="race-projected" title={t.race.totalTitle}>
                         ∑ {fmt(c.fame)}
                       </span>
                       {!c.isFinished && c.projectedFame > 0 && (
-                        <span className="race-projected" title="Прогноз медалей к концу дня (avg × 200)">
+                        <span className="race-projected" title={t.race.projTitle}>
                           → {fmt(c.projectedFame)}
                         </span>
                       )}
