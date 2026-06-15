@@ -1,10 +1,11 @@
 import type { ClanForecast, ClanStats, ClanStatus } from '../types'
 import { fmt } from '../lib/format'
+import { useT } from '../lib/i18n'
 
-const TREND_META: Record<ClanForecast['trend'], { icon: string; label: string; cls: string }> = {
-  ahead: { icon: '📈', label: 'Идём выше темпа', cls: 'trend-ahead' },
-  onPace: { icon: '➡️', label: 'Идём в графике', cls: 'trend-onpace' },
-  behind: { icon: '📉', label: 'Отстаём от темпа', cls: 'trend-behind' },
+const TREND_ICON: Record<ClanForecast['trend'], { icon: string; cls: string }> = {
+  ahead: { icon: '📈', cls: 'trend-ahead' },
+  onPace: { icon: '➡️', cls: 'trend-onpace' },
+  behind: { icon: '📉', cls: 'trend-behind' },
 }
 
 interface Props {
@@ -13,12 +14,14 @@ interface Props {
   periodType: ClanStatus['periodType']
 }
 
-export function ForecastCard({ forecast, stats, periodType }: Props) {
+export function ForecastCard({ forecast, stats: _stats, periodType }: Props) {
+  const { t } = useT()
+
   if (periodType === 'training') {
     return (
       <section className="card forecast-card">
-        <div className="card-title">🔮 Прогноз</div>
-        <p className="muted small">Идут тренировочные дни — прогноз появится с началом войны.</p>
+        <div className="card-title">{t.forecast.titleSimple}</div>
+        <p className="muted small">{t.forecast.trainingNote}</p>
       </section>
     )
   }
@@ -27,55 +30,50 @@ export function ForecastCard({ forecast, stats, periodType }: Props) {
     return (
       <section className="card forecast-card forecast-locked">
         <div className="card-title-row">
-          <div className="card-title">🔮 Прогноз клана</div>
+          <div className="card-title">{t.forecast.title}</div>
           <span className="pro-chip">PRO</span>
         </div>
-        <p className="muted small">
-          Сколько медалей клан наберёт за сегодня и за неделю, тренд и точность прогноза —
-          доступно на тарифе Pro. 🔒
-        </p>
+        <p className="muted small">{t.forecast.lockedNote}</p>
       </section>
     )
   }
 
-  const trend = TREND_META[forecast.trend]
-  // Очки клана за СЕГОДНЯШНИЙ военный день к его концу (только этот день, не вся неделя)
+  const trendMeta = TREND_ICON[forecast.trend]
+  const trendLabel = t.forecast.trend[forecast.trend]
   const dayTotal = forecast.projectedDayFame
-  const ciLow  = forecast.projectedDayFameLow
+  const ciLow = forecast.projectedDayFameLow
   const ciHigh = forecast.projectedDayFameHigh
-  const hasCI  = ciHigh > ciLow && ciLow > 0
+  const hasCI = ciHigh > ciLow && ciLow > 0
 
   return (
     <section className="card forecast-card">
       <div className="card-title-row">
-        <div className="card-title">🔮 Прогноз клана</div>
-        <span className={`trend-chip ${trend.cls}`}>{trend.icon} {trend.label}</span>
+        <div className="card-title">{t.forecast.title}</div>
+        <span className={`trend-chip ${trendMeta.cls}`}>{trendMeta.icon} {trendLabel}</span>
       </div>
 
       <div className="forecast-numbers">
-        {/* Primary: projected points for the current war day only */}
         <div className="forecast-block forecast-block-primary">
-          <span className="forecast-label-small">🏅 очков за сегодняшний день</span>
+          <span className="forecast-label-small">{t.forecast.dayLabel}</span>
           <span className="forecast-value">{fmt(dayTotal)}</span>
           {hasCI && (
             <span className="forecast-ci muted small">
-              диапазон: {fmt(ciLow)} – {fmt(ciHigh)}
+              {t.forecast.range} {fmt(ciLow)} – {fmt(ciHigh)}
             </span>
           )}
         </div>
 
-        {/* Secondary: week total */}
         <div className="forecast-week-row">
-          <span className="forecast-week-label muted small">🏆 к концу недели:</span>
+          <span className="forecast-week-label muted small">{t.forecast.weekLabel}</span>
           <span className="forecast-week-value">{fmt(forecast.projectedWeekFame)}</span>
           <span className="forecast-week-attacks muted small">
-            атак осталось: ~{forecast.expectedRemainingAttacksToday}
+            {t.forecast.attacksLeft}{forecast.expectedRemainingAttacksToday}
           </span>
         </div>
       </div>
 
       <div className="confidence-row">
-        <span className="confidence-label">Точность прогноза</span>
+        <span className="confidence-label">{t.forecast.accuracy}</span>
         <div className="confidence-track">
           <div
             className={`confidence-fill ${forecast.confidence >= 70 ? 'conf-high' : forecast.confidence >= 50 ? 'conf-mid' : 'conf-low'}`}
@@ -86,17 +84,11 @@ export function ForecastCard({ forecast, stats, periodType }: Props) {
       </div>
 
       <details className="forecast-help">
-        <summary>Как считается прогноз?</summary>
+        <summary>{t.forecast.howTitle}</summary>
         <p className="muted small">
-          За сегодняшний день: набрано сегодня + <strong>~{forecast.expectedRemainingAttacksToday}</strong> оставшихся
-          атак клана × средние медали клана за атаку. Считаем очки только текущего военного дня,
-          а не сумму за всю неделю.
+          {t.forecast.howDay1}<strong>~{forecast.expectedRemainingAttacksToday}</strong>{t.forecast.howDay2}
         </p>
-        <p className="muted small">
-          К концу недели: то же, но до конца всех 4 военных дней. «Диапазон» — это разброс ±1σ
-          (как может лечь реальный результат). Чем больше сыграно дней и чем активнее клан —
-          тем выше точность.
-        </p>
+        <p className="muted small">{t.forecast.howWeek}</p>
       </details>
     </section>
   )

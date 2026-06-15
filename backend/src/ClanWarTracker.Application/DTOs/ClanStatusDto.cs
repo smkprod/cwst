@@ -49,10 +49,11 @@ public record RaceClanDto(
     string Tag,
     string Name,
     int Position,             // 1..5 (финишировавшие выше)
-    int Fame,                 // медали за неделю
-    int PeriodPoints,         // медали текущего дня
-    int ProjectedFame,        // прогноз медалей к концу недели
-    double AvgFamePerAttack,  // среднее медалей за военную атаку
+    int Fame,                 // медали за ВСЮ неделю (накопленные)
+    int TodayFame,            // медали за бои ТОЛЬКО сегодня (periodPoints из CR API)
+    int BoatPoints,           // очки лодки сегодня (clan.fame из CR API)
+    int ProjectedFame,        // прогноз медалей к концу текущего дня
+    double AvgFamePerAttack,  // среднее медалей за атаку (todayFame / decksUsedToday)
     int DecksUsedToday,
     int MaxDecksToday,
     int WarTrophies,          // КВ-трофеи клана (0 — не удалось получить)

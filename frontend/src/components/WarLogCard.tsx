@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { WarLogWeek } from '../types'
 import { fmt } from '../lib/format'
 import { haptic } from '../lib/telegram'
+import { useT, formatPlace } from '../lib/i18n'
 
 const PLACE_ICONS = ['🥇', '🥈', '🥉', '4', '5']
 
@@ -13,6 +14,7 @@ interface WeeksProps {
 export function WarLogWeeks({ weeks, meLabel }: WeeksProps) {
   const [openKey, setOpenKey] = useState<string | null>(null)
   const [openClan, setOpenClan] = useState<string | null>(null)
+  const { t } = useT()
 
   const toggleWeek = (key: string) => {
     haptic('light')
@@ -32,9 +34,9 @@ export function WarLogWeeks({ weeks, meLabel }: WeeksProps) {
         const ours = w.standings.find(s => s.isOurClan)
         const isOpen = openKey === key
         const placeText = !ours ? '—'
-          : ours.rank === 1 ? '🥇 победа'
-          : ours.rank <= 3 ? `${PLACE_ICONS[ours.rank - 1]} ${ours.rank}-е место`
-          : `${ours.rank}-е место`
+          : ours.rank === 1 ? t.warlog.victory
+          : ours.rank <= 3 ? `${PLACE_ICONS[ours.rank - 1]} ${formatPlace(ours.rank, t)}`
+          : formatPlace(ours.rank, t)
 
         return (
           <li key={key} className="warlog-week">
@@ -44,7 +46,7 @@ export function WarLogWeeks({ weeks, meLabel }: WeeksProps) {
               </span>
               <div className="warlog-info">
                 <span className="warlog-place">{placeText}</span>
-                <span className="muted small">сезон {w.seasonId}</span>
+                <span className="muted small">{t.warlog.season} {w.seasonId}</span>
               </div>
               <div className="warlog-numbers">
                 {ours && <span className="race-fame">{fmt(ours.fame)} 🏅</span>}
@@ -113,15 +115,16 @@ interface Props {
 }
 
 export function WarLogCard({ log }: Props) {
+  const { t } = useT()
   if (!log || log.length === 0) return null
 
   return (
     <section className="card warlog-card">
       <div className="card-title-row">
-        <div className="card-title">📜 Журнал войн</div>
-        <span className="muted small">тапни неделю — все кланы</span>
+        <div className="card-title">{t.warlog.title}</div>
+        <span className="muted small">{t.warlog.hint}</span>
       </div>
-      <WarLogWeeks weeks={log} meLabel="мы" />
+      <WarLogWeeks weeks={log} meLabel={t.warlog.ours} />
     </section>
   )
 }

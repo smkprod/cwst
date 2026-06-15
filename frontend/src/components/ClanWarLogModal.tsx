@@ -3,6 +3,7 @@ import type { RaceClan, WarLogWeek } from '../types'
 import { api } from '../lib/api'
 import { fmt } from '../lib/format'
 import { haptic } from '../lib/telegram'
+import { useT } from '../lib/i18n'
 import { WarLogWeeks } from './WarLogCard'
 
 interface Props {
@@ -10,12 +11,11 @@ interface Props {
   onClose: () => void
 }
 
-/** Инфо-окно клана из гонки: история его прошлых войн (официальный riverracelog). */
 export function ClanWarLogModal({ clan, onClose }: Props) {
   const [weeks, setWeeks] = useState<WarLogWeek[]>([])
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading')
+  const { t } = useT()
 
-  // Блокируем прокрутку фона, пока открыто окно
   useEffect(() => {
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
@@ -44,21 +44,21 @@ export function ClanWarLogModal({ clan, onClose }: Props) {
           <div className="modal-title-wrap">
             <h3 className="modal-name">
               {clan.name}
-              {clan.isOurClan && <span className="me-badge">мы</span>}
+              {clan.isOurClan && <span className="me-badge">{t.warlog.ours}</span>}
             </h3>
             <span className="muted small">
               {clan.tag}{clan.warTrophies > 0 && ` · 🏆 ${fmt(clan.warTrophies)}`}
             </span>
           </div>
-          <button className="modal-close" onClick={close} aria-label="Закрыть">✕</button>
+          <button className="modal-close" onClick={close} aria-label={t.warlog.close}>✕</button>
         </div>
 
-        <div className="card-title history-title">📜 Прошлые войны</div>
+        <div className="card-title history-title">{t.warlog.pastWars}</div>
 
-        {state === 'loading' && <p className="muted small">Загружаю журнал…</p>}
-        {state === 'error' && <p className="muted small">Журнал недоступен.</p>}
+        {state === 'loading' && <p className="muted small">{t.warlog.loading}</p>}
+        {state === 'error' && <p className="muted small">{t.warlog.error}</p>}
         {state === 'ready' && weeks.length === 0 && (
-          <p className="muted small">У клана пока нет завершённых войн в журнале.</p>
+          <p className="muted small">{t.warlog.empty}</p>
         )}
         {state === 'ready' && weeks.length > 0 && <WarLogWeeks weeks={weeks} />}
       </div>
