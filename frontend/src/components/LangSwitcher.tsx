@@ -1,6 +1,6 @@
 import { useT, type Lang } from '../lib/i18n'
 
-const FLAGS: Record<Lang, string> = { ru: '🇷🇺', uk: '🇺🇦', en: '🇬🇧' }
+const LABELS: Record<Lang, string> = { ru: 'RU', uk: 'UA', en: 'EN' }
 const LANGS: Lang[] = ['ru', 'uk', 'en']
 
 export function LangSwitcher() {
@@ -12,10 +12,9 @@ export function LangSwitcher() {
           key={l}
           className={`lang-btn ${lang === l ? 'lang-btn-active' : ''}`}
           onClick={() => setLang(l)}
-          aria-label={l.toUpperCase()}
           aria-pressed={lang === l}
         >
-          {FLAGS[l]}
+          {LABELS[l]}
         </button>
       ))}
     </div>
