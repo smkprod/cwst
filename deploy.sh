@@ -26,8 +26,11 @@ if [ "$(swapon --show --noheadings | wc -l)" -eq 0 ]; then
   grep -q '^vm.swappiness' /etc/sysctl.conf || echo 'vm.swappiness=10' >> /etc/sysctl.conf
 fi
 
-echo "==> git pull origin $BRANCH (для compose/Caddyfile)"
-git pull origin "$BRANCH"
+echo "==> git fetch + reset --hard origin/$BRANCH (для compose/Caddyfile)"
+# reset вместо pull: на сервере правок нет, а PR-ы мержатся squash'ем,
+# из-за чего история локального main расходится с GitHub и pull падает.
+git fetch origin "$BRANCH"
+git reset --hard "origin/$BRANCH"
 
 echo "==> docker compose pull (скачиваем свежие образы с ghcr.io)"
 docker compose -f docker-compose.prod.yml pull api worker

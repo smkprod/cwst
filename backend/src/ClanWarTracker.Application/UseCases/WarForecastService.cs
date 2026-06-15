@@ -183,10 +183,10 @@ public class WarForecastService
         var clanAvgFamePerAttack = ClampFamePerDeck(
             totalWarDecksUsed > 0 ? (double)totalFame / totalWarDecksUsed : BaselineFamePerDeck);
 
-        // Очки ТОЛЬКО текущего военного дня из RaceClans.PeriodPoints.
+        // Медали ТОЛЬКО сегодняшнего дня (TodayFame = clan.fame из CR JSON, не накопленные).
         var ourClan = war.RaceClans.FirstOrDefault(c =>
             string.Equals(c.Tag, war.ClanTag, StringComparison.OrdinalIgnoreCase));
-        var todayPointsSoFar = ourClan?.PeriodPoints ?? 0;
+        var todayPointsSoFar = ourClan?.TodayFame ?? 0;
 
         var remainingDecksToday = war.IsWarDay
             ? Math.Max(0, maxDecksToday - totalDecksUsedToday)

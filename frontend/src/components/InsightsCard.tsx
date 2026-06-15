@@ -1,23 +1,22 @@
 import type { ClanInsights, Plan } from '../types'
+import { useT } from '../lib/i18n'
 
 interface Props {
   insights: ClanInsights | null
   plan: Plan
 }
 
-/** Pro-аналитика: шанс победы в гонке + здоровье клана. На Free — тизер с замком. */
 export function InsightsCard({ insights, plan }: Props) {
+  const { t } = useT()
+
   if (plan !== 'pro') {
     return (
       <section className="card forecast-locked">
         <div className="card-title-row">
-          <div className="card-title">🧠 Аналитика клана</div>
+          <div className="card-title">{t.insights.title}</div>
           <span className="pro-chip">PRO</span>
         </div>
-        <p className="muted small">
-          Шанс победы в гонке в реальном времени, «здоровье» клана и DNA-профили игроков
-          (кто тащит, а кто балласт) — доступно на тарифе Pro. 🔒
-        </p>
+        <p className="muted small">{t.insights.lockedNote}</p>
       </section>
     )
   }
@@ -32,7 +31,7 @@ export function InsightsCard({ insights, plan }: Props) {
   return (
     <section className="card insights-card">
       <div className="card-title-row">
-        <div className="card-title">🧠 Аналитика клана</div>
+        <div className="card-title">{t.insights.title}</div>
         <span className="pro-chip">PRO</span>
       </div>
 
@@ -43,8 +42,8 @@ export function InsightsCard({ insights, plan }: Props) {
               {winChance}%
             </span>
             <div className="win-info">
-              <span className="win-caption">шанс победы в гонке</span>
-              {topRivalName && <span className="muted small">главный соперник: {topRivalName}</span>}
+              <span className="win-caption">{t.insights.winCaption}</span>
+              {topRivalName && <span className="muted small">{t.insights.topRival} {topRivalName}</span>}
             </div>
           </div>
           <div className="win-track">
@@ -55,7 +54,7 @@ export function InsightsCard({ insights, plan }: Props) {
           </div>
           {drop >= 5 && winChanceIfSlackersOut !== null && (
             <p className="win-warning">
-              ⚠️ Если не доигравшие так и не сыграют — шанс упадёт до <strong>{winChanceIfSlackersOut}%</strong>
+              ⚠️ {t.insights.slackersWarn1}<strong>{winChanceIfSlackersOut}%</strong>{t.insights.slackersWarn2}
             </p>
           )}
         </div>

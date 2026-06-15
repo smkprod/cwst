@@ -205,11 +205,12 @@ public class GetClanStatusUseCase(
             var maxDecksToday = war.IsWarDay ? rosterSize * DecksPerDayPerPlayer : 0;
             var isOurs = string.Equals(c.Tag, war.ClanTag, StringComparison.OrdinalIgnoreCase);
 
-            // Средняя слава за СЕГОДНЯШНЮЮ атаку: periodPoints / decksUsedToday.
-            // Формула cwstats — не тянем вчерашние дни, не занижаем у нас и не завышаем у них.
+            // Средняя слава за СЕГОДНЯШНЮЮ атаку: TodayFame / decksUsedToday.
+            // TodayFame = clan.fame из JSON CR API = медали только за сегодня (не накопленные!).
+            // Формула cwstats: не мешаем вчерашние дни.
             double avg;
             if (war.IsWarDay && c.DecksUsedToday > 0)
-                avg = (double)c.PeriodPoints / c.DecksUsedToday;
+                avg = (double)c.TodayFame / c.DecksUsedToday;
             else if (isOurs && ourAvgFamePerAttack > 0)
                 avg = ourAvgFamePerAttack; // фолбэк для нас при 0 атак сегодня
             else
@@ -217,30 +218,30 @@ public class GetClanStatusUseCase(
             avg = Math.Clamp(avg, 100, 250);
 
             // Прогноз = avg × maxDecksToday (стиль cwstats: предполагаем полную отдачу).
-            // Только текущий военный день — не суммируем будущие дни.
             var projected = c.IsFinished
-                ? c.Fame
+                ? c.TodayFame
                 : war.IsWarDay
                     ? (int)Math.Round(avg * maxDecksToday)
                     : 0;
 
             return new
             {
-                c.Tag, c.Name, c.Fame, c.PeriodPoints, c.IsFinished,
+                c.Tag, c.Name, c.Fame, TodayFame = c.TodayFame, BoatPoints = c.BoatPoints, c.IsFinished,
                 c.DecksUsedToday, MaxDecksToday = maxDecksToday,
                 Avg = Math.Round(avg, 1), Projected = projected, IsOurs = isOurs,
             };
         })
         .OrderByDescending(r => r.IsFinished)
         .ThenByDescending(r => r.Fame)
-        .ThenByDescending(r => r.PeriodPoints)
+        .ThenByDescending(r => r.TodayFame)
         .ThenByDescending(r => r.DecksUsedToday)
         .Select((r, i) => new RaceClanDto(
             Tag: r.Tag,
             Name: r.Name,
             Position: i + 1,
             Fame: r.Fame,
-            PeriodPoints: r.PeriodPoints,
+            TodayFame: r.TodayFame,
+            BoatPoints: r.BoatPoints,
             ProjectedFame: r.Projected,
             AvgFamePerAttack: r.Avg,
             DecksUsedToday: r.DecksUsedToday,

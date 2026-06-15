@@ -67,10 +67,11 @@ export interface RaceClan {
   tag: string
   name: string
   position: number           // 1..5
-  fame: number               // медали за неделю
-  periodPoints: number       // медали текущего дня
-  projectedFame: number      // прогноз медалей к концу недели
-  avgFamePerAttack: number
+  fame: number               // медали за ВСЮ неделю (накопленные)
+  todayFame: number          // медали за бои только сегодня (periodPoints из CR API)
+  boatPoints: number         // очки лодки сегодня (clan.fame из CR API)
+  projectedFame: number      // прогноз медалей к концу дня
+  avgFamePerAttack: number   // todayFame / decksUsedToday
   decksUsedToday: number
   maxDecksToday: number
   warTrophies: number        // КВ-трофеи клана (0 — не удалось получить)

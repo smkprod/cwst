@@ -1,12 +1,14 @@
 import type { ClanStats } from '../types'
-import { fmt, fmtShort } from '../lib/format'
+import { fmt } from '../lib/format'
+import { useT } from '../lib/i18n'
 
 export function StatsStrip({ stats }: { stats: ClanStats }) {
+  const { t } = useT()
   const chips = [
-    { icon: '🏅', value: fmt(stats.totalFame), label: 'медали недели' },
-    { icon: '🃏', value: `${stats.totalDecksUsedToday}/${stats.maxDecksToday}`, label: 'колод сегодня' },
-    { icon: '⚡', value: fmtShort(Math.round(stats.avgFamePerAttack)), label: 'медалей/бой' },
-    { icon: '👥', value: String(stats.activePlayers), label: 'активных' },
+    { icon: '🏅', value: fmt(stats.totalFame), label: t.stats.weekMedals },
+    { icon: '🃏', value: `${stats.totalDecksUsedToday}/${stats.maxDecksToday}`, label: t.stats.decksToday },
+    { icon: '⚡', value: stats.avgFamePerAttack.toFixed(1), label: t.stats.medalsPerBattle },
+    { icon: '👥', value: String(stats.activePlayers), label: t.stats.active },
   ]
 
   return (

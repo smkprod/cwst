@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { api, ApiError } from './lib/api'
 import { haptic } from './lib/telegram'
+import { useT } from './lib/i18n'
 import type { ClanStatus } from './types'
 import { WarHeader } from './components/WarHeader'
 import { ForecastCard } from './components/ForecastCard'
@@ -30,6 +31,7 @@ type Tab = 'war' | 'rating' | 'me' | 'search' | 'owner'
 export default function App() {
   const [state, setState] = useState<State>({ kind: 'loading' })
   const [tab, setTab] = useState<Tab>('war')
+  const { t } = useT()
 
   const load = useCallback(async () => {
     try {
@@ -41,30 +43,30 @@ export default function App() {
       } else if (e instanceof ApiError && (e.code === 'no_init_data' || e.code === 'bad_init_data')) {
         setState({ kind: 'notInTelegram' })
       } else if (e instanceof ApiError && e.status === 500) {
-        setState({ kind: 'error', message: 'Ошибка сервера — проверьте логи API или попробуйте позже' })
+        setState({ kind: 'error', message: t.serverError })
       } else {
-        setState({ kind: 'error', message: e instanceof Error && e.message ? e.message : 'Ошибка сети' })
+        setState({ kind: 'error', message: e instanceof Error && e.message ? e.message : t.networkError })
       }
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     load()
-    const id = setInterval(load, 60_000) // авто-обновление раз в минуту
+    const id = setInterval(load, 60_000)
     return () => clearInterval(id)
   }, [load])
 
-  const switchTab = (t: Tab) => {
+  const switchTab = (tab: Tab) => {
     haptic('light')
-    setTab(t)
+    setTab(tab)
   }
 
   switch (state.kind) {
     case 'loading':
       return (
         <div className="center">
-          <div className="spinner" aria-label="Загрузка" />
-          <p className="muted">Загружаю статус войны…</p>
+          <div className="spinner" aria-label={t.loading} />
+          <p className="muted">{t.loadingWar}</p>
         </div>
       )
     case 'notLinked':
@@ -73,10 +75,9 @@ export default function App() {
       return (
         <div className="center">
           <p style={{ fontSize: 40, margin: 0 }}>🔒</p>
-          <p><strong>Открой приложение через Telegram</strong></p>
+          <p><strong>{t.openViaTitle}</strong></p>
           <p className="muted small" style={{ maxWidth: 280, textAlign: 'center' }}>
-            Зайди в группу клана или в чат с ботом и открой Mini App кнопкой —
-            при открытии по обычной ссылке Telegram не передаёт данные для входа.
+            {t.openViaHint}
           </p>
         </div>
       )
@@ -84,7 +85,7 @@ export default function App() {
       return (
         <div className="center">
           <p className="muted">{state.message}</p>
-          <button className="btn" onClick={load}>Повторить</button>
+          <button className="btn" onClick={load}>{t.retry}</button>
         </div>
       )
     case 'ready': {
@@ -94,11 +95,11 @@ export default function App() {
       const notFinished = data.players.filter(p => p.status !== 'played').length
 
       const tabs: { id: Tab; icon: string; label: string }[] = [
-        { id: 'war', icon: '⚔️', label: 'Война' },
-        { id: 'rating', icon: '🏆', label: 'Рейтинг' },
-        { id: 'me', icon: '👤', label: 'Я' },
-        { id: 'search', icon: '🔍', label: 'Поиск' },
-        ...(data.isOwner ? [{ id: 'owner' as Tab, icon: '⚙️', label: 'Панель' }] : []),
+        { id: 'war', icon: '⚔️', label: t.tabs.war },
+        { id: 'rating', icon: '🏆', label: t.tabs.rating },
+        { id: 'me', icon: '👤', label: t.tabs.me },
+        { id: 'search', icon: '🔍', label: t.tabs.search },
+        ...(data.isOwner ? [{ id: 'owner' as Tab, icon: '⚙️', label: t.tabs.owner }] : []),
       ]
 
       return (

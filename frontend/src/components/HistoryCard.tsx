@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api, ApiError } from '../lib/api'
 import type { ClanHistory, Plan } from '../types'
 import { fmt, fmtShort } from '../lib/format'
+import { useT } from '../lib/i18n'
 
 type State =
   | { kind: 'loading' }
@@ -12,6 +13,7 @@ type State =
 
 export function HistoryCard({ plan }: { plan: Plan }) {
   const [state, setState] = useState<State>({ kind: 'loading' })
+  const { t } = useT()
 
   useEffect(() => {
     if (plan !== 'pro') {
@@ -30,10 +32,10 @@ export function HistoryCard({ plan }: { plan: Plan }) {
     return (
       <section className="card forecast-locked">
         <div className="card-title-row">
-          <div className="card-title">📈 История войн</div>
+          <div className="card-title">{t.history.title}</div>
           <span className="pro-chip">PRO</span>
         </div>
-        <p className="muted small">Динамика клана по неделям и дням войны — доступно на тарифе Pro. 🔒</p>
+        <p className="muted small">{t.history.lockedNote}</p>
       </section>
     )
   }
@@ -41,10 +43,8 @@ export function HistoryCard({ plan }: { plan: Plan }) {
   if (state.kind === 'empty') {
     return (
       <section className="card">
-        <div className="card-title">📈 История войн</div>
-        <p className="muted small">
-          История копится автоматически с каждым днём войны — загляни сюда после первого военного дня.
-        </p>
+        <div className="card-title">{t.history.title}</div>
+        <p className="muted small">{t.history.emptyNote}</p>
       </section>
     )
   }
@@ -54,7 +54,7 @@ export function HistoryCard({ plan }: { plan: Plan }) {
 
   return (
     <section className="card">
-      <div className="card-title" style={{ marginBottom: 10 }}>📈 История войн</div>
+      <div className="card-title" style={{ marginBottom: 10 }}>{t.history.title}</div>
 
       <div className="history-weeks">
         {[...weeks].reverse().map(w => (
@@ -63,7 +63,7 @@ export function HistoryCard({ plan }: { plan: Plan }) {
               <div
                 className={`history-bar ${w.isColosseum ? 'history-bar-colosseum' : ''}`}
                 style={{ height: `${Math.max(8, Math.round((w.finalFame / maxWeekFame) * 100))}%` }}
-                title={`${fmt(w.finalFame)} медалей`}
+                title={`${fmt(w.finalFame)} ${t.leaderboard.medals}`}
               />
             </div>
             <span className="history-fame">{fmtShort(w.finalFame)}</span>
@@ -72,27 +72,26 @@ export function HistoryCard({ plan }: { plan: Plan }) {
         ))}
       </div>
 
-      {/* Детали последней недели */}
       {weeks[0] && (
         <div className="history-latest">
           <div className="history-latest-title">
-            Текущая неделя {weeks[0].isColosseum && '· Колизей'}
+            {t.history.currentWeek} {weeks[0].isColosseum && t.history.colosseum}
           </div>
           <div className="history-days">
             {weeks[0].days.map(d => (
               <div key={d.periodIndex} className="history-day">
-                <span className="history-day-num">День {d.dayNumber}</span>
+                <span className="history-day-num">{t.history.day} {d.dayNumber}</span>
                 <span className="history-day-fame">+{fmt(d.dayFame)}</span>
               </div>
             ))}
           </div>
           {weeks[0].topPlayers.length > 0 && (
             <p className="muted small history-top">
-              👑 Лидеры: {weeks[0].topPlayers.map(p => p.name).join(', ')}
+              {t.history.leaders} {weeks[0].topPlayers.map(p => p.name).join(', ')}
             </p>
           )}
           {weeks[0].myFame !== null && (
-            <p className="muted small">Твой вклад на этой неделе: <strong>{fmt(weeks[0].myFame)}</strong> 🏅</p>
+            <p className="muted small">{t.history.myContrib} <strong>{fmt(weeks[0].myFame)}</strong> 🏅</p>
           )}
         </div>
       )}
