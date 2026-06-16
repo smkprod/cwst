@@ -268,6 +268,9 @@ const ru = {
     medalsTotal: 'медалей',
     perAttack: 'за атаку',
     openTg: 'Написать ↗',
+    viewProfile: 'Профиль',
+    back: 'Назад',
+    boardHintUpdated: 'Игроки, ищущие клан. Тап на карточку — открыть профиль.',
     ago: 'подал заявку',
   },
 
@@ -562,6 +565,9 @@ const uk: Translations = {
     medalsTotal: 'медалей',
     perAttack: 'за атаку',
     openTg: 'Написати ↗',
+    viewProfile: 'Профіль',
+    back: 'Назад',
+    boardHintUpdated: 'Гравці, що шукають клан. Тап на картку — відкрити профіль.',
     ago: 'подав заявку',
   },
 
@@ -854,6 +860,9 @@ const en: Translations = {
     medalsTotal: 'medals',
     perAttack: 'per attack',
     openTg: 'Message ↗',
+    viewProfile: 'Profile',
+    back: 'Back',
+    boardHintUpdated: 'Players looking for a clan. Tap a card to open their profile.',
     ago: 'applied',
   },
 

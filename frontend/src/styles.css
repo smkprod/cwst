@@ -429,6 +429,10 @@ main.with-tabbar { padding-bottom: 80px; }
 }
 .btn-mini:disabled { opacity: 0.5; }
 .btn-mini-danger { background: rgba(229, 57, 53, 0.16); color: #ff7a76; }
+.btn-back {
+  background: none; border: none; cursor: pointer; padding: 10px 0 6px;
+  color: var(--accent); font-size: 14px; font-weight: 600;
+}
 
 .owner-delete { margin-left: auto; }
 .owner-delete-hint { margin: 8px 2px 0; }
