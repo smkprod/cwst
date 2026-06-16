@@ -12,7 +12,7 @@ const ru = {
   retry: 'Повторить',
   dateLocale: 'ru-RU',
 
-  tabs: { war: 'Война', rating: 'Рейтинг', me: 'Я', search: 'Поиск', owner: 'Панель' },
+  tabs: { war: 'Война', rating: 'Рейтинг', me: 'Я', search: 'Поиск', owner: 'Панель', recruit: 'Биржа' },
 
   period: { training: 'Тренировочные дни', warDay: 'День войны', colosseum: 'Колизей' },
   header: { dayOf4: '· день', untilEnd: 'До конца дня:', h: 'ч', played: 'сыграли' },
@@ -242,6 +242,29 @@ const ru = {
     hint: 'Свой тег найдёшь в Clash Royale: профиль → значок под именем.',
   },
 
+  recruit: {
+    tabLabel: 'Биржа',
+    myTitle: '🔍 Ищу клан',
+    myHint: 'Твоя анкета будет видна лидерам кланов с тарифом Pro.',
+    noteLabel: 'О себе (необязательно)',
+    notePlaceholder: 'Активность, опыт, пожелания…',
+    activate: 'Разместить анкету',
+    deactivate: 'Снять анкету',
+    activeStatus: '✅ Анкета активна — лидеры кланов тебя видят',
+    inactiveStatus: 'Анкета не активна',
+    saving: '…',
+    boardTitle: '👥 Биржа игроков',
+    boardHint: 'Игроки, ищущие клан. Тап на карточку — открыть в Telegram.',
+    empty: 'Пока никто не ищет клан 🤷',
+    loading: 'Загружаю кандидатов…',
+    error: 'Не удалось загрузить список',
+    weeks: 'нед',
+    medalsTotal: 'медалей',
+    perAttack: 'за атаку',
+    openTg: 'Написать ↗',
+    ago: 'подал заявку',
+  },
+
   owner: {
     title: '⚙️ Панель владельца',
     clans: 'Кланов:',
@@ -272,7 +295,7 @@ const uk: Translations = {
   retry: 'Повторити',
   dateLocale: 'uk-UA',
 
-  tabs: { war: 'Війна', rating: 'Рейтинг', me: 'Я', search: 'Пошук', owner: 'Панель' },
+  tabs: { war: 'Війна', rating: 'Рейтинг', me: 'Я', search: 'Пошук', owner: 'Панель', recruit: 'Біржа' },
 
   period: { training: 'Тренувальні дні', warDay: 'День війни', colosseum: 'Колізей' },
   header: { dayOf4: '· день', untilEnd: 'До кінця дня:', h: 'год', played: 'зіграли' },
@@ -502,6 +525,29 @@ const uk: Translations = {
     hint: 'Свій тег знайдеш у Clash Royale: профіль → значок під іменем.',
   },
 
+  recruit: {
+    tabLabel: 'Біржа',
+    myTitle: '🔍 Шукаю клан',
+    myHint: 'Твоя анкета буде видна лідерам кланів з тарифом Pro.',
+    noteLabel: 'Про себе (необов'язково)',
+    notePlaceholder: 'Активність, досвід, побажання…',
+    activate: 'Розмістити анкету',
+    deactivate: 'Зняти анкету',
+    activeStatus: '✅ Анкета активна — лідери кланів тебе бачать',
+    inactiveStatus: 'Анкета не активна',
+    saving: '…',
+    boardTitle: '👥 Біржа гравців',
+    boardHint: 'Гравці, що шукають клан. Тап на картку — відкрити в Telegram.',
+    empty: 'Поки ніхто не шукає клан 🤷',
+    loading: 'Завантажую кандидатів…',
+    error: 'Не вдалося завантажити список',
+    weeks: 'тиж',
+    medalsTotal: 'медалей',
+    perAttack: 'за атаку',
+    openTg: 'Написати ↗',
+    ago: 'подав заявку',
+  },
+
   owner: {
     title: '⚙️ Панель власника',
     clans: 'Кланів:',
@@ -530,7 +576,7 @@ const en: Translations = {
   retry: 'Retry',
   dateLocale: 'en-US',
 
-  tabs: { war: 'War', rating: 'Rating', me: 'Me', search: 'Search', owner: 'Panel' },
+  tabs: { war: 'War', rating: 'Rating', me: 'Me', search: 'Search', owner: 'Panel', recruit: 'Market' },
 
   period: { training: 'Training Days', warDay: 'War Day', colosseum: 'Coliseum' },
   header: { dayOf4: '· day', untilEnd: 'Until end of day:', h: 'h', played: 'played' },

@@ -56,6 +56,7 @@ public static class DependencyInjection
         services.AddScoped<IClanRepository, ClanRepository>();
         services.AddScoped<IPlayerRepository, PlayerRepository>();
         services.AddScoped<IWarSnapshotRepository, WarSnapshotRepository>();
+        services.AddScoped<IRecruitmentRepository, RecruitmentRepository>();
 
         return services;
     }
@@ -104,6 +105,24 @@ public static class DependencyInjection
     {
         await db.Database.ExecuteSqlRawAsync(
             "ALTER TABLE \"Clans\" ADD COLUMN IF NOT EXISTS \"PlanReminderStageSent\" integer NOT NULL DEFAULT 0;");
+
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""RecruitmentProfiles"" (
+    ""Id"" serial PRIMARY KEY,
+    ""PlayerTag"" varchar(16) NOT NULL,
+    ""TelegramUserId"" bigint NOT NULL,
+    ""Name"" varchar(64) NOT NULL,
+    ""Note"" varchar(500),
+    ""IsActive"" boolean NOT NULL DEFAULT true,
+    ""CreatedAtUtc"" timestamptz NOT NULL,
+    ""UpdatedAtUtc"" timestamptz NOT NULL
+);");
+
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_RecruitmentProfiles_PlayerTag\" ON \"RecruitmentProfiles\" (\"PlayerTag\");");
+
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_RecruitmentProfiles_TelegramUserId\" ON \"RecruitmentProfiles\" (\"TelegramUserId\");");
     }
 
     /// <summary>Убирает все пробельные символы (включая \r\n) из токена. null, если пусто.</summary>
