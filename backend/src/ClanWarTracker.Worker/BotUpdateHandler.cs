@@ -1,6 +1,7 @@
 using System.Text;
 using ClanWarTracker.Application.DTOs;
 using ClanWarTracker.Application.UseCases;
+using ClanWarTracker.Domain.Entities;
 using ClanWarTracker.Domain.Interfaces;
 using Telegram.Bot;
 using Telegram.Bot.Polling;
@@ -208,6 +209,34 @@ public class BotUpdateHandler(
                 "Ты сейчас не в клане — война недоступна.\n" +
                 "Открой Mini App через кнопку меню бота 🎮", ct);
             return;
+        }
+
+        // Auto-register clan in DB if not yet there, then link the player to it.
+        // This lets the Mini App show war stats without the leader running /setup.
+        var clanRepo = sp.GetRequiredService<IClanRepository>();
+        var existingClan = await clanRepo.GetByTagAsync(clanTag, ct);
+        if (existingClan is null)
+        {
+            string? autoName = null;
+            try { autoName = await crApi.GetClanNameAsync(clanTag, ct); }
+            catch { /* not critical */ }
+
+            if (autoName is not null)
+            {
+                existingClan = new Clan { ClanTag = clanTag, Name = autoName, TelegramChatId = 0 };
+                await clanRepo.AddAsync(existingClan, ct);
+                await clanRepo.SaveChangesAsync(ct);
+            }
+        }
+        if (existingClan is not null)
+        {
+            var playerRepo = sp.GetRequiredService<IPlayerRepository>();
+            var linkedPlayer = await playerRepo.GetByTelegramIdAsync(msg.From!.Id, ct);
+            if (linkedPlayer is not null && linkedPlayer.ClanId != existingClan.Id)
+            {
+                linkedPlayer.ClanId = existingClan.Id;
+                await playerRepo.SaveChangesAsync(ct);
+            }
         }
 
         var getStatus = sp.GetRequiredService<GetClanStatusUseCase>();
