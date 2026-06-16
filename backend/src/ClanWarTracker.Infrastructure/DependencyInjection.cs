@@ -29,7 +29,11 @@ public static class DependencyInjection
                 o.UseSqlite(config.GetConnectionString("Default") ?? "Data Source=clanwar.db"));
         }
 
-        services.AddMemoryCache();
+        // SizeLimit ограничивает число записей в кэше: ключи содержат теги от пользователя
+        // (war:{tag}, playerinfo:{tag}…), поэтому без лимита поток запросов с разными тегами
+        // раздувает память до OOM. Каждая запись имеет Size=1; 20k — потолок намного выше
+        // легитимной нагрузки (сотни кланов), но защищает от исчерпания памяти.
+        services.AddMemoryCache(o => o.SizeLimit = 20_000);
 
         // Токены: сперва плоские env-переменные (хостинг), затем appsettings (локально).
         // CleanToken убирает переносы строк/пробелы — длинные ключи часто вставляют с разрывами,

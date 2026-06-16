@@ -375,7 +375,11 @@ public class GetClanStatusUseCase(
                 streak, Math.Clamp(reliability, 0, 100), dna, profile);
         }
 
-        cache.Set(cacheKey, result, TimeSpan.FromMinutes(30));
+        cache.Set(cacheKey, result, new MemoryCacheEntryOptions
+        {
+            Size = 1,
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30),
+        });
         return result;
     }
 
