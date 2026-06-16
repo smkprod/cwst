@@ -242,6 +242,21 @@ const ru = {
     hint: 'Свой тег найдёшь в Clash Royale: профиль → значок под именем.',
   },
 
+  guest: {
+    title: 'Введи свой тег игрока',
+    hint: 'Найдёшь в Clash Royale: профиль → значок под именем',
+    placeholder: '#ABC123',
+    enter: 'Войти',
+    notFound: 'Игрок не найден',
+    notInClan: 'Ты не состоишь в клане',
+    clanNotRegistered: 'Клан не подключён к боту. Попроси лидера добавить бота в чат клана и выполнить /setup',
+    guestBanner: 'Гостевой просмотр',
+    linkHint: 'Отправь боту /link #ТВОЙТЕГ чтобы получать уведомления',
+    exit: 'Сменить',
+    linkForStats: 'Привяжи аккаунт через /link для сезонной статистики и уведомлений',
+    notInWarRoster: 'Тебя нет в составе текущей войны',
+  },
+
   clanless: {
     title: 'Ты без клана',
     hint: 'Аккаунт привязан, но бот не добавлен ни в одну группу клана. Попроси администратора клана добавить бота и выполнить /setup.',
@@ -539,6 +554,21 @@ const uk: Translations = {
     hint: 'Свій тег знайдеш у Clash Royale: профіль → значок під іменем.',
   },
 
+  guest: {
+    title: 'Введи свій тег гравця',
+    hint: 'Знайдеш у Clash Royale: профіль → значок під іменем',
+    placeholder: '#ABC123',
+    enter: 'Увійти',
+    notFound: 'Гравця не знайдено',
+    notInClan: 'Ти не перебуваєш у клані',
+    clanNotRegistered: 'Клан не підключено до бота. Попроси лідера додати бота у чат клану і виконати /setup',
+    guestBanner: 'Гостьовий перегляд',
+    linkHint: 'Надішли боту /link #ТВІЙТЕГ щоб отримувати сповіщення',
+    exit: 'Змінити',
+    linkForStats: "Прив'яжи акаунт через /link для сезонної статистики та сповіщень",
+    notInWarRoster: 'Тебе немає у складі поточної війни',
+  },
+
   clanless: {
     title: 'Ти без клану',
     hint: 'Акаунт прив\'язаний, але бот не доданий до жодної групи клану. Попроси адміністратора клану додати бота і виконати /setup.',
@@ -832,6 +862,21 @@ const en: Translations = {
     title: 'Account not linked',
     desc: 'Send the bot this command — in your clan group chat or directly in a DM with the bot:',
     hint: 'Find your tag in Clash Royale: profile → icon below your name.',
+  },
+
+  guest: {
+    title: 'Enter your player tag',
+    hint: 'Find it in Clash Royale: profile → icon below your name',
+    placeholder: '#ABC123',
+    enter: 'Go',
+    notFound: 'Player not found',
+    notInClan: 'You are not in a clan',
+    clanNotRegistered: 'Your clan is not connected to the bot. Ask your leader to add the bot to the clan group chat and run /setup',
+    guestBanner: 'Guest view',
+    linkHint: 'Send the bot /link #YOURTAG to receive notifications',
+    exit: 'Switch',
+    linkForStats: 'Link your account via /link for season stats and notifications',
+    notInWarRoster: 'You are not in the current war roster',
   },
 
   clanless: {

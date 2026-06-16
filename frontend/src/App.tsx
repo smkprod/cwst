@@ -22,14 +22,17 @@ import { RecruitBoard } from './components/RecruitBoard'
 import { RecruitToggle } from './components/RecruitToggle'
 import { ClanlessView } from './components/ClanlessView'
 import { CommunityCard } from './components/CommunityCard'
+import { GuestEntry } from './components/GuestEntry'
+import { GuestMyStats } from './components/GuestMyStats'
 
 type State =
   | { kind: 'loading' }
-  | { kind: 'notLinked' }
+  | { kind: 'guestEntry' }
   | { kind: 'notInTelegram' }
   | { kind: 'clanless' }
   | { kind: 'error'; message: string }
   | { kind: 'ready'; data: ClanStatus }
+  | { kind: 'guest'; data: ClanStatus; myPlayerTag: string }
 
 type Tab = 'war' | 'rating' | 'me' | 'search' | 'owner' | 'recruit'
 
@@ -44,7 +47,17 @@ export default function App() {
       setState({ kind: 'ready', data })
     } catch (e) {
       if (e instanceof ApiError && e.code === 'player_not_linked') {
-        setState({ kind: 'notLinked' })
+        // Try restoring a guest session from localStorage
+        const guestTag = localStorage.getItem('guestPlayerTag')
+        const guestClanTag = localStorage.getItem('guestClanTag')
+        if (guestTag && guestClanTag) {
+          try {
+            const data = await api.getClanStatus(guestClanTag)
+            setState({ kind: 'guest', data, myPlayerTag: guestTag })
+            return
+          } catch { /* fall through to entry screen */ }
+        }
+        setState({ kind: 'guestEntry' })
       } else if (e instanceof ApiError && e.code === 'clan_not_found') {
         setState({ kind: 'clanless' })
       } else if (e instanceof ApiError && (e.code === 'no_init_data' || e.code === 'bad_init_data')) {
@@ -63,9 +76,16 @@ export default function App() {
     return () => clearInterval(id)
   }, [load])
 
-  const switchTab = (tab: Tab) => {
+  const switchTab = (next: Tab) => {
     haptic('light')
-    setTab(tab)
+    setTab(next)
+  }
+
+  const exitGuest = () => {
+    haptic('light')
+    localStorage.removeItem('guestPlayerTag')
+    localStorage.removeItem('guestClanTag')
+    setState({ kind: 'guestEntry' })
   }
 
   switch (state.kind) {
@@ -76,8 +96,14 @@ export default function App() {
           <p className="muted">{t.loadingWar}</p>
         </div>
       )
-    case 'notLinked':
-      return <LinkPrompt />
+    case 'guestEntry':
+      return (
+        <GuestEntry
+          onSuccess={(playerTag, clanTag, data) => {
+            setState({ kind: 'guest', data, myPlayerTag: playerTag })
+          }}
+        />
+      )
     case 'clanless':
       return <main><ClanlessView /></main>
     case 'notInTelegram':
@@ -170,16 +196,83 @@ export default function App() {
           </main>
 
           <nav className="tabbar" role="tablist">
-            {tabs.map(t => (
+            {tabs.map(tb => (
               <button
-                key={t.id}
+                key={tb.id}
                 role="tab"
-                aria-selected={tab === t.id}
-                className={`tab ${tab === t.id ? 'tab-active' : ''}`}
-                onClick={() => switchTab(t.id)}
+                aria-selected={tab === tb.id}
+                className={`tab ${tab === tb.id ? 'tab-active' : ''}`}
+                onClick={() => switchTab(tb.id)}
               >
-                <span className="tab-icon">{t.icon}</span>
-                <span className="tab-label">{t.label}</span>
+                <span className="tab-icon">{tb.icon}</span>
+                <span className="tab-label">{tb.label}</span>
+              </button>
+            ))}
+          </nav>
+        </>
+      )
+    }
+    case 'guest': {
+      const { data, myPlayerTag } = state
+
+      const tabs: { id: Tab; icon: string; label: string }[] = [
+        { id: 'war', icon: '⚔️', label: t.tabs.war },
+        { id: 'rating', icon: '🏆', label: t.tabs.rating },
+        { id: 'me', icon: '👤', label: t.tabs.me },
+        { id: 'search', icon: '🔍', label: t.tabs.search },
+      ]
+
+      return (
+        <>
+          <main className="with-tabbar">
+            <div className="guest-banner">
+              <span className="muted small">{t.guest.guestBanner}</span>
+              <button className="btn-mini" onClick={exitGuest}>{t.guest.exit}</button>
+            </div>
+
+            {tab === 'war' && (
+              <div className="fade-in">
+                <WarHeader status={data} />
+                <InsightsCard insights={data.insights} plan={data.plan} />
+                <RaceCard race={data.race} periodType={data.periodType} />
+                <ForecastCard forecast={data.forecast} stats={data.stats} periodType={data.periodType} />
+                <WarLogCard log={data.warLog} />
+                <StatsStrip stats={data.stats} />
+                <PlayerList players={data.players} myPlayerTag={myPlayerTag} />
+              </div>
+            )}
+            {tab === 'rating' && (
+              <div className="fade-in">
+                <Leaderboard players={data.players} myPlayerTag={myPlayerTag} plan={data.plan} />
+              </div>
+            )}
+            {tab === 'me' && (
+              <div className="fade-in">
+                <GuestMyStats data={data} myPlayerTag={myPlayerTag} />
+                <div style={{ height: 12 }} />
+                <AboutCard plan={data.plan} />
+                <div style={{ height: 12 }} />
+                <CommunityCard />
+              </div>
+            )}
+            {tab === 'search' && (
+              <div className="fade-in">
+                <PlayerSearchView />
+              </div>
+            )}
+          </main>
+
+          <nav className="tabbar" role="tablist">
+            {tabs.map(tb => (
+              <button
+                key={tb.id}
+                role="tab"
+                aria-selected={tab === tb.id}
+                className={`tab ${tab === tb.id ? 'tab-active' : ''}`}
+                onClick={() => switchTab(tb.id)}
+              >
+                <span className="tab-icon">{tb.icon}</span>
+                <span className="tab-label">{tb.label}</span>
               </button>
             ))}
           </nav>
