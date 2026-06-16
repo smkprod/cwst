@@ -107,7 +107,7 @@ export default function App() {
         />
       )
     case 'clanless':
-      return <main><ClanlessView /></main>
+      return <ClanlessView />
     case 'notInTelegram':
       return (
         <div className="center">
