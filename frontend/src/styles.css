@@ -701,6 +701,25 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 .lang-btn:hover { color: var(--text); }
 .lang-btn-active { color: var(--text) !important; }
 
+/* --- Lang switcher bar (clanless / unlinked screens) --- */
+.lang-switcher-bar {
+  display: flex; justify-content: center; padding: 12px 0 4px;
+}
+.lang-switcher-bar .lang-btn {
+  font-size: 14px; padding: 6px 14px;
+  border: 1px solid rgba(255,255,255,0.15); border-radius: 8px;
+  color: var(--muted);
+}
+.lang-switcher-bar .lang-btn-active {
+  border-color: var(--accent); color: var(--accent) !important;
+}
+
+/* --- Community card --- */
+.community-inner { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.community-icon { font-size: 28px; flex-shrink: 0; }
+.community-label { font-size: 14px; font-weight: 600; }
+.community-btn { width: 100%; }
+
 /* --- Полный профиль игрока (поиск по тегу) --- */
 .profile-header {
   display: flex; align-items: flex-start; gap: 12px;
