@@ -29,6 +29,20 @@ public class GetPlayerStatsUseCase(
             string.Equals(p.PlayerTag, player.PlayerTag, StringComparison.OrdinalIgnoreCase));
         if (me is null) return null;
 
+        // /currentriverrace не возвращает реальный seasonId (всегда 0).
+        // Определяем его по журналу: берём сезон последней завершённой недели.
+        var realSeasonId = war.SeasonId;
+        try
+        {
+            var log = await crApi.GetRiverRaceLogAsync(clan.ClanTag, ct);
+            if (log.Count > 0)
+            {
+                var newest = log[0];
+                realSeasonId = newest.SectionIndex >= 3 ? newest.SeasonId + 1 : newest.SeasonId;
+            }
+        }
+        catch { /* fallback to war.SeasonId */ }
+
         var now = DateTime.UtcNow;
         var hoursLeft = Math.Max(0, (int)war.TimeLeft(now).TotalHours);
 
@@ -36,7 +50,7 @@ public class GetPlayerStatsUseCase(
         if (war.IsWarDay && war.PeriodIndex > 3)
         {
             var firstWarDay = await snapshots.GetSnapshotAsync(
-                clan.Id, war.SeasonId, war.SectionIndex, periodIndex: 3, ct);
+                clan.Id, realSeasonId, war.SectionIndex, periodIndex: 3, ct);
             WarForecastService.RefineWarDecks(war, firstWarDay);
         }
 
@@ -59,13 +73,13 @@ public class GetPlayerStatsUseCase(
         MySeasonDto? mySeason = null;
         if (clan.EffectivePlan(now) == Domain.Enums.PlanTier.Pro)
         {
-            var season = await seasonStats.ExecuteAsync(clan.Id, war.SeasonId, ct);
+            var season = await seasonStats.ExecuteAsync(clan.Id, realSeasonId > 0 ? realSeasonId : null, ct);
             var meRow = season?.Players.FirstOrDefault(p =>
                 string.Equals(p.PlayerTag, me.PlayerTag, StringComparison.OrdinalIgnoreCase));
             if (season is not null && meRow is not null)
             {
                 mySeason = new MySeasonDto(
-                    SeasonId: season.SeasonId,
+                    SeasonId: realSeasonId > 0 ? realSeasonId : season.SeasonId,
                     TotalFame: meRow.TotalFame,
                     Rank: meRow.Rank,
                     ClanSize: season.Players.Count,
