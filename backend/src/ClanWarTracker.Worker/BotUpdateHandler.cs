@@ -51,6 +51,11 @@ public class BotUpdateHandler(
                     break;
 
                 case "/setup":
+                    if (msg.Chat.Type == ChatType.Private)
+                    {
+                        await Reply(msg, "⚠️ /setup используется только в групповом чате клана, а не в ЛС.", ct);
+                        return;
+                    }
                     if (arg is null) { await Reply(msg, "Формат: /setup #ТЕГ_КЛАНА", ct); return; }
                     if (!await IsAdminAsync(msg, ct)) { await Reply(msg, "Только админ группы может привязать клан.", ct); return; }
                     var clanName = await sp.GetRequiredService<SetupClanUseCase>()
