@@ -20,6 +20,7 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
     {
         return await cache.GetOrCreateAsync($"war:{clanTag}", async entry =>
         {
+            entry.Size = 1;
             entry.AbsoluteExpirationRelativeToNow = CacheTtl;
 
             var resp = await http.GetAsync($"clans/{Encode(clanTag)}/currentriverrace", ct);
@@ -116,6 +117,7 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         // Кэшируем: вызывается при каждом открытии Mini App (авто-определение клана)
         return await cache.GetOrCreateAsync($"playerclan:{playerTag}", async entry =>
         {
+            entry.Size = 1;
             entry.AbsoluteExpirationRelativeToNow = CacheTtl;
             var resp = await http.GetAsync($"players/{Encode(playerTag)}", ct);
             if (resp.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.Unauthorized)
@@ -186,6 +188,7 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         // Трофеи меняются только по итогам недели — кэш на час
         return await cache.GetOrCreateAsync($"wartrophies:{clanTag}", async entry =>
         {
+            entry.Size = 1;
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
             var resp = await http.GetAsync($"clans/{Encode(clanTag)}", ct);
             if (!resp.IsSuccessStatusCode) return (int?)null;
@@ -199,6 +202,7 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         // Журнал меняется только по итогам недели (понедельник ~10:00 UTC) — кэш 6 часов
         var result = await cache.GetOrCreateAsync($"racelog:{clanTag}", async entry =>
         {
+            entry.Size = 1;
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(6);
 
             var resp = await http.GetAsync($"clans/{Encode(clanTag)}/riverracelog?limit=10", ct);
@@ -243,6 +247,7 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
     {
         return await cache.GetOrCreateAsync($"clanrole:{clanTag}", async entry =>
         {
+            entry.Size = 1;
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
             var resp = await http.GetAsync($"clans/{Encode(clanTag)}/members", ct);
             if (!resp.IsSuccessStatusCode) return null;
@@ -274,6 +279,7 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
     {
         return await cache.GetOrCreateAsync($"playerinfo:{playerTag}", async entry =>
         {
+            entry.Size = 1;
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
             var resp = await http.GetAsync($"players/{Encode(playerTag)}", ct);
             if (resp.StatusCode == HttpStatusCode.NotFound) return null;

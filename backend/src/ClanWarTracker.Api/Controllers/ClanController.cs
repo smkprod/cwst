@@ -232,6 +232,7 @@ public class ClanController(
         // а GetChatMember — живой сетевой вызов к Telegram (сотни мс на каждый запрос)
         return await cache.GetOrCreateAsync($"tgadmin:{chatId}:{userId}", async entry =>
         {
+            entry.Size = 1;
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
             try
             {

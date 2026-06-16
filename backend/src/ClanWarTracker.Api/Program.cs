@@ -1,3 +1,4 @@
+using System.Threading.RateLimiting;
 using ClanWarTracker.Api.Auth;
 using ClanWarTracker.Application.UseCases;
 using ClanWarTracker.Infrastructure;
@@ -23,6 +24,38 @@ builder.Services.AddCors(o => o.AddDefaultPolicy(p => p
     .AllowAnyHeader()
     .AllowAnyMethod()));
 
+// Rate limiting: один пользователь не должен иметь возможность завалить
+// общий токен Clash Royale API запросами по произвольным тегам.
+// Партиция по проверенному TelegramUserId (фолбэк на IP). Окно: 120 запросов/мин —
+// намного выше легитимной нагрузки (Mini App опрашивает /my/status раз в минуту),
+// но останавливает перебор тегов. Не-/api пути (статика) не лимитируются.
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
+    {
+        if (!ctx.Request.Path.StartsWithSegments("/api"))
+            return RateLimitPartition.GetNoLimiter("static");
+
+        var key = ctx.Items.TryGetValue("TelegramUserId", out var uid) && uid is long id
+            ? $"user:{id}"
+            : $"ip:{ctx.Connection.RemoteIpAddress}";
+
+        return RateLimitPartition.GetFixedWindowLimiter(key, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 120,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+        });
+    });
+    options.OnRejected = async (context, token) =>
+    {
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        await context.HttpContext.Response.WriteAsJsonAsync(
+            new { error = "rate_limited", message = "Слишком много запросов — подожди немного" }, token);
+    };
+});
+
 var app = builder.Build();
 
 // Схема БД при старте: SQLite — миграции, PostgreSQL (Render) — EnsureCreated, с ретраями
@@ -40,6 +73,8 @@ catch { /* не критично */ }
 
 app.UseCors();
 app.UseMiddleware<TelegramAuthMiddleware>();
+// После auth — чтобы партиция лимитера видела проверенный TelegramUserId в ctx.Items
+app.UseRateLimiter();
 app.MapControllers();
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 

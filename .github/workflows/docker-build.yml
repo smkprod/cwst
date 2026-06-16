@@ -41,9 +41,11 @@ jobs:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           push: true
+          # :latest обновляется ТОЛЬКО с main — пуш в дев-ветку не перезаписывает
+          # продакшн-образ (deploy.sh тянет :latest). С дев-ветки собирается только :sha.
           tags: |
-            ghcr.io/smkprod/cwst-${{ matrix.name }}:latest
             ghcr.io/smkprod/cwst-${{ matrix.name }}:${{ github.sha }}
+            ${{ github.ref == 'refs/heads/main' && format('ghcr.io/smkprod/cwst-{0}:latest', matrix.name) || '' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           labels: |
