@@ -7,6 +7,7 @@ using Telegram.Bot;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace ClanWarTracker.Worker;
 
@@ -17,15 +18,27 @@ public class BotUpdateHandler(
     IConfiguration config,
     ILogger<BotUpdateHandler> logger) : BackgroundService
 {
+    private string _botUsername = "bot";
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        try
+        {
+            var me = await bot.GetMe(stoppingToken);
+            _botUsername = me.Username ?? "bot";
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Could not fetch bot username");
+        }
+
         bot.StartReceiving(
             HandleUpdateAsync,
             (_, ex, _) => { logger.LogError(ex, "Bot polling error"); return Task.CompletedTask; },
             new ReceiverOptions { AllowedUpdates = [UpdateType.Message] },
             stoppingToken);
 
-        logger.LogInformation("Bot polling started");
+        logger.LogInformation("Bot polling started as @{Username}", _botUsername);
         await Task.Delay(Timeout.Infinite, stoppingToken);
     }
 
@@ -304,9 +317,20 @@ public class BotUpdateHandler(
         }
 
         sb.AppendLine();
-        sb.AppendLine("Открой Mini App для полной статистики: история, прогнозы, рейтинг 👇");
+        sb.AppendLine("Полная статистика — в Mini App: история, прогнозы, рейтинг 👇");
 
-        await Reply(msg, sb.ToString(), ct);
+        // Кнопка "Поделиться с кланом" — открывает нативный Telegram share-диалог.
+        // Пользователь сам выбирает чат; никакого спама.
+        var shareText = Uri.EscapeDataString(
+            "⚔️ Слежу за Clan War через этот бот — отправь свой тег CR и сразу увидишь статистику войны своего клана");
+        var shareUrl = $"https://t.me/share/url?url=https://t.me/{_botUsername}&text={shareText}";
+        var keyboard = new InlineKeyboardMarkup(
+            InlineKeyboardButton.WithUrl("📤 Поделиться с кланом", shareUrl));
+
+        await bot.SendMessage(msg.Chat.Id, sb.ToString(),
+            replyParameters: msg.MessageId,
+            replyMarkup: keyboard,
+            cancellationToken: ct);
     }
 
     /// <summary>Похоже на CR-тег: 3–12 буквенно-цифровых символов, можно с # вначале.</summary>
