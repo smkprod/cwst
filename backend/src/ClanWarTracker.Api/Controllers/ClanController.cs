@@ -189,7 +189,7 @@ public class ClanController(
         if (player is null)
             return (null, null, NotFound(new { error = "player_not_linked", message = "Сначала привяжи тег: /link #ТЕГ" }));
 
-        var clan = await clans.GetByIdAsync(player.ClanId, ct);
+        var clan = player.ClanId.HasValue ? await clans.GetByIdAsync(player.ClanId.Value, ct) : null;
 
         // Авто-переключение: если игрок в CR сейчас в другом клане,
         // и этот клан зарегистрирован в сервисе — следуем за игроком.

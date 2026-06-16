@@ -238,8 +238,14 @@ const ru = {
 
   link: {
     title: 'Аккаунт не привязан',
-    desc: 'Отправь боту в групповом чате клана команду:',
+    desc: 'Отправь боту команду — в группе клана или прямо в ЛС с ботом:',
     hint: 'Свой тег найдёшь в Clash Royale: профиль → значок под именем.',
+  },
+
+  clanless: {
+    title: 'Ты без клана',
+    hint: 'Аккаунт привязан, но бот не добавлен ни в одну группу клана. Попроси администратора клана добавить бота и выполнить /setup.',
+    recruitHint: 'Пока ты можешь разместить заявку в бирже — лидеры кланов с Pro увидят тебя.',
   },
 
   recruit: {
@@ -521,8 +527,14 @@ const uk: Translations = {
 
   link: {
     title: "Акаунт не прив'язаний",
-    desc: 'Надішли боту в груповому чаті клану команду:',
+    desc: 'Надішли боту команду — у групі клану або прямо в ЛС з ботом:',
     hint: 'Свій тег знайдеш у Clash Royale: профіль → значок під іменем.',
+  },
+
+  clanless: {
+    title: 'Ти без клану',
+    hint: 'Акаунт прив\'язаний, але бот не доданий до жодної групи клану. Попроси адміністратора клану додати бота і виконати /setup.',
+    recruitHint: 'Поки ти можеш розмістити заявку на біржі — лідери кланів з Pro побачать тебе.',
   },
 
   recruit: {
@@ -802,8 +814,14 @@ const en: Translations = {
 
   link: {
     title: 'Account not linked',
-    desc: "Send this command to the bot in your clan's group chat:",
+    desc: 'Send the bot this command — in your clan group chat or directly in a DM with the bot:',
     hint: 'Find your tag in Clash Royale: profile → icon below your name.',
+  },
+
+  clanless: {
+    title: 'No clan',
+    hint: "Your account is linked, but the bot hasn't been added to any clan group. Ask your clan admin to add the bot and run /setup.",
+    recruitHint: 'In the meantime, you can post a listing on the board — Pro clan leaders will see you.',
   },
 
   recruit: {

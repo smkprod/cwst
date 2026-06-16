@@ -62,11 +62,16 @@ public class BotUpdateHandler(
 
                 case "/link":
                     if (arg is null) { await Reply(msg, "Формат: /link #ТВОЙ_ТЕГ", ct); return; }
+                    // В ЛС нет группы клана — передаём null, игрок создаётся без клана
+                    var isPrivate = msg.Chat.Type == ChatType.Private;
+                    var linkChatId = isPrivate ? (long?)null : msg.Chat.Id;
                     var playerName = await sp.GetRequiredService<LinkPlayerUseCase>()
-                        .ExecuteAsync(msg.From!.Id, arg, msg.Chat.Id, ct);
+                        .ExecuteAsync(msg.From!.Id, arg, linkChatId, ct);
                     await Reply(msg, playerName is null
                         ? "❌ Игрок не найден. Проверь тег (профиль → значок тега)."
-                        : $"✅ Привязан игрок «{playerName}». Теперь буду напоминать тебе про войну в личке — напиши боту /start в ЛС, чтобы он мог писать первым.", ct);
+                        : isPrivate
+                            ? $"✅ Привязан игрок «{playerName}»! Теперь можешь открыть Mini App через кнопку меню. Чтобы получать напоминания о Клан Войне — попроси лидера клана добавить бота в группу клана."
+                            : $"✅ Привязан игрок «{playerName}». Теперь буду напоминать тебе про войну в личке — напиши боту /start в ЛС, чтобы он мог писать первым.", ct);
                     break;
 
                 case "/remind":

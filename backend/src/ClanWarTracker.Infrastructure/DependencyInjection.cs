@@ -123,6 +123,10 @@ CREATE TABLE IF NOT EXISTS ""RecruitmentProfiles"" (
 
         await db.Database.ExecuteSqlRawAsync(
             "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_RecruitmentProfiles_TelegramUserId\" ON \"RecruitmentProfiles\" (\"TelegramUserId\");");
+
+        // Игроки без клана: ClanId теперь nullable
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Players\" ALTER COLUMN \"ClanId\" DROP NOT NULL;");
     }
 
     /// <summary>Убирает все пробельные символы (включая \r\n) из токена. null, если пусто.</summary>

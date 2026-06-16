@@ -20,11 +20,13 @@ import { LinkPrompt } from './components/LinkPrompt'
 import { PlayerSearchView } from './components/PlayerSearchView'
 import { RecruitBoard } from './components/RecruitBoard'
 import { RecruitToggle } from './components/RecruitToggle'
+import { ClanlessView } from './components/ClanlessView'
 
 type State =
   | { kind: 'loading' }
   | { kind: 'notLinked' }
   | { kind: 'notInTelegram' }
+  | { kind: 'clanless' }
   | { kind: 'error'; message: string }
   | { kind: 'ready'; data: ClanStatus }
 
@@ -42,6 +44,8 @@ export default function App() {
     } catch (e) {
       if (e instanceof ApiError && e.code === 'player_not_linked') {
         setState({ kind: 'notLinked' })
+      } else if (e instanceof ApiError && e.code === 'clan_not_found') {
+        setState({ kind: 'clanless' })
       } else if (e instanceof ApiError && (e.code === 'no_init_data' || e.code === 'bad_init_data')) {
         setState({ kind: 'notInTelegram' })
       } else if (e instanceof ApiError && e.status === 500) {
@@ -73,6 +77,8 @@ export default function App() {
       )
     case 'notLinked':
       return <LinkPrompt />
+    case 'clanless':
+      return <main><ClanlessView /></main>
     case 'notInTelegram':
       return (
         <div className="center">

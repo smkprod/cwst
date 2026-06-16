@@ -88,7 +88,7 @@ public class RecruitmentController(
         var player = await players.GetByTelegramIdAsync(userId, ct);
         if (player is null) return NotFound(new { error = "player_not_linked" });
 
-        var clan = await clans.GetByIdAsync(player.ClanId, ct);
+        var clan = player.ClanId.HasValue ? await clans.GetByIdAsync(player.ClanId.Value, ct) : null;
         if (clan is null) return NotFound(new { error = "clan_not_found" });
 
         // Проверяем что тариф Pro

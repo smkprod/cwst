@@ -46,7 +46,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(p => p.PlayerTag).HasMaxLength(16);
             e.HasOne(p => p.Clan)
              .WithMany(c => c.Players)
-             .HasForeignKey(p => p.ClanId);
+             .HasForeignKey(p => p.ClanId)
+             .IsRequired(false);
         });
 
         mb.Entity<RecruitmentProfile>(e =>
