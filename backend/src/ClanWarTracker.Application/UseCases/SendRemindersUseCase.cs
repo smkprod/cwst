@@ -69,7 +69,7 @@ public class SendRemindersUseCase(
             if (!isPro && allLinked.Count > 0)
                 parts.Add("🔒 Личные напоминания в DM — функция Pro. Подключи Pro, чтобы никто не забывал про атаки.");
 
-            if (parts.Count > 0)
+            if (parts.Count > 0 && clan.TelegramChatId != 0)
                 await notifier.SendToChatAsync(clan.TelegramChatId, string.Join("\n\n", parts), ct);
         }
     }
