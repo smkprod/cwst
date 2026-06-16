@@ -1,5 +1,5 @@
 import { initData } from './telegram'
-import type { ClanHistory, ClanStatus, ClanWarLog, GlobalTop, MyStats, NudgeResult, OwnerClan, PlayerHistory, PlayerProfile, SeasonBreakdown, SeasonStats } from '../types'
+import type { ClanHistory, ClanStatus, ClanWarLog, GlobalTop, MyStats, NudgeResult, OwnerClan, PlayerHistory, PlayerProfile, RecruitmentCandidates, RecruitmentStatus, SeasonBreakdown, SeasonStats } from '../types'
 
 // Если мы на Render (production), BASE должен быть пустой строкой '', чтобы запросы шли на тот же домен.
 // Для локальной разработки (Development) оставляем localhost:5000.
@@ -54,6 +54,18 @@ export const api = {
   getMyClanSeason: () => request<SeasonStats>('/api/clans/my/season'),
   getSeasonBreakdown: () => request<SeasonBreakdown>('/api/clans/my/season-weeks'),
   getGlobalTop: () => request<GlobalTop>('/api/players/top'),
+
+  getRecruitmentStatus: () => request<RecruitmentStatus>('/api/recruitment/me'),
+  applyRecruitment: (note: string) =>
+    request<{ ok: boolean }>('/api/recruitment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ note }),
+    }),
+  withdrawRecruitment: () =>
+    request<{ ok: boolean }>('/api/recruitment', { method: 'DELETE' }),
+  getRecruitmentCandidates: () =>
+    request<RecruitmentCandidates>('/api/recruitment/candidates'),
 
   // Панель владельца
   ownerGetClans: () => request<OwnerClan[]>('/api/owner/clans'),

@@ -306,3 +306,24 @@ export interface OwnerClan {
   planExpiresAtUtc: string | null
   linkedPlayers: number
 }
+
+/* --- Биржа игроков --- */
+export interface RecruitmentStatus {
+  isActive: boolean
+  note: string | null
+}
+
+export interface RecruitmentCandidate {
+  playerTag: string
+  name: string
+  note: string | null
+  telegramUserId: number
+  totalFame: number
+  weeksPlayed: number
+  avgFamePerAttack: number
+  updatedAtUtc: string
+}
+
+export interface RecruitmentCandidates {
+  candidates: RecruitmentCandidate[]
+}

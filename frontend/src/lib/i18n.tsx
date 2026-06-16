@@ -12,7 +12,7 @@ const ru = {
   retry: 'Повторить',
   dateLocale: 'ru-RU',
 
-  tabs: { war: 'Война', rating: 'Рейтинг', me: 'Я', search: 'Поиск', owner: 'Панель' },
+  tabs: { war: 'Война', rating: 'Рейтинг', me: 'Я', search: 'Поиск', owner: 'Панель', recruit: 'Биржа' },
 
   period: { training: 'Тренировочные дни', warDay: 'День войны', colosseum: 'Колизей' },
   header: { dayOf4: '· день', untilEnd: 'До конца дня:', h: 'ч', played: 'сыграли' },
@@ -102,6 +102,9 @@ const ru = {
     totalMedals: 'Медали всего',
     perAttack: 'За атаку',
     cards: 'Карты',
+    tabProfile: 'Профиль',
+    tabWars: 'Войны КВ',
+    lvl: 'lvl',
   },
 
   me: {
@@ -235,8 +238,37 @@ const ru = {
 
   link: {
     title: 'Аккаунт не привязан',
-    desc: 'Отправь боту в групповом чате клана команду:',
+    desc: 'Отправь боту команду — в группе клана или прямо в ЛС с ботом:',
     hint: 'Свой тег найдёшь в Clash Royale: профиль → значок под именем.',
+  },
+
+  clanless: {
+    title: 'Ты без клана',
+    hint: 'Аккаунт привязан, но бот не добавлен ни в одну группу клана. Попроси администратора клана добавить бота и выполнить /setup.',
+    recruitHint: 'Пока ты можешь разместить заявку в бирже — лидеры кланов с Pro увидят тебя.',
+  },
+
+  recruit: {
+    tabLabel: 'Биржа',
+    myTitle: '🔍 Ищу клан',
+    myHint: 'Твоя анкета будет видна лидерам кланов с тарифом Pro.',
+    noteLabel: 'О себе (необязательно)',
+    notePlaceholder: 'Активность, опыт, пожелания…',
+    activate: 'Разместить анкету',
+    deactivate: 'Снять анкету',
+    activeStatus: '✅ Анкета активна — лидеры кланов тебя видят',
+    inactiveStatus: 'Анкета не активна',
+    saving: '…',
+    boardTitle: '👥 Биржа игроков',
+    boardHint: 'Игроки, ищущие клан. Тап на карточку — открыть в Telegram.',
+    empty: 'Пока никто не ищет клан 🤷',
+    loading: 'Загружаю кандидатов…',
+    error: 'Не удалось загрузить список',
+    weeks: 'нед',
+    medalsTotal: 'медалей',
+    perAttack: 'за атаку',
+    openTg: 'Написать ↗',
+    ago: 'подал заявку',
   },
 
   owner: {
@@ -269,7 +301,7 @@ const uk: Translations = {
   retry: 'Повторити',
   dateLocale: 'uk-UA',
 
-  tabs: { war: 'Війна', rating: 'Рейтинг', me: 'Я', search: 'Пошук', owner: 'Панель' },
+  tabs: { war: 'Війна', rating: 'Рейтинг', me: 'Я', search: 'Пошук', owner: 'Панель', recruit: 'Біржа' },
 
   period: { training: 'Тренувальні дні', warDay: 'День війни', colosseum: 'Колізей' },
   header: { dayOf4: '· день', untilEnd: 'До кінця дня:', h: 'год', played: 'зіграли' },
@@ -359,6 +391,9 @@ const uk: Translations = {
     totalMedals: 'Медалей загалом',
     perAttack: 'За атаку',
     cards: 'Карти',
+    tabProfile: 'Профіль',
+    tabWars: 'Війни КВ',
+    lvl: 'lvl',
   },
 
   me: {
@@ -492,8 +527,37 @@ const uk: Translations = {
 
   link: {
     title: "Акаунт не прив'язаний",
-    desc: 'Надішли боту в груповому чаті клану команду:',
+    desc: 'Надішли боту команду — у групі клану або прямо в ЛС з ботом:',
     hint: 'Свій тег знайдеш у Clash Royale: профіль → значок під іменем.',
+  },
+
+  clanless: {
+    title: 'Ти без клану',
+    hint: 'Акаунт прив\'язаний, але бот не доданий до жодної групи клану. Попроси адміністратора клану додати бота і виконати /setup.',
+    recruitHint: 'Поки ти можеш розмістити заявку на біржі — лідери кланів з Pro побачать тебе.',
+  },
+
+  recruit: {
+    tabLabel: 'Біржа',
+    myTitle: '🔍 Шукаю клан',
+    myHint: 'Твоя анкета буде видна лідерам кланів з тарифом Pro.',
+    noteLabel: 'Про себе (необов'язково)',
+    notePlaceholder: 'Активність, досвід, побажання…',
+    activate: 'Розмістити анкету',
+    deactivate: 'Зняти анкету',
+    activeStatus: '✅ Анкета активна — лідери кланів тебе бачать',
+    inactiveStatus: 'Анкета не активна',
+    saving: '…',
+    boardTitle: '👥 Біржа гравців',
+    boardHint: 'Гравці, що шукають клан. Тап на картку — відкрити в Telegram.',
+    empty: 'Поки ніхто не шукає клан 🤷',
+    loading: 'Завантажую кандидатів…',
+    error: 'Не вдалося завантажити список',
+    weeks: 'тиж',
+    medalsTotal: 'медалей',
+    perAttack: 'за атаку',
+    openTg: 'Написати ↗',
+    ago: 'подав заявку',
   },
 
   owner: {
@@ -524,7 +588,7 @@ const en: Translations = {
   retry: 'Retry',
   dateLocale: 'en-US',
 
-  tabs: { war: 'War', rating: 'Rating', me: 'Me', search: 'Search', owner: 'Panel' },
+  tabs: { war: 'War', rating: 'Rating', me: 'Me', search: 'Search', owner: 'Panel', recruit: 'Market' },
 
   period: { training: 'Training Days', warDay: 'War Day', colosseum: 'Coliseum' },
   header: { dayOf4: '· day', untilEnd: 'Until end of day:', h: 'h', played: 'played' },
@@ -614,6 +678,9 @@ const en: Translations = {
     totalMedals: 'Total Medals',
     perAttack: 'Per Attack',
     cards: 'Cards',
+    tabProfile: 'Profile',
+    tabWars: 'CW Wars',
+    lvl: 'lvl',
   },
 
   me: {
@@ -747,8 +814,37 @@ const en: Translations = {
 
   link: {
     title: 'Account not linked',
-    desc: "Send this command to the bot in your clan's group chat:",
+    desc: 'Send the bot this command — in your clan group chat or directly in a DM with the bot:',
     hint: 'Find your tag in Clash Royale: profile → icon below your name.',
+  },
+
+  clanless: {
+    title: 'No clan',
+    hint: "Your account is linked, but the bot hasn't been added to any clan group. Ask your clan admin to add the bot and run /setup.",
+    recruitHint: 'In the meantime, you can post a listing on the board — Pro clan leaders will see you.',
+  },
+
+  recruit: {
+    tabLabel: 'Market',
+    myTitle: '🔍 Looking for a clan',
+    myHint: 'Your profile will be visible to clan leaders on the Pro plan.',
+    noteLabel: 'About me (optional)',
+    notePlaceholder: 'Activity, experience, preferences…',
+    activate: 'Post profile',
+    deactivate: 'Remove profile',
+    activeStatus: '✅ Profile active — clan leaders can see you',
+    inactiveStatus: 'Profile not active',
+    saving: '…',
+    boardTitle: '👥 Player Market',
+    boardHint: 'Players looking for a clan. Tap a card to open in Telegram.',
+    empty: 'Nobody is looking for a clan yet 🤷',
+    loading: 'Loading candidates…',
+    error: 'Failed to load list',
+    weeks: 'wk',
+    medalsTotal: 'medals',
+    perAttack: 'per attack',
+    openTg: 'Message ↗',
+    ago: 'applied',
   },
 
   owner: {

@@ -28,6 +28,10 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
                 throw new InvalidOperationException(
                     "CR API отклонил ключ (403). Ключ привязан к IP — создай новый на developer.clashroyale.com " +
                     "с IP сервера (Render: Settings → Outbound IPs) и обнови CLASH_ROYALE_API_TOKEN.");
+            if ((int)resp.StatusCode >= 500 || resp.StatusCode == HttpStatusCode.TooManyRequests)
+                throw new HttpRequestException(
+                    $"Clash Royale API временно недоступен ({(int)resp.StatusCode}). Попробуйте через минуту.",
+                    null, resp.StatusCode);
             resp.EnsureSuccessStatusCode();
 
             var race = await resp.Content.ReadFromJsonAsync<RiverRaceResponse>(cancellationToken: ct);

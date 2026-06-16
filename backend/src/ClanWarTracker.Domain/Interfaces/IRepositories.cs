@@ -56,3 +56,11 @@ public interface IWarSnapshotRepository
     Task<List<PlayerWarSnapshot>> GetPlayersHistoryAsync(IReadOnlyCollection<string> playerTags, int weeks,
         CancellationToken ct = default);
 }
+
+public interface IRecruitmentRepository
+{
+    Task<RecruitmentProfile?> GetByPlayerTagAsync(string playerTag, CancellationToken ct = default);
+    Task<List<RecruitmentProfile>> GetActiveAsync(CancellationToken ct = default);
+    Task UpsertAsync(RecruitmentProfile profile, CancellationToken ct = default);
+    Task SaveChangesAsync(CancellationToken ct = default);
+}
