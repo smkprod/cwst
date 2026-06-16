@@ -30,7 +30,8 @@ public class GetClanStatusUseCase(
             ? []
             : (await players.GetByClanIdAsync(clan.Id, ct))
                 .Where(p => p.TelegramUserId is not null)
-                .ToDictionary(p => p.PlayerTag, p => p.TelegramUserId);
+                .GroupBy(p => p.PlayerTag, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.First().TelegramUserId, StringComparer.OrdinalIgnoreCase);
 
         var now = DateTime.UtcNow;
         var hoursLeft = Math.Max(0, (int)war.TimeLeft(now).TotalHours);
