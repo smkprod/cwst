@@ -541,7 +541,7 @@ const uk: Translations = {
     tabLabel: 'Біржа',
     myTitle: '🔍 Шукаю клан',
     myHint: 'Твоя анкета буде видна лідерам кланів з тарифом Pro.',
-    noteLabel: 'Про себе (необов'язково)',
+    noteLabel: "Про себе (необов'язково)",
     notePlaceholder: 'Активність, досвід, побажання…',
     activate: 'Розмістити анкету',
     deactivate: 'Зняти анкету',
