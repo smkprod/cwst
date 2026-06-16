@@ -102,6 +102,9 @@ const ru = {
     totalMedals: 'Медали всего',
     perAttack: 'За атаку',
     cards: 'Карты',
+    tabProfile: 'Профиль',
+    tabWars: 'Войны КВ',
+    lvl: 'lvl',
   },
 
   me: {
@@ -359,6 +362,9 @@ const uk: Translations = {
     totalMedals: 'Медалей загалом',
     perAttack: 'За атаку',
     cards: 'Карти',
+    tabProfile: 'Профіль',
+    tabWars: 'Війни КВ',
+    lvl: 'lvl',
   },
 
   me: {
@@ -614,6 +620,9 @@ const en: Translations = {
     totalMedals: 'Total Medals',
     perAttack: 'Per Attack',
     cards: 'Cards',
+    tabProfile: 'Profile',
+    tabWars: 'CW Wars',
+    lvl: 'lvl',
   },
 
   me: {
