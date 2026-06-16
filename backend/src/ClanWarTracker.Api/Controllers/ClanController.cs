@@ -36,6 +36,8 @@ public class ClanController(
         try { status = await getStatus.ExecuteAsync(clan!.ClanTag, ct); }
         catch (HttpRequestException ex) when ((int)(ex.StatusCode ?? 0) is >= 500 or 429)
             { return StatusCode(503, new { error = "cr_api_unavailable", message = ex.Message }); }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("CR API"))
+            { return StatusCode(503, new { error = "cr_api_token_invalid", message = ex.Message }); }
         if (status is null) return NotFound(new { error = "war_not_found" });
 
         // Подмешиваем контекст текущего пользователя
@@ -86,6 +88,8 @@ public class ClanController(
         try { status2 = await getStatus.ExecuteAsync("#" + tag.ToUpperInvariant(), ct); }
         catch (HttpRequestException ex) when ((int)(ex.StatusCode ?? 0) is >= 500 or 429)
             { return StatusCode(503, new { error = "cr_api_unavailable", message = ex.Message }); }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("CR API"))
+            { return StatusCode(503, new { error = "cr_api_token_invalid", message = ex.Message }); }
         return status2 is null ? NotFound(new { error = "war_not_found" }) : Ok(status2);
     }
 
