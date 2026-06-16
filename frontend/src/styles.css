@@ -436,6 +436,14 @@ main.with-tabbar { padding-bottom: 80px; }
 
 .owner-delete { margin-left: auto; }
 .owner-delete-hint { margin: 8px 2px 0; }
+/* Owner stats funnel card */
+.owner-stats-card { margin-bottom: 12px; }
+.owner-stats-title { font-weight: 700; font-size: 14px; margin: 0 0 10px; }
+.owner-stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 8px; }
+.owner-stat { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.owner-stat-value { font-size: 22px; font-weight: 800; color: var(--accent); line-height: 1; }
+.owner-stat-label { font-size: 11px; color: var(--muted); text-align: center; }
+.owner-stats-sub { margin: 4px 0 0; }
 
 /* --- Гонка недели (standings, стиль cwstats) --- */
 .race-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }

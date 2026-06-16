@@ -298,6 +298,14 @@ export interface GlobalTop {
 }
 
 /* --- Панель владельца --- */
+export interface OwnerStats {
+  totalClans: number
+  proClans: number
+  totalLinkedUsers: number
+  usersWithClan: number
+  usersWithoutClan: number
+}
+
 export interface OwnerClan {
   id: number
   clanTag: string

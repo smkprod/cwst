@@ -62,8 +62,10 @@ export default function App() {
         setState({ kind: 'clanless' })
       } else if (e instanceof ApiError && (e.code === 'no_init_data' || e.code === 'bad_init_data')) {
         setState({ kind: 'notInTelegram' })
-      } else if (e instanceof ApiError && e.status === 500) {
-        setState({ kind: 'error', message: t.serverError })
+      } else if (e instanceof ApiError && (e.status === 500 || e.status === 503)) {
+        // 503 may carry a meaningful message (e.g. CR API token expired); 500 falls back to generic
+        const msg = e.status === 503 && e.message && e.message !== e.code ? e.message : t.serverError
+        setState({ kind: 'error', message: msg })
       } else {
         setState({ kind: 'error', message: e instanceof Error && e.message ? e.message : t.networkError })
       }

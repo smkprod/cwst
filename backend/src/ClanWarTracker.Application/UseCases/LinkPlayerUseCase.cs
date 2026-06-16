@@ -17,8 +17,8 @@ public class LinkPlayerUseCase(IClashRoyaleApi crApi, IClanRepository clans, IPl
         Clan? clan = null;
         if (chatId.HasValue)
         {
-            clan = await clans.GetByChatIdAsync(chatId.Value, ct)
-                   ?? throw new InvalidOperationException("Клан не привязан к этому чату. Сначала /setup.");
+            clan = await clans.GetByChatIdAsync(chatId.Value, ct);
+            // Clan not set up yet — link player anyway; ClanController auto-assigns clan later
         }
 
         var existing = await players.GetByTelegramIdAsync(telegramUserId, ct);

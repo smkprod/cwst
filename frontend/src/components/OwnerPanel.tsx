@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../lib/api'
-import type { OwnerClan } from '../types'
+import type { OwnerClan, OwnerStats } from '../types'
 import { haptic, hapticNotify } from '../lib/telegram'
 import { useT } from '../lib/i18n'
 
 type State =
   | { kind: 'loading' }
   | { kind: 'error' }
-  | { kind: 'ready'; clans: OwnerClan[] }
+  | { kind: 'ready'; clans: OwnerClan[]; stats: OwnerStats }
 
 export function OwnerPanel() {
   const [state, setState] = useState<State>({ kind: 'loading' })
@@ -16,8 +16,8 @@ export function OwnerPanel() {
   const { t } = useT()
 
   const load = useCallback(() => {
-    api.ownerGetClans()
-      .then(clans => setState({ kind: 'ready', clans }))
+    Promise.all([api.ownerGetClans(), api.ownerGetStats()])
+      .then(([clans, stats]) => setState({ kind: 'ready', clans, stats }))
       .catch(() => setState({ kind: 'error' }))
   }, [])
 
@@ -59,9 +59,41 @@ export function OwnerPanel() {
   if (state.kind === 'loading') return <div className="center"><div className="spinner" /></div>
   if (state.kind === 'error') return <p className="center muted">{t.owner.error}</p>
 
+  const { stats } = state
+  const conversionPct = stats.totalLinkedUsers > 0
+    ? Math.round(stats.usersWithClan * 100 / stats.totalLinkedUsers)
+    : 0
+
   return (
     <div>
       <h2 className="section-title">{t.owner.title}</h2>
+
+      {/* Воронка */}
+      <div className="card owner-stats-card">
+        <p className="owner-stats-title">📊 Воронка</p>
+        <div className="owner-stats-grid">
+          <div className="owner-stat">
+            <span className="owner-stat-value">{stats.totalLinkedUsers}</span>
+            <span className="owner-stat-label">Отправили тег</span>
+          </div>
+          <div className="owner-stat">
+            <span className="owner-stat-value">{stats.usersWithClan}</span>
+            <span className="owner-stat-label">С кланом</span>
+          </div>
+          <div className="owner-stat">
+            <span className="owner-stat-value">{stats.usersWithoutClan}</span>
+            <span className="owner-stat-label">Без клана</span>
+          </div>
+          <div className="owner-stat">
+            <span className="owner-stat-value">{conversionPct}%</span>
+            <span className="owner-stat-label">Конверсия</span>
+          </div>
+        </div>
+        <p className="owner-stats-sub muted small">
+          {stats.totalClans} кланов · {stats.proClans} PRO
+        </p>
+      </div>
+
       <p className="muted small owner-hint">
         {t.owner.clans} {state.clans.length} · {t.owner.pro} {state.clans.filter(c => c.plan === 'pro').length}
       </p>
