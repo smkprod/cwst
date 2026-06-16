@@ -724,6 +724,17 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 .profile-stat-value { font-size: 14px; font-weight: 700; }
 .profile-stat-label { font-size: 10px; color: var(--muted); margin-top: 1px; }
 .profile-war-block { margin-bottom: 4px; }
+
+.profile-tabs { display: flex; gap: 4px; margin-top: 12px; border-top: 1px solid rgba(255,255,255,0.07); padding-top: 10px; }
+.profile-tab {
+  flex: 1; background: none; border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px; padding: 6px 10px; cursor: pointer;
+  font-size: 12px; font-weight: 600; color: var(--muted);
+  transition: color 0.15s, border-color 0.15s;
+}
+.profile-tab:hover { color: var(--text); border-color: rgba(255,255,255,0.25); }
+.profile-tab-active { color: var(--accent) !important; border-color: var(--accent) !important; }
+
 .cards-section-title { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
 .cards-grid {
   display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;
@@ -735,3 +746,25 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 }
 .card-chip-level { font-size: 10px; font-weight: 700; color: var(--muted); }
 .card-chip-maxed { color: var(--gold); }
+
+/* --- Биржа игроков --- */
+.recruit-card { }
+.recruit-active-status { font-size: 13px; color: var(--green); font-weight: 600; margin-bottom: 8px; }
+.recruit-note-wrap { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+.recruit-note {
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px; padding: 8px 10px; color: var(--text); font-size: 13px;
+  resize: none; font-family: inherit; width: 100%;
+}
+.recruit-note:focus { outline: none; border-color: var(--accent); }
+.recruit-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+
+.recruit-list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.recruit-candidate { cursor: pointer; }
+.recruit-candidate-top { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+.recruit-candidate-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.recruit-candidate-name { font-weight: 700; font-size: 15px; }
+.recruit-note-text { font-size: 12px; color: var(--muted); font-style: italic; margin-top: 2px; }
+.recruit-tg-btn { flex-shrink: 0; }
+.recruit-stats { display: flex; gap: 16px; }
+.recruit-stat { font-size: 13px; }

@@ -18,15 +18,19 @@ import { AboutCard } from './components/AboutCard'
 import { OwnerPanel } from './components/OwnerPanel'
 import { LinkPrompt } from './components/LinkPrompt'
 import { PlayerSearchView } from './components/PlayerSearchView'
+import { RecruitBoard } from './components/RecruitBoard'
+import { RecruitToggle } from './components/RecruitToggle'
+import { ClanlessView } from './components/ClanlessView'
 
 type State =
   | { kind: 'loading' }
   | { kind: 'notLinked' }
   | { kind: 'notInTelegram' }
+  | { kind: 'clanless' }
   | { kind: 'error'; message: string }
   | { kind: 'ready'; data: ClanStatus }
 
-type Tab = 'war' | 'rating' | 'me' | 'search' | 'owner'
+type Tab = 'war' | 'rating' | 'me' | 'search' | 'owner' | 'recruit'
 
 export default function App() {
   const [state, setState] = useState<State>({ kind: 'loading' })
@@ -40,6 +44,8 @@ export default function App() {
     } catch (e) {
       if (e instanceof ApiError && e.code === 'player_not_linked') {
         setState({ kind: 'notLinked' })
+      } else if (e instanceof ApiError && e.code === 'clan_not_found') {
+        setState({ kind: 'clanless' })
       } else if (e instanceof ApiError && (e.code === 'no_init_data' || e.code === 'bad_init_data')) {
         setState({ kind: 'notInTelegram' })
       } else if (e instanceof ApiError && e.status === 500) {
@@ -71,6 +77,8 @@ export default function App() {
       )
     case 'notLinked':
       return <LinkPrompt />
+    case 'clanless':
+      return <main><ClanlessView /></main>
     case 'notInTelegram':
       return (
         <div className="center">
@@ -99,6 +107,7 @@ export default function App() {
         { id: 'rating', icon: '🏆', label: t.tabs.rating },
         { id: 'me', icon: '👤', label: t.tabs.me },
         { id: 'search', icon: '🔍', label: t.tabs.search },
+        ...(data.isClanLeader && data.plan === 'pro' ? [{ id: 'recruit' as Tab, icon: '👥', label: t.tabs.recruit }] : []),
         ...(data.isOwner ? [{ id: 'owner' as Tab, icon: '⚙️', label: t.tabs.owner }] : []),
       ]
 
@@ -135,12 +144,19 @@ export default function App() {
               <div className="fade-in">
                 <MyStatsView />
                 <div style={{ height: 12 }} />
+                <RecruitToggle />
+                <div style={{ height: 12 }} />
                 <AboutCard plan={data.plan} />
               </div>
             )}
             {tab === 'search' && (
               <div className="fade-in">
                 <PlayerSearchView />
+              </div>
+            )}
+            {tab === 'recruit' && data.isClanLeader && data.plan === 'pro' && (
+              <div className="fade-in">
+                <RecruitBoard />
               </div>
             )}
             {tab === 'owner' && data.isOwner && (

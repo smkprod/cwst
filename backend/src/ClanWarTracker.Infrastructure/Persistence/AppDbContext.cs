@@ -9,6 +9,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Player> Players => Set<Player>();
     public DbSet<WarSnapshot> WarSnapshots => Set<WarSnapshot>();
     public DbSet<PlayerWarSnapshot> PlayerWarSnapshots => Set<PlayerWarSnapshot>();
+    public DbSet<RecruitmentProfile> RecruitmentProfiles => Set<RecruitmentProfile>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -45,7 +46,17 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(p => p.PlayerTag).HasMaxLength(16);
             e.HasOne(p => p.Clan)
              .WithMany(c => c.Players)
-             .HasForeignKey(p => p.ClanId);
+             .HasForeignKey(p => p.ClanId)
+             .IsRequired(false);
+        });
+
+        mb.Entity<RecruitmentProfile>(e =>
+        {
+            e.HasIndex(r => r.PlayerTag).IsUnique();
+            e.HasIndex(r => r.TelegramUserId).IsUnique();
+            e.Property(r => r.PlayerTag).HasMaxLength(16);
+            e.Property(r => r.Note).HasMaxLength(500);
+            e.Property(r => r.Name).HasMaxLength(64);
         });
     }
 }

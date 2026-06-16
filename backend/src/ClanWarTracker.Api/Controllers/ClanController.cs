@@ -32,7 +32,10 @@ public class ClanController(
         var (player, clan, error) = await ResolvePlayerClanAsync(ct);
         if (error is not null) return error;
 
-        var status = await getStatus.ExecuteAsync(clan!.ClanTag, ct);
+        ClanStatusDto? status;
+        try { status = await getStatus.ExecuteAsync(clan!.ClanTag, ct); }
+        catch (HttpRequestException ex) when ((int)(ex.StatusCode ?? 0) is >= 500 or 429)
+            { return StatusCode(503, new { error = "cr_api_unavailable", message = ex.Message }); }
         if (status is null) return NotFound(new { error = "war_not_found" });
 
         // Подмешиваем контекст текущего пользователя
@@ -79,8 +82,11 @@ public class ClanController(
     [HttpGet("{tag}/status")]
     public async Task<IActionResult> GetClanStatus(string tag, CancellationToken ct)
     {
-        var status = await getStatus.ExecuteAsync("#" + tag.ToUpperInvariant(), ct);
-        return status is null ? NotFound(new { error = "war_not_found" }) : Ok(status);
+        ClanStatusDto? status2;
+        try { status2 = await getStatus.ExecuteAsync("#" + tag.ToUpperInvariant(), ct); }
+        catch (HttpRequestException ex) when ((int)(ex.StatusCode ?? 0) is >= 500 or 429)
+            { return StatusCode(503, new { error = "cr_api_unavailable", message = ex.Message }); }
+        return status2 is null ? NotFound(new { error = "war_not_found" }) : Ok(status2);
     }
 
     /// <summary>
@@ -183,7 +189,7 @@ public class ClanController(
         if (player is null)
             return (null, null, NotFound(new { error = "player_not_linked", message = "Сначала привяжи тег: /link #ТЕГ" }));
 
-        var clan = await clans.GetByIdAsync(player.ClanId, ct);
+        var clan = player.ClanId.HasValue ? await clans.GetByIdAsync(player.ClanId.Value, ct) : null;
 
         // Авто-переключение: если игрок в CR сейчас в другом клане,
         // и этот клан зарегистрирован в сервисе — следуем за игроком.
