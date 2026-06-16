@@ -62,6 +62,27 @@ public class OwnerController(
     }
 
     /// <summary>
+    /// GET /api/owner/stats — воронка: сколько пользователей дошли до каждого шага.
+    /// </summary>
+    [HttpGet("stats")]
+    public async Task<IActionResult> GetStats(CancellationToken ct)
+    {
+        if (!IsOwner()) return StatusCode(403, new { error = "not_owner" });
+
+        var allPlayers = await players.GetAllLinkedAsync(ct);
+        var allClans  = await clans.GetAllAsync(ct);
+        var now = DateTime.UtcNow;
+
+        return Ok(new {
+            totalClans       = allClans.Count,
+            proClans         = allClans.Count(c => c.EffectivePlan(now) == Domain.Enums.PlanTier.Pro),
+            totalLinkedUsers = allPlayers.Count,
+            usersWithClan    = allPlayers.Count(p => p.ClanId.HasValue),
+            usersWithoutClan = allPlayers.Count(p => !p.ClanId.HasValue),
+        });
+    }
+
+    /// <summary>
     /// DELETE /api/owner/clans/{id} — отвязать клан от сервиса.
     /// Удаляет клан вместе с привязками игроков и историей войн.
     /// </summary>
