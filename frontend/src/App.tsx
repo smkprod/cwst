@@ -21,6 +21,7 @@ import { PlayerSearchView } from './components/PlayerSearchView'
 import { RecruitBoard } from './components/RecruitBoard'
 import { RecruitToggle } from './components/RecruitToggle'
 import { ClanlessView } from './components/ClanlessView'
+import { CommunityCard } from './components/CommunityCard'
 
 type State =
   | { kind: 'loading' }
@@ -147,6 +148,8 @@ export default function App() {
                 <RecruitToggle />
                 <div style={{ height: 12 }} />
                 <AboutCard plan={data.plan} />
+                <div style={{ height: 12 }} />
+                <CommunityCard />
               </div>
             )}
             {tab === 'search' && (

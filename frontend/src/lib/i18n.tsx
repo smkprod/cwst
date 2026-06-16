@@ -287,6 +287,11 @@ const ru = {
     noClans: 'Пока ни одного клана — кланы появляются после /setup в группе.',
     error: 'Нет доступа или ошибка сети.',
   },
+
+  community: {
+    label: 'Самое большое рояль комьюнити в Telegram!',
+    btn: 'Открыть канал ↗',
+  },
 }
 
 export type Translations = typeof ru
@@ -576,6 +581,11 @@ const uk: Translations = {
     noClans: "Поки жодного клану — клани з'являються після /setup у групі.",
     error: 'Немає доступу або помилка мережі.',
   },
+
+  community: {
+    label: 'Найбільше рояль комʼюніті в Telegram!',
+    btn: 'Відкрити канал ↗',
+  },
 }
 
 const en: Translations = {
@@ -862,6 +872,11 @@ const en: Translations = {
     deleteHint: 'Will delete the clan, all player TG links and war history. Click again to confirm.',
     noClans: 'No clans yet — clans appear after /setup in the group.',
     error: 'No access or network error.',
+  },
+
+  community: {
+    label: 'The largest Clash Royale community on Telegram!',
+    btn: 'Open channel ↗',
   },
 }
 
