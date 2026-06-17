@@ -9,4 +9,5 @@ public class Player
     public int? ClanId { get; set; }   // null = игрок без клана в боте
     public Clan? Clan { get; set; }
     public DateTime? LastReminderSentAt { get; set; }    // анти-спам напоминаний
+    public DateTime? LastSmartAlertSentAt { get; set; }   // анти-спам персональных алертов о влиянии на победу
 }

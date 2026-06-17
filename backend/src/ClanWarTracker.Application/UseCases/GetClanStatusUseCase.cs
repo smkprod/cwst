@@ -407,19 +407,15 @@ public class GetClanStatusUseCase(
                 .First();
             topRivalName = bestRival.Name;
             double rivalProj = bestRival.IsFinished ? bestRival.Fame : bestRival.ProjectedFame;
+            double sigma = ComputeSigma(ours.ProjectedFame, ours.Fame, rivalProj, bestRival.Fame);
 
-            // Неопределённость ≈ треть ещё не набранной (прогнозной) славы, минимум 400
-            double uOur = Math.Max(400, (ours.ProjectedFame - ours.Fame) * 0.35);
-            double uRiv = Math.Max(400, (rivalProj - bestRival.Fame) * 0.35);
-            double sigma = Math.Sqrt(uOur * uOur + uRiv * uRiv);
-
-            winChance = ToChance((ours.ProjectedFame - rivalProj) / sigma);
+            winChance = ComputeWinChance(ours.ProjectedFame, rivalProj, sigma);
 
             // Сценарий: не доигравшие сегодня игроки вообще больше не сыграют на неделе
             var lostFuture = players
                 .Where(p => p.Status != "played")
                 .Sum(p => Math.Max(0, p.ProjectedWeekFame - p.Fame));
-            winChanceDown = ToChance((ours.ProjectedFame - lostFuture - rivalProj) / sigma);
+            winChanceDown = ComputeWinChance(ours.ProjectedFame - lostFuture, rivalProj, sigma);
         }
 
         // --- Здоровье клана ---
@@ -470,6 +466,18 @@ public class GetClanStatusUseCase(
     /// <summary>Логистическая функция → проценты 3..97 (никогда не обещаем 0/100).</summary>
     private static int ToChance(double z) =>
         Math.Clamp((int)Math.Round(100.0 / (1.0 + Math.Exp(-1.6 * z))), 3, 97);
+
+    /// <summary>Неопределённость ≈ треть ещё не набранной (прогнозной) славы, минимум 400.</summary>
+    internal static double ComputeSigma(double ourProjected, double ourFame, double rivalProjected, double rivalFame)
+    {
+        double uOur = Math.Max(400, (ourProjected - ourFame) * 0.35);
+        double uRiv = Math.Max(400, (rivalProjected - rivalFame) * 0.35);
+        return Math.Sqrt(uOur * uOur + uRiv * uRiv);
+    }
+
+    /// <summary>Шанс победы 3..97% по разнице прогнозов нашего клана и соперника.</summary>
+    internal static int ComputeWinChance(double ourProjected, double rivalProjected, double sigma) =>
+        ToChance((ourProjected - rivalProjected) / sigma);
 
     private static string? RoleLabel(string? apiRole) => apiRole switch
     {

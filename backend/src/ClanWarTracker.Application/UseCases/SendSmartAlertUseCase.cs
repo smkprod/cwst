@@ -1,0 +1,71 @@
+using ClanWarTracker.Domain.Enums;
+using ClanWarTracker.Domain.Interfaces;
+
+namespace ClanWarTracker.Application.UseCases;
+
+/// <summary>
+/// Личный алерт игроку, который ещё не доиграл войну: показывает, на сколько именно
+/// его бездействие роняет шанс клана на победу. Pro-фича — использует тот же прогноз,
+/// что и Mini App (GetClanStatusUseCase), но адресует эффект конкретному игроку.
+/// </summary>
+public class SendSmartAlertUseCase(
+    IClanRepository clans,
+    IPlayerRepository players,
+    INotificationSender notifier,
+    GetClanStatusUseCase clanStatus)
+{
+    /// <summary>Не чаще одного алерта на игрока за войну.</summary>
+    private static readonly TimeSpan AlertCooldown = TimeSpan.FromHours(6);
+
+    /// <summary>Минимальная просадка шанса победы, чтобы алерт был не спамом, а реальным сигналом.</summary>
+    private const int MinChanceDrop = 5;
+
+    public async Task ExecuteAsync(CancellationToken ct = default)
+    {
+        foreach (var clan in await clans.GetAllAsync(ct))
+        {
+            if (clan.EffectivePlan(DateTime.UtcNow) != PlanTier.Pro) continue;
+
+            var status = await clanStatus.ExecuteAsync(clan.ClanTag, ct);
+            if (status is null || status.Insights?.WinChance is null) continue;
+
+            var ours = status.Race.FirstOrDefault(r => r.IsOurClan);
+            var bestRival = status.Race.Where(r => !r.IsOurClan)
+                .OrderByDescending(r => r.IsFinished ? r.Fame : r.ProjectedFame)
+                .FirstOrDefault();
+            if (ours is null || bestRival is null) continue;
+
+            var rivalProj = bestRival.IsFinished ? bestRival.Fame : bestRival.ProjectedFame;
+            var sigma = GetClanStatusUseCase.ComputeSigma(ours.ProjectedFame, ours.Fame, rivalProj, bestRival.Fame);
+            var winChance = status.Insights.WinChance.Value;
+            var now = DateTime.UtcNow;
+
+            var linked = (await players.GetByClanIdAsync(clan.Id, ct))
+                .Where(p => p.TelegramUserId is not null)
+                .ToDictionary(p => p.PlayerTag, StringComparer.OrdinalIgnoreCase);
+
+            foreach (var p in status.Players.Where(p => p.Status != "played"))
+            {
+                if (!linked.TryGetValue(p.PlayerTag, out var player)) continue;
+                if (now - player.LastSmartAlertSentAt < AlertCooldown) continue;
+
+                var lostFame = Math.Max(0, p.ProjectedWeekFame - p.Fame);
+                if (lostFame <= 0) continue;
+
+                var winChanceWithoutMe = GetClanStatusUseCase.ComputeWinChance(
+                    ours.ProjectedFame - lostFame, rivalProj, sigma);
+                if (winChance - winChanceWithoutMe < MinChanceDrop) continue;
+
+                var decksLeft = 4 - p.DecksUsedToday;
+                await notifier.SendToUserAsync(
+                    player.TelegramUserId!.Value,
+                    $"📉 Без твоих атак шанс клана на победу упадёт с {winChance}% до {winChanceWithoutMe}%!\n" +
+                    $"Осталось колод: {decksLeft}/4 — успей сыграть.", ct);
+
+                player.LastSmartAlertSentAt = now;
+            }
+
+            await players.SaveChangesAsync(ct);
+        }
+    }
+}

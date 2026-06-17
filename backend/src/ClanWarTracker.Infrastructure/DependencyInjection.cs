@@ -131,6 +131,9 @@ CREATE TABLE IF NOT EXISTS ""RecruitmentProfiles"" (
         // Игроки без клана: ClanId теперь nullable
         await db.Database.ExecuteSqlRawAsync(
             "ALTER TABLE \"Players\" ALTER COLUMN \"ClanId\" DROP NOT NULL;");
+
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Players\" ADD COLUMN IF NOT EXISTS \"LastSmartAlertSentAt\" timestamptz;");
     }
 
     /// <summary>Убирает все пробельные символы (включая \r\n) из токена. null, если пусто.</summary>
