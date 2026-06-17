@@ -60,6 +60,17 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
             {
                 logger.LogError(ex, "Plan expiry reminder failed");
             }
+
+            try
+            {
+                using var scope = scopeFactory.CreateScope();
+                var smartAlert = scope.ServiceProvider.GetRequiredService<SendSmartAlertUseCase>();
+                await smartAlert.ExecuteAsync(stoppingToken);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Smart alert failed");
+            }
         }
         while (await timer.WaitForNextTickAsync(stoppingToken));
     }
