@@ -23,6 +23,7 @@ public class Tournament
 
     public DateTime CreatedAtUtc { get; set; }
     public DateTime? BracketGeneratedAtUtc { get; set; }
+    public DateTime? StartedAtUtc { get; set; }
     public DateTime? CompletedAtUtc { get; set; }
 
     public List<TournamentParticipant> Participants { get; set; } = [];

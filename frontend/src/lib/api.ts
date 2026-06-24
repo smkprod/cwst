@@ -106,6 +106,10 @@ export const api = {
     request<Tournament>(`/api/tournaments/${id}/leave`, { method: 'POST' }),
   generateTournamentBracket: (id: number) =>
     request<Tournament>(`/api/tournaments/${id}/bracket`, { method: 'POST' }),
+  startTournament: (id: number) =>
+    request<Tournament>(`/api/tournaments/${id}/start`, { method: 'POST' }),
+  finishTournament: (id: number) =>
+    request<Tournament>(`/api/tournaments/${id}/finish`, { method: 'POST' }),
   setTournamentMatchResult: (id: number, matchId: number, scoreA: number, scoreB: number) =>
     request<Tournament>(`/api/tournaments/${id}/matches/${matchId}/result`, {
       method: 'POST',

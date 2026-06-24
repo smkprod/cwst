@@ -11,7 +11,9 @@ public class TournamentsController(
     LeaveTournamentUseCase leave,
     UpdateTournamentUseCase update,
     GenerateTournamentBracketUseCase generateBracket,
+    StartTournamentUseCase start,
     SetTournamentMatchResultUseCase setResult,
+    FinishTournamentUseCase finish,
     CancelTournamentUseCase cancel,
     GetTournamentUseCase getOne,
     GetTournamentListUseCase getList,
@@ -91,6 +93,16 @@ public class TournamentsController(
         return Ok(await getOne.ExecuteAsync(id, userId, ct));
     }
 
+    /// <summary>POST /api/tournaments/{id}/start — запустить турнир (только создатель) + уведомление участников.</summary>
+    [HttpPost("{id:int}/start")]
+    public async Task<IActionResult> Start(int id, CancellationToken ct)
+    {
+        var userId = (long)HttpContext.Items["TelegramUserId"]!;
+        var error = await start.ExecuteAsync(id, userId, ct);
+        if (error is not null) return MapStartError(error.Value);
+        return Ok(await getOne.ExecuteAsync(id, userId, ct));
+    }
+
     /// <summary>POST /api/tournaments/{id}/matches/{matchId}/result — внести/исправить результат (только создатель).</summary>
     [HttpPost("{id:int}/matches/{matchId:int}/result")]
     public async Task<IActionResult> SetResult(int id, int matchId, [FromBody] SetResultRequest req, CancellationToken ct)
@@ -98,6 +110,16 @@ public class TournamentsController(
         var userId = (long)HttpContext.Items["TelegramUserId"]!;
         var error = await setResult.ExecuteAsync(id, matchId, userId, req.ScoreA, req.ScoreB, ct);
         if (error is not null) return MapResultError(error.Value);
+        return Ok(await getOne.ExecuteAsync(id, userId, ct));
+    }
+
+    /// <summary>POST /api/tournaments/{id}/finish — досрочно завершить турнир (только создатель) + уведомление.</summary>
+    [HttpPost("{id:int}/finish")]
+    public async Task<IActionResult> Finish(int id, CancellationToken ct)
+    {
+        var userId = (long)HttpContext.Items["TelegramUserId"]!;
+        var error = await finish.ExecuteAsync(id, userId, ct);
+        if (error is not null) return MapFinishError(error.Value);
         return Ok(await getOne.ExecuteAsync(id, userId, ct));
     }
 
@@ -159,6 +181,22 @@ public class TournamentsController(
         GenerateBracketError.NotCreator => StatusCode(403, new { error = "not_creator" }),
         GenerateBracketError.NotEnoughParticipants => BadRequest(new { error = "not_enough_participants", message = "Нужно минимум 2 участника" }),
         GenerateBracketError.AlreadyPlaying => BadRequest(new { error = "already_playing", message = "Сетку нельзя перестроить — уже есть сыгранные матчи" }),
+        _ => BadRequest(new { error = "bad_request" }),
+    };
+
+    private IActionResult MapStartError(StartTournamentError e) => e switch
+    {
+        StartTournamentError.TournamentNotFound => NotFound(new { error = "tournament_not_found" }),
+        StartTournamentError.NotCreator => StatusCode(403, new { error = "not_creator" }),
+        StartTournamentError.NotBracketReady => BadRequest(new { error = "not_bracket_ready", message = "Сначала построй сетку" }),
+        _ => BadRequest(new { error = "bad_request" }),
+    };
+
+    private IActionResult MapFinishError(FinishTournamentError e) => e switch
+    {
+        FinishTournamentError.TournamentNotFound => NotFound(new { error = "tournament_not_found" }),
+        FinishTournamentError.NotCreator => StatusCode(403, new { error = "not_creator" }),
+        FinishTournamentError.NotInProgress => BadRequest(new { error = "not_in_progress", message = "Турнир не идёт" }),
         _ => BadRequest(new { error = "bad_request" }),
     };
 

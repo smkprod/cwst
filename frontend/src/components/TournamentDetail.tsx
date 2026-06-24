@@ -20,6 +20,7 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
   const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState(false)
   const [confirmCancel, setConfirmCancel] = useState(false)
+  const [confirmFinish, setConfirmFinish] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -32,6 +33,7 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
     setState({ kind: 'ready', data })
     setActionError(null)
     setConfirmCancel(false)
+    setConfirmFinish(false)
   }
 
   const mapError = (code: string) => {
@@ -43,6 +45,8 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
       case 'already_started': return t.tournament.alreadyStarted
       case 'not_enough_participants': return t.tournament.notEnoughParticipants
       case 'already_playing': return t.tournament.alreadyPlaying
+      case 'not_bracket_ready': return t.tournament.notBracketReady
+      case 'not_in_progress': return t.tournament.notInProgress
       case 'not_creator': return t.tournament.notCreator
       case 'tournament_not_found': return t.tournament.notFound
       case 'player_not_linked': return t.tournament.notLinked
@@ -69,6 +73,16 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
   const join = () => runAction(() => api.joinTournament(tournamentId))
   const leave = () => runAction(() => api.leaveTournament(tournamentId))
   const generateBracket = () => runAction(() => api.generateTournamentBracket(tournamentId))
+  const startTournament = () => runAction(() => api.startTournament(tournamentId))
+
+  const finishTournament = () => {
+    if (!confirmFinish) {
+      haptic('medium')
+      setConfirmFinish(true)
+      return
+    }
+    runAction(() => api.finishTournament(tournamentId))
+  }
 
   const cancelTournament = async () => {
     if (!confirmCancel) {
@@ -137,6 +151,8 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
   const canEdit = d.isCreator && d.status !== 'cancelled' && d.status !== 'completed'
   const canManageBracket = d.isCreator && (d.status === 'registrationOpen' || d.status === 'bracketReady') && d.participants.length >= 2
   const canLeave = d.isParticipant && !d.isCreator && d.status === 'registrationOpen'
+  const canStart = d.isCreator && d.status === 'bracketReady'
+  const canFinish = d.isCreator && d.status === 'inProgress'
 
   return (
     <div>
@@ -185,6 +201,16 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
           {canManageBracket && (
             <button className="btn-mini" disabled={busy} onClick={generateBracket}>
               {d.matches.length > 0 ? t.tournament.regenerateBracketBtn : t.tournament.generateBracketBtn}
+            </button>
+          )}
+          {canStart && (
+            <button className="btn-mini" disabled={busy} onClick={startTournament}>
+              {t.tournament.startTournamentBtn}
+            </button>
+          )}
+          {canFinish && (
+            <button className="btn-mini btn-mini-danger" disabled={busy} onClick={finishTournament}>
+              {confirmFinish ? t.tournament.confirmFinish : t.tournament.finishTournamentBtn}
             </button>
           )}
           {canEdit && (
