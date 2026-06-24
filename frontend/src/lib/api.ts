@@ -1,5 +1,5 @@
 import { initData } from './telegram'
-import type { ClanHistory, ClanStatus, ClanWarLog, GlobalTop, MyStats, NudgeResult, OwnerClan, OwnerStats, PlayerHistory, PlayerProfile, RecruitmentCandidates, RecruitmentStatus, SeasonBreakdown, SeasonStats } from '../types'
+import type { ClanHistory, ClanStatus, ClanWarLog, GlobalTop, MyStats, NudgeResult, OwnerClan, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RecruitmentCandidates, RecruitmentStatus, SeasonBreakdown, SeasonStats, Tournament, TournamentSummary } from '../types'
 
 // Если мы на Render (production), BASE должен быть пустой строкой '', чтобы запросы шли на тот же домен.
 // Для локальной разработки (Development) оставляем localhost:5000.
@@ -78,4 +78,42 @@ export const api = {
     }),
   ownerDeleteClan: (clanId: number) =>
     request<{ ok: boolean }>(`/api/owner/clans/${clanId}`, { method: 'DELETE' }),
+
+  // Турниры
+  getTournaments: () => request<TournamentSummary[]>('/api/tournaments'),
+  getTournament: (id: number) => request<Tournament>(`/api/tournaments/${id}`),
+  createTournament: (req: {
+    name: string; description?: string; prizeInfo?: string
+    clanInviteLink: string; bestOf: number; maxParticipants: number
+  }) =>
+    request<Tournament>('/api/tournaments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req),
+    }),
+  updateTournament: (id: number, req: {
+    name: string; description?: string; prizeInfo?: string
+    clanInviteLink: string; bestOf: number; maxParticipants: number
+  }) =>
+    request<Tournament>(`/api/tournaments/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req),
+    }),
+  joinTournament: (id: number) =>
+    request<Tournament>(`/api/tournaments/${id}/join`, { method: 'POST' }),
+  leaveTournament: (id: number) =>
+    request<Tournament>(`/api/tournaments/${id}/leave`, { method: 'POST' }),
+  generateTournamentBracket: (id: number) =>
+    request<Tournament>(`/api/tournaments/${id}/bracket`, { method: 'POST' }),
+  setTournamentMatchResult: (id: number, matchId: number, scoreA: number, scoreB: number) =>
+    request<Tournament>(`/api/tournaments/${id}/matches/${matchId}/result`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scoreA, scoreB }),
+    }),
+  cancelTournament: (id: number) =>
+    request<{ ok: boolean }>(`/api/tournaments/${id}`, { method: 'DELETE' }),
+  getPlayerTournamentHistory: (tag: string) =>
+    request<PlayerTournamentHistory[]>(`/api/players/${encodeURIComponent(tag.replace('#', ''))}/tournaments`),
 }

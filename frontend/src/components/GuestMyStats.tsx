@@ -1,6 +1,7 @@
 import type { ClanStatus } from '../types'
 import { fmt } from '../lib/format'
 import { useT } from '../lib/i18n'
+import { TournamentHistoryCard } from './TournamentHistoryCard'
 
 interface Props {
   data: ClanStatus
@@ -64,6 +65,8 @@ export function GuestMyStats({ data, myPlayerTag }: Props) {
           <span className="me-stat-label">{t.me.weekForecast}</span>
         </div>
       </div>
+
+      <TournamentHistoryCard playerTag={myPlayerTag} />
 
       <div className="card guest-link-card">
         <p className="muted small" style={{ margin: 0, textAlign: 'center' }}>

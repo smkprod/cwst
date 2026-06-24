@@ -4,8 +4,9 @@ import { haptic } from '../lib/telegram'
 import { LangSwitcher } from './LangSwitcher'
 import { RecruitToggle } from './RecruitToggle'
 import { PlayerSearchView } from './PlayerSearchView'
+import { TournamentView } from './TournamentView'
 
-type Tab = 'home' | 'search'
+type Tab = 'home' | 'search' | 'tournament'
 
 export function ClanlessView() {
   const { t } = useT()
@@ -44,6 +45,12 @@ export function ClanlessView() {
             <PlayerSearchView />
           </div>
         )}
+
+        {tab === 'tournament' && (
+          <div className="fade-in">
+            <TournamentView />
+          </div>
+        )}
       </main>
 
       <nav className="tabbar" role="tablist">
@@ -64,6 +71,15 @@ export function ClanlessView() {
         >
           <span className="tab-icon">🔍</span>
           <span className="tab-label">{t.tabs.search}</span>
+        </button>
+        <button
+          role="tab"
+          aria-selected={tab === 'tournament'}
+          className={`tab ${tab === 'tournament' ? 'tab-active' : ''}`}
+          onClick={() => switchTab('tournament')}
+        >
+          <span className="tab-icon">🥇</span>
+          <span className="tab-label">{t.tabs.tournament}</span>
         </button>
       </nav>
     </>
