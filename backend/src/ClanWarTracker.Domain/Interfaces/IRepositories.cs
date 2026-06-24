@@ -64,3 +64,19 @@ public interface IRecruitmentRepository
     Task UpsertAsync(RecruitmentProfile profile, CancellationToken ct = default);
     Task SaveChangesAsync(CancellationToken ct = default);
 }
+
+public interface ITournamentRepository
+{
+    /// <summary>Турнир с загруженными участниками и матчами (с навигацией на участников матча).</summary>
+    Task<Tournament?> GetByIdAsync(int id, CancellationToken ct = default);
+
+    /// <summary>Турниры, ещё не завершённые и не отменённые (для вкладки "Турниры"), новые — первыми.</summary>
+    Task<List<Tournament>> GetActiveAsync(CancellationToken ct = default);
+
+    Task AddAsync(Tournament tournament, CancellationToken ct = default);
+
+    /// <summary>История участия игрока: его записи участника с загруженным турниром, новые — первыми.</summary>
+    Task<List<TournamentParticipant>> GetPlayerHistoryAsync(string playerTag, CancellationToken ct = default);
+
+    Task SaveChangesAsync(CancellationToken ct = default);
+}

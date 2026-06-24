@@ -10,6 +10,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<WarSnapshot> WarSnapshots => Set<WarSnapshot>();
     public DbSet<PlayerWarSnapshot> PlayerWarSnapshots => Set<PlayerWarSnapshot>();
     public DbSet<RecruitmentProfile> RecruitmentProfiles => Set<RecruitmentProfile>();
+    public DbSet<Tournament> Tournaments => Set<Tournament>();
+    public DbSet<TournamentParticipant> TournamentParticipants => Set<TournamentParticipant>();
+    public DbSet<TournamentMatch> TournamentMatches => Set<TournamentMatch>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -57,6 +60,54 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(r => r.PlayerTag).HasMaxLength(16);
             e.Property(r => r.Note).HasMaxLength(500);
             e.Property(r => r.Name).HasMaxLength(64);
+        });
+
+        mb.Entity<Tournament>(e =>
+        {
+            e.HasIndex(t => t.CreatorTelegramUserId);
+            e.Property(t => t.Name).HasMaxLength(80);
+            e.Property(t => t.Description).HasMaxLength(2000);
+            e.Property(t => t.PrizeInfo).HasMaxLength(500);
+            e.Property(t => t.ClanInviteLink).HasMaxLength(300);
+            e.Property(t => t.CreatorPlayerTag).HasMaxLength(16);
+            e.Property(t => t.CreatorName).HasMaxLength(64);
+        });
+
+        mb.Entity<TournamentParticipant>(e =>
+        {
+            e.HasIndex(p => new { p.TournamentId, p.PlayerTag }).IsUnique();
+            e.HasIndex(p => new { p.TournamentId, p.TelegramUserId }).IsUnique();
+            e.Property(p => p.PlayerTag).HasMaxLength(16);
+            e.Property(p => p.PlayerName).HasMaxLength(64);
+            e.HasOne(p => p.Tournament)
+             .WithMany(t => t.Participants)
+             .HasForeignKey(p => p.TournamentId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        mb.Entity<TournamentMatch>(e =>
+        {
+            e.HasIndex(m => new { m.TournamentId, m.Round, m.SlotIndex }).IsUnique();
+            e.HasOne(m => m.Tournament)
+             .WithMany(t => t.Matches)
+             .HasForeignKey(m => m.TournamentId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(m => m.ParticipantA)
+             .WithMany()
+             .HasForeignKey(m => m.ParticipantAId)
+             .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(m => m.ParticipantB)
+             .WithMany()
+             .HasForeignKey(m => m.ParticipantBId)
+             .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(m => m.WinnerParticipant)
+             .WithMany()
+             .HasForeignKey(m => m.WinnerParticipantId)
+             .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(m => m.NextMatch)
+             .WithMany()
+             .HasForeignKey(m => m.NextMatchId)
+             .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

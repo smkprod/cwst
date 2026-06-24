@@ -61,6 +61,7 @@ public static class DependencyInjection
         services.AddScoped<IPlayerRepository, PlayerRepository>();
         services.AddScoped<IWarSnapshotRepository, WarSnapshotRepository>();
         services.AddScoped<IRecruitmentRepository, RecruitmentRepository>();
+        services.AddScoped<ITournamentRepository, TournamentRepository>();
 
         return services;
     }
@@ -134,6 +135,66 @@ CREATE TABLE IF NOT EXISTS ""RecruitmentProfiles"" (
 
         await db.Database.ExecuteSqlRawAsync(
             "ALTER TABLE \"Players\" ADD COLUMN IF NOT EXISTS \"LastSmartAlertSentAt\" timestamptz;");
+
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""Tournaments"" (
+    ""Id"" serial PRIMARY KEY,
+    ""Name"" varchar(80) NOT NULL,
+    ""Description"" varchar(2000),
+    ""PrizeInfo"" varchar(500),
+    ""ClanInviteLink"" varchar(300) NOT NULL,
+    ""CreatorTelegramUserId"" bigint NOT NULL,
+    ""CreatorPlayerTag"" varchar(16) NOT NULL,
+    ""CreatorName"" varchar(64) NOT NULL,
+    ""BestOf"" integer NOT NULL DEFAULT 1,
+    ""MaxParticipants"" integer NOT NULL DEFAULT 16,
+    ""Status"" integer NOT NULL DEFAULT 0,
+    ""CreatedAtUtc"" timestamptz NOT NULL,
+    ""BracketGeneratedAtUtc"" timestamptz,
+    ""CompletedAtUtc"" timestamptz
+);");
+
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_Tournaments_CreatorTelegramUserId\" ON \"Tournaments\" (\"CreatorTelegramUserId\");");
+
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""TournamentParticipants"" (
+    ""Id"" serial PRIMARY KEY,
+    ""TournamentId"" integer NOT NULL REFERENCES ""Tournaments"" (""Id"") ON DELETE CASCADE,
+    ""TelegramUserId"" bigint NOT NULL,
+    ""PlayerTag"" varchar(16) NOT NULL,
+    ""PlayerName"" varchar(64) NOT NULL,
+    ""Seed"" integer NOT NULL DEFAULT 0,
+    ""Status"" integer NOT NULL DEFAULT 0,
+    ""FinalPlacement"" integer,
+    ""JoinedAtUtc"" timestamptz NOT NULL
+);");
+
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_TournamentParticipants_TournamentId_PlayerTag\" ON \"TournamentParticipants\" (\"TournamentId\", \"PlayerTag\");");
+
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_TournamentParticipants_TournamentId_TelegramUserId\" ON \"TournamentParticipants\" (\"TournamentId\", \"TelegramUserId\");");
+
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""TournamentMatches"" (
+    ""Id"" serial PRIMARY KEY,
+    ""TournamentId"" integer NOT NULL REFERENCES ""Tournaments"" (""Id"") ON DELETE CASCADE,
+    ""Round"" integer NOT NULL,
+    ""SlotIndex"" integer NOT NULL,
+    ""ParticipantAId"" integer REFERENCES ""TournamentParticipants"" (""Id""),
+    ""ParticipantBId"" integer REFERENCES ""TournamentParticipants"" (""Id""),
+    ""ScoreA"" integer NOT NULL DEFAULT 0,
+    ""ScoreB"" integer NOT NULL DEFAULT 0,
+    ""WinnerParticipantId"" integer REFERENCES ""TournamentParticipants"" (""Id""),
+    ""Status"" integer NOT NULL DEFAULT 0,
+    ""NextMatchId"" integer REFERENCES ""TournamentMatches"" (""Id""),
+    ""NextMatchSlot"" integer NOT NULL DEFAULT 0,
+    ""UpdatedAtUtc"" timestamptz
+);");
+
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_TournamentMatches_TournamentId_Round_SlotIndex\" ON \"TournamentMatches\" (\"TournamentId\", \"Round\", \"SlotIndex\");");
     }
 
     /// <summary>Убирает все пробельные символы (включая \r\n) из токена. null, если пусто.</summary>

@@ -134,6 +134,171 @@ namespace ClanWarTracker.Infrastructure.Migrations
                     b.ToTable("PlayerWarSnapshots");
                 });
 
+            modelBuilder.Entity("ClanWarTracker.Domain.Entities.Tournament", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("BracketGeneratedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("BestOf")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ClanInviteLink")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("CompletedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatorName")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatorPlayerTag")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CreatorTelegramUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("MaxParticipants")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PrizeInfo")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatorTelegramUserId");
+
+                    b.ToTable("Tournaments");
+                });
+
+            modelBuilder.Entity("ClanWarTracker.Domain.Entities.TournamentMatch", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("NextMatchId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("NextMatchSlot")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("ParticipantAId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("ParticipantBId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Round")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ScoreA")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ScoreB")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("SlotIndex")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("TournamentId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("WinnerParticipantId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NextMatchId");
+
+                    b.HasIndex("ParticipantAId");
+
+                    b.HasIndex("ParticipantBId");
+
+                    b.HasIndex("TournamentId", "Round", "SlotIndex")
+                        .IsUnique();
+
+                    b.HasIndex("WinnerParticipantId");
+
+                    b.ToTable("TournamentMatches");
+                });
+
+            modelBuilder.Entity("ClanWarTracker.Domain.Entities.TournamentParticipant", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("FinalPlacement")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("JoinedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PlayerName")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PlayerTag")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Seed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long>("TelegramUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("TournamentId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TournamentId", "PlayerTag")
+                        .IsUnique();
+
+                    b.HasIndex("TournamentId", "TelegramUserId")
+                        .IsUnique();
+
+                    b.ToTable("TournamentParticipants");
+                });
+
             modelBuilder.Entity("ClanWarTracker.Domain.Entities.WarSnapshot", b =>
                 {
                     b.Property<int>("Id")
@@ -199,6 +364,52 @@ namespace ClanWarTracker.Infrastructure.Migrations
                     b.Navigation("Snapshot");
                 });
 
+            modelBuilder.Entity("ClanWarTracker.Domain.Entities.TournamentMatch", b =>
+                {
+                    b.HasOne("ClanWarTracker.Domain.Entities.TournamentMatch", "NextMatch")
+                        .WithMany()
+                        .HasForeignKey("NextMatchId");
+
+                    b.HasOne("ClanWarTracker.Domain.Entities.TournamentParticipant", "ParticipantA")
+                        .WithMany()
+                        .HasForeignKey("ParticipantAId");
+
+                    b.HasOne("ClanWarTracker.Domain.Entities.TournamentParticipant", "ParticipantB")
+                        .WithMany()
+                        .HasForeignKey("ParticipantBId");
+
+                    b.HasOne("ClanWarTracker.Domain.Entities.Tournament", "Tournament")
+                        .WithMany("Matches")
+                        .HasForeignKey("TournamentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ClanWarTracker.Domain.Entities.TournamentParticipant", "WinnerParticipant")
+                        .WithMany()
+                        .HasForeignKey("WinnerParticipantId");
+
+                    b.Navigation("NextMatch");
+
+                    b.Navigation("ParticipantA");
+
+                    b.Navigation("ParticipantB");
+
+                    b.Navigation("Tournament");
+
+                    b.Navigation("WinnerParticipant");
+                });
+
+            modelBuilder.Entity("ClanWarTracker.Domain.Entities.TournamentParticipant", b =>
+                {
+                    b.HasOne("ClanWarTracker.Domain.Entities.Tournament", "Tournament")
+                        .WithMany("Participants")
+                        .HasForeignKey("TournamentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tournament");
+                });
+
             modelBuilder.Entity("ClanWarTracker.Domain.Entities.WarSnapshot", b =>
                 {
                     b.HasOne("ClanWarTracker.Domain.Entities.Clan", "Clan")
@@ -213,6 +424,13 @@ namespace ClanWarTracker.Infrastructure.Migrations
             modelBuilder.Entity("ClanWarTracker.Domain.Entities.Clan", b =>
                 {
                     b.Navigation("Players");
+                });
+
+            modelBuilder.Entity("ClanWarTracker.Domain.Entities.Tournament", b =>
+                {
+                    b.Navigation("Matches");
+
+                    b.Navigation("Participants");
                 });
 
             modelBuilder.Entity("ClanWarTracker.Domain.Entities.WarSnapshot", b =>
