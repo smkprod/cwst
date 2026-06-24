@@ -136,6 +136,10 @@ CREATE TABLE IF NOT EXISTS ""RecruitmentProfiles"" (
         await db.Database.ExecuteSqlRawAsync(
             "ALTER TABLE \"Players\" ADD COLUMN IF NOT EXISTS \"LastSmartAlertSentAt\" timestamptz;");
 
+        // Реферальная атрибуция: кто пригласил игрока (добавлено после первого релиза).
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Players\" ADD COLUMN IF NOT EXISTS \"ReferrerTelegramUserId\" bigint;");
+
         await db.Database.ExecuteSqlRawAsync(@"
 CREATE TABLE IF NOT EXISTS ""Tournaments"" (
     ""Id"" serial PRIMARY KEY,
@@ -156,6 +160,14 @@ CREATE TABLE IF NOT EXISTS ""Tournaments"" (
 
         await db.Database.ExecuteSqlRawAsync(
             "CREATE INDEX IF NOT EXISTS \"IX_Tournaments_CreatorTelegramUserId\" ON \"Tournaments\" (\"CreatorTelegramUserId\");");
+
+        // Колонки, добавленные после первого релиза турниров (CREATE TABLE выше не дотягивает их
+        // в уже существующую таблицу) — старт турнира вручную и минимум участников для запуска.
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Tournaments\" ADD COLUMN IF NOT EXISTS \"StartedAtUtc\" timestamptz;");
+
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Tournaments\" ADD COLUMN IF NOT EXISTS \"MinParticipants\" integer NOT NULL DEFAULT 2;");
 
         await db.Database.ExecuteSqlRawAsync(@"
 CREATE TABLE IF NOT EXISTS ""TournamentParticipants"" (

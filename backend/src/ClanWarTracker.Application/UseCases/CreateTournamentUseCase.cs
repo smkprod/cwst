@@ -15,7 +15,7 @@ public class CreateTournamentUseCase(IPlayerRepository players, ITournamentRepos
 
     public async Task<(Tournament? tournament, CreateTournamentError? error)> ExecuteAsync(
         long telegramUserId, string name, string? description, string? prizeInfo,
-        string clanInviteLink, int bestOf, int maxParticipants, CancellationToken ct = default)
+        string clanInviteLink, int bestOf, int minParticipants, int maxParticipants, CancellationToken ct = default)
     {
         var player = await players.GetByTelegramIdAsync(telegramUserId, ct);
         if (player is null) return (null, CreateTournamentError.PlayerNotLinked);
@@ -27,6 +27,9 @@ public class CreateTournamentUseCase(IPlayerRepository players, ITournamentRepos
 
         if (bestOf is < 1 or > 3) return (null, CreateTournamentError.BadFormat);
         if (maxParticipants < MinParticipants || maxParticipants > MaxParticipantsLimit)
+            return (null, CreateTournamentError.BadFormat);
+        // Минимум для старта: не меньше 2 и не больше лимита мест.
+        if (minParticipants < MinParticipants || minParticipants > maxParticipants)
             return (null, CreateTournamentError.BadFormat);
 
         description = TournamentValidation.Truncate(description?.Trim(), 2000);
@@ -43,6 +46,7 @@ public class CreateTournamentUseCase(IPlayerRepository players, ITournamentRepos
             CreatorPlayerTag = player.PlayerTag,
             CreatorName = player.Name,
             BestOf = bestOf,
+            MinParticipants = minParticipants,
             MaxParticipants = maxParticipants,
             Status = TournamentStatus.RegistrationOpen,
             CreatedAtUtc = now,

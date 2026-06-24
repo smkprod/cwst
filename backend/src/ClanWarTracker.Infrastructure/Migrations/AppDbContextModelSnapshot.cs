@@ -76,6 +76,9 @@ namespace ClanWarTracker.Infrastructure.Migrations
                         .HasMaxLength(16)
                         .HasColumnType("TEXT");
 
+                    b.Property<long?>("ReferrerTelegramUserId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<long?>("TelegramUserId")
                         .HasColumnType("INTEGER");
 
@@ -177,6 +180,9 @@ namespace ClanWarTracker.Infrastructure.Migrations
                     b.Property<int>("MaxParticipants")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("MinParticipants")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(80)
@@ -184,6 +190,9 @@ namespace ClanWarTracker.Infrastructure.Migrations
 
                     b.Property<string>("PrizeInfo")
                         .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("StartedAtUtc")
                         .HasColumnType("TEXT");
 
                     b.Property<int>("Status")

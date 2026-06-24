@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, ApiError } from '../lib/api'
 import type { Tournament } from '../types'
-import { haptic, hapticNotify, openExternalLink } from '../lib/telegram'
+import { haptic, hapticNotify, openExternalLink, shareToTelegram } from '../lib/telegram'
 import { useT } from '../lib/i18n'
 import { TournamentForm } from './TournamentForm'
 import { TournamentBracket } from './TournamentBracket'
@@ -20,6 +20,7 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
   const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState(false)
   const [confirmCancel, setConfirmCancel] = useState(false)
+  const [confirmFinish, setConfirmFinish] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -32,6 +33,7 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
     setState({ kind: 'ready', data })
     setActionError(null)
     setConfirmCancel(false)
+    setConfirmFinish(false)
   }
 
   const mapError = (code: string) => {
@@ -43,6 +45,8 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
       case 'already_started': return t.tournament.alreadyStarted
       case 'not_enough_participants': return t.tournament.notEnoughParticipants
       case 'already_playing': return t.tournament.alreadyPlaying
+      case 'not_bracket_ready': return t.tournament.notBracketReady
+      case 'not_in_progress': return t.tournament.notInProgress
       case 'not_creator': return t.tournament.notCreator
       case 'tournament_not_found': return t.tournament.notFound
       case 'player_not_linked': return t.tournament.notLinked
@@ -69,6 +73,16 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
   const join = () => runAction(() => api.joinTournament(tournamentId))
   const leave = () => runAction(() => api.leaveTournament(tournamentId))
   const generateBracket = () => runAction(() => api.generateTournamentBracket(tournamentId))
+  const startTournament = () => runAction(() => api.startTournament(tournamentId))
+
+  const finishTournament = () => {
+    if (!confirmFinish) {
+      haptic('medium')
+      setConfirmFinish(true)
+      return
+    }
+    runAction(() => api.finishTournament(tournamentId))
+  }
 
   const cancelTournament = async () => {
     if (!confirmCancel) {
@@ -134,9 +148,25 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
     }
   }
 
+  const shareResult = () => {
+    haptic('medium')
+    const champion = d.participants.find(p => p.finalPlacement === 1)
+    const runnerUp = d.participants.find(p => p.finalPlacement === 2)
+    const lines = [`🏆 «${d.name}»`]
+    if (champion) lines.push(`${t.tournament.shareResultChampion} ${champion.playerName}`)
+    if (runnerUp) lines.push(`${t.tournament.shareResultRunnerUp} ${runnerUp.playerName}`)
+    lines.push(`${t.tournament.shareResultParticipants} ${d.participants.length}`)
+    lines.push('')
+    lines.push(t.tournament.shareResultCta)
+    shareToTelegram(lines.join('\n'))
+  }
+
+  const minToStart = Math.max(2, d.minParticipants)
   const canEdit = d.isCreator && d.status !== 'cancelled' && d.status !== 'completed'
-  const canManageBracket = d.isCreator && (d.status === 'registrationOpen' || d.status === 'bracketReady') && d.participants.length >= 2
+  const canManageBracket = d.isCreator && (d.status === 'registrationOpen' || d.status === 'bracketReady') && d.participants.length >= minToStart
   const canLeave = d.isParticipant && !d.isCreator && d.status === 'registrationOpen'
+  const canStart = d.isCreator && d.status === 'bracketReady'
+  const canFinish = d.isCreator && d.status === 'inProgress'
 
   return (
     <div>
@@ -150,6 +180,11 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
         <p className="muted small">
           {t.tournament.bestOfLabel} {d.bestOf} · {d.participants.length}/{d.maxParticipants} {t.tournament.participantsCount}
         </p>
+        {d.isCreator && d.status === 'registrationOpen' && (
+          <p className="muted small">
+            {t.tournament.startThresholdLabel}: {d.participants.length}/{minToStart}
+          </p>
+        )}
         <p className="muted small">{d.creatorName} · {t.tournament.creatorBadge}</p>
 
         {d.description && (
@@ -187,9 +222,24 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
               {d.matches.length > 0 ? t.tournament.regenerateBracketBtn : t.tournament.generateBracketBtn}
             </button>
           )}
+          {canStart && (
+            <button className="btn-mini" disabled={busy} onClick={startTournament}>
+              {t.tournament.startTournamentBtn}
+            </button>
+          )}
+          {canFinish && (
+            <button className="btn-mini btn-mini-danger" disabled={busy} onClick={finishTournament}>
+              {confirmFinish ? t.tournament.confirmFinish : t.tournament.finishTournamentBtn}
+            </button>
+          )}
           {canEdit && (
             <button className="btn-mini btn-mini-danger" disabled={busy} onClick={cancelTournament}>
               {confirmCancel ? t.tournament.confirmCancel : t.tournament.cancelTournamentBtn}
+            </button>
+          )}
+          {d.status === 'completed' && (
+            <button className="btn-mini" onClick={shareResult}>
+              {t.tournament.shareResultBtn}
             </button>
           )}
         </div>

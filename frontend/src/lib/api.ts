@@ -84,7 +84,7 @@ export const api = {
   getTournament: (id: number) => request<Tournament>(`/api/tournaments/${id}`),
   createTournament: (req: {
     name: string; description?: string; prizeInfo?: string
-    clanInviteLink: string; bestOf: number; maxParticipants: number
+    clanInviteLink: string; bestOf: number; minParticipants: number; maxParticipants: number
   }) =>
     request<Tournament>('/api/tournaments', {
       method: 'POST',
@@ -93,7 +93,7 @@ export const api = {
     }),
   updateTournament: (id: number, req: {
     name: string; description?: string; prizeInfo?: string
-    clanInviteLink: string; bestOf: number; maxParticipants: number
+    clanInviteLink: string; bestOf: number; minParticipants: number; maxParticipants: number
   }) =>
     request<Tournament>(`/api/tournaments/${id}`, {
       method: 'PUT',
@@ -106,6 +106,10 @@ export const api = {
     request<Tournament>(`/api/tournaments/${id}/leave`, { method: 'POST' }),
   generateTournamentBracket: (id: number) =>
     request<Tournament>(`/api/tournaments/${id}/bracket`, { method: 'POST' }),
+  startTournament: (id: number) =>
+    request<Tournament>(`/api/tournaments/${id}/start`, { method: 'POST' }),
+  finishTournament: (id: number) =>
+    request<Tournament>(`/api/tournaments/${id}/finish`, { method: 'POST' }),
   setTournamentMatchResult: (id: number, matchId: number, scoreA: number, scoreB: number) =>
     request<Tournament>(`/api/tournaments/${id}/matches/${matchId}/result`, {
       method: 'POST',

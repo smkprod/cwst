@@ -25,6 +25,8 @@ import { CommunityCard } from './components/CommunityCard'
 import { GuestEntry } from './components/GuestEntry'
 import { GuestMyStats } from './components/GuestMyStats'
 import { TournamentView } from './components/TournamentView'
+import { InviteCard } from './components/InviteCard'
+import { LeaderCtaCard } from './components/LeaderCtaCard'
 
 type State =
   | { kind: 'loading' }
@@ -177,6 +179,8 @@ export default function App() {
                 <div style={{ height: 12 }} />
                 <RecruitToggle />
                 <div style={{ height: 12 }} />
+                <InviteCard />
+                <div style={{ height: 12 }} />
                 <AboutCard plan={data.plan} />
                 <div style={{ height: 12 }} />
                 <CommunityCard />
@@ -249,6 +253,8 @@ export default function App() {
                 <WarLogCard log={data.warLog} />
                 <StatsStrip stats={data.stats} />
                 <PlayerList players={data.players} myPlayerTag={myPlayerTag} />
+                <div style={{ height: 12 }} />
+                <LeaderCtaCard />
               </div>
             )}
             {tab === 'rating' && (
@@ -259,6 +265,8 @@ export default function App() {
             {tab === 'me' && (
               <div className="fade-in">
                 <GuestMyStats data={data} myPlayerTag={myPlayerTag} />
+                <div style={{ height: 12 }} />
+                <InviteCard />
                 <div style={{ height: 12 }} />
                 <AboutCard plan={data.plan} />
                 <div style={{ height: 12 }} />

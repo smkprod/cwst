@@ -18,6 +18,7 @@ public record TournamentDto(
     string ClanInviteLink,
     string CreatorName,
     int BestOf,
+    int MinParticipants,
     int MaxParticipants,
     string Status,
     DateTime CreatedAtUtc,

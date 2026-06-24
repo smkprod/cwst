@@ -10,7 +10,7 @@ public class UpdateTournamentUseCase(ITournamentRepository tournaments)
 {
     public async Task<UpdateTournamentError?> ExecuteAsync(
         int tournamentId, long telegramUserId, string name, string? description, string? prizeInfo,
-        string clanInviteLink, int bestOf, int maxParticipants, CancellationToken ct = default)
+        string clanInviteLink, int bestOf, int minParticipants, int maxParticipants, CancellationToken ct = default)
     {
         var tournament = await tournaments.GetByIdAsync(tournamentId, ct);
         if (tournament is null) return UpdateTournamentError.TournamentNotFound;
@@ -28,8 +28,9 @@ public class UpdateTournamentUseCase(ITournamentRepository tournaments)
         tournament.PrizeInfo = string.IsNullOrEmpty(prizeInfo) ? null : prizeInfo;
         tournament.ClanInviteLink = clanInviteLink.Trim();
 
-        // Формат и лимит мест меняют размер сетки — после жеребьёвки это уже не редактируется.
-        if (bestOf != tournament.BestOf || maxParticipants != tournament.MaxParticipants)
+        // Формат, минимум и лимит мест меняют сценарий запуска — после жеребьёвки уже не редактируется.
+        if (bestOf != tournament.BestOf || minParticipants != tournament.MinParticipants
+            || maxParticipants != tournament.MaxParticipants)
         {
             if (tournament.Status != TournamentStatus.RegistrationOpen)
                 return UpdateTournamentError.AlreadyStarted;
@@ -37,7 +38,10 @@ public class UpdateTournamentUseCase(ITournamentRepository tournaments)
             var activeCount = tournament.Participants.Count(p => p.Status != TournamentParticipantStatus.Withdrawn);
             if (maxParticipants < Math.Max(2, activeCount) || maxParticipants > 64)
                 return UpdateTournamentError.BadFormat;
+            if (minParticipants < 2 || minParticipants > maxParticipants)
+                return UpdateTournamentError.BadFormat;
             tournament.BestOf = bestOf;
+            tournament.MinParticipants = minParticipants;
             tournament.MaxParticipants = maxParticipants;
         }
 

@@ -320,6 +320,9 @@ const ru = {
     format1: '1 победа (Bo1)',
     format2: 'До 2 побед (Bo3)',
     format3: 'До 3 побед (Bo5)',
+    minParticipantsLabel: 'Мин. для старта',
+    minParticipantsHint: 'Турнир можно будет запустить, когда наберётся минимум участников.',
+    startThresholdLabel: 'Минимум для старта',
     maxParticipantsLabel: 'Макс. участников',
     create: 'Создать',
     saving: '…',
@@ -339,6 +342,9 @@ const ru = {
     editBtn: '✏️ Редактировать',
     generateBracketBtn: '🎲 Сформировать сетку',
     regenerateBracketBtn: '🎲 Перестроить сетку',
+    startTournamentBtn: '▶️ Начать турнир',
+    finishTournamentBtn: '🏁 Завершить турнир',
+    confirmFinish: '❗ Точно завершить турнир досрочно?',
     cancelTournamentBtn: '🗑 Отменить турнир',
     confirmCancel: '❗ Точно отменить турнир?',
     creatorBadge: 'организатор',
@@ -346,6 +352,8 @@ const ru = {
     participantsTitle: 'Участники',
     notEnoughParticipants: 'Нужно минимум 2 участника',
     alreadyPlaying: 'Сетку нельзя перестроить — уже есть сыгранные матчи',
+    notBracketReady: 'Сначала построй сетку',
+    notInProgress: 'Турнир не идёт',
     notOpen: 'Регистрация закрыта',
     full: 'Турнир набрал максимум участников',
     alreadyJoined: 'Ты уже зарегистрирован',
@@ -367,6 +375,12 @@ const ru = {
     badScore: 'Счёт не соответствует формату матча',
     notPlayable: 'В матче ещё нет обоих соперников',
     champion: '👑 Чемпион турнира',
+
+    shareResultBtn: '📤 Поделиться результатом',
+    shareResultChampion: '👑 Чемпион:',
+    shareResultRunnerUp: '🥈 Финалист:',
+    shareResultParticipants: 'Участников:',
+    shareResultCta: 'Организуй свой турнир в Clanify ⚔️',
 
     historyTitle: '🏆 История турниров',
     historyEmpty: 'Пока нет турниров Clanify',
@@ -393,6 +407,19 @@ const ru = {
   community: {
     label: 'Самое большое рояль комьюнити в Telegram!',
     btn: 'Открыть канал ↗',
+  },
+
+  invite: {
+    label: 'Зови друзей в Clanify — вместе следить за войной и устраивать турниры веселее!',
+    btn: '🎁 Пригласить друга',
+    shareText: '⚔️ Залетай в Clanify — трекер клан-войн Clash Royale: статистика, прогнозы и турниры. Жми и отправь боту свой тег CR 👇',
+  },
+
+  leaderCta: {
+    label: '📣 Подключи бота к своему клану',
+    hint: 'Лидер добавляет бота в чат клана и пишет /setup #тег — и весь клан получает статус войны, напоминания тем, кто не отыграл, и итоги дня прямо в чате.',
+    btn: '📣 Рассказать клану',
+    shareText: '⚔️ Подключим Clanify к нашему клану — статус войны, напоминания и итоги дня прямо в чате. Лидер: добавь бота в группу и напиши /setup #нашТег 👇',
   },
 }
 
@@ -716,6 +743,9 @@ const uk: Translations = {
     format1: '1 перемога (Bo1)',
     format2: 'До 2 перемог (Bo3)',
     format3: 'До 3 перемог (Bo5)',
+    minParticipantsLabel: 'Мін. для старту',
+    minParticipantsHint: 'Турнір можна буде запустити, коли набереться мінімум учасників.',
+    startThresholdLabel: 'Мінімум для старту',
     maxParticipantsLabel: 'Макс. учасників',
     create: 'Створити',
     saving: '…',
@@ -735,6 +765,9 @@ const uk: Translations = {
     editBtn: '✏️ Редагувати',
     generateBracketBtn: '🎲 Сформувати сітку',
     regenerateBracketBtn: '🎲 Перебудувати сітку',
+    startTournamentBtn: '▶️ Почати турнір',
+    finishTournamentBtn: '🏁 Завершити турнір',
+    confirmFinish: '❗ Точно завершити турнір достроково?',
     cancelTournamentBtn: '🗑 Скасувати турнір',
     confirmCancel: '❗ Точно скасувати турнір?',
     creatorBadge: 'організатор',
@@ -742,6 +775,8 @@ const uk: Translations = {
     participantsTitle: 'Учасники',
     notEnoughParticipants: 'Потрібно мінімум 2 учасники',
     alreadyPlaying: 'Сітку не можна перебудувати — вже є зіграні матчі',
+    notBracketReady: 'Спочатку побудуй сітку',
+    notInProgress: 'Турнір не йде',
     notOpen: 'Реєстрація закрита',
     full: 'Турнір набрав максимум учасників',
     alreadyJoined: 'Ти вже зареєстрований',
@@ -763,6 +798,12 @@ const uk: Translations = {
     badScore: 'Рахунок не відповідає формату матчу',
     notPlayable: 'У матчі ще немає обох суперників',
     champion: '👑 Чемпіон турніру',
+
+    shareResultBtn: '📤 Поділитися результатом',
+    shareResultChampion: '👑 Чемпіон:',
+    shareResultRunnerUp: '🥈 Фіналіст:',
+    shareResultParticipants: 'Учасників:',
+    shareResultCta: 'Влаштуй свій турнір у Clanify ⚔️',
 
     historyTitle: '🏆 Історія турнірів',
     historyEmpty: 'Поки немає турнірів Clanify',
@@ -789,6 +830,19 @@ const uk: Translations = {
   community: {
     label: 'Найбільше рояль комʼюніті в Telegram!',
     btn: 'Відкрити канал ↗',
+  },
+
+  invite: {
+    label: 'Клич друзів у Clanify — разом стежити за війною та влаштовувати турніри веселіше!',
+    btn: '🎁 Запросити друга',
+    shareText: '⚔️ Залітай у Clanify — трекер клан-воєн Clash Royale: статистика, прогнози й турніри. Тисни та надішли боту свій тег CR 👇',
+  },
+
+  leaderCta: {
+    label: '📣 Підключи бота до свого клану',
+    hint: 'Лідер додає бота в чат клану й пише /setup #тег — і весь клан отримує статус війни, нагадування тим, хто не відіграв, та підсумки дня прямо в чаті.',
+    btn: '📣 Розповісти клану',
+    shareText: '⚔️ Підключімо Clanify до нашого клану — статус війни, нагадування та підсумки дня прямо в чаті. Лідере: додай бота в групу й напиши /setup #нашТег 👇',
   },
 }
 
@@ -1110,6 +1164,9 @@ const en: Translations = {
     format1: '1 win (Bo1)',
     format2: 'First to 2 wins (Bo3)',
     format3: 'First to 3 wins (Bo5)',
+    minParticipantsLabel: 'Min. to start',
+    minParticipantsHint: 'You can start the tournament once the minimum number of participants is reached.',
+    startThresholdLabel: 'Minimum to start',
     maxParticipantsLabel: 'Max participants',
     create: 'Create',
     saving: '…',
@@ -1129,6 +1186,9 @@ const en: Translations = {
     editBtn: '✏️ Edit',
     generateBracketBtn: '🎲 Generate bracket',
     regenerateBracketBtn: '🎲 Rebuild bracket',
+    startTournamentBtn: '▶️ Start tournament',
+    finishTournamentBtn: '🏁 Finish tournament',
+    confirmFinish: '❗ Really finish this tournament early?',
     cancelTournamentBtn: '🗑 Cancel tournament',
     confirmCancel: '❗ Really cancel this tournament?',
     creatorBadge: 'organizer',
@@ -1136,6 +1196,8 @@ const en: Translations = {
     participantsTitle: 'Participants',
     notEnoughParticipants: 'At least 2 participants required',
     alreadyPlaying: "Can't rebuild the bracket — matches already played",
+    notBracketReady: 'Generate the bracket first',
+    notInProgress: 'Tournament is not in progress',
     notOpen: 'Registration is closed',
     full: 'Tournament has reached max participants',
     alreadyJoined: 'Already registered',
@@ -1157,6 +1219,12 @@ const en: Translations = {
     badScore: "Score doesn't match the match format",
     notPlayable: "Match doesn't have both opponents yet",
     champion: '👑 Tournament champion',
+
+    shareResultBtn: '📤 Share result',
+    shareResultChampion: '👑 Champion:',
+    shareResultRunnerUp: '🥈 Runner-up:',
+    shareResultParticipants: 'Participants:',
+    shareResultCta: 'Run your own tournament in Clanify ⚔️',
 
     historyTitle: '🏆 Tournament history',
     historyEmpty: 'No Clanify tournaments yet',
@@ -1183,6 +1251,19 @@ const en: Translations = {
   community: {
     label: 'The largest Clash Royale community on Telegram!',
     btn: 'Open channel ↗',
+  },
+
+  invite: {
+    label: 'Bring friends to Clanify — tracking the war and running tournaments is more fun together!',
+    btn: '🎁 Invite a friend',
+    shareText: '⚔️ Join Clanify — a Clash Royale clan-war tracker: stats, forecasts and tournaments. Tap and send the bot your CR tag 👇',
+  },
+
+  leaderCta: {
+    label: '📣 Connect the bot to your clan',
+    hint: 'The leader adds the bot to the clan chat and runs /setup #tag — and the whole clan gets war status, nudges for those who haven\'t played, and daily recaps right in the chat.',
+    btn: '📣 Tell the clan',
+    shareText: '⚔️ Let\'s connect Clanify to our clan — war status, nudges and daily recaps right in the chat. Leader: add the bot to the group and run /setup #ourTag 👇',
   },
 }
 

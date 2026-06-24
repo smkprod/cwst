@@ -10,4 +10,6 @@ public class Player
     public Clan? Clan { get; set; }
     public DateTime? LastReminderSentAt { get; set; }    // анти-спам напоминаний
     public DateTime? LastSmartAlertSentAt { get; set; }   // анти-спам персональных алертов о влиянии на победу
+    /// <summary>Кто пригласил этого игрока (Telegram ID пригласившего). null — пришёл сам.</summary>
+    public long? ReferrerTelegramUserId { get; set; }
 }
