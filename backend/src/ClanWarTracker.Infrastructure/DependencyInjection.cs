@@ -136,6 +136,10 @@ CREATE TABLE IF NOT EXISTS ""RecruitmentProfiles"" (
         await db.Database.ExecuteSqlRawAsync(
             "ALTER TABLE \"Players\" ADD COLUMN IF NOT EXISTS \"LastSmartAlertSentAt\" timestamptz;");
 
+        // Реферальная атрибуция: кто пригласил игрока (добавлено после первого релиза).
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Players\" ADD COLUMN IF NOT EXISTS \"ReferrerTelegramUserId\" bigint;");
+
         await db.Database.ExecuteSqlRawAsync(@"
 CREATE TABLE IF NOT EXISTS ""Tournaments"" (
     ""Id"" serial PRIMARY KEY,

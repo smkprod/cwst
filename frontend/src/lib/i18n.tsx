@@ -376,6 +376,12 @@ const ru = {
     notPlayable: 'В матче ещё нет обоих соперников',
     champion: '👑 Чемпион турнира',
 
+    shareResultBtn: '📤 Поделиться результатом',
+    shareResultChampion: '👑 Чемпион:',
+    shareResultRunnerUp: '🥈 Финалист:',
+    shareResultParticipants: 'Участников:',
+    shareResultCta: 'Организуй свой турнир в Clanify ⚔️',
+
     historyTitle: '🏆 История турниров',
     historyEmpty: 'Пока нет турниров Clanify',
     place: 'место',
@@ -401,6 +407,12 @@ const ru = {
   community: {
     label: 'Самое большое рояль комьюнити в Telegram!',
     btn: 'Открыть канал ↗',
+  },
+
+  invite: {
+    label: 'Зови друзей в Clanify — вместе следить за войной и устраивать турниры веселее!',
+    btn: '🎁 Пригласить друга',
+    shareText: '⚔️ Залетай в Clanify — трекер клан-войн Clash Royale: статистика, прогнозы и турниры. Жми и отправь боту свой тег CR 👇',
   },
 }
 
@@ -780,6 +792,12 @@ const uk: Translations = {
     notPlayable: 'У матчі ще немає обох суперників',
     champion: '👑 Чемпіон турніру',
 
+    shareResultBtn: '📤 Поділитися результатом',
+    shareResultChampion: '👑 Чемпіон:',
+    shareResultRunnerUp: '🥈 Фіналіст:',
+    shareResultParticipants: 'Учасників:',
+    shareResultCta: 'Влаштуй свій турнір у Clanify ⚔️',
+
     historyTitle: '🏆 Історія турнірів',
     historyEmpty: 'Поки немає турнірів Clanify',
     place: 'місце',
@@ -805,6 +823,12 @@ const uk: Translations = {
   community: {
     label: 'Найбільше рояль комʼюніті в Telegram!',
     btn: 'Відкрити канал ↗',
+  },
+
+  invite: {
+    label: 'Клич друзів у Clanify — разом стежити за війною та влаштовувати турніри веселіше!',
+    btn: '🎁 Запросити друга',
+    shareText: '⚔️ Залітай у Clanify — трекер клан-воєн Clash Royale: статистика, прогнози й турніри. Тисни та надішли боту свій тег CR 👇',
   },
 }
 
@@ -1182,6 +1206,12 @@ const en: Translations = {
     notPlayable: "Match doesn't have both opponents yet",
     champion: '👑 Tournament champion',
 
+    shareResultBtn: '📤 Share result',
+    shareResultChampion: '👑 Champion:',
+    shareResultRunnerUp: '🥈 Runner-up:',
+    shareResultParticipants: 'Participants:',
+    shareResultCta: 'Run your own tournament in Clanify ⚔️',
+
     historyTitle: '🏆 Tournament history',
     historyEmpty: 'No Clanify tournaments yet',
     place: 'place',
@@ -1207,6 +1237,12 @@ const en: Translations = {
   community: {
     label: 'The largest Clash Royale community on Telegram!',
     btn: 'Open channel ↗',
+  },
+
+  invite: {
+    label: 'Bring friends to Clanify — tracking the war and running tournaments is more fun together!',
+    btn: '🎁 Invite a friend',
+    shareText: '⚔️ Join Clanify — a Clash Royale clan-war tracker: stats, forecasts and tournaments. Tap and send the bot your CR tag 👇',
   },
 }
 

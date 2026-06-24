@@ -28,6 +28,17 @@ export function initTelegram() {
 export const initData = tg?.initData ?? ''
 export const tgUser = tg?.initDataUnsafe?.user
 
+/** Username бота (без @) — задаётся при сборке через VITE_BOT_USERNAME. Пусто — реф-ссылки скрыты. */
+export const BOT_USERNAME = (import.meta.env.VITE_BOT_USERNAME ?? '').trim()
+
+/** Глубокая ссылка в чат с ботом с payload для /start (например, реферал ref_123). */
+export function botStartLink(payload?: string): string {
+  if (!BOT_USERNAME) return 'https://t.me'
+  return payload
+    ? `https://t.me/${BOT_USERNAME}?start=${encodeURIComponent(payload)}`
+    : `https://t.me/${BOT_USERNAME}`
+}
+
 /** Лёгкая вибрация при тапах (no-op вне Telegram). */
 export function haptic(style: 'light' | 'medium' | 'heavy' = 'light') {
   tg?.HapticFeedback?.impactOccurred(style)
@@ -43,9 +54,10 @@ export function openExternalLink(url: string) {
   else window.open(url, '_blank')
 }
 
-/** Поделиться текстом через нативный share-диалог Telegram. */
-export function shareToTelegram(text: string) {
-  const url = `https://t.me/share/url?url=${encodeURIComponent('https://t.me')}&text=${encodeURIComponent(text)}`
+/** Поделиться текстом через нативный share-диалог Telegram.
+ *  linkUrl — что прикладывается ссылкой (по умолчанию глубокая ссылка в бота, если известен username). */
+export function shareToTelegram(text: string, linkUrl: string = botStartLink()) {
+  const url = `https://t.me/share/url?url=${encodeURIComponent(linkUrl)}&text=${encodeURIComponent(text)}`
   if (tg?.openTelegramLink) tg.openTelegramLink(url)
   else window.open(url, '_blank')
 }
