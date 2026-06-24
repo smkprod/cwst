@@ -20,6 +20,10 @@ WORKDIR /frontend-src
 
 ARG VITE_API_URL
 ENV VITE_API_URL=$VITE_API_URL
+# Username бота (без @) для реф-ссылок и кнопки «Пригласить друга».
+# Пусто — кнопка скрыта, шеринг ведёт на generic t.me.
+ARG VITE_BOT_USERNAME
+ENV VITE_BOT_USERNAME=$VITE_BOT_USERNAME
 
 # package*.json отдельно — npm ci кэшируется, пока не меняются зависимости
 COPY frontend/package*.json ./
