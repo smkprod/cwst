@@ -1,13 +1,50 @@
 using ClanWarTracker.Domain.Interfaces;
 using Telegram.Bot;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace ClanWarTracker.Infrastructure.Telegram;
 
 public class TelegramNotificationSender(ITelegramBotClient bot) : INotificationSender
 {
+    // Ссылка на Mini App строится из username бота. Определяем её один раз через GetMe
+    // и кэшируем на весь процесс (username стабилен). null — пока не удалось определить.
+    private static string? _cachedAppUrl;
+    private static bool _resolved;
+
     public Task SendToUserAsync(long telegramUserId, string text, CancellationToken ct = default) =>
         bot.SendMessage(telegramUserId, text, cancellationToken: ct);
 
     public Task SendToChatAsync(long chatId, string text, CancellationToken ct = default) =>
         bot.SendMessage(chatId, text, cancellationToken: ct);
+
+    public async Task SendToChatWithAppButtonAsync(long chatId, string text, CancellationToken ct = default)
+    {
+        var appUrl = await GetAppUrlAsync(ct);
+        if (appUrl is null)
+        {
+            await bot.SendMessage(chatId, text, cancellationToken: ct);
+            return;
+        }
+
+        var keyboard = new InlineKeyboardMarkup(
+            InlineKeyboardButton.WithUrl("🎮 Открыть в Mini App", appUrl));
+        await bot.SendMessage(chatId, text, replyMarkup: keyboard, cancellationToken: ct);
+    }
+
+    /// <summary>https://t.me/&lt;bot&gt;?startapp открывает основное Mini App прямо из чата.</summary>
+    private async Task<string?> GetAppUrlAsync(CancellationToken ct)
+    {
+        if (_resolved) return _cachedAppUrl;
+        try
+        {
+            var me = await bot.GetMe(ct);
+            if (me.Username is { Length: > 0 } username)
+            {
+                _cachedAppUrl = $"https://t.me/{username}?startapp";
+                _resolved = true; // кэшируем только при успехе, иначе пробуем снова в след. раз
+            }
+        }
+        catch { /* GetMe временно недоступен — отправим без кнопки, попробуем позже */ }
+        return _cachedAppUrl;
+    }
 }

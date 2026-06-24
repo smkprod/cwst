@@ -414,6 +414,13 @@ const ru = {
     btn: '🎁 Пригласить друга',
     shareText: '⚔️ Залетай в Clanify — трекер клан-войн Clash Royale: статистика, прогнозы и турниры. Жми и отправь боту свой тег CR 👇',
   },
+
+  leaderCta: {
+    label: '📣 Подключи бота к своему клану',
+    hint: 'Лидер добавляет бота в чат клана и пишет /setup #тег — и весь клан получает статус войны, напоминания тем, кто не отыграл, и итоги дня прямо в чате.',
+    btn: '📣 Рассказать клану',
+    shareText: '⚔️ Подключим Clanify к нашему клану — статус войны, напоминания и итоги дня прямо в чате. Лидер: добавь бота в группу и напиши /setup #нашТег 👇',
+  },
 }
 
 export type Translations = typeof ru
@@ -830,6 +837,13 @@ const uk: Translations = {
     btn: '🎁 Запросити друга',
     shareText: '⚔️ Залітай у Clanify — трекер клан-воєн Clash Royale: статистика, прогнози й турніри. Тисни та надішли боту свій тег CR 👇',
   },
+
+  leaderCta: {
+    label: '📣 Підключи бота до свого клану',
+    hint: 'Лідер додає бота в чат клану й пише /setup #тег — і весь клан отримує статус війни, нагадування тим, хто не відіграв, та підсумки дня прямо в чаті.',
+    btn: '📣 Розповісти клану',
+    shareText: '⚔️ Підключімо Clanify до нашого клану — статус війни, нагадування та підсумки дня прямо в чаті. Лідере: додай бота в групу й напиши /setup #нашТег 👇',
+  },
 }
 
 const en: Translations = {
@@ -1243,6 +1257,13 @@ const en: Translations = {
     label: 'Bring friends to Clanify — tracking the war and running tournaments is more fun together!',
     btn: '🎁 Invite a friend',
     shareText: '⚔️ Join Clanify — a Clash Royale clan-war tracker: stats, forecasts and tournaments. Tap and send the bot your CR tag 👇',
+  },
+
+  leaderCta: {
+    label: '📣 Connect the bot to your clan',
+    hint: 'The leader adds the bot to the clan chat and runs /setup #tag — and the whole clan gets war status, nudges for those who haven\'t played, and daily recaps right in the chat.',
+    btn: '📣 Tell the clan',
+    shareText: '⚔️ Let\'s connect Clanify to our clan — war status, nudges and daily recaps right in the chat. Leader: add the bot to the group and run /setup #ourTag 👇',
   },
 }
 
