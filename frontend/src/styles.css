@@ -740,8 +740,13 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 /* --- Community card --- */
 .community-inner { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
 .community-icon { font-size: 28px; flex-shrink: 0; }
+.community-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .community-label { font-size: 14px; font-weight: 600; }
 .community-btn { width: 100%; }
+
+/* CTA «подключи бота к клану» — выделяем рамкой, чтобы цеплял взгляд гостя */
+.leader-cta-card { border: 1px solid var(--accent); }
+.leader-cta-card .community-inner { align-items: flex-start; }
 
 /* --- Полный профиль игрока (поиск по тегу) --- */
 .profile-header {
