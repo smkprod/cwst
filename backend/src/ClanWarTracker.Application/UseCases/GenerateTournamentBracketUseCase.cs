@@ -18,7 +18,7 @@ public class GenerateTournamentBracketUseCase(ITournamentRepository tournaments,
             return GenerateBracketError.AlreadyPlaying;
 
         var activeCount = tournament.Participants.Count(p => p.Status == TournamentParticipantStatus.Active);
-        if (activeCount < 2) return GenerateBracketError.NotEnoughParticipants;
+        if (activeCount < Math.Max(2, tournament.MinParticipants)) return GenerateBracketError.NotEnoughParticipants;
 
         tournament.Matches.Clear();
         bracket.GenerateBracket(tournament);

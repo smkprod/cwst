@@ -148,8 +148,9 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
     }
   }
 
+  const minToStart = Math.max(2, d.minParticipants)
   const canEdit = d.isCreator && d.status !== 'cancelled' && d.status !== 'completed'
-  const canManageBracket = d.isCreator && (d.status === 'registrationOpen' || d.status === 'bracketReady') && d.participants.length >= 2
+  const canManageBracket = d.isCreator && (d.status === 'registrationOpen' || d.status === 'bracketReady') && d.participants.length >= minToStart
   const canLeave = d.isParticipant && !d.isCreator && d.status === 'registrationOpen'
   const canStart = d.isCreator && d.status === 'bracketReady'
   const canFinish = d.isCreator && d.status === 'inProgress'
@@ -166,6 +167,11 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
         <p className="muted small">
           {t.tournament.bestOfLabel} {d.bestOf} · {d.participants.length}/{d.maxParticipants} {t.tournament.participantsCount}
         </p>
+        {d.isCreator && d.status === 'registrationOpen' && (
+          <p className="muted small">
+            {t.tournament.startThresholdLabel}: {d.participants.length}/{minToStart}
+          </p>
+        )}
         <p className="muted small">{d.creatorName} · {t.tournament.creatorBadge}</p>
 
         {d.description && (

@@ -18,6 +18,7 @@ export function TournamentForm({ mode, initial, onSaved, onCancel }: Props) {
   const [prizeInfo, setPrizeInfo] = useState(initial?.prizeInfo ?? '')
   const [clanInviteLink, setClanInviteLink] = useState(initial?.clanInviteLink ?? '')
   const [bestOf, setBestOf] = useState(initial?.bestOf ?? 2)
+  const [minParticipants, setMinParticipants] = useState(initial?.minParticipants ?? 2)
   const [maxParticipants, setMaxParticipants] = useState(initial?.maxParticipants ?? 16)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -44,6 +45,7 @@ export function TournamentForm({ mode, initial, onSaved, onCancel }: Props) {
         prizeInfo: prizeInfo.trim() || undefined,
         clanInviteLink,
         bestOf,
+        minParticipants,
         maxParticipants,
       }
       const result = mode === 'create'
@@ -119,6 +121,17 @@ export function TournamentForm({ mode, initial, onSaved, onCancel }: Props) {
           </select>
         </div>
         <div className="form-field">
+          <label className="muted small">{t.tournament.minParticipantsLabel}</label>
+          <input
+            className="search-input"
+            type="number"
+            min={2}
+            max={64}
+            value={minParticipants}
+            onChange={e => setMinParticipants(Number(e.target.value))}
+          />
+        </div>
+        <div className="form-field">
           <label className="muted small">{t.tournament.maxParticipantsLabel}</label>
           <input
             className="search-input"
@@ -130,6 +143,7 @@ export function TournamentForm({ mode, initial, onSaved, onCancel }: Props) {
           />
         </div>
       </div>
+      <p className="muted small form-hint">{t.tournament.minParticipantsHint}</p>
 
       {error && <p className="form-error small">{error}</p>}
 

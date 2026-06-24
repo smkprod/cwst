@@ -84,7 +84,7 @@ export const api = {
   getTournament: (id: number) => request<Tournament>(`/api/tournaments/${id}`),
   createTournament: (req: {
     name: string; description?: string; prizeInfo?: string
-    clanInviteLink: string; bestOf: number; maxParticipants: number
+    clanInviteLink: string; bestOf: number; minParticipants: number; maxParticipants: number
   }) =>
     request<Tournament>('/api/tournaments', {
       method: 'POST',
@@ -93,7 +93,7 @@ export const api = {
     }),
   updateTournament: (id: number, req: {
     name: string; description?: string; prizeInfo?: string
-    clanInviteLink: string; bestOf: number; maxParticipants: number
+    clanInviteLink: string; bestOf: number; minParticipants: number; maxParticipants: number
   }) =>
     request<Tournament>(`/api/tournaments/${id}`, {
       method: 'PUT',

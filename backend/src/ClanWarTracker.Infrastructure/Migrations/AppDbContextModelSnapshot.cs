@@ -177,6 +177,9 @@ namespace ClanWarTracker.Infrastructure.Migrations
                     b.Property<int>("MaxParticipants")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("MinParticipants")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(80)

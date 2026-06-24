@@ -69,7 +69,7 @@ public static class TournamentMapping
 
         return new TournamentDto(
             t.Id, t.Name, t.Description, t.PrizeInfo, t.ClanInviteLink,
-            t.CreatorName, t.BestOf, t.MaxParticipants,
+            t.CreatorName, t.BestOf, t.MinParticipants, t.MaxParticipants,
             ToText(t.Status), t.CreatedAtUtc,
             IsCreator: t.CreatorTelegramUserId == requestingTelegramUserId,
             IsParticipant: isParticipant,
