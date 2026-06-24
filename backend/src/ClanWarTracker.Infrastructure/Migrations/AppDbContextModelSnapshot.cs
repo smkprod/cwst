@@ -76,6 +76,9 @@ namespace ClanWarTracker.Infrastructure.Migrations
                         .HasMaxLength(16)
                         .HasColumnType("TEXT");
 
+                    b.Property<long?>("ReferrerTelegramUserId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<long?>("TelegramUserId")
                         .HasColumnType("INTEGER");
 

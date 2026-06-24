@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, ApiError } from '../lib/api'
 import type { Tournament } from '../types'
-import { haptic, hapticNotify, openExternalLink } from '../lib/telegram'
+import { haptic, hapticNotify, openExternalLink, shareToTelegram } from '../lib/telegram'
 import { useT } from '../lib/i18n'
 import { TournamentForm } from './TournamentForm'
 import { TournamentBracket } from './TournamentBracket'
@@ -148,6 +148,19 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
     }
   }
 
+  const shareResult = () => {
+    haptic('medium')
+    const champion = d.participants.find(p => p.finalPlacement === 1)
+    const runnerUp = d.participants.find(p => p.finalPlacement === 2)
+    const lines = [`🏆 «${d.name}»`]
+    if (champion) lines.push(`${t.tournament.shareResultChampion} ${champion.playerName}`)
+    if (runnerUp) lines.push(`${t.tournament.shareResultRunnerUp} ${runnerUp.playerName}`)
+    lines.push(`${t.tournament.shareResultParticipants} ${d.participants.length}`)
+    lines.push('')
+    lines.push(t.tournament.shareResultCta)
+    shareToTelegram(lines.join('\n'))
+  }
+
   const minToStart = Math.max(2, d.minParticipants)
   const canEdit = d.isCreator && d.status !== 'cancelled' && d.status !== 'completed'
   const canManageBracket = d.isCreator && (d.status === 'registrationOpen' || d.status === 'bracketReady') && d.participants.length >= minToStart
@@ -222,6 +235,11 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
           {canEdit && (
             <button className="btn-mini btn-mini-danger" disabled={busy} onClick={cancelTournament}>
               {confirmCancel ? t.tournament.confirmCancel : t.tournament.cancelTournamentBtn}
+            </button>
+          )}
+          {d.status === 'completed' && (
+            <button className="btn-mini" onClick={shareResult}>
+              {t.tournament.shareResultBtn}
             </button>
           )}
         </div>
