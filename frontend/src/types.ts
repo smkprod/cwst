@@ -335,3 +335,69 @@ export interface RecruitmentCandidate {
 export interface RecruitmentCandidates {
   candidates: RecruitmentCandidate[]
 }
+
+/* --- Турниры Clanify --- */
+export type TournamentStatus = 'registrationOpen' | 'bracketReady' | 'inProgress' | 'completed' | 'cancelled'
+export type TournamentParticipantStatus = 'active' | 'eliminated' | 'withdrawn'
+export type TournamentMatchStatus = 'pending' | 'ready' | 'bye' | 'completed'
+
+export interface TournamentSummary {
+  id: number
+  name: string
+  status: TournamentStatus
+  bestOf: number
+  maxParticipants: number
+  participantCount: number
+  creatorName: string
+  createdAtUtc: string
+}
+
+export interface TournamentParticipant {
+  id: number
+  playerTag: string
+  playerName: string
+  seed: number
+  status: TournamentParticipantStatus
+  finalPlacement: number | null
+}
+
+export interface TournamentMatch {
+  id: number
+  round: number
+  slotIndex: number
+  participantA: TournamentParticipant | null
+  participantB: TournamentParticipant | null
+  scoreA: number
+  scoreB: number
+  winner: TournamentParticipant | null
+  status: TournamentMatchStatus
+  nextMatchId: number | null
+}
+
+export interface Tournament {
+  id: number
+  name: string
+  description: string | null
+  prizeInfo: string | null
+  clanInviteLink: string
+  creatorName: string
+  creatorTelegramUserId: number
+  bestOf: number
+  maxParticipants: number
+  status: TournamentStatus
+  createdAtUtc: string
+  isCreator: boolean
+  isParticipant: boolean
+  canJoin: boolean
+  participants: TournamentParticipant[]
+  matches: TournamentMatch[]
+}
+
+export interface PlayerTournamentHistory {
+  tournamentId: number
+  tournamentName: string
+  status: TournamentStatus
+  finalPlacement: number | null
+  participantCount: number
+  createdAtUtc: string
+}

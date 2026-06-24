@@ -810,3 +810,96 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 .recruit-tg-btn { flex-shrink: 0; }
 .recruit-stats { display: flex; gap: 16px; }
 .recruit-stat { font-size: 13px; }
+
+/* --- Турниры --- */
+.form-field { display: grid; gap: 4px; margin-bottom: 10px; }
+.form-field label { font-size: 12px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.form-hint { margin-top: 2px; }
+.form-error {
+  color: #ff7a76; background: rgba(229, 57, 53, 0.12);
+  border-radius: 8px; padding: 7px 10px; margin: 4px 0 0;
+}
+
+.tournament-select {
+  width: 100%;
+  background: var(--bg-card);
+  color: var(--text);
+  font: inherit; font-size: 14px; font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 9px 30px 9px 12px;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M2 4l4 4 4-4' stroke='%239aa0aa' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+.tournament-select:focus { outline: none; border-color: var(--accent); }
+
+/* Список турниров */
+.tournament-create-btn { width: 100%; margin-bottom: 12px; padding: 13px; border-radius: 12px; }
+.tournament-list { list-style: none; padding: 0; display: grid; gap: 8px; }
+.tournament-list-item { cursor: pointer; }
+.tournament-list-item:active { opacity: 0.8; }
+.tournament-list-item-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.tournament-list-item-name { font-weight: 700; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.tournament-status-badge { flex-shrink: 0; }
+.tournament-status-open { background: rgba(82, 136, 193, 0.18); color: #7fb2e5; }
+.tournament-status-ready { background: rgba(156, 107, 255, 0.18); color: #c8a8ff; }
+.tournament-status-progress { background: rgba(240, 168, 33, 0.18); color: var(--yellow); }
+.tournament-status-completed { background: rgba(49, 181, 69, 0.18); color: #5fd573; }
+.tournament-status-cancelled { background: rgba(112, 132, 153, 0.18); color: var(--muted); }
+
+/* Детали турнира */
+.tournament-detail-header { padding-top: 14px; }
+.tournament-detail-name { font-size: 18px; font-weight: 800; }
+.tournament-detail-section { margin-top: 12px; }
+.tournament-detail-section-title { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px; }
+.tournament-detail-text { white-space: pre-wrap; word-break: break-word; }
+.tournament-detail-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+
+.tournament-participants-list { list-style: none; padding: 0; margin-top: 6px; display: grid; gap: 4px; }
+.tournament-participant-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  background: rgba(255, 255, 255, 0.04); border-radius: 8px; padding: 7px 10px;
+}
+.tournament-participant-name { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Сетка турнира */
+.tournament-bracket-wrap { margin-top: 18px; }
+.tournament-champion-card {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  background: linear-gradient(135deg, rgba(255, 200, 61, 0.18), rgba(255, 200, 61, 0.05));
+  border: 1px solid rgba(255, 200, 61, 0.3);
+}
+.tournament-champion-title { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
+.tournament-champion-name { font-size: 15px; font-weight: 800; color: var(--gold); }
+
+.tournament-bracket { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 6px; }
+.tournament-round { flex: none; width: 180px; display: grid; gap: 8px; align-content: start; }
+.tournament-round-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; text-align: center; }
+.tournament-match { display: grid; gap: 6px; padding: 10px; }
+.tournament-match-side { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 2px; }
+.tournament-match-winner { color: #5fd573; font-weight: 700; }
+.tournament-match-name { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tournament-match-score { font-size: 13px; font-weight: 800; }
+.tournament-match-vs { font-size: 10px; color: var(--muted); text-align: center; }
+.tournament-bye { text-align: center; margin-top: 2px; }
+
+.tournament-result-btn { width: 100%; margin-top: 2px; }
+.tournament-score-edit { display: grid; gap: 6px; margin-top: 4px; }
+.tournament-score-inputs { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.tournament-score-input { width: 56px; text-align: center; padding: 8px 4px; }
+
+/* История турниров (вкладка «Я») */
+.tournament-history-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.tournament-history-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  background: rgba(255, 255, 255, 0.04); border-radius: 10px; padding: 9px 11px;
+}
+.tournament-history-info { display: grid; gap: 1px; min-width: 0; }
+.tournament-history-name { font-size: 13px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tournament-history-place { flex-shrink: 0; font-size: 12px; font-weight: 800; color: var(--gold); }
