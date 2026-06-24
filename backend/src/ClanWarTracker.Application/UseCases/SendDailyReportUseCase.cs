@@ -73,22 +73,29 @@ public class SendDailyReportUseCase(
         var isWeekFinal = final.PeriodIndex >= 6;
         var isColosseum = final.PeriodType == "colosseum";
 
-        // Слава за день = накопительная минус снимок предыдущего дня
+        // Слава и колоды за день считаем дельтой накопительных полей относительно
+        // снимка предыдущего дня — а не берём DecksUsedToday "как есть". У CR API
+        // суточный счётчик сбрасывается по своим часам, не синхронизированным с
+        // переходом periodIndex: на стыке дней игрок, который только отыграл и уже
+        // получил медали, может на мгновение показать DecksUsedToday=0.
         var prevDay = final.PeriodIndex > 3
             ? await snapshots.GetSnapshotAsync(clan.Id, final.SeasonId, final.SectionIndex,
                 final.PeriodIndex - 1, ct)
             : null;
         var prevFameByTag = (prevDay?.Players ?? [])
             .ToDictionary(p => p.PlayerTag, p => p.Fame, StringComparer.OrdinalIgnoreCase);
+        var prevDecksByTag = (prevDay?.Players ?? [])
+            .ToDictionary(p => p.PlayerTag, p => p.DecksUsed, StringComparer.OrdinalIgnoreCase);
 
         var dayResults = final.Players
-            .Select(p => (p.Name, p.DecksUsedToday,
+            .Select(p => (p.Name,
+                DecksToday: Math.Clamp(p.DecksUsed - prevDecksByTag.GetValueOrDefault(p.PlayerTag, 0), 0, 4),
                 DayFame: p.Fame - prevFameByTag.GetValueOrDefault(p.PlayerTag, 0)))
             .ToList();
 
         var dayFame = dayResults.Sum(r => r.DayFame);
         var top = dayResults.Where(r => r.DayFame > 0).OrderByDescending(r => r.DayFame).Take(3).ToList();
-        var slackers = dayResults.Where(r => r.DecksUsedToday < 4).ToList();
+        var slackers = dayResults.Where(r => r.DecksToday < 4).ToList();
 
         var medals = new[] { "🥇", "🥈", "🥉" };
         var lines = new List<string>
@@ -109,7 +116,7 @@ public class SendDailyReportUseCase(
         if (slackers.Count > 0)
         {
             lines.Add("");
-            var names = string.Join(", ", slackers.Take(15).Select(s => $"{s.Name} ({s.DecksUsedToday}/4)"));
+            var names = string.Join(", ", slackers.Take(15).Select(s => $"{s.Name} ({s.DecksToday}/4)"));
             var more = slackers.Count > 15 ? $" и ещё {slackers.Count - 15}" : "";
             lines.Add($"😴 Не доиграли: {names}{more}");
         }
