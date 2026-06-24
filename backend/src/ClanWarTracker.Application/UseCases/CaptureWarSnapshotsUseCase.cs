@@ -18,56 +18,63 @@ public class CaptureWarSnapshotsUseCase(
         var captured = 0;
         foreach (var clan in await clans.GetAllAsync(ct))
         {
-            // Бэкфилл завершённых недель из официального журнала — копим историю
-            // для статистики/прогноза, чтобы она пережила 10-недельное окно журнала.
-            // Журнал возвращаем, чтобы определить реальный seasonId для текущей недели
-            // (/currentriverrace всегда отдаёт seasonId=0 — баг CR API).
-            List<Domain.Entities.RiverRaceLogWeek> raceLog = [];
-            try { raceLog = await BackfillFromRaceLogAsync(clan, ct); }
-            catch { /* журнал не критичен */ }
-
-            var war = await crApi.GetCurrentWarAsync(clan.ClanTag, ct);
-            if (war is null || !war.IsWarDay) continue;
-
-            var realSeasonId = raceLog.Count > 0
-                ? (raceLog[0].SectionIndex >= 3 ? raceLog[0].SeasonId + 1 : raceLog[0].SeasonId)
-                : war.SeasonId;
-
-            // Сохраняем только текущих участников клана (из API, кэш 5 мин).
-            // Фолбэк на топ-50 самых активных, если API недоступен.
-            var memberTags = await crApi.GetClanMemberRolesAsync(clan.ClanTag, ct);
-            var roster = memberTags.Count > 0
-                ? war.Participants.Where(p => memberTags.ContainsKey(p.PlayerTag)).ToList()
-                : war.Participants
-                    .OrderByDescending(p => p.DecksUsedToday)
-                    .ThenByDescending(p => p.DecksUsed)
-                    .ThenByDescending(p => p.Fame)
-                    .Take(50)
-                    .ToList();
-
-            await snapshots.UpsertAsync(new WarSnapshot
+            // Сбой по одному клану (CR API недоступен/таймаут) не должен оставлять
+            // остальные кланы без свежего снимка в этом тике — иначе следующий
+            // отчёт о дне войны соберётся по устаревшим данным.
+            try
             {
-                ClanId = clan.Id,
-                SeasonId = realSeasonId,
-                SectionIndex = war.SectionIndex,
-                PeriodIndex = war.PeriodIndex,
-                PeriodType = war.PeriodType,
-                CapturedAtUtc = DateTime.UtcNow,
-                TotalFame = roster.Sum(p => p.Fame),
-                TotalDecksUsed = roster.Sum(p => p.DecksUsed),
-                ParticipantCount = roster.Count,
-                Players = roster.Select(p => new PlayerWarSnapshot
+                // Бэкфилл завершённых недель из официального журнала — копим историю
+                // для статистики/прогноза, чтобы она пережила 10-недельное окно журнала.
+                // Журнал возвращаем, чтобы определить реальный seasonId для текущей недели
+                // (/currentriverrace всегда отдаёт seasonId=0 — баг CR API).
+                List<Domain.Entities.RiverRaceLogWeek> raceLog = [];
+                try { raceLog = await BackfillFromRaceLogAsync(clan, ct); }
+                catch { /* журнал не критичен */ }
+
+                var war = await crApi.GetCurrentWarAsync(clan.ClanTag, ct);
+                if (war is null || !war.IsWarDay) continue;
+
+                var realSeasonId = raceLog.Count > 0
+                    ? (raceLog[0].SectionIndex >= 3 ? raceLog[0].SeasonId + 1 : raceLog[0].SeasonId)
+                    : war.SeasonId;
+
+                // Сохраняем только текущих участников клана (из API, кэш 5 мин).
+                // Фолбэк на топ-50 самых активных, если API недоступен.
+                var memberTags = await crApi.GetClanMemberRolesAsync(clan.ClanTag, ct);
+                var roster = memberTags.Count > 0
+                    ? war.Participants.Where(p => memberTags.ContainsKey(p.PlayerTag)).ToList()
+                    : war.Participants
+                        .OrderByDescending(p => p.DecksUsedToday)
+                        .ThenByDescending(p => p.DecksUsed)
+                        .ThenByDescending(p => p.Fame)
+                        .Take(50)
+                        .ToList();
+
+                await snapshots.UpsertAsync(new WarSnapshot
                 {
-                    PlayerTag = p.PlayerTag,
-                    Name = p.Name,
-                    Fame = p.Fame,
-                    DecksUsed = p.DecksUsed,
-                    DecksUsedToday = p.DecksUsedToday,
-                    BoatAttacks = p.BoatAttacks,
-                    RepairPoints = p.RepairPoints,
-                }).ToList(),
-            }, ct);
-            captured++;
+                    ClanId = clan.Id,
+                    SeasonId = realSeasonId,
+                    SectionIndex = war.SectionIndex,
+                    PeriodIndex = war.PeriodIndex,
+                    PeriodType = war.PeriodType,
+                    CapturedAtUtc = DateTime.UtcNow,
+                    TotalFame = roster.Sum(p => p.Fame),
+                    TotalDecksUsed = roster.Sum(p => p.DecksUsed),
+                    ParticipantCount = roster.Count,
+                    Players = roster.Select(p => new PlayerWarSnapshot
+                    {
+                        PlayerTag = p.PlayerTag,
+                        Name = p.Name,
+                        Fame = p.Fame,
+                        DecksUsed = p.DecksUsed,
+                        DecksUsedToday = p.DecksUsedToday,
+                        BoatAttacks = p.BoatAttacks,
+                        RepairPoints = p.RepairPoints,
+                    }).ToList(),
+                }, ct);
+                captured++;
+            }
+            catch { /* этот клан попробуем снова в следующем тике */ }
         }
         return captured;
     }
