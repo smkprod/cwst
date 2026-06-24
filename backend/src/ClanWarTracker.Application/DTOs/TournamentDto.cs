@@ -17,7 +17,6 @@ public record TournamentDto(
     string? PrizeInfo,
     string ClanInviteLink,
     string CreatorName,
-    long CreatorTelegramUserId,
     int BestOf,
     int MaxParticipants,
     string Status,

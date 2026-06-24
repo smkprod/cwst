@@ -29,10 +29,6 @@ public class CreateTournamentUseCase(IPlayerRepository players, ITournamentRepos
         if (maxParticipants < MinParticipants || maxParticipants > MaxParticipantsLimit)
             return (null, CreateTournamentError.BadFormat);
 
-        var activeByCreator = (await tournaments.GetActiveAsync(ct))
-            .Count(t => t.CreatorTelegramUserId == telegramUserId);
-        if (activeByCreator >= MaxActivePerCreator) return (null, CreateTournamentError.TooManyActive);
-
         description = TournamentValidation.Truncate(description?.Trim(), 2000);
         prizeInfo = TournamentValidation.Truncate(prizeInfo?.Trim(), 500);
 
@@ -60,8 +56,11 @@ public class CreateTournamentUseCase(IPlayerRepository players, ITournamentRepos
             JoinedAtUtc = now,
         });
 
-        await tournaments.AddAsync(tournament, ct);
-        await tournaments.SaveChangesAsync(ct);
+        // Атомарная проверка лимита + вставка: защищает от спама турнирами даже при
+        // одновременных запросах в обход UI (см. TryAddWithinActiveLimitAsync).
+        var added = await tournaments.TryAddWithinActiveLimitAsync(
+            tournament, telegramUserId, MaxActivePerCreator, ct);
+        if (!added) return (null, CreateTournamentError.TooManyActive);
         return (tournament, null);
     }
 

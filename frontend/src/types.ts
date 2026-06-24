@@ -381,7 +381,6 @@ export interface Tournament {
   prizeInfo: string | null
   clanInviteLink: string
   creatorName: string
-  creatorTelegramUserId: number
   bestOf: number
   maxParticipants: number
   status: TournamentStatus

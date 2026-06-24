@@ -1,3 +1,4 @@
+using System.Data;
 using ClanWarTracker.Domain.Entities;
 using ClanWarTracker.Domain.Enums;
 using ClanWarTracker.Domain.Interfaces;
@@ -24,6 +25,43 @@ public class TournamentRepository(AppDbContext db) : ITournamentRepository
 
     public async Task AddAsync(Tournament tournament, CancellationToken ct = default) =>
         await db.Tournaments.AddAsync(tournament, ct);
+
+    public async Task<bool> TryAddWithinActiveLimitAsync(Tournament tournament, long creatorTelegramUserId,
+        int maxActive, CancellationToken ct = default)
+    {
+        // Сериализуемая транзакция закрывает гонку "проверил лимит → вставил": при
+        // одновременных запросах одного создателя БД отклонит конфликтующую транзакцию,
+        // и лимит активных турниров не получится превысить скриптом в обход UI.
+        var strategy = db.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
+        {
+            await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+            try
+            {
+                var activeCount = await db.Tournaments.CountAsync(
+                    t => t.CreatorTelegramUserId == creatorTelegramUserId
+                         && t.Status != TournamentStatus.Completed
+                         && t.Status != TournamentStatus.Cancelled, ct);
+                if (activeCount >= maxActive)
+                {
+                    await tx.RollbackAsync(ct);
+                    return false;
+                }
+
+                await db.Tournaments.AddAsync(tournament, ct);
+                await db.SaveChangesAsync(ct);
+                await tx.CommitAsync(ct);
+                return true;
+            }
+            catch (DbUpdateException)
+            {
+                // Конфликт сериализации (проигравший в гонке создания) — трактуем как
+                // "лимит достигнут": пользователь получит TooManyActive, а не 500.
+                await tx.RollbackAsync(ct);
+                return false;
+            }
+        });
+    }
 
     public Task<List<TournamentParticipant>> GetPlayerHistoryAsync(string playerTag, CancellationToken ct = default) =>
         db.TournamentParticipants

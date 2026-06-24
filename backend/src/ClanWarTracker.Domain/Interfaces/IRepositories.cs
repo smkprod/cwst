@@ -75,6 +75,14 @@ public interface ITournamentRepository
 
     Task AddAsync(Tournament tournament, CancellationToken ct = default);
 
+    /// <summary>
+    /// Атомарно проверяет лимит активных турниров создателя и, если он не превышен,
+    /// добавляет турнир и сохраняет — в одной сериализуемой транзакции. Возвращает false,
+    /// если лимит уже достигнут (в т.ч. из-за гонки одновременных запросов — против спама).
+    /// </summary>
+    Task<bool> TryAddWithinActiveLimitAsync(Tournament tournament, long creatorTelegramUserId,
+        int maxActive, CancellationToken ct = default);
+
     /// <summary>История участия игрока: его записи участника с загруженным турниром, новые — первыми.</summary>
     Task<List<TournamentParticipant>> GetPlayerHistoryAsync(string playerTag, CancellationToken ct = default);
 
