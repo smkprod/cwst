@@ -20,9 +20,9 @@ public class TournamentsController(
     IConfiguration config) : ControllerBase
 {
     public record CreateRequest(string Name, string? Description, string? PrizeInfo,
-        string ClanInviteLink, int BestOf, int MaxParticipants);
+        string ClanInviteLink, int BestOf, int MinParticipants, int MaxParticipants);
     public record UpdateRequest(string Name, string? Description, string? PrizeInfo,
-        string ClanInviteLink, int BestOf, int MaxParticipants);
+        string ClanInviteLink, int BestOf, int MinParticipants, int MaxParticipants);
     public record SetResultRequest(int ScoreA, int ScoreB);
 
     /// <summary>GET /api/tournaments — открытые/идущие турниры, для вкладки "Турнир".</summary>
@@ -44,7 +44,8 @@ public class TournamentsController(
     {
         var userId = (long)HttpContext.Items["TelegramUserId"]!;
         var (tournament, error) = await create.ExecuteAsync(
-            userId, req.Name, req.Description, req.PrizeInfo, req.ClanInviteLink, req.BestOf, req.MaxParticipants, ct);
+            userId, req.Name, req.Description, req.PrizeInfo, req.ClanInviteLink,
+            req.BestOf, req.MinParticipants, req.MaxParticipants, ct);
 
         if (error is not null) return MapCreateError(error.Value);
         var dto = await getOne.ExecuteAsync(tournament!.Id, userId, ct);
@@ -57,7 +58,8 @@ public class TournamentsController(
     {
         var userId = (long)HttpContext.Items["TelegramUserId"]!;
         var error = await update.ExecuteAsync(
-            id, userId, req.Name, req.Description, req.PrizeInfo, req.ClanInviteLink, req.BestOf, req.MaxParticipants, ct);
+            id, userId, req.Name, req.Description, req.PrizeInfo, req.ClanInviteLink,
+            req.BestOf, req.MinParticipants, req.MaxParticipants, ct);
         if (error is not null) return MapUpdateError(error.Value);
 
         return Ok(await getOne.ExecuteAsync(id, userId, ct));
