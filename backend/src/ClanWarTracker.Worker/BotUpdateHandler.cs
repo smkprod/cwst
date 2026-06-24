@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text;
 using ClanWarTracker.Application.DTOs;
 using ClanWarTracker.Application.UseCases;
@@ -19,6 +20,11 @@ public class BotUpdateHandler(
     ILogger<BotUpdateHandler> logger) : BackgroundService
 {
     private string _botUsername = "bot";
+
+    /// <summary>Ожидающие рефералы: TG ID нового пользователя → TG ID пригласившего.
+    /// Заполняется при /start ref_&lt;id&gt; и расходуется при первой привязке тега.
+    /// In-memory: при перезапуске воркера незавершённые рефералы теряются — это допустимо.</summary>
+    private readonly ConcurrentDictionary<long, long> _pendingReferrals = new();
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -67,6 +73,14 @@ public class BotUpdateHandler(
                 case "/start":
                     if (msg.Chat.Type == ChatType.Private)
                     {
+                        // Реферальная ссылка: /start ref_<telegramId> — запоминаем пригласившего
+                        // до момента, когда новый пользователь пришлёт свой тег.
+                        if (arg is not null && arg.StartsWith("ref_", StringComparison.Ordinal)
+                            && long.TryParse(arg.AsSpan(4), out var refUserId) && refUserId != msg.From!.Id)
+                        {
+                            _pendingReferrals[msg.From!.Id] = refUserId;
+                        }
+
                         await bot.SendMessage(msg.Chat.Id,
                             "⚔️ Clanify — статистика войны Clash Royale\n\n" +
                             "Отправь свой тег аккаунта CR прямо сюда — например:\n" +
@@ -117,8 +131,9 @@ public class BotUpdateHandler(
                     if (arg is null) { await Reply(msg, "Формат: /link #ТВОЙ_ТЕГ", ct); return; }
                     var isPrivate = msg.Chat.Type == ChatType.Private;
                     var linkChatId = isPrivate ? (long?)null : msg.Chat.Id;
+                    var linkReferrer = _pendingReferrals.TryRemove(msg.From!.Id, out var lr) ? lr : (long?)null;
                     var playerName = await sp.GetRequiredService<LinkPlayerUseCase>()
-                        .ExecuteAsync(msg.From!.Id, arg, linkChatId, ct);
+                        .ExecuteAsync(msg.From!.Id, arg, linkChatId, linkReferrer, ct);
                     await Reply(msg, playerName is null
                         ? "❌ Игрок не найден. Проверь тег (профиль → значок тега)."
                         : isPrivate
@@ -198,8 +213,9 @@ public class BotUpdateHandler(
         var tag = LinkPlayerUseCase.Normalize(rawTag);
 
         // Привязываем игрока (без клана — из ЛС)
+        var quickReferrer = _pendingReferrals.TryRemove(msg.From!.Id, out var qr) ? qr : (long?)null;
         var playerName = await sp.GetRequiredService<LinkPlayerUseCase>()
-            .ExecuteAsync(msg.From!.Id, tag, null, ct);
+            .ExecuteAsync(msg.From!.Id, tag, null, quickReferrer, ct);
 
         if (playerName is null)
         {

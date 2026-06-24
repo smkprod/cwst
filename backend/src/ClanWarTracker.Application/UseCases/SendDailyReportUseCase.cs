@@ -1,11 +1,11 @@
 using ClanWarTracker.Domain.Entities;
-using ClanWarTracker.Domain.Enums;
 using ClanWarTracker.Domain.Interfaces;
 
 namespace ClanWarTracker.Application.UseCases;
 
 /// <summary>
-/// Авто-отчёт в чат клана после каждого военного дня (Pro).
+/// Авто-отчёт в чат клана после каждого военного дня (всем кланам, не только Pro —
+/// это «пассивный онбординг»: весь клан регулярно видит бота в своём чате).
 /// Воркер вызывает каждые 30 минут; день считается закрытым, когда финальный
 /// снимок дня перестал быть текущим периодом. Отчёт шлём один раз — окно 2 часа
 /// после последнего обновления снимка + дедуп по ключу (переживает почти всё,
@@ -30,7 +30,6 @@ public class SendDailyReportUseCase(
         foreach (var clan in await clans.GetAllAsync(ct))
         {
             if (clan.TelegramChatId == 0) continue;
-            if (clan.EffectivePlan(now) != PlanTier.Pro) continue;
 
             WarStatus? war;
             try { war = await crApi.GetCurrentWarAsync(clan.ClanTag, ct); }
@@ -61,7 +60,7 @@ public class SendDailyReportUseCase(
             if (!reportedKeys.Add(key)) continue;
 
             var text = await BuildReportAsync(clan, final, ct);
-            await notifier.SendToChatAsync(clan.TelegramChatId, text, ct);
+            await notifier.SendToChatWithAppButtonAsync(clan.TelegramChatId, text, ct);
             sent++;
         }
         return sent;
@@ -72,6 +71,9 @@ public class SendDailyReportUseCase(
         var dayNumber = final.PeriodIndex - 2;          // 3..6 -> 1..4
         var isWeekFinal = final.PeriodIndex >= 6;
         var isColosseum = final.PeriodType == "colosseum";
+
+        // Финал недели — отдельный праздничный итог с MVP (по накопленной за неделю славе).
+        if (isWeekFinal) return BuildWeeklyRecap(final, isColosseum);
 
         // Слава и колоды за день считаем дельтой накопительных полей относительно
         // снимка предыдущего дня — а не берём DecksUsedToday "как есть". У CR API
@@ -100,9 +102,7 @@ public class SendDailyReportUseCase(
         var medals = new[] { "🥇", "🥈", "🥉" };
         var lines = new List<string>
         {
-            isWeekFinal
-                ? $"🏁 {(isColosseum ? "Колизей" : "Война")} завершён{(isColosseum ? "" : "а")}! Итоги последнего дня:"
-                : $"🌙 День {dayNumber} войны завершён!",
+            $"🌙 День {dayNumber} войны завершён!",
             $"🏅 Медали за день: {dayFame:N0}",
         };
 
@@ -125,6 +125,46 @@ public class SendDailyReportUseCase(
             lines.Add("");
             lines.Add("💪 Все отыграли 4/4 — идеальный день!");
         }
+
+        lines.Add("");
+        lines.Add("Полная статистика и прогноз — в Mini App 👇");
+
+        return string.Join("\n", lines);
+    }
+
+    /// <summary>Итог недели: MVP и топ-3 по накопленной за неделю славе (final.Players.Fame —
+    /// уже суммарная слава игрока за неделю).</summary>
+    private static string BuildWeeklyRecap(WarSnapshot final, bool isColosseum)
+    {
+        var ranked = final.Players
+            .Where(p => p.Fame > 0)
+            .OrderByDescending(p => p.Fame)
+            .ToList();
+        var totalFame = final.Players.Sum(p => p.Fame);
+        var played = final.Players.Count(p => p.Fame > 0);
+
+        var lines = new List<string>
+        {
+            $"🏁 {(isColosseum ? "Колизей" : "Война недели")} завершён{(isColosseum ? "" : "а")}!",
+            $"🏅 Медалей за неделю: {totalFame:N0} · участвовали {played}",
+        };
+
+        if (ranked.Count > 0)
+        {
+            lines.Add("");
+            lines.Add($"👑 MVP недели — {ranked[0].Name} ({ranked[0].Fame:N0} медалей)!");
+
+            if (ranked.Count > 1)
+            {
+                var medals = new[] { "🥇", "🥈", "🥉" };
+                lines.Add("");
+                lines.Add("Топ недели:");
+                lines.AddRange(ranked.Take(3).Select((p, i) => $"{medals[i]} {p.Name} — {p.Fame:N0}"));
+            }
+        }
+
+        lines.Add("");
+        lines.Add("История войн, рейтинг и турниры — в Mini App 👇");
 
         return string.Join("\n", lines);
     }

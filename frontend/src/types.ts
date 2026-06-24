@@ -382,6 +382,7 @@ export interface Tournament {
   clanInviteLink: string
   creatorName: string
   bestOf: number
+  minParticipants: number
   maxParticipants: number
   status: TournamentStatus
   createdAtUtc: string

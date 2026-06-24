@@ -17,12 +17,15 @@ public class Tournament
 
     /// <summary>Формат матча: сколько побед нужно для выигрыша (1 = Bo1, 2 = Bo3, 3 = Bo5...).</summary>
     public int BestOf { get; set; } = 1;
+    /// <summary>Минимум участников, с которого создатель может запустить турнир (жеребьёвку).</summary>
+    public int MinParticipants { get; set; } = 2;
     public int MaxParticipants { get; set; } = 16;
 
     public TournamentStatus Status { get; set; } = TournamentStatus.RegistrationOpen;
 
     public DateTime CreatedAtUtc { get; set; }
     public DateTime? BracketGeneratedAtUtc { get; set; }
+    public DateTime? StartedAtUtc { get; set; }
     public DateTime? CompletedAtUtc { get; set; }
 
     public List<TournamentParticipant> Participants { get; set; } = [];
