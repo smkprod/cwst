@@ -25,18 +25,11 @@ public class CaptureWarSnapshotsUseCase(
             {
                 // Бэкфилл завершённых недель из официального журнала — копим историю
                 // для статистики/прогноза, чтобы она пережила 10-недельное окно журнала.
-                // Журнал возвращаем, чтобы определить реальный seasonId для текущей недели
-                // (/currentriverrace всегда отдаёт seasonId=0 — баг CR API).
-                List<Domain.Entities.RiverRaceLogWeek> raceLog = [];
-                try { raceLog = await BackfillFromRaceLogAsync(clan, ct); }
+                try { await BackfillFromRaceLogAsync(clan, ct); }
                 catch { /* журнал не критичен */ }
 
                 var war = await crApi.GetCurrentWarAsync(clan.ClanTag, ct);
                 if (war is null || !war.IsWarDay) continue;
-
-                var realSeasonId = raceLog.Count > 0
-                    ? (raceLog[0].SectionIndex >= 3 ? raceLog[0].SeasonId + 1 : raceLog[0].SeasonId)
-                    : war.SeasonId;
 
                 // Сохраняем только текущих участников клана (из API, кэш 5 мин).
                 // Фолбэк на топ-50 самых активных, если API недоступен.
@@ -53,7 +46,7 @@ public class CaptureWarSnapshotsUseCase(
                 await snapshots.UpsertAsync(new WarSnapshot
                 {
                     ClanId = clan.Id,
-                    SeasonId = realSeasonId,
+                    SeasonId = war.SeasonId,
                     SectionIndex = war.SectionIndex,
                     PeriodIndex = war.PeriodIndex,
                     PeriodType = war.PeriodType,
@@ -85,10 +78,10 @@ public class CaptureWarSnapshotsUseCase(
     /// поэтому так подтягиваются даже недели до подключения бота. Финал недели пишем
     /// как снимок последнего военного дня (PeriodIndex=6). Уже имеющиеся недели не трогаем.
     /// </summary>
-    private async Task<List<Domain.Entities.RiverRaceLogWeek>> BackfillFromRaceLogAsync(Clan clan, CancellationToken ct)
+    private async Task BackfillFromRaceLogAsync(Clan clan, CancellationToken ct)
     {
         var log = await crApi.GetRiverRaceLogAsync(clan.ClanTag, ct);
-        if (log.Count == 0) return log;
+        if (log.Count == 0) return;
 
         var existing = (await snapshots.GetByClanAsync(clan.Id, weeks: 16, ct))
             .Select(s => (s.SeasonId, s.SectionIndex))
@@ -125,6 +118,5 @@ public class CaptureWarSnapshotsUseCase(
                 }).ToList(),
             }, ct);
         }
-        return log;
     }
 }
