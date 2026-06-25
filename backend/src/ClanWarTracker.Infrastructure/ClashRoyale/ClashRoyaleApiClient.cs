@@ -47,12 +47,14 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
             // Дальше WarDecksUsed уточняется по снапшоту первого дня в Application-слое.
             var isFirstWarDay = isWarDay && dayIndex == 3;
 
+            var realSeasonId = await ResolveRealSeasonIdAsync(clanTag, race.SeasonId, ct);
+
             return new WarStatus
             {
                 ClanTag = race.Clan.Tag,
                 PeriodType = race.PeriodType ?? "training",
                 PeriodIndex = dayIndex,
-                SeasonId = race.SeasonId,
+                SeasonId = realSeasonId,
                 SectionIndex = race.SectionIndex,
                 DayEndsAtUtc = ComputeDayEnd(race.PeriodIndex),
                 Participants = (race.Clan.Participants ?? []).Select(p => new WarParticipant
@@ -128,6 +130,27 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
             var player = await resp.Content.ReadFromJsonAsync<PlayerWithClan>(cancellationToken: ct);
             return player?.Clan?.Tag;
         });
+    }
+
+    /// <summary>
+    /// /currentriverrace всегда отдаёт seasonId=0 (баг CR API), хотя весь наш дедуп/история
+    /// снимков завязаны на реальный сезон. Уточняем по официальному журналу (/riverracelog):
+    /// сезон самой свежей завершённой недели; если это был колизей (section 3) — сезон уже
+    /// сменился, текущий = +1. Журнал недоступен — отдаём сырое значение как есть.
+    /// </summary>
+    private async Task<int> ResolveRealSeasonIdAsync(string clanTag, int rawSeasonId, CancellationToken ct)
+    {
+        try
+        {
+            var log = await GetRiverRaceLogAsync(clanTag, ct);
+            if (log.Count > 0)
+            {
+                var newest = log[0]; // журнал отсортирован: свежие недели первыми
+                return newest.SectionIndex >= 3 ? newest.SeasonId + 1 : newest.SeasonId;
+            }
+        }
+        catch { /* журнал не критичен — используем сырое значение */ }
+        return rawSeasonId;
     }
 
     private static string Encode(string tag) => Uri.EscapeDataString(tag); // "#" -> "%23"
