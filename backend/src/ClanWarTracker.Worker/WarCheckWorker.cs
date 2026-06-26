@@ -7,8 +7,12 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
 {
     private static readonly TimeSpan Interval = TimeSpan.FromMinutes(30);
     private readonly HashSet<string> _reportedDays = [];
+    private readonly HashSet<string> _finalCallKeys = [];
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override Task ExecuteAsync(CancellationToken stoppingToken) =>
+        Task.WhenAll(RunPeriodicChecksAsync(stoppingToken), RunFinalCallLoopAsync(stoppingToken));
+
+    private async Task RunPeriodicChecksAsync(CancellationToken stoppingToken)
     {
         using var timer = new PeriodicTimer(Interval);
         do
@@ -73,5 +77,43 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
             }
         }
         while (await timer.WaitForNextTickAsync(stoppingToken));
+    }
+
+    /// <summary>
+    /// CR API не отдаёт точное время сброса дня войны — система допускает, что сброс
+    /// происходит в 10:00 UTC (то же допущение, на котором стоит DayEndsAtUtc). Поэтому
+    /// здесь не нужен частый поллинг: будим воркер раз в сутки, ровно в 09:59 UTC,
+    /// и шлём финальное предупреждение тем, кто не успел доиграть.
+    /// </summary>
+    private async Task RunFinalCallLoopAsync(CancellationToken stoppingToken)
+    {
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            var delay = NextFinalCallUtc() - DateTime.UtcNow;
+            if (delay > TimeSpan.Zero)
+                await Task.Delay(delay, stoppingToken);
+
+            try
+            {
+                using var scope = scopeFactory.CreateScope();
+                var finalCall = scope.ServiceProvider.GetRequiredService<SendFinalCallUseCase>();
+                var sent = await finalCall.ExecuteAsync(_finalCallKeys, stoppingToken);
+                if (sent > 0) logger.LogInformation("Sent {Count} final-call alerts", sent);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Final call alert failed");
+            }
+
+            // Небольшой запас, чтобы при дрифте таймера не сработать дважды на одну минуту
+            await Task.Delay(TimeSpan.FromMinutes(2), stoppingToken);
+        }
+    }
+
+    private static DateTime NextFinalCallUtc()
+    {
+        var now = DateTime.UtcNow;
+        var target = new DateTime(now.Year, now.Month, now.Day, 9, 59, 0, DateTimeKind.Utc);
+        return now < target ? target : target.AddDays(1);
     }
 }
