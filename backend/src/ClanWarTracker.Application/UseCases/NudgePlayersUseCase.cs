@@ -55,17 +55,18 @@ public class NudgePlayersUseCase(
         }
         await players.SaveChangesAsync(ct);
 
-        // Непривязанных — публично в чат клана
-        var unlinked = slackers.Where(s => !linkedPlayers.ContainsKey(s.PlayerTag)).ToList();
+        // Публично в чат клана — все лентяи, привязанные помечены кликабельным упоминанием.
         var postedToChat = false;
-        if (unlinked.Count > 0 && clan.TelegramChatId != 0)
+        if (slackers.Count > 0 && clan.TelegramChatId != 0)
         {
-            var names = string.Join(", ", unlinked.Take(20).Select(u => u.Name));
+            var names = string.Join(", ", slackers.Take(20).Select(s =>
+                TelegramMention.Mention(s.Name, linkedPlayers.GetValueOrDefault(s.PlayerTag)?.TelegramUserId)));
             await notifier.SendToChatAsync(clan.TelegramChatId,
-                $"👊 Админ пнул лентяев! Ещё не доиграли: {names}", ct);
+                $"👊 Админ пнул лентяев! Ещё не доиграли: {names}",
+                clan.TelegramMessageThreadId, html: true, ct: ct);
             postedToChat = true;
         }
 
-        return new NudgeResult(dm, skipped, unlinked.Count, postedToChat);
+        return new NudgeResult(dm, skipped, postedToChat ? slackers.Count : 0, postedToChat);
     }
 }

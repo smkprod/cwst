@@ -58,7 +58,7 @@ public class SendPlanExpiryRemindersUseCase(
 
             try
             {
-                await notifier.SendToChatAsync(clan.TelegramChatId, text, ct);
+                await notifier.SendToChatAsync(clan.TelegramChatId, text, clan.TelegramMessageThreadId, ct: ct);
                 clan.PlanReminderStageSent = stage;
             }
             catch
