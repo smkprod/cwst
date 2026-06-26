@@ -29,7 +29,9 @@ export function NudgeButton({ notPlayedCount, isPro }: { notPlayedCount: number;
       setResultText(
         e instanceof ApiError && e.code === 'no_war_day'
           ? t.nudge.noWar
-          : t.nudge.error,
+          : e instanceof ApiError && (e.code === 'cr_api_unavailable' || e.code === 'cr_api_token_invalid')
+            ? t.nudge.crUnavailable
+            : t.nudge.error,
       )
       setState('cooldown')
     }

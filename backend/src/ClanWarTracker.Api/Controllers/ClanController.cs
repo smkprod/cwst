@@ -180,7 +180,12 @@ public class ClanController(
             return StatusCode(403, new { error = "not_admin", message = "Пинать может только админ группы или лидер клана" });
 
         var isPro = clan.EffectivePlan(DateTime.UtcNow) == PlanTier.Pro;
-        var result = await nudge.ExecuteAsync(clan.Id, isPro, ct);
+        NudgePlayersUseCase.NudgeResult? result;
+        try { result = await nudge.ExecuteAsync(clan.Id, isPro, ct); }
+        catch (HttpRequestException ex) when ((int)(ex.StatusCode ?? 0) is >= 500 or 429)
+            { return StatusCode(503, new { error = "cr_api_unavailable", message = ex.Message }); }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("CR API"))
+            { return StatusCode(503, new { error = "cr_api_token_invalid", message = ex.Message }); }
         return result is null
             ? Conflict(new { error = "no_war_day", message = "Сейчас не день войны — пинать некого" })
             : Ok(result);
