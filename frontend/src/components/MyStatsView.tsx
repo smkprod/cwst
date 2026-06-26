@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { api, ApiError } from '../lib/api'
-import type { MyStats } from '../types'
-import { fmt } from '../lib/format'
+import type { MyStats, PlayerHistory, PlayerWeekHistory } from '../types'
+import { fmt, fmtShort } from '../lib/format'
 import { haptic, shareToTelegram } from '../lib/telegram'
-import { useT, perfLabel } from '../lib/i18n'
+import { useT, perfLabel, type Translations } from '../lib/i18n'
 import { TournamentHistoryCard } from './TournamentHistoryCard'
 
 type State =
@@ -20,6 +20,7 @@ const PERF_META: Record<string, { emoji: string; cls: string }> = {
 
 export function MyStatsView() {
   const [state, setState] = useState<State>({ kind: 'loading' })
+  const [history, setHistory] = useState<PlayerHistory | null>(null)
   const { t } = useT()
 
   useEffect(() => {
@@ -32,6 +33,12 @@ export function MyStatsView() {
           : t.me.loadError,
       }))
   }, [t.me.notInWar, t.me.loadError])
+
+  const playerTag = state.kind === 'ready' ? state.data.playerTag : null
+  useEffect(() => {
+    if (!playerTag) return
+    api.getPlayerHistory(playerTag).then(setHistory).catch(() => setHistory(null))
+  }, [playerTag])
 
   if (state.kind === 'loading') {
     return <div className="center"><div className="spinner" /></div>
@@ -109,6 +116,9 @@ export function MyStatsView() {
         </div>
       </div>
 
+      {history && history.weeks.length >= 2 && <WeeklyFameChart weeks={history.weeks} t={t} />}
+      {history && history.weeks.length >= 2 && <VsClanChart weeks={history.weeks} t={t} />}
+
       {s.season && (
         <div className="card season-card">
           <div className="card-title-row">
@@ -165,5 +175,63 @@ function ContributionRing({ percent, label, ariaLabel }: { percent: number; labe
         <span className="ring-caption">{label}</span>
       </div>
     </div>
+  )
+}
+
+function WeeklyFameChart({ weeks, t }: { weeks: PlayerWeekHistory[]; t: Translations }) {
+  const chronological = [...weeks].reverse()
+  const maxFame = Math.max(...chronological.map(w => w.fame), 1)
+  return (
+    <section className="card">
+      <div className="card-title" style={{ marginBottom: 10 }}>{t.me.weeklyFameTitle}</div>
+      <div className="history-weeks">
+        {chronological.map(w => (
+          <div key={`${w.seasonId}-${w.sectionIndex}`} className="history-week">
+            <div className="history-bar-wrap">
+              <div
+                className={`history-bar ${w.isColosseum ? 'history-bar-colosseum' : ''}`}
+                style={{ height: `${Math.max(8, Math.round((w.fame / maxFame) * 100))}%` }}
+                title={`${fmt(w.fame)} ${t.leaderboard.medals}`}
+              />
+            </div>
+            <span className="history-fame">{fmtShort(w.fame)}</span>
+            <span className="history-label">{w.isColosseum ? '🏟' : `н.${w.sectionIndex + 1}`}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function VsClanChart({ weeks, t }: { weeks: PlayerWeekHistory[]; t: Translations }) {
+  const chronological = [...weeks].reverse()
+  const maxVal = Math.max(...chronological.flatMap(w => [w.avgFamePerAttack, w.clanAvgFamePerAttack]), 1)
+  return (
+    <section className="card">
+      <div className="card-title" style={{ marginBottom: 6 }}>{t.me.vsClanTitle}</div>
+      <div className="cmp-legend">
+        <span><span className="cmp-dot cmp-dot-mine" />{t.me.vsClanMineLegend}</span>
+        <span><span className="cmp-dot cmp-dot-clan" />{t.me.vsClanClanLegend}</span>
+      </div>
+      <div className="cmp-weeks">
+        {chronological.map(w => (
+          <div key={`${w.seasonId}-${w.sectionIndex}`} className="cmp-week">
+            <div className="cmp-bar-wrap">
+              <div
+                className="cmp-bar cmp-bar-mine"
+                style={{ height: `${Math.max(4, Math.round((w.avgFamePerAttack / maxVal) * 100))}%` }}
+                title={`${t.me.vsClanMineLegend}: ${w.avgFamePerAttack}`}
+              />
+              <div
+                className="cmp-bar cmp-bar-clan"
+                style={{ height: `${Math.max(4, Math.round((w.clanAvgFamePerAttack / maxVal) * 100))}%` }}
+                title={`${t.me.vsClanClanLegend}: ${w.clanAvgFamePerAttack}`}
+              />
+            </div>
+            <span className="history-label">{w.isColosseum ? '🏟' : `н.${w.sectionIndex + 1}`}</span>
+          </div>
+        ))}
+      </div>
+    </section>
   )
 }

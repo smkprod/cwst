@@ -107,6 +107,7 @@ public class BotUpdateHandler(
                                   "/status — статус текущей войны\n" +
                                   "/remind N — напоминания за N часов до конца дня\n\n" +
                                   "Участники: напишите боту /start в личку и отправьте свой тег CR.",
+                            messageThreadId: msg.MessageThreadId,
                             cancellationToken: ct);
                     }
                     break;
@@ -120,11 +121,15 @@ public class BotUpdateHandler(
                     if (arg is null) { await Reply(msg, "Формат: /setup #ТЕГ_КЛАНА", ct); return; }
                     if (!await IsAdminAsync(msg, ct)) { await Reply(msg, "Только админ группы может привязать клан.", ct); return; }
                     var clanName = await sp.GetRequiredService<SetupClanUseCase>()
-                        .ExecuteAsync(msg.Chat.Id, arg, ct);
+                        .ExecuteAsync(msg.Chat.Id, arg, msg.MessageThreadId, ct);
+                    var topicNote = msg.MessageThreadId is not null
+                        ? "\n\n📌 Напоминания и отчёты будут приходить в эту тему."
+                        : "";
                     await Reply(msg, clanName is null
                         ? "❌ Клан не найден. Проверь тег."
                         : $"✅ Клан «{clanName}» привязан к этой группе!\n\n" +
-                          "Участники: напишите боту /start в личку и отправьте свой тег CR — сразу увидите статистику.", ct);
+                          "Участники: напишите боту /start в личку и отправьте свой тег CR — сразу увидите статистику." +
+                          topicNote, ct);
                     break;
 
                 case "/link":

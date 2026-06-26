@@ -1,5 +1,6 @@
 using ClanWarTracker.Domain.Interfaces;
 using Telegram.Bot;
+using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 
 namespace ClanWarTracker.Infrastructure.Telegram;
@@ -14,21 +15,28 @@ public class TelegramNotificationSender(ITelegramBotClient bot) : INotificationS
     public Task SendToUserAsync(long telegramUserId, string text, CancellationToken ct = default) =>
         bot.SendMessage(telegramUserId, text, cancellationToken: ct);
 
-    public Task SendToChatAsync(long chatId, string text, CancellationToken ct = default) =>
-        bot.SendMessage(chatId, text, cancellationToken: ct);
+    public Task SendToChatAsync(
+        long chatId, string text, int? threadId = null, bool html = false, CancellationToken ct = default) =>
+        bot.SendMessage(chatId, text,
+            parseMode: html ? ParseMode.Html : ParseMode.None,
+            messageThreadId: threadId,
+            cancellationToken: ct);
 
-    public async Task SendToChatWithAppButtonAsync(long chatId, string text, CancellationToken ct = default)
+    public async Task SendToChatWithAppButtonAsync(
+        long chatId, string text, int? threadId = null, bool html = false, CancellationToken ct = default)
     {
         var appUrl = await GetAppUrlAsync(ct);
+        var parseMode = html ? ParseMode.Html : ParseMode.None;
         if (appUrl is null)
         {
-            await bot.SendMessage(chatId, text, cancellationToken: ct);
+            await bot.SendMessage(chatId, text, parseMode: parseMode, messageThreadId: threadId, cancellationToken: ct);
             return;
         }
 
         var keyboard = new InlineKeyboardMarkup(
             InlineKeyboardButton.WithUrl("🎮 Открыть в Mini App", appUrl));
-        await bot.SendMessage(chatId, text, replyMarkup: keyboard, cancellationToken: ct);
+        await bot.SendMessage(chatId, text,
+            parseMode: parseMode, replyMarkup: keyboard, messageThreadId: threadId, cancellationToken: ct);
     }
 
     /// <summary>https://t.me/&lt;bot&gt;?startapp открывает основное Mini App прямо из чата.</summary>

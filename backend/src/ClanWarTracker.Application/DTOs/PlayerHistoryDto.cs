@@ -18,4 +18,5 @@ public record PlayerWeekHistoryDto(
     string ClanName,
     int Fame,                      // финальная слава игрока за неделю
     int DecksUsed,
-    double AvgFamePerAttack);      // слава / военные колоды недели
+    double AvgFamePerAttack,       // слава / военные колоды недели
+    double ClanAvgFamePerAttack);  // средняя слава/колода по всему клану за ту же неделю

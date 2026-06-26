@@ -44,6 +44,9 @@ namespace ClanWarTracker.Infrastructure.Migrations
                     b.Property<long>("TelegramChatId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("TelegramMessageThreadId")
+                        .HasColumnType("INTEGER");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ClanTag")

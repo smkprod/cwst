@@ -137,6 +137,10 @@ const ru = {
     shareContribSuffix: '% медалей клана 💪',
     medalsPerAttackUnit: 'медалей за атаку',
     perf: { top: 'топ', above: 'выше среднего', mid: 'средне', below: 'ниже среднего' },
+    weeklyFameTitle: '📈 Слава по неделям',
+    vsClanTitle: '📊 Я vs средний по клану',
+    vsClanMineLegend: 'Я',
+    vsClanClanLegend: 'Клан',
   },
 
   leaderboard: {
@@ -560,6 +564,10 @@ const uk: Translations = {
     shareContribSuffix: '% медалей клану 💪',
     medalsPerAttackUnit: 'медалей за атаку',
     perf: { top: 'топ', above: 'вище середнього', mid: 'середньо', below: 'нижче середнього' },
+    weeklyFameTitle: '📈 Слава за тижнями',
+    vsClanTitle: '📊 Я vs середній по клану',
+    vsClanMineLegend: 'Я',
+    vsClanClanLegend: 'Клан',
   },
 
   leaderboard: {
@@ -981,6 +989,10 @@ const en: Translations = {
     shareContribSuffix: '% of clan medals 💪',
     medalsPerAttackUnit: 'medals per attack',
     perf: { top: 'top', above: 'above average', mid: 'average', below: 'below average' },
+    weeklyFameTitle: '📈 Fame by week',
+    vsClanTitle: '📊 Me vs clan average',
+    vsClanMineLegend: 'Me',
+    vsClanClanLegend: 'Clan',
   },
 
   leaderboard: {

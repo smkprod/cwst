@@ -59,18 +59,23 @@ public class SendRemindersUseCase(
 
             await players.SaveChangesAsync(ct);
 
-            // Сводка в групповой чат: непривязанные лентяи + up-sell для Free
-            var unlinked = slackers.Where(s => !allLinked.ContainsKey(s.PlayerTag)).ToList();
+            // Сводка в групповой чат: все лентяи, привязанные — кликабельным упоминанием
+            // (уведомляет их напрямую, даже без username), плюс up-sell DM для Free.
             var parts = new List<string>();
 
-            if (unlinked.Count > 0)
-                parts.Add($"⏰ Ещё не доиграли войну: {string.Join(", ", unlinked.Select(u => u.Name))}");
+            if (slackers.Count > 0)
+            {
+                var names = slackers.Select(s => TelegramMention.Mention(
+                    s.Name, allLinked.GetValueOrDefault(s.PlayerTag)?.TelegramUserId));
+                parts.Add($"⏰ Ещё не доиграли войну: {string.Join(", ", names)}");
+            }
 
             if (!isPro && allLinked.Count > 0)
                 parts.Add("🔒 Личные напоминания в DM — функция Pro. Подключи Pro, чтобы никто не забывал про атаки.");
 
             if (parts.Count > 0 && clan.TelegramChatId != 0)
-                await notifier.SendToChatAsync(clan.TelegramChatId, string.Join("\n\n", parts), ct);
+                await notifier.SendToChatAsync(clan.TelegramChatId, string.Join("\n\n", parts),
+                    clan.TelegramMessageThreadId, html: true, ct: ct);
         }
     }
 }

@@ -76,6 +76,9 @@ public class PlayerController(
             DecksUsed: r.DecksUsed,
             AvgFamePerAttack: r.Fame > 0 && r.DecksUsed > 0
                 ? Math.Round(Math.Clamp((double)r.Fame / r.DecksUsed, 100, 250), 1)
+                : 0,
+            ClanAvgFamePerAttack: r.Snapshot.TotalFame > 0 && r.Snapshot.TotalDecksUsed > 0
+                ? Math.Round(Math.Clamp((double)r.Snapshot.TotalFame / r.Snapshot.TotalDecksUsed, 100, 250), 1)
                 : 0)).ToList();
 
         // Дополняем недостающие недели официальным журналом текущего клана игрока
@@ -95,16 +98,20 @@ public class PlayerController(
                         string.Equals(p.PlayerTag, playerTag, StringComparison.OrdinalIgnoreCase));
                     if (me is null || me.Fame == 0) continue;
 
+                    var clanDecks = standing!.Participants.Sum(p => p.DecksUsed);
                     merged.Add(new PlayerWeekHistoryDto(
                         SeasonId: w.SeasonId,
                         SectionIndex: w.SectionIndex,
                         IsColosseum: w.IsColosseum,
-                        ClanTag: standing!.ClanTag,
+                        ClanTag: standing.ClanTag,
                         ClanName: standing.ClanName,
                         Fame: me.Fame,
                         DecksUsed: me.DecksUsed,
                         AvgFamePerAttack: me.Fame > 0 && me.DecksUsed > 0
                             ? Math.Round(Math.Clamp((double)me.Fame / me.DecksUsed, 100, 250), 1)
+                            : 0,
+                        ClanAvgFamePerAttack: standing.Fame > 0 && clanDecks > 0
+                            ? Math.Round(Math.Clamp((double)standing.Fame / clanDecks, 100, 250), 1)
                             : 0));
                 }
             }

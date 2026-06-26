@@ -89,6 +89,7 @@ export interface PlayerWeekHistory {
   fame: number
   decksUsed: number
   avgFamePerAttack: number
+  clanAvgFamePerAttack: number
 }
 
 export interface PlayerHistory {

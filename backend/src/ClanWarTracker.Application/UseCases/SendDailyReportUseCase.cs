@@ -14,6 +14,7 @@ namespace ClanWarTracker.Application.UseCases;
 public class SendDailyReportUseCase(
     IClashRoyaleApi crApi,
     IClanRepository clans,
+    IPlayerRepository players,
     IWarSnapshotRepository snapshots,
     INotificationSender notifier)
 {
@@ -60,7 +61,8 @@ public class SendDailyReportUseCase(
             if (!reportedKeys.Add(key)) continue;
 
             var text = await BuildReportAsync(clan, final, ct);
-            await notifier.SendToChatWithAppButtonAsync(clan.TelegramChatId, text, ct);
+            await notifier.SendToChatWithAppButtonAsync(
+                clan.TelegramChatId, text, clan.TelegramMessageThreadId, html: true, ct: ct);
             sent++;
         }
         return sent;
@@ -90,7 +92,7 @@ public class SendDailyReportUseCase(
             .ToDictionary(p => p.PlayerTag, p => p.DecksUsed, StringComparer.OrdinalIgnoreCase);
 
         var dayResults = final.Players
-            .Select(p => (p.Name,
+            .Select(p => (p.PlayerTag, p.Name,
                 DecksToday: Math.Clamp(p.DecksUsed - prevDecksByTag.GetValueOrDefault(p.PlayerTag, 0), 0, 4),
                 DayFame: p.Fame - prevFameByTag.GetValueOrDefault(p.PlayerTag, 0)))
             .ToList();
@@ -98,6 +100,11 @@ public class SendDailyReportUseCase(
         var dayFame = dayResults.Sum(r => r.DayFame);
         var top = dayResults.Where(r => r.DayFame > 0).OrderByDescending(r => r.DayFame).Take(3).ToList();
         var slackers = dayResults.Where(r => r.DecksToday < 4).ToList();
+
+        // Привязанных к Telegram игроков клана — чтобы упомянуть лентяев напрямую в чате.
+        var linked = (await players.GetByClanIdAsync(clan.Id, ct))
+            .Where(p => p.TelegramUserId is not null)
+            .ToDictionary(p => p.PlayerTag, p => p.TelegramUserId, StringComparer.OrdinalIgnoreCase);
 
         var medals = new[] { "🥇", "🥈", "🥉" };
         var lines = new List<string>
@@ -110,13 +117,15 @@ public class SendDailyReportUseCase(
         {
             lines.Add("");
             lines.Add("Лучшие за день:");
-            lines.AddRange(top.Select((r, i) => $"{medals[i]} {r.Name} — {r.DayFame:N0}"));
+            lines.AddRange(top.Select((r, i) =>
+                $"{medals[i]} {TelegramMention.Escape(r.Name)} — {r.DayFame:N0}"));
         }
 
         if (slackers.Count > 0)
         {
             lines.Add("");
-            var names = string.Join(", ", slackers.Take(15).Select(s => $"{s.Name} ({s.DecksToday}/4)"));
+            var names = string.Join(", ", slackers.Take(15).Select(s =>
+                $"{TelegramMention.Mention(s.Name, linked.GetValueOrDefault(s.PlayerTag))} ({s.DecksToday}/4)"));
             var more = slackers.Count > 15 ? $" и ещё {slackers.Count - 15}" : "";
             lines.Add($"😴 Не доиграли: {names}{more}");
         }
@@ -152,14 +161,15 @@ public class SendDailyReportUseCase(
         if (ranked.Count > 0)
         {
             lines.Add("");
-            lines.Add($"👑 MVP недели — {ranked[0].Name} ({ranked[0].Fame:N0} медалей)!");
+            lines.Add($"👑 MVP недели — {TelegramMention.Escape(ranked[0].Name)} ({ranked[0].Fame:N0} медалей)!");
 
             if (ranked.Count > 1)
             {
                 var medals = new[] { "🥇", "🥈", "🥉" };
                 lines.Add("");
                 lines.Add("Топ недели:");
-                lines.AddRange(ranked.Take(3).Select((p, i) => $"{medals[i]} {p.Name} — {p.Fame:N0}"));
+                lines.AddRange(ranked.Take(3).Select((p, i) =>
+                    $"{medals[i]} {TelegramMention.Escape(p.Name)} — {p.Fame:N0}"));
             }
         }
 

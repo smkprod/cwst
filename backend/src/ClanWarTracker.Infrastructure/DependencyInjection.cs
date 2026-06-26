@@ -111,6 +111,10 @@ public static class DependencyInjection
         await db.Database.ExecuteSqlRawAsync(
             "ALTER TABLE \"Clans\" ADD COLUMN IF NOT EXISTS \"PlanReminderStageSent\" integer NOT NULL DEFAULT 0;");
 
+        // Тема (Topic) форума группы, куда слать напоминания/отчёты — если /setup был выполнен внутри темы.
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Clans\" ADD COLUMN IF NOT EXISTS \"TelegramMessageThreadId\" integer;");
+
         await db.Database.ExecuteSqlRawAsync(@"
 CREATE TABLE IF NOT EXISTS ""RecruitmentProfiles"" (
     ""Id"" serial PRIMARY KEY,
