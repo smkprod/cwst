@@ -8,6 +8,12 @@ public class Clan
     public required string ClanTag { get; set; }         // #CLAN123
     public required string Name { get; set; }
     public long TelegramChatId { get; set; }             // группа, к которой привязан клан
+
+    /// <summary>
+    /// ID темы (Topic) форума в группе, куда слать напоминания/отчёты, если /setup был
+    /// выполнен внутри темы. Null — группа без тем или /setup выполнен в общем чате.
+    /// </summary>
+    public int? TelegramMessageThreadId { get; set; }
     public int ReminderHoursBeforeEnd { get; set; } = 3; // отправлять за X часов до конца дня
 
     // --- SaaS-тариф ---

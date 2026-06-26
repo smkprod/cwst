@@ -407,6 +407,21 @@ main.with-tabbar { padding-bottom: 80px; }
 }
 .history-day-num { font-size: 10px; color: var(--muted); }
 .history-day-fame { font-size: 13px; font-weight: 700; color: #5fd573; }
+
+/* --- Я vs средний по клану (MyStatsView) --- */
+.cmp-legend { display: flex; gap: 14px; font-size: 11px; color: var(--muted); margin-bottom: 8px; }
+.cmp-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+.cmp-dot-mine { background: var(--accent); }
+.cmp-dot-clan { background: var(--purple); }
+.cmp-weeks {
+  display: flex; align-items: flex-end; gap: 8px;
+  height: 110px; padding: 0 2px; margin-bottom: 4px;
+}
+.cmp-week { flex: 1; display: grid; justify-items: center; gap: 4px; height: 100%; grid-template-rows: 1fr auto; }
+.cmp-bar-wrap { display: flex; align-items: flex-end; justify-content: center; gap: 3px; width: 100%; height: 100%; }
+.cmp-bar { width: 40%; border-radius: 4px 4px 2px 2px; transition: height 0.5s ease; }
+.cmp-bar-mine { background: linear-gradient(180deg, var(--accent), rgba(82, 136, 193, 0.35)); }
+.cmp-bar-clan { background: linear-gradient(180deg, var(--purple), rgba(156, 107, 255, 0.35)); }
 .history-top { overflow: hidden; text-overflow: ellipsis; }
 
 /* --- Панель владельца --- */
