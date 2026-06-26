@@ -55,14 +55,16 @@ public class NudgePlayersUseCase(
         }
         await players.SaveChangesAsync(ct);
 
-        // Публично в чат клана — все лентяи, привязанные помечены кликабельным упоминанием.
+        // Публично в чат клана — все лентяи, привязанные помечены кликабельным упоминанием,
+        // у каждого указано сколько колод осталось доиграть.
         var postedToChat = false;
         if (slackers.Count > 0 && clan.TelegramChatId != 0)
         {
             var names = string.Join(", ", slackers.Take(20).Select(s =>
-                TelegramMention.Mention(s.Name, linkedPlayers.GetValueOrDefault(s.PlayerTag)?.TelegramUserId)));
+                $"{TelegramMention.Mention(s.Name, linkedPlayers.GetValueOrDefault(s.PlayerTag)?.TelegramUserId)} " +
+                $"({4 - s.DecksUsedToday}/4 колод)"));
             await notifier.SendToChatAsync(clan.TelegramChatId,
-                $"👊 Админ пнул лентяев! Ещё не доиграли: {names}",
+                $"👊 Админ пнул лентяев! Нужно отыграть КВ — осталось:\n{names}",
                 clan.TelegramMessageThreadId, html: true, ct: ct);
             postedToChat = true;
         }
