@@ -150,11 +150,12 @@ export default function App() {
             {tab === 'war' && (
               <div className="fade-in">
                 <WarHeader status={data} />
+                {/* Аналитика к аналитике: цифры → прогноз → инсайты, потом гонка и история */}
+                <StatsStrip stats={data.stats} />
+                <ForecastCard forecast={data.forecast} stats={data.stats} periodType={data.periodType} />
                 <InsightsCard insights={data.insights} plan={data.plan} />
                 <RaceCard race={data.race} periodType={data.periodType} />
-                <ForecastCard forecast={data.forecast} stats={data.stats} periodType={data.periodType} />
                 <WarLogCard log={data.warLog} />
-                <StatsStrip stats={data.stats} />
                 {canManage && data.periodType !== 'training' && (
                   <NudgeButton notPlayedCount={notFinished} isPro={isPro} />
                 )}
@@ -247,11 +248,12 @@ export default function App() {
             {tab === 'war' && (
               <div className="fade-in">
                 <WarHeader status={data} />
+                {/* Аналитика к аналитике: цифры → прогноз → инсайты, потом гонка и история */}
+                <StatsStrip stats={data.stats} />
+                <ForecastCard forecast={data.forecast} stats={data.stats} periodType={data.periodType} />
                 <InsightsCard insights={data.insights} plan={data.plan} />
                 <RaceCard race={data.race} periodType={data.periodType} />
-                <ForecastCard forecast={data.forecast} stats={data.stats} periodType={data.periodType} />
                 <WarLogCard log={data.warLog} />
-                <StatsStrip stats={data.stats} />
                 <PlayerList players={data.players} myPlayerTag={myPlayerTag} />
                 <div style={{ height: 12 }} />
                 <LeaderCtaCard />
