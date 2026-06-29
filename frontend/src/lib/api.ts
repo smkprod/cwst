@@ -1,5 +1,5 @@
 import { initData } from './telegram'
-import type { ClanHistory, ClanStatus, ClanWarLog, GlobalTop, MyStats, NudgeResult, OwnerClan, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RecruitmentCandidates, RecruitmentStatus, SeasonBreakdown, SeasonStats, Tournament, TournamentSummary } from '../types'
+import type { BroadcastResult, BroadcastTarget, ClanHistory, ClanStatus, ClanWarLog, GlobalTop, MyStats, NudgeResult, OwnerClan, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RecruitmentCandidates, RecruitmentStatus, SeasonBreakdown, SeasonStats, Tournament, TournamentSummary } from '../types'
 
 // Если мы на Render (production), BASE должен быть пустой строкой '', чтобы запросы шли на тот же домен.
 // Для локальной разработки (Development) оставляем localhost:5000.
@@ -78,6 +78,12 @@ export const api = {
     }),
   ownerDeleteClan: (clanId: number) =>
     request<{ ok: boolean }>(`/api/owner/clans/${clanId}`, { method: 'DELETE' }),
+  ownerBroadcast: (text: string, target: BroadcastTarget) =>
+    request<BroadcastResult>('/api/owner/broadcast', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, target }),
+    }),
 
   // Турниры
   getTournaments: () => request<TournamentSummary[]>('/api/tournaments'),
