@@ -14,6 +14,7 @@ import { Leaderboard } from './components/Leaderboard'
 import { MyStatsView } from './components/MyStatsView'
 import { NudgeButton } from './components/NudgeButton'
 import { ReminderCard } from './components/ReminderCard'
+import { NotificationSettingsView } from './components/NotificationSettingsView'
 import { AboutCard } from './components/AboutCard'
 import { OwnerPanel } from './components/OwnerPanel'
 import { LinkPrompt } from './components/LinkPrompt'
@@ -42,6 +43,7 @@ type Tab = 'war' | 'rating' | 'me' | 'search' | 'owner' | 'recruit' | 'tournamen
 export default function App() {
   const [state, setState] = useState<State>({ kind: 'loading' })
   const [tab, setTab] = useState<Tab>('war')
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const { t } = useT()
 
   const load = useCallback(async () => {
@@ -149,7 +151,7 @@ export default function App() {
           <main className="with-tabbar">
             {tab === 'war' && (
               <div className="fade-in">
-                <WarHeader status={data} />
+                <WarHeader status={data} canManage={canManage} onOpenSettings={() => { haptic('light'); setSettingsOpen(true) }} />
                 {/* Аналитика к аналитике: цифры → прогноз → инсайты, потом гонка и история */}
                 <StatsStrip stats={data.stats} />
                 <ForecastCard forecast={data.forecast} stats={data.stats} periodType={data.periodType} />
@@ -223,6 +225,10 @@ export default function App() {
               </button>
             ))}
           </nav>
+
+          {settingsOpen && canManage && (
+            <NotificationSettingsView onClose={() => setSettingsOpen(false)} />
+          )}
         </>
       )
     }

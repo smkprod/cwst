@@ -308,6 +308,18 @@ export interface OwnerStats {
   chatsWithBot: number
 }
 
+export type NotifyChannel = 'dm' | 'chat' | 'both'
+
+export interface NotificationSettings {
+  reminderHoursBeforeEnd: number
+  remindersEnabled: boolean
+  remindersChannel: NotifyChannel
+  warStartEnabled: boolean
+  warStartChannel: NotifyChannel
+  finalCallEnabled: boolean
+  dailyReportEnabled: boolean
+}
+
 export type BroadcastTarget = 'dm' | 'chats' | 'both'
 
 export interface BroadcastResult {

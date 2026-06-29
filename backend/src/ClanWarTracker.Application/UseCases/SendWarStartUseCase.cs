@@ -1,3 +1,4 @@
+using ClanWarTracker.Application.Notifications;
 using ClanWarTracker.Domain.Entities;
 using ClanWarTracker.Domain.Interfaces;
 
@@ -34,13 +35,16 @@ public class SendWarStartUseCase(
             if (war is null || !war.IsWarDay) continue;
             if (war.PeriodIndex != 3) continue; // только первый военный день недели = старт КВ
 
+            var settings = NotificationSettings.Parse(clan.NotificationSettingsJson);
+            if (!settings.WarStart.Enabled) continue;
+
             var key = $"{clan.Id}:{war.SeasonId}:{war.SectionIndex}";
             if (!announcedKeys.Add(key)) continue;
 
             var isColosseum = war.PeriodType == "colosseum";
             var title = isColosseum ? "🏟 Колизей начался!" : "⚔️ Клановая война началась!";
 
-            if (clan.TelegramChatId != 0)
+            if (clan.TelegramChatId != 0 && settings.WarStart.Channel.WantsChat())
             {
                 try
                 {
@@ -51,6 +55,8 @@ public class SendWarStartUseCase(
                 }
                 catch { /* чат удалён / бот выкинут — не критично */ }
             }
+
+            if (!settings.WarStart.Channel.WantsDm()) continue;
 
             var linked = (await players.GetByClanIdAsync(clan.Id, ct))
                 .Where(p => p.TelegramUserId is not null);
