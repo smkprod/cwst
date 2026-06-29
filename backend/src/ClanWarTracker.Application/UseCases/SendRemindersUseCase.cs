@@ -1,3 +1,4 @@
+using ClanWarTracker.Application.Notifications;
 using ClanWarTracker.Domain.Enums;
 using ClanWarTracker.Domain.Interfaces;
 
@@ -20,6 +21,9 @@ public class SendRemindersUseCase(
             var war = await crApi.GetCurrentWarAsync(clan.ClanTag, ct);
             if (war is null || !war.IsWarDay) continue;
 
+            var settings = NotificationSettings.Parse(clan.NotificationSettingsJson);
+            if (!settings.Reminders.Enabled) continue;
+
             var now = DateTime.UtcNow;
             var timeLeft = war.TimeLeft(now);
 
@@ -35,8 +39,8 @@ public class SendRemindersUseCase(
                 .OrderBy(p => p.Id)
                 .ToDictionary(p => p.PlayerTag);
 
-            // Персональные DM — только Pro
-            var allowedForDm = isPro
+            // Персональные DM — только Pro и если канал включает ЛС
+            var allowedForDm = isPro && settings.Reminders.Channel.WantsDm()
                 ? allLinked
                 : new Dictionary<string, Domain.Entities.Player>(StringComparer.OrdinalIgnoreCase);
 
@@ -73,7 +77,7 @@ public class SendRemindersUseCase(
             if (!isPro && allLinked.Count > 0)
                 parts.Add("🔒 Личные напоминания в DM — функция Pro. Подключи Pro, чтобы никто не забывал про атаки.");
 
-            if (parts.Count > 0 && clan.TelegramChatId != 0)
+            if (parts.Count > 0 && clan.TelegramChatId != 0 && settings.Reminders.Channel.WantsChat())
                 await notifier.SendToChatAsync(clan.TelegramChatId, string.Join("\n\n", parts),
                     clan.TelegramMessageThreadId, html: true, ct: ct);
         }

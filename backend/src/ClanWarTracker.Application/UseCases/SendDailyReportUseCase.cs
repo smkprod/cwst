@@ -1,3 +1,4 @@
+using ClanWarTracker.Application.Notifications;
 using ClanWarTracker.Domain.Entities;
 using ClanWarTracker.Domain.Interfaces;
 
@@ -37,6 +38,8 @@ public class SendDailyReportUseCase(
             catch { continue; } // CR API лежит — попробуем в следующем тике
 
             if (war is null) continue;
+
+            if (!NotificationSettings.Parse(clan.NotificationSettingsJson).DailyReport.Enabled) continue;
 
             // Последняя неделя с данными; финальный снимок последнего военного дня
             var lastWeek = await snapshots.GetByClanAsync(clan.Id, weeks: 1, ct);

@@ -32,6 +32,9 @@ namespace ClanWarTracker.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("NotificationSettingsJson")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime?>("PlanExpiresAtUtc")
                         .HasColumnType("TEXT");
 

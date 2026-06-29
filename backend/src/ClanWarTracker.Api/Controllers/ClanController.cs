@@ -1,4 +1,5 @@
 using ClanWarTracker.Application.DTOs;
+using ClanWarTracker.Application.Notifications;
 using ClanWarTracker.Application.UseCases;
 using ClanWarTracker.Domain.Entities;
 using ClanWarTracker.Domain.Enums;
@@ -78,6 +79,70 @@ public class ClanController(
         clan.ReminderHoursBeforeEnd = req.HoursBeforeEnd;
         await clans.SaveChangesAsync(ct);
         return Ok(new { ok = true, reminderHoursBeforeEnd = clan.ReminderHoursBeforeEnd });
+    }
+
+    public record NotificationSettingsDto(
+        int ReminderHoursBeforeEnd,
+        bool RemindersEnabled, string RemindersChannel,
+        bool WarStartEnabled, string WarStartChannel,
+        bool FinalCallEnabled,
+        bool DailyReportEnabled);
+
+    /// <summary>GET /api/clans/my/notification-settings — гибкие настройки уведомлений (админ/лидер).</summary>
+    [HttpGet("my/notification-settings")]
+    public async Task<IActionResult> GetNotificationSettings(CancellationToken ct)
+    {
+        var (player, clan, error) = await ResolvePlayerClanAsync(ct);
+        if (error is not null) return error;
+        if (!await CanManageAsync(clan!, player!, ct))
+            return StatusCode(403, new { error = "not_admin", message = "Настройки доступны админу группы или лидеру клана" });
+
+        return Ok(ToDto(NotificationSettings.Parse(clan!.NotificationSettingsJson), clan.ReminderHoursBeforeEnd));
+    }
+
+    /// <summary>POST /api/clans/my/notification-settings — сохранить настройки уведомлений.</summary>
+    [HttpPost("my/notification-settings")]
+    public async Task<IActionResult> SetNotificationSettings([FromBody] NotificationSettingsDto dto, CancellationToken ct)
+    {
+        var (player, clan, error) = await ResolvePlayerClanAsync(ct);
+        if (error is not null) return error;
+        if (!await CanManageAsync(clan!, player!, ct))
+            return StatusCode(403, new { error = "not_admin", message = "Настройки доступны админу группы или лидеру клана" });
+
+        if (dto.ReminderHoursBeforeEnd is < 1 or > 12)
+            return BadRequest(new { error = "bad_hours", message = "Часы до конца дня: от 1 до 12" });
+
+        clan!.ReminderHoursBeforeEnd = dto.ReminderHoursBeforeEnd;
+        clan.NotificationSettingsJson = new NotificationSettings
+        {
+            Reminders = new ToggleChannel { Enabled = dto.RemindersEnabled, Channel = NotifyChannelExt.ParseChannel(dto.RemindersChannel) },
+            WarStart = new ToggleChannel { Enabled = dto.WarStartEnabled, Channel = NotifyChannelExt.ParseChannel(dto.WarStartChannel) },
+            FinalCall = new Toggle { Enabled = dto.FinalCallEnabled },
+            DailyReport = new Toggle { Enabled = dto.DailyReportEnabled },
+        }.Serialize();
+        await clans.SaveChangesAsync(ct);
+
+        return Ok(ToDto(NotificationSettings.Parse(clan.NotificationSettingsJson), clan.ReminderHoursBeforeEnd));
+    }
+
+    private static NotificationSettingsDto ToDto(NotificationSettings s, int hours) => new(
+        hours,
+        s.Reminders.Enabled, s.Reminders.Channel.ToWire(),
+        s.WarStart.Enabled, s.WarStart.Channel.ToWire(),
+        s.FinalCall.Enabled,
+        s.DailyReport.Enabled);
+
+    /// <summary>Управлять настройками может админ группы или лидер/со-лидер клана.</summary>
+    private async Task<bool> CanManageAsync(Clan clan, Player player, CancellationToken ct)
+    {
+        var userId = (long)HttpContext.Items["TelegramUserId"]!;
+        if (await IsClanAdminAsync(clan.TelegramChatId, userId, ct)) return true;
+        try
+        {
+            var role = await crApi.GetPlayerClanRoleAsync(clan.ClanTag, player.PlayerTag, ct);
+            return role is "leader" or "coLeader";
+        }
+        catch { return false; }
     }
 
     /// <summary>GET /api/clans/{tag}/status — статус по тегу (tag без #, напр. ABC123).</summary>

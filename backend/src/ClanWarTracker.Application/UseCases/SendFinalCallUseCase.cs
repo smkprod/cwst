@@ -1,3 +1,4 @@
+using ClanWarTracker.Application.Notifications;
 using ClanWarTracker.Domain.Entities;
 using ClanWarTracker.Domain.Interfaces;
 
@@ -30,6 +31,8 @@ public class SendFinalCallUseCase(
             catch { continue; } // CR API лежит — в этот день просто не успеем напомнить
 
             if (war is null || !war.IsWarDay) continue;
+
+            if (!NotificationSettings.Parse(clan.NotificationSettingsJson).FinalCall.Enabled) continue;
 
             var key = $"{clan.Id}:{war.SeasonId}:{war.SectionIndex}:{war.PeriodIndex}";
             if (!reportedKeys.Add(key)) continue;

@@ -7,7 +7,10 @@ function warDayNumber(periodIndex: number): number | null {
   return Math.min(4, periodIndex - 2)
 }
 
-export function WarHeader({ status }: { status: ClanStatus }) {
+export function WarHeader(
+  { status, canManage = false, onOpenSettings }:
+  { status: ClanStatus; canManage?: boolean; onOpenSettings?: () => void },
+) {
   const { t } = useT()
   const played = status.stats.playersPlayed
   const total = status.players.length
@@ -24,6 +27,9 @@ export function WarHeader({ status }: { status: ClanStatus }) {
             {t.period[status.periodType]}
             {isWar && day !== null && ` ${t.header.dayOf4} ${day}/4`}
           </span>
+          {canManage && onOpenSettings && (
+            <button className="war-settings-btn" onClick={onOpenSettings} aria-label={t.notif.title}>⚙️</button>
+          )}
           <LangSwitcher />
         </div>
       </div>

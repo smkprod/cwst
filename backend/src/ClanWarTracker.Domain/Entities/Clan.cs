@@ -16,6 +16,13 @@ public class Clan
     public int? TelegramMessageThreadId { get; set; }
     public int ReminderHoursBeforeEnd { get; set; } = 3; // отправлять за X часов до конца дня
 
+    /// <summary>
+    /// Гибкие настройки уведомлений в JSON (вкл/выкл и канал ЛС/чат по каждому типу).
+    /// Null — используются значения по умолчанию (всё включено, канал «везде»).
+    /// Хранится как JSON, чтобы расширять без новых миграций БД.
+    /// </summary>
+    public string? NotificationSettingsJson { get; set; }
+
     // --- SaaS-тариф ---
     public PlanTier PlanTier { get; set; } = PlanTier.Free;
     public DateTime? PlanExpiresAtUtc { get; set; }      // null = бессрочно

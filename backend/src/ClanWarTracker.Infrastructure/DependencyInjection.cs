@@ -115,6 +115,10 @@ public static class DependencyInjection
         await db.Database.ExecuteSqlRawAsync(
             "ALTER TABLE \"Clans\" ADD COLUMN IF NOT EXISTS \"TelegramMessageThreadId\" integer;");
 
+        // Гибкие настройки уведомлений (вкл/выкл + канал по каждому типу) в JSON.
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Clans\" ADD COLUMN IF NOT EXISTS \"NotificationSettingsJson\" text;");
+
         await db.Database.ExecuteSqlRawAsync(@"
 CREATE TABLE IF NOT EXISTS ""RecruitmentProfiles"" (
     ""Id"" serial PRIMARY KEY,
