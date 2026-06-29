@@ -14,6 +14,7 @@ builder.Services.AddScoped<SendRemindersUseCase>();
 builder.Services.AddScoped<SendPlanExpiryRemindersUseCase>();
 builder.Services.AddScoped<SendDailyReportUseCase>();
 builder.Services.AddScoped<SendFinalCallUseCase>();
+builder.Services.AddScoped<SendWarStartUseCase>();
 builder.Services.AddScoped<SendSmartAlertUseCase>();
 builder.Services.AddScoped<LinkPlayerUseCase>();
 builder.Services.AddScoped<SetupClanUseCase>();

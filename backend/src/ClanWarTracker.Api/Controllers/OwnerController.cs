@@ -15,9 +15,11 @@ public class OwnerController(
     IClanRepository clans,
     IPlayerRepository players,
     SetClanPlanUseCase setPlan,
+    OwnerBroadcastUseCase broadcast,
     IConfiguration config) : ControllerBase
 {
     public record SetPlanRequest(string Tier, int? Days);
+    public record BroadcastRequest(string Text, string Target);
 
     /// <summary>GET /api/owner/clans — все кланы сервиса с тарифами.</summary>
     [HttpGet("clans")]
@@ -79,7 +81,29 @@ public class OwnerController(
             totalLinkedUsers = allPlayers.Count,
             usersWithClan    = allPlayers.Count(p => p.ClanId.HasValue),
             usersWithoutClan = allPlayers.Count(p => !p.ClanId.HasValue),
+            chatsWithBot     = allClans.Count(c => c.TelegramChatId != 0),
         });
+    }
+
+    /// <summary>
+    /// POST /api/owner/broadcast — ручная рассылка. Body: { text, target: "dm"|"chats"|"both" }.
+    /// </summary>
+    [HttpPost("broadcast")]
+    public async Task<IActionResult> Broadcast([FromBody] BroadcastRequest req, CancellationToken ct)
+    {
+        if (!IsOwner()) return StatusCode(403, new { error = "not_owner" });
+
+        var text = req.Text?.Trim();
+        if (string.IsNullOrEmpty(text)) return BadRequest(new { error = "empty_text" });
+        if (text.Length > 4000) return BadRequest(new { error = "too_long", message = "Макс 4000 символов" });
+
+        var target = req.Target?.ToLowerInvariant();
+        var toDm = target is "dm" or "both";
+        var toChats = target is "chats" or "both";
+        if (!toDm && !toChats) return BadRequest(new { error = "bad_target", message = "target: dm | chats | both" });
+
+        var r = await broadcast.ExecuteAsync(text, toDm, toChats, ct);
+        return Ok(new { sentDm = r.SentDm, sentChats = r.SentChats, failedDm = r.FailedDm, failedChats = r.FailedChats });
     }
 
     /// <summary>

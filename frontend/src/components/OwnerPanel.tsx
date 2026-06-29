@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../lib/api'
-import type { OwnerClan, OwnerStats } from '../types'
+import type { BroadcastTarget, OwnerClan, OwnerStats } from '../types'
 import { haptic, hapticNotify } from '../lib/telegram'
-import { useT } from '../lib/i18n'
+import { useT, type Translations } from '../lib/i18n'
 
 type State =
   | { kind: 'loading' }
@@ -94,6 +94,8 @@ export function OwnerPanel() {
         </p>
       </div>
 
+      <BroadcastBox dmCount={stats.totalLinkedUsers} chatCount={stats.chatsWithBot} t={t} />
+
       <p className="muted small owner-hint">
         {t.owner.clans} {state.clans.length} · {t.owner.pro} {state.clans.filter(c => c.plan === 'pro').length}
       </p>
@@ -141,6 +143,81 @@ export function OwnerPanel() {
       {state.clans.length === 0 && (
         <p className="center muted">{t.owner.noClans}</p>
       )}
+    </div>
+  )
+}
+
+function BroadcastBox({ dmCount, chatCount, t }: { dmCount: number; chatCount: number; t: Translations }) {
+  const [text, setText] = useState('')
+  const [target, setTarget] = useState<BroadcastTarget>('both')
+  const [busy, setBusy] = useState(false)
+  const [confirm, setConfirm] = useState(false)
+  const [result, setResult] = useState<string | null>(null)
+
+  const willDm = target === 'dm' || target === 'both'
+  const willChats = target === 'chats' || target === 'both'
+  const recipients = [
+    willDm ? `${dmCount} ${t.owner.bcDmUnit}` : null,
+    willChats ? `${chatCount} ${t.owner.bcChatsUnit}` : null,
+  ].filter(Boolean).join(' · ')
+
+  const send = async () => {
+    haptic('medium')
+    if (!confirm) { setConfirm(true); return }
+    setBusy(true)
+    setResult(null)
+    try {
+      const r = await api.ownerBroadcast(text.trim(), target)
+      hapticNotify('success')
+      setResult(`${t.owner.bcDone} ${r.sentDm} ${t.owner.bcDmUnit} · ${r.sentChats} ${t.owner.bcChatsUnit}`)
+      setText('')
+    } catch {
+      hapticNotify('error')
+      setResult(t.owner.bcError)
+    } finally {
+      setBusy(false)
+      setConfirm(false)
+    }
+  }
+
+  const targets: { key: BroadcastTarget; label: string }[] = [
+    { key: 'dm', label: t.owner.bcTargetDm },
+    { key: 'chats', label: t.owner.bcTargetChats },
+    { key: 'both', label: t.owner.bcTargetBoth },
+  ]
+
+  return (
+    <div className="card owner-bc-card">
+      <p className="owner-stats-title">{t.owner.bcTitle}</p>
+      <textarea
+        className="owner-bc-text"
+        rows={3}
+        maxLength={4000}
+        placeholder={t.owner.bcPlaceholder}
+        value={text}
+        onChange={e => { setText(e.target.value); setConfirm(false) }}
+      />
+      <div className="owner-bc-targets">
+        {targets.map(tg => (
+          <button
+            key={tg.key}
+            className={`btn-mini ${target === tg.key ? 'owner-bc-target-on' : ''}`}
+            onClick={() => { haptic('light'); setTarget(tg.key); setConfirm(false) }}
+          >
+            {tg.label}
+          </button>
+        ))}
+      </div>
+      <p className="muted small owner-bc-recipients">{t.owner.bcRecipients} {recipients}</p>
+      <button
+        className="btn btn-nudge"
+        disabled={busy || text.trim().length === 0}
+        onClick={send}
+        onBlur={() => setConfirm(false)}
+      >
+        {busy ? t.owner.bcSending : confirm ? t.owner.bcConfirm : t.owner.bcSend}
+      </button>
+      {result && <p className="muted small owner-bc-result">{result}</p>}
     </div>
   )
 }

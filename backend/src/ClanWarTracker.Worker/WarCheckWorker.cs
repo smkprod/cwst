@@ -8,6 +8,7 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
     private static readonly TimeSpan Interval = TimeSpan.FromMinutes(30);
     private readonly HashSet<string> _reportedDays = [];
     private readonly HashSet<string> _finalCallKeys = [];
+    private readonly HashSet<string> _warStartKeys = [];
 
     protected override Task ExecuteAsync(CancellationToken stoppingToken) =>
         Task.WhenAll(RunPeriodicChecksAsync(stoppingToken), RunFinalCallLoopAsync(stoppingToken));
@@ -39,6 +40,18 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
             catch (Exception ex)
             {
                 logger.LogError(ex, "Daily report failed");
+            }
+
+            try
+            {
+                using var scope = scopeFactory.CreateScope();
+                var warStart = scope.ServiceProvider.GetRequiredService<SendWarStartUseCase>();
+                var sent = await warStart.ExecuteAsync(_warStartKeys, stoppingToken);
+                if (sent > 0) logger.LogInformation("Announced war start to {Count} clans", sent);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "War start announcement failed");
             }
 
             try

@@ -460,6 +460,21 @@ main.with-tabbar { padding-bottom: 80px; }
 .owner-stat-label { font-size: 11px; color: var(--muted); text-align: center; }
 .owner-stats-sub { margin: 4px 0 0; }
 
+/* --- Рассылка владельца --- */
+.owner-bc-card { margin-bottom: 12px; }
+.owner-bc-text {
+  width: 100%; box-sizing: border-box; resize: vertical;
+  border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03); color: var(--text);
+  padding: 10px; font: inherit; font-size: 14px; margin-bottom: 8px;
+}
+.owner-bc-text:focus { outline: none; border-color: var(--accent); }
+.owner-bc-targets { display: flex; gap: 6px; margin-bottom: 8px; }
+.owner-bc-targets .btn-mini { flex: 1; }
+.owner-bc-target-on { background: var(--accent); color: #fff; border-color: var(--accent); }
+.owner-bc-recipients { margin: 0 0 10px; }
+.owner-bc-result { margin: 8px 0 0; text-align: center; }
+
 /* --- Гонка недели (standings, стиль cwstats) --- */
 .race-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .race-row {

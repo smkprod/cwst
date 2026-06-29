@@ -305,6 +305,16 @@ export interface OwnerStats {
   totalLinkedUsers: number
   usersWithClan: number
   usersWithoutClan: number
+  chatsWithBot: number
+}
+
+export type BroadcastTarget = 'dm' | 'chats' | 'both'
+
+export interface BroadcastResult {
+  sentDm: number
+  sentChats: number
+  failedDm: number
+  failedChats: number
 }
 
 export interface OwnerClan {
