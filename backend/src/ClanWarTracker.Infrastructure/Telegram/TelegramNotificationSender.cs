@@ -12,29 +12,26 @@ public class TelegramNotificationSender(ITelegramBotClient bot) : INotificationS
     private static string? _cachedAppUrl;
     private static bool _resolved;
 
+    // Кнопка «Открыть в Mini App» теперь под КАЖДЫМ сообщением бота — и в ЛС, и в чатах.
     public Task SendToUserAsync(long telegramUserId, string text, CancellationToken ct = default) =>
-        bot.SendMessage(telegramUserId, text, cancellationToken: ct);
+        SendAsync(telegramUserId, text, threadId: null, html: false, ct);
 
     public Task SendToChatAsync(
         long chatId, string text, int? threadId = null, bool html = false, CancellationToken ct = default) =>
-        bot.SendMessage(chatId, text,
-            parseMode: html ? ParseMode.Html : ParseMode.None,
-            messageThreadId: threadId,
-            cancellationToken: ct);
+        SendAsync(chatId, text, threadId, html, ct);
 
-    public async Task SendToChatWithAppButtonAsync(
-        long chatId, string text, int? threadId = null, bool html = false, CancellationToken ct = default)
+    // Оставлено для совместимости с вызовами: кнопка теперь и так добавляется всегда.
+    public Task SendToChatWithAppButtonAsync(
+        long chatId, string text, int? threadId = null, bool html = false, CancellationToken ct = default) =>
+        SendAsync(chatId, text, threadId, html, ct);
+
+    private async Task SendAsync(long chatId, string text, int? threadId, bool html, CancellationToken ct)
     {
         var appUrl = await GetAppUrlAsync(ct);
         var parseMode = html ? ParseMode.Html : ParseMode.None;
-        if (appUrl is null)
-        {
-            await bot.SendMessage(chatId, text, parseMode: parseMode, messageThreadId: threadId, cancellationToken: ct);
-            return;
-        }
-
-        var keyboard = new InlineKeyboardMarkup(
-            InlineKeyboardButton.WithUrl("🎮 Открыть в Mini App", appUrl));
+        var keyboard = appUrl is null
+            ? null
+            : new InlineKeyboardMarkup(InlineKeyboardButton.WithUrl("🎮 Открыть в Mini App", appUrl));
         await bot.SendMessage(chatId, text,
             parseMode: parseMode, replyMarkup: keyboard, messageThreadId: threadId, cancellationToken: ct);
     }
