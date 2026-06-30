@@ -1,29 +1,34 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
-import type { TournamentSummary } from '../types'
-import { haptic } from '../lib/telegram'
+import type { TournamentSummary, GameTournament } from '../types'
+import { haptic, hapticNotify } from '../lib/telegram'
 import { useT } from '../lib/i18n'
 import { TournamentForm } from './TournamentForm'
 import { TournamentDetail } from './TournamentDetail'
-import { GameTournamentView } from './GameTournamentView'
+import { GameAddForm, GameTournamentDetail, gameStatusInfo } from './GameTournamentView'
 
 type View =
   | { kind: 'list' }
-  | { kind: 'create' }
-  | { kind: 'detail'; id: number }
+  | { kind: 'chooseType' }   // выбор типа при создании
+  | { kind: 'createClan' }
+  | { kind: 'addGame' }
+  | { kind: 'clanDetail'; id: number }
+  | { kind: 'gameDetail'; g: GameTournament }
 
-type ListState = { kind: 'loading' } | { kind: 'error' } | { kind: 'ready'; tournaments: TournamentSummary[] }
+type ListState =
+  | { kind: 'loading' }
+  | { kind: 'error' }
+  | { kind: 'ready'; clan: TournamentSummary[]; game: GameTournament[] }
 
 export function TournamentView() {
   const { t } = useT()
-  const [subTab, setSubTab] = useState<'clan' | 'game'>('clan')
   const [view, setView] = useState<View>({ kind: 'list' })
   const [listState, setListState] = useState<ListState>({ kind: 'loading' })
 
   const loadList = () => {
     setListState({ kind: 'loading' })
-    api.getTournaments()
-      .then(tournaments => setListState({ kind: 'ready', tournaments }))
+    Promise.all([api.getTournaments(), api.getGameTournaments()])
+      .then(([clan, game]) => setListState({ kind: 'ready', clan, game }))
       .catch(() => setListState({ kind: 'error' }))
   }
 
@@ -31,52 +36,65 @@ export function TournamentView() {
     if (view.kind === 'list') loadList()
   }, [view.kind])
 
-  const openCreate = () => {
-    haptic('light')
-    setView({ kind: 'create' })
+  const go = (v: View) => { haptic('light'); setView(v) }
+  const backToList = () => go({ kind: 'list' })
+
+  const removeGame = async (id: number) => {
+    haptic('medium')
+    try { await api.removeGameTournament(id); hapticNotify('success'); backToList() }
+    catch { hapticNotify('error') }
   }
 
-  const openDetail = (id: number) => {
-    haptic('light')
-    setView({ kind: 'detail', id })
-  }
-
-  const backToList = () => {
-    haptic('light')
-    setView({ kind: 'list' })
-  }
-
-  const toggle = (
-    <div className="gt-toggle">
-      <button className={`gt-toggle-btn ${subTab === 'clan' ? 'gt-toggle-on' : ''}`}
-        onClick={() => { haptic('light'); setSubTab('clan'); setView({ kind: 'list' }) }}>
-        {t.tournament.tabClan}
-      </button>
-      <button className={`gt-toggle-btn ${subTab === 'game' ? 'gt-toggle-on' : ''}`}
-        onClick={() => { haptic('light'); setSubTab('game'); setView({ kind: 'list' }) }}>
-        {t.tournament.tabGame}
-      </button>
-    </div>
-  )
-
-  if (subTab === 'game') {
-    return <div>{toggle}<GameTournamentView /></div>
-  }
-
-  if (view.kind === 'create') {
+  if (view.kind === 'chooseType') {
     return (
       <div>
         <button className="btn-back" onClick={backToList}>← {t.tournament.back}</button>
-        <TournamentForm mode="create" onSaved={t2 => openDetail(t2.id)} onCancel={backToList} />
+        <h2 className="section-title">{t.tournament.chooseTypeTitle}</h2>
+        <button className="card tt-choice" onClick={() => go({ kind: 'createClan' })}>
+          <span className="tt-choice-emoji">🏆</span>
+          <span className="tt-choice-text">
+            <span className="tt-choice-name">{t.tournament.typeClan}</span>
+            <span className="muted small">{t.tournament.typeClanDesc}</span>
+          </span>
+        </button>
+        <button className="card tt-choice" onClick={() => go({ kind: 'addGame' })}>
+          <span className="tt-choice-emoji">🎮</span>
+          <span className="tt-choice-text">
+            <span className="tt-choice-name">{t.tournament.typeGame}</span>
+            <span className="muted small">{t.tournament.typeGameDesc}</span>
+          </span>
+        </button>
       </div>
     )
   }
 
-  if (view.kind === 'detail') {
+  if (view.kind === 'createClan') {
+    return (
+      <div>
+        <button className="btn-back" onClick={backToList}>← {t.tournament.back}</button>
+        <TournamentForm mode="create" onSaved={tr => go({ kind: 'clanDetail', id: tr.id })} onCancel={backToList} />
+      </div>
+    )
+  }
+
+  if (view.kind === 'addGame') {
+    return (
+      <div>
+        <button className="btn-back" onClick={backToList}>← {t.tournament.back}</button>
+        <GameAddForm onAdded={backToList} onCancel={backToList} />
+      </div>
+    )
+  }
+
+  if (view.kind === 'clanDetail') {
     return <TournamentDetail tournamentId={view.id} onBack={backToList} onCancelled={backToList} />
   }
 
-  const statusLabel = (s: string) => {
+  if (view.kind === 'gameDetail') {
+    return <GameTournamentDetail tournament={view.g} onBack={backToList} onRemove={removeGame} />
+  }
+
+  const clanStatusLabel = (s: string) => {
     switch (s) {
       case 'registrationOpen': return t.tournament.statusOpen
       case 'bracketReady': return t.tournament.statusBracketReady
@@ -86,7 +104,7 @@ export function TournamentView() {
       default: return s
     }
   }
-  const statusClass = (s: string) => {
+  const clanStatusClass = (s: string) => {
     switch (s) {
       case 'registrationOpen': return 'tournament-status-open'
       case 'bracketReady': return 'tournament-status-ready'
@@ -97,34 +115,52 @@ export function TournamentView() {
     }
   }
 
+  const isEmpty = listState.kind === 'ready' && listState.clan.length === 0 && listState.game.length === 0
+
   return (
     <div>
-      {toggle}
       <div className="card-title-row">
         <h2 className="section-title" style={{ margin: 0 }}>{t.tournament.listTitle}</h2>
       </div>
 
-      <button className="btn tournament-create-btn" onClick={openCreate}>{t.tournament.createBtn}</button>
+      <button className="btn tournament-create-btn" onClick={() => go({ kind: 'chooseType' })}>
+        {t.tournament.createBtn}
+      </button>
 
       {listState.kind === 'loading' && <div className="center"><div className="spinner" /></div>}
       {listState.kind === 'error' && <p className="center muted">{t.tournament.error}</p>}
-      {listState.kind === 'ready' && listState.tournaments.length === 0 && (
-        <p className="center muted">{t.tournament.empty}</p>
-      )}
+      {isEmpty && <p className="center muted">{t.tournament.empty}</p>}
 
-      {listState.kind === 'ready' && listState.tournaments.length > 0 && (
+      {listState.kind === 'ready' && !isEmpty && (
         <ul className="tournament-list">
-          {listState.tournaments.map(tr => (
-            <li key={tr.id} className="card tournament-list-item" onClick={() => openDetail(tr.id)}>
+          {listState.clan.map(tr => (
+            <li key={`c${tr.id}`} className="card tournament-list-item" onClick={() => go({ kind: 'clanDetail', id: tr.id })}>
               <div className="tournament-list-item-top">
-                <span className="tournament-list-item-name">{tr.name}</span>
-                <span className={`badge tournament-status-badge ${statusClass(tr.status)}`}>{statusLabel(tr.status)}</span>
+                <span className="tournament-list-item-name">🏆 {tr.name}</span>
+                <span className={`badge tournament-status-badge ${clanStatusClass(tr.status)}`}>{clanStatusLabel(tr.status)}</span>
               </div>
               <p className="muted small">
                 {tr.creatorName} · {t.tournament.bestOfLabel} {tr.bestOf} · {tr.participantCount}/{tr.maxParticipants} {t.tournament.participantsCount}
               </p>
             </li>
           ))}
+
+          {listState.game.map(g => {
+            const si = g.live ? gameStatusInfo(g.live.status, t) : null
+            return (
+              <li key={`g${g.id}`} className="card tournament-list-item" onClick={() => go({ kind: 'gameDetail', g })}>
+                <div className="tournament-list-item-top">
+                  <span className="tournament-list-item-name">🎮 {g.live?.name ?? g.tournamentTag}</span>
+                  {si && <span className={`badge tournament-status-badge ${si.cls}`}>{si.label}</span>}
+                </div>
+                <p className="muted small">
+                  {g.live
+                    ? `${g.live.capacity}/${g.live.maxCapacity} · ${t.gameT.levelCap} ${g.live.levelCap} · ${g.tournamentTag}`
+                    : `${g.tournamentTag} · ${t.gameT.noLive}`}
+                </p>
+              </li>
+            )
+          })}
         </ul>
       )}
     </div>
