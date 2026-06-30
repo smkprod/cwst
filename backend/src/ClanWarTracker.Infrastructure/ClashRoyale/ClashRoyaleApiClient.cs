@@ -242,7 +242,7 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
             }
 
             var log = await resp.Content.ReadFromJsonAsync<RiverRaceLogResponse>(cancellationToken: ct);
-            return (log?.Items ?? [])
+            var weeks = (log?.Items ?? [])
                 .Select(w => new RiverRaceLogWeek
                 {
                     SeasonId = w.SeasonId,
@@ -267,6 +267,19 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
                                 }).ToList(),
                         }).ToList(),
                 }).ToList();
+
+            // Колизей = последняя неделя сезона. Число военных недель в сезоне разное (3 или 4),
+            // поэтому определяем по контексту: неделя — колизей, если это максимальный section
+            // своего сезона И в журнале уже есть неделя более позднего сезона (сезон завершён).
+            // У текущего (самого свежего) сезона колизей ещё не отмечаем — он либо не наступил,
+            // либо идёт прямо сейчас и в журнал ещё не попал.
+            var maxNewerSeason = weeks.Count > 0 ? weeks.Max(w => w.SeasonId) : 0;
+            foreach (var w in weeks)
+            {
+                var maxSectionInSeason = weeks.Where(x => x.SeasonId == w.SeasonId).Max(x => x.SectionIndex);
+                w.IsColosseum = w.SeasonId < maxNewerSeason && w.SectionIndex == maxSectionInSeason;
+            }
+            return weeks;
         });
         return result ?? [];
     }

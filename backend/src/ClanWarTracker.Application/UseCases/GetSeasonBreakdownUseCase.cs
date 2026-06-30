@@ -66,12 +66,17 @@ public class GetSeasonBreakdownUseCase(IClashRoyaleApi crApi)
 
         var currentSection = war?.SectionIndex ?? weeks.Keys.Max();
 
+        // Колизей в разбивке текущего сезона — это ТОЛЬКО идущая сейчас неделя, если CR
+        // сообщает periodType == "colosseum". Завершённые недели текущего сезона колизеем
+        // быть не могут (колизей всегда последний). Никаких "section == 3".
+        var colosseumNow = war?.PeriodType == "colosseum";
+
         var weekDtos = weeks
             .OrderBy(kv => kv.Key)
             .Select(kv => new SeasonWeekDto(
                 SectionIndex: kv.Key,
-                Label: WeekLabel(kv.Key),
-                IsColosseum: kv.Key == 3,
+                Label: kv.Value.IsCurrent && colosseumNow ? "Колизей" : $"Война {kv.Key + 1}",
+                IsColosseum: kv.Value.IsCurrent && colosseumNow,
                 IsCurrent: kv.Value.IsCurrent,
                 ClanFame: kv.Value.ClanFame,
                 Players: kv.Value.Players
@@ -110,9 +115,6 @@ public class GetSeasonBreakdownUseCase(IClashRoyaleApi crApi)
 
         return new SeasonBreakdownDto(seasonId, currentSection, weekDtos, total);
     }
-
-    private static string WeekLabel(int sectionIndex) =>
-        sectionIndex == 3 ? "Колизей" : $"Война {sectionIndex + 1}";
 
     private sealed class WeekAcc
     {
