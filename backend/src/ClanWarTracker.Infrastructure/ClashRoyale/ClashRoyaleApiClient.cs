@@ -330,16 +330,37 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
             if (!resp.IsSuccessStatusCode) return null;
             var data = await resp.Content.ReadFromJsonAsync<PlayerFullResponse>(cancellationToken: ct);
             if (data is null) return null;
+            static CrPathOfLegend? MapPol(PathOfLegendResponse? p) =>
+                p is null ? null : new CrPathOfLegend { Trophies = p.Trophies, LeagueNumber = p.LeagueNumber, Rank = p.Rank ?? 0 };
+
             return new CrPlayerInfo
             {
                 Tag = data.Tag,
                 Name = data.Name,
                 ExpLevel = data.ExpLevel,
                 Trophies = data.Trophies,
+                BestTrophies = data.BestTrophies,
                 ClanWarTrophies = data.ClanWarTrophies,
                 ClanTag = data.Clan?.Tag,
                 ClanName = data.Clan?.Name,
                 ArenaName = data.Arena?.Name,
+                WarDayWins = data.WarDayWins,
+                BattleCount = data.BattleCount,
+                ThreeCrownWins = data.ThreeCrownWins,
+                CurrentWinLoseStreak = data.CurrentWinLoseStreak,
+                CurrentPathOfLegend = MapPol(data.CurrentPathOfLegend),
+                BestPathOfLegend = MapPol(data.BestPathOfLegend),
+                CurrentFavouriteCard = data.CurrentFavouriteCard?.Name,
+                CurrentDeck = (data.CurrentDeck ?? [])
+                    .Where(c => c?.IconUrls?.Medium is not null)
+                    .Select(c => new CrDeckCard
+                    {
+                        Name = c!.Name,
+                        Level = c.Level,
+                        MaxLevel = c.MaxLevel,
+                        IconUrl = c.IconUrls!.Medium!,
+                    })
+                    .ToList(),
                 Cards = (data.Cards ?? [])
                     .Where(c => c?.IconUrls?.Medium is not null)
                     .Select(c => new CrCard
@@ -361,10 +382,24 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         [property: JsonPropertyName("name")] string Name,
         [property: JsonPropertyName("expLevel")] int ExpLevel,
         [property: JsonPropertyName("trophies")] int Trophies,
+        [property: JsonPropertyName("bestTrophies")] int BestTrophies,
         [property: JsonPropertyName("clanWarTrophies")] int ClanWarTrophies,
+        [property: JsonPropertyName("warDayWins")] int WarDayWins,
+        [property: JsonPropertyName("battleCount")] int BattleCount,
+        [property: JsonPropertyName("threeCrownWins")] int ThreeCrownWins,
+        [property: JsonPropertyName("currentWinLoseStreak")] int CurrentWinLoseStreak,
+        [property: JsonPropertyName("currentPathOfLegendSeasonResult")] PathOfLegendResponse? CurrentPathOfLegend,
+        [property: JsonPropertyName("bestPathOfLegendSeasonResult")] PathOfLegendResponse? BestPathOfLegend,
+        [property: JsonPropertyName("currentFavouriteCard")] CardResponse? CurrentFavouriteCard,
+        [property: JsonPropertyName("currentDeck")] List<CardResponse>? CurrentDeck,
         [property: JsonPropertyName("arena")] ArenaRef? Arena,
         [property: JsonPropertyName("clan")] ClanRef? Clan,
         [property: JsonPropertyName("cards")] List<CardResponse>? Cards);
+
+    private record PathOfLegendResponse(
+        [property: JsonPropertyName("trophies")] int Trophies,
+        [property: JsonPropertyName("leagueNumber")] int LeagueNumber,
+        [property: JsonPropertyName("rank")] int? Rank);
 
     private record ArenaRef([property: JsonPropertyName("name")] string Name);
 

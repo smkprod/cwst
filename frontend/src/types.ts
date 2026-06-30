@@ -263,11 +263,18 @@ export interface PlayerCard {
   iconUrl: string
 }
 
+export interface PathOfLegend {
+  trophies: number
+  leagueNumber: number
+  rank: number
+}
+
 export interface PlayerProfile {
   playerTag: string
   name: string
   expLevel: number
   trophies: number
+  bestTrophies: number
   clanWarTrophies: number
   clanName: string | null
   clanTag: string | null
@@ -276,6 +283,14 @@ export interface PlayerProfile {
   weeksPlayed: number
   totalFame: number
   avgFamePerAttack: number
+  warDayWins: number
+  battleCount: number
+  threeCrownWins: number
+  currentWinLoseStreak: number
+  currentPathOfLegend: PathOfLegend | null
+  bestPathOfLegend: PathOfLegend | null
+  currentFavouriteCard: string | null
+  currentDeck: PlayerCard[]
   royaleApiUrl: string
 }
 

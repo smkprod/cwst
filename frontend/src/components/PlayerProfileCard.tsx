@@ -86,6 +86,63 @@ export function PlayerProfileCard({ profile }: { profile: PlayerProfile }) {
 
       {tab === 'profile' && (
         <>
+          <section className="card" style={{ marginTop: 10 }}>
+            <div className="cards-section-title">{t.search.careerStats}</div>
+            <div className="profile-stats" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+              <div className="profile-stat">
+                <div className="profile-stat-value">⚔️ {fmt(profile.warDayWins)}</div>
+                <div className="profile-stat-label">{t.search.warDayWins}</div>
+              </div>
+              <div className="profile-stat">
+                <div className="profile-stat-value">👑 {fmt(profile.threeCrownWins)}</div>
+                <div className="profile-stat-label">{t.search.threeCrowns}</div>
+              </div>
+              <div className="profile-stat">
+                <div className="profile-stat-value">🥇 {fmt(profile.bestTrophies)}</div>
+                <div className="profile-stat-label">{t.search.bestTrophies}</div>
+              </div>
+              <div className="profile-stat">
+                <div className="profile-stat-value">⚡ {fmt(profile.battleCount)}</div>
+                <div className="profile-stat-label">{t.search.battles}</div>
+              </div>
+              {profile.currentWinLoseStreak !== 0 && (
+                <div className="profile-stat">
+                  <div className="profile-stat-value">
+                    {profile.currentWinLoseStreak > 0 ? `🔥 ${profile.currentWinLoseStreak}` : `❄️ ${Math.abs(profile.currentWinLoseStreak)}`}
+                  </div>
+                  <div className="profile-stat-label">
+                    {profile.currentWinLoseStreak > 0 ? t.search.streakWin : t.search.streakLose}
+                  </div>
+                </div>
+              )}
+              {profile.currentPathOfLegend && profile.currentPathOfLegend.trophies > 0 && (
+                <div className="profile-stat">
+                  <div className="profile-stat-value">🏅 {fmt(profile.currentPathOfLegend.trophies)}</div>
+                  <div className="profile-stat-label">
+                    {t.search.polRank}
+                    {profile.currentPathOfLegend.rank > 0 ? ` · #${profile.currentPathOfLegend.rank} ${t.search.polRankSuffix}` : ''}
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {profile.currentDeck.length > 0 && (
+            <section className="card" style={{ marginTop: 10 }}>
+              <div className="cards-section-title">{t.search.currentDeck}</div>
+              <div className="cards-grid">
+                {profile.currentDeck.map(card => (
+                  <div key={card.name} className="card-chip">
+                    <img src={card.iconUrl} alt={card.name} loading="lazy" title={card.name} />
+                    <div className={`card-chip-level ${card.level >= card.maxLevel ? 'card-chip-maxed' : ''}`}>
+                      {card.level} {t.search.lvl}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
           {profile.weeksPlayed > 0 && (
             <section className="card" style={{ marginTop: 10 }}>
               <div className="cards-section-title">{t.search.warStats}</div>

@@ -106,6 +106,7 @@ public record PlayerProfileDto(
     string Name,
     int ExpLevel,
     int Trophies,
+    int BestTrophies,
     int ClanWarTrophies,
     string? ClanName,
     string? ClanTag,
@@ -114,9 +115,20 @@ public record PlayerProfileDto(
     int WeeksPlayed,
     int TotalFame,
     double AvgFamePerAttack,
+    // Поля из /players/{tag} — только реальные данные API:
+    int WarDayWins,
+    int BattleCount,
+    int ThreeCrownWins,
+    int CurrentWinLoseStreak,
+    PathOfLegendDto? CurrentPathOfLegend,
+    PathOfLegendDto? BestPathOfLegend,
+    string? CurrentFavouriteCard,
+    List<PlayerCardDto> CurrentDeck,
     string RoyaleApiUrl);
 
 public record PlayerCardDto(string Name, int Level, int MaxLevel, string IconUrl);
+
+public record PathOfLegendDto(int Trophies, int LeagueNumber, int Rank);
 
 /// <summary>Детальная статистика для текущего игрока (в Mini App).</summary>
 public record MyStatsDto(
