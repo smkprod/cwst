@@ -475,6 +475,15 @@ main.with-tabbar { padding-bottom: 80px; }
 .owner-bc-recipients { margin: 0 0 10px; }
 .owner-bc-result { margin: 8px 0 0; text-align: center; }
 
+/* --- Выбор типа турнира --- */
+.tt-choice {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+  cursor: pointer; border: none; margin-bottom: 10px;
+}
+.tt-choice-emoji { font-size: 28px; flex-shrink: 0; }
+.tt-choice-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.tt-choice-name { font-weight: 700; font-size: 15px; }
+
 /* --- Игровые турниры --- */
 .gt-toggle { display: flex; gap: 6px; margin-bottom: 12px; }
 .gt-toggle-btn {

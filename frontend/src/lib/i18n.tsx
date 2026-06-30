@@ -362,8 +362,11 @@ const ru = {
 
   tournament: {
     tabLabel: 'Турнир',
-    tabClan: 'Клановые',
-    tabGame: 'Игровые',
+    chooseTypeTitle: 'Какой турнир создать?',
+    typeClan: '🏆 Клановый турнир',
+    typeClanDesc: 'Своя сетка: регистрация, жеребьёвка, матчи — внутри бота.',
+    typeGame: '🎮 Игровой турнир',
+    typeGameDesc: 'Отслеживать турнир из игры по тегу: живая таблица из CR API.',
     listTitle: '🏆 Турниры',
     createBtn: '+ Создать турнир',
     empty: 'Пока нет турниров — стань первым организатором!',
@@ -871,8 +874,11 @@ const uk: Translations = {
 
   tournament: {
     tabLabel: 'Турнір',
-    tabClan: 'Кланові',
-    tabGame: 'Ігрові',
+    chooseTypeTitle: 'Який турнір створити?',
+    typeClan: '🏆 Клановий турнір',
+    typeClanDesc: 'Своя сітка: реєстрація, жеребкування, матчі — у боті.',
+    typeGame: '🎮 Ігровий турнір',
+    typeGameDesc: 'Відстежувати турнір з гри за тегом: жива таблиця з CR API.',
     listTitle: '🏆 Турніри',
     createBtn: '+ Створити турнір',
     empty: 'Поки немає турнірів — стань першим організатором!',
@@ -1378,8 +1384,11 @@ const en: Translations = {
 
   tournament: {
     tabLabel: 'Tournament',
-    tabClan: 'Clan',
-    tabGame: 'In-game',
+    chooseTypeTitle: 'Which tournament to create?',
+    typeClan: '🏆 Clan tournament',
+    typeClanDesc: 'Your own bracket: registration, seeding, matches — in the bot.',
+    typeGame: '🎮 In-game tournament',
+    typeGameDesc: 'Track an in-game tournament by tag: live table from the CR API.',
     listTitle: '🏆 Tournaments',
     createBtn: '+ Create tournament',
     empty: 'No tournaments yet — be the first organizer!',

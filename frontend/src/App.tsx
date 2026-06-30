@@ -15,7 +15,6 @@ import { MyStatsView } from './components/MyStatsView'
 import { NudgeButton } from './components/NudgeButton'
 import { ReminderCard } from './components/ReminderCard'
 import { NotificationSettingsView } from './components/NotificationSettingsView'
-import { WarDayLogCard } from './components/WarDayLogCard'
 import { AboutCard } from './components/AboutCard'
 import { OwnerPanel } from './components/OwnerPanel'
 import { LinkPrompt } from './components/LinkPrompt'
@@ -158,7 +157,6 @@ export default function App() {
                 <ForecastCard forecast={data.forecast} stats={data.stats} periodType={data.periodType} />
                 <InsightsCard insights={data.insights} plan={data.plan} />
                 <RaceCard race={data.race} periodType={data.periodType} />
-                <WarDayLogCard dayLogs={data.dayLogs} />
                 <WarLogCard log={data.warLog} />
                 {canManage && data.periodType !== 'training' && (
                   <NudgeButton notPlayedCount={notFinished} isPro={isPro} />
@@ -261,7 +259,6 @@ export default function App() {
                 <ForecastCard forecast={data.forecast} stats={data.stats} periodType={data.periodType} />
                 <InsightsCard insights={data.insights} plan={data.plan} />
                 <RaceCard race={data.race} periodType={data.periodType} />
-                <WarDayLogCard dayLogs={data.dayLogs} />
                 <WarLogCard log={data.warLog} />
                 <PlayerList players={data.players} myPlayerTag={myPlayerTag} />
                 <div style={{ height: 12 }} />
