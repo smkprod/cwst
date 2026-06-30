@@ -7,10 +7,16 @@ namespace ClanWarTracker.Domain.Entities;
 public class RiverRaceLogWeek
 {
     public int SeasonId { get; set; }
-    public int SectionIndex { get; set; }                 // неделя внутри сезона (0..3)
+    public int SectionIndex { get; set; }                 // неделя внутри сезона (0..4)
 
-    /// <summary>Колизей — последняя неделя сезона (медали копятся все 4 дня).</summary>
-    public bool IsColosseum => SectionIndex == 3;
+    /// <summary>
+    /// Колизей — ПОСЛЕДНЯЯ неделя сезона. Количество военных недель в сезоне разное
+    /// (бывает 3, бывает 4), поэтому нельзя завязываться на "section == 3". Признак
+    /// вычисляется по контексту журнала (см. ClashRoyaleApiClient.GetRiverRaceLogAsync):
+    /// неделя — колизей, если это максимальный section своего сезона и в журнале уже
+    /// есть неделя более позднего сезона (т.е. сезон точно завершён).
+    /// </summary>
+    public bool IsColosseum { get; set; }
 
     /// <summary>Финальная таблица недели, отсортирована по месту (1 — победитель).</summary>
     public List<RiverRaceLogStanding> Standings { get; set; } = [];
