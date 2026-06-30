@@ -2,16 +2,26 @@ using ClanWarTracker.Application.UseCases;
 
 namespace ClanWarTracker.Worker;
 
-/// <summary>Каждые 30 минут проверяет все кланы: шлёт напоминания и сохраняет снапшоты войны.</summary>
+/// <summary>
+/// Фоновый воркер: каждые 30 минут — напоминания/отчёты, отдельно каждые 10 минут —
+/// снапшоты войны (чаще = точнее дневные дельты медалей игроков), и раз в сутки —
+/// «последний звонок» перед концом дня.
+/// </summary>
 public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckWorker> logger) : BackgroundService
 {
     private static readonly TimeSpan Interval = TimeSpan.FromMinutes(30);
+    // Снапшоты снимаем чаще основного цикла: финальный снимок дня всегда свежий (в пределах
+    // 10 минут до сброса в 10:00 UTC), поэтому «медали за день» по каждому игроку точнее.
+    private static readonly TimeSpan SnapshotInterval = TimeSpan.FromMinutes(10);
     private readonly HashSet<string> _reportedDays = [];
     private readonly HashSet<string> _finalCallKeys = [];
     private readonly HashSet<string> _warStartKeys = [];
 
     protected override Task ExecuteAsync(CancellationToken stoppingToken) =>
-        Task.WhenAll(RunPeriodicChecksAsync(stoppingToken), RunFinalCallLoopAsync(stoppingToken));
+        Task.WhenAll(
+            RunPeriodicChecksAsync(stoppingToken),
+            RunSnapshotLoopAsync(stoppingToken),
+            RunFinalCallLoopAsync(stoppingToken));
 
     private async Task RunPeriodicChecksAsync(CancellationToken stoppingToken)
     {
@@ -56,19 +66,6 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
 
             try
             {
-                // Снапшоты — отдельный scope и try: сбой истории не должен ломать напоминания
-                using var scope = scopeFactory.CreateScope();
-                var capture = scope.ServiceProvider.GetRequiredService<CaptureWarSnapshotsUseCase>();
-                var count = await capture.ExecuteAsync(stoppingToken);
-                if (count > 0) logger.LogInformation("Captured {Count} war snapshots", count);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Snapshot capture failed");
-            }
-
-            try
-            {
                 using var scope = scopeFactory.CreateScope();
                 var expiry = scope.ServiceProvider.GetRequiredService<SendPlanExpiryRemindersUseCase>();
                 await expiry.ExecuteAsync(stoppingToken);
@@ -87,6 +84,33 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
             catch (Exception ex)
             {
                 logger.LogError(ex, "Smart alert failed");
+            }
+        }
+        while (await timer.WaitForNextTickAsync(stoppingToken));
+    }
+
+    /// <summary>
+    /// Отдельный частый цикл снапшотов (каждые 10 минут). Снимок идемпотентен (upsert по
+    /// ключу дня), поэтому «снимок текущего дня» постоянно обновляется свежими данными —
+    /// к моменту сброса дня он отстаёт не более чем на 10 минут, и дневные дельты медалей
+    /// по каждому игроку считаются точнее. GetCurrentWarAsync кэшируется на 2 минуты, так
+    /// что лишней нагрузки на CR API почти нет.
+    /// </summary>
+    private async Task RunSnapshotLoopAsync(CancellationToken stoppingToken)
+    {
+        using var timer = new PeriodicTimer(SnapshotInterval);
+        do
+        {
+            try
+            {
+                using var scope = scopeFactory.CreateScope();
+                var capture = scope.ServiceProvider.GetRequiredService<CaptureWarSnapshotsUseCase>();
+                var count = await capture.ExecuteAsync(stoppingToken);
+                if (count > 0) logger.LogInformation("Captured {Count} war snapshots", count);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Snapshot capture failed");
             }
         }
         while (await timer.WaitForNextTickAsync(stoppingToken));
