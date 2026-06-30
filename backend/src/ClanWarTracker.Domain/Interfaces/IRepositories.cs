@@ -57,6 +57,17 @@ public interface IWarSnapshotRepository
         CancellationToken ct = default);
 }
 
+public interface IGameTournamentRepository
+{
+    /// <summary>Все отслеживаемые игровые турниры, новые — первыми.</summary>
+    Task<List<GameTournament>> GetAllAsync(CancellationToken ct = default);
+    Task<GameTournament?> GetByIdAsync(int id, CancellationToken ct = default);
+    Task<GameTournament?> GetByTagAsync(string tournamentTag, CancellationToken ct = default);
+    Task AddAsync(GameTournament tournament, CancellationToken ct = default);
+    Task RemoveAsync(GameTournament tournament, CancellationToken ct = default);
+    Task SaveChangesAsync(CancellationToken ct = default);
+}
+
 public interface IRecruitmentRepository
 {
     Task<RecruitmentProfile?> GetByPlayerTagAsync(string playerTag, CancellationToken ct = default);
