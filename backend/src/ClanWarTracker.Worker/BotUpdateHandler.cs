@@ -3,6 +3,7 @@ using System.Text;
 using ClanWarTracker.Application.DTOs;
 using ClanWarTracker.Application.UseCases;
 using ClanWarTracker.Domain.Entities;
+using ClanWarTracker.Domain.Enums;
 using ClanWarTracker.Domain.Interfaces;
 using Telegram.Bot;
 using Telegram.Bot.Polling;
@@ -105,7 +106,9 @@ public class BotUpdateHandler(
                                   "После этого каждый участник может написать боту /start в ЛС и отправить свой тег — и сразу увидит статистику."
                                 : $"⚔️ Клан «{groupClan.Name}» подключён!\n" +
                                   "/status — статус текущей войны\n" +
-                                  "/remind N — напоминания за N часов до конца дня\n\n" +
+                                  "/remind N — напоминания за N часов до конца дня\n" +
+                                  "/nudge — пнуть тех, кто не отыграл (тег по @username)\n" +
+                                  "/settopic — слать уведомления в эту тему (запусти внутри темы)\n\n" +
                                   "Участники: напишите боту /start в личку и отправьте свой тег CR.",
                             messageThreadId: msg.MessageThreadId,
                             cancellationToken: ct);
@@ -138,7 +141,7 @@ public class BotUpdateHandler(
                     var linkChatId = isPrivate ? (long?)null : msg.Chat.Id;
                     var linkReferrer = _pendingReferrals.TryRemove(msg.From!.Id, out var lr) ? lr : (long?)null;
                     var playerName = await sp.GetRequiredService<LinkPlayerUseCase>()
-                        .ExecuteAsync(msg.From!.Id, arg, linkChatId, linkReferrer, ct);
+                        .ExecuteAsync(msg.From!.Id, arg, linkChatId, linkReferrer, msg.From!.Username, ct);
                     await Reply(msg, playerName is null
                         ? "❌ Игрок не найден. Проверь тег (профиль → значок тега)."
                         : isPrivate
@@ -161,6 +164,34 @@ public class BotUpdateHandler(
                     await Reply(msg,
                         $"✅ Автонапоминания будут приходить за {hours} ч до конца военного дня (день войны заканчивается в 10:00 UTC).\n" +
                         $"Напомню только тем, кто к этому времени не отыграл все 4/4 колоды.", ct);
+                    break;
+
+                case "/settopic":
+                case "/topic":
+                    if (msg.Chat.Type == ChatType.Private) { await Reply(msg, "⚠️ Команда работает только в групповом чате клана.", ct); return; }
+                    if (!await IsAdminAsync(msg, ct)) { await Reply(msg, "Менять тему для уведомлений может только админ группы.", ct); return; }
+                    var topicRepo = sp.GetRequiredService<IClanRepository>();
+                    var topicClan = await topicRepo.GetByChatIdAsync(msg.Chat.Id, ct);
+                    if (topicClan is null) { await Reply(msg, "Клан не привязан. Сначала /setup #ТЕГ.", ct); return; }
+                    topicClan.TelegramMessageThreadId = msg.MessageThreadId;
+                    await topicRepo.SaveChangesAsync(ct);
+                    await Reply(msg, msg.MessageThreadId is not null
+                        ? "📌 Готово! Теперь напоминания, теги и отчёты бот будет слать в эту тему."
+                        : "📌 Готово! Уведомления будут приходить в общий чат (не в тему). Запусти /settopic внутри нужной темы, чтобы привязать её.", ct);
+                    break;
+
+                case "/nudge":
+                case "/пни":
+                    if (msg.Chat.Type == ChatType.Private) { await Reply(msg, "⚠️ Команда работает в групповом чате клана.", ct); return; }
+                    if (!await IsAdminAsync(msg, ct)) { await Reply(msg, "Пинать игроков может только админ группы.", ct); return; }
+                    var nudgeRepo = sp.GetRequiredService<IClanRepository>();
+                    var nudgeClan = await nudgeRepo.GetByChatIdAsync(msg.Chat.Id, ct);
+                    if (nudgeClan is null) { await Reply(msg, "Клан не привязан. Сначала /setup #ТЕГ.", ct); return; }
+                    var isProNudge = nudgeClan.EffectivePlan(DateTime.UtcNow) == PlanTier.Pro;
+                    var nudgeResult = await sp.GetRequiredService<NudgePlayersUseCase>()
+                        .ExecuteAsync(nudgeClan.Id, isProNudge, ct);
+                    if (nudgeResult is null) { await Reply(msg, "Сейчас не день войны — пинать некого.", ct); return; }
+                    if (!nudgeResult.PostedToChat) await Reply(msg, "Все уже отыграли 4/4 — пинать некого 🎉", ct);
                     break;
 
                 case "/status":
@@ -220,7 +251,7 @@ public class BotUpdateHandler(
         // Привязываем игрока (без клана — из ЛС)
         var quickReferrer = _pendingReferrals.TryRemove(msg.From!.Id, out var qr) ? qr : (long?)null;
         var playerName = await sp.GetRequiredService<LinkPlayerUseCase>()
-            .ExecuteAsync(msg.From!.Id, tag, null, quickReferrer, ct);
+            .ExecuteAsync(msg.From!.Id, tag, null, quickReferrer, msg.From!.Username, ct);
 
         if (playerName is null)
         {
