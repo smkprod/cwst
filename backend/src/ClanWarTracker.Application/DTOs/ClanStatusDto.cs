@@ -13,7 +13,15 @@ public record ClanStatusDto(
     List<RaceClanDto> Race,   // все кланы гонки, отсортированы по месту
     List<PlayerStatusDto> Players,
     ClanInsightsDto? Insights,  // Pro: прогноз победы + здоровье клана (null на Free)
-    List<WarLogWeekDto> WarLog); // журнал прошлых войн (места кланов и очки)
+    List<WarLogWeekDto> WarLog, // журнал прошлых войн (места кланов и очки)
+    List<WarDayLogDto> DayLogs); // официальный по-дневный лог гонки (periodLogs)
+
+/// <summary>Итог дня гонки для нашего клана — официальные данные periodLogs из CR API.</summary>
+public record WarDayLogDto(
+    int DayIndex,                 // 0..6 (нормализованный день недели гонки)
+    int PointsEarned,             // очки клана за день
+    int EndOfDayRank,             // место клана на конец дня (1..5)
+    int NumOfDefensesRemaining);  // осталось защит
 
 /// <summary>Одна завершённая неделя из официального журнала войн клана.</summary>
 public record WarLogWeekDto(

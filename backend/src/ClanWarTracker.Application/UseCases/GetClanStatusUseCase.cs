@@ -182,7 +182,10 @@ public class GetClanStatusUseCase(
             Race: race,
             Players: playerDtos,
             Insights: insights,
-            WarLog: warLog);
+            WarLog: warLog,
+            DayLogs: war.DayLogs
+                .Select(d => new WarDayLogDto(d.DayIndex, d.PointsEarned, d.EndOfDayRank, d.NumOfDefensesRemaining))
+                .ToList());
     }
 
     /// <summary>

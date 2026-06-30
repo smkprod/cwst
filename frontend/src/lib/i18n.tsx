@@ -16,6 +16,7 @@ const ru = {
 
   period: { training: 'Тренировочные дни', warDay: 'День войны', colosseum: 'Колизей' },
   header: { dayOf4: '· день', untilEnd: 'До конца дня:', h: 'ч', played: 'сыграли' },
+  warDays: { title: '📊 Место клана по дням (из API)', dayShort: 'Д', defensesLeft: 'Осталось защит:' },
 
   stats: { weekMedals: 'медали недели', decksToday: 'колод сегодня', medalsPerBattle: 'медалей/бой', active: 'активных' },
 
@@ -490,6 +491,7 @@ const uk: Translations = {
 
   period: { training: 'Тренувальні дні', warDay: 'День війни', colosseum: 'Колізей' },
   header: { dayOf4: '· день', untilEnd: 'До кінця дня:', h: 'год', played: 'зіграли' },
+  warDays: { title: '📊 Місце клану по днях (з API)', dayShort: 'Д', defensesLeft: 'Залишилось захистів:' },
 
   stats: { weekMedals: 'медалі тижня', decksToday: 'колод сьогодні', medalsPerBattle: 'медалей/бій', active: 'активних' },
 
@@ -962,6 +964,7 @@ const en: Translations = {
 
   period: { training: 'Training Days', warDay: 'War Day', colosseum: 'Coliseum' },
   header: { dayOf4: '· day', untilEnd: 'Until end of day:', h: 'h', played: 'played' },
+  warDays: { title: '📊 Clan rank by day (from API)', dayShort: 'D', defensesLeft: 'Defenses left:' },
 
   stats: { weekMedals: 'week medals', decksToday: 'decks today', medalsPerBattle: 'medals/battle', active: 'active' },
 
