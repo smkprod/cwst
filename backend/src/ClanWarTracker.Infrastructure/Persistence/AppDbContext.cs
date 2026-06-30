@@ -13,6 +13,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Tournament> Tournaments => Set<Tournament>();
     public DbSet<TournamentParticipant> TournamentParticipants => Set<TournamentParticipant>();
     public DbSet<TournamentMatch> TournamentMatches => Set<TournamentMatch>();
+    public DbSet<GameTournament> GameTournaments => Set<GameTournament>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -108,6 +109,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
              .WithMany()
              .HasForeignKey(m => m.NextMatchId)
              .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        mb.Entity<GameTournament>(e =>
+        {
+            e.HasIndex(t => t.TournamentTag).IsUnique();
+            e.Property(t => t.TournamentTag).HasMaxLength(16);
+            e.Property(t => t.Name).HasMaxLength(120);
+            e.Property(t => t.Password).HasMaxLength(64);
+            e.Property(t => t.CreatorName).HasMaxLength(64);
         });
     }
 }

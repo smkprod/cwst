@@ -62,6 +62,7 @@ public static class DependencyInjection
         services.AddScoped<IWarSnapshotRepository, WarSnapshotRepository>();
         services.AddScoped<IRecruitmentRepository, RecruitmentRepository>();
         services.AddScoped<ITournamentRepository, TournamentRepository>();
+        services.AddScoped<IGameTournamentRepository, GameTournamentRepository>();
 
         return services;
     }
@@ -219,6 +220,21 @@ CREATE TABLE IF NOT EXISTS ""TournamentMatches"" (
 
         await db.Database.ExecuteSqlRawAsync(
             "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_TournamentMatches_TournamentId_Round_SlotIndex\" ON \"TournamentMatches\" (\"TournamentId\", \"Round\", \"SlotIndex\");");
+
+        // Отслеживаемые игровые турниры (живые данные тянутся из CR API по тегу).
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""GameTournaments"" (
+    ""Id"" serial PRIMARY KEY,
+    ""TournamentTag"" varchar(16) NOT NULL,
+    ""Name"" varchar(120) NOT NULL,
+    ""Password"" varchar(64),
+    ""CreatorTelegramUserId"" bigint NOT NULL,
+    ""CreatorName"" varchar(64) NOT NULL,
+    ""CreatedAtUtc"" timestamptz NOT NULL
+);");
+
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_GameTournaments_TournamentTag\" ON \"GameTournaments\" (\"TournamentTag\");");
     }
 
     /// <summary>Убирает все пробельные символы (включая \r\n) из токена. null, если пусто.</summary>

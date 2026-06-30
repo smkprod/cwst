@@ -1,5 +1,5 @@
 import { initData } from './telegram'
-import type { BroadcastResult, BroadcastTarget, ClanHistory, ClanStatus, ClanWarLog, GlobalTop, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RecruitmentCandidates, RecruitmentStatus, SeasonBreakdown, SeasonStats, Tournament, TournamentSummary } from '../types'
+import type { BroadcastResult, BroadcastTarget, ClanHistory, ClanStatus, ClanWarLog, GameTournament, GlobalTop, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RecruitmentCandidates, RecruitmentStatus, SeasonBreakdown, SeasonStats, Tournament, TournamentSummary } from '../types'
 
 // Если мы на Render (production), BASE должен быть пустой строкой '', чтобы запросы шли на тот же домен.
 // Для локальной разработки (Development) оставляем localhost:5000.
@@ -134,4 +134,16 @@ export const api = {
     request<{ ok: boolean }>(`/api/tournaments/${id}`, { method: 'DELETE' }),
   getPlayerTournamentHistory: (tag: string) =>
     request<PlayerTournamentHistory[]>(`/api/players/${encodeURIComponent(tag.replace('#', ''))}/tournaments`),
+
+  // Игровые турниры (отслеживание турнира CR по тегу)
+  getGameTournaments: () => request<GameTournament[]>('/api/game-tournaments'),
+  getGameTournament: (id: number) => request<GameTournament>(`/api/game-tournaments/${id}`),
+  addGameTournament: (tag: string, password?: string) =>
+    request<GameTournament>('/api/game-tournaments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tag, password: password ?? null }),
+    }),
+  removeGameTournament: (id: number) =>
+    request<{ ok: boolean }>(`/api/game-tournaments/${id}`, { method: 'DELETE' }),
 }

@@ -5,6 +5,7 @@ import { haptic } from '../lib/telegram'
 import { useT } from '../lib/i18n'
 import { TournamentForm } from './TournamentForm'
 import { TournamentDetail } from './TournamentDetail'
+import { GameTournamentView } from './GameTournamentView'
 
 type View =
   | { kind: 'list' }
@@ -15,6 +16,7 @@ type ListState = { kind: 'loading' } | { kind: 'error' } | { kind: 'ready'; tour
 
 export function TournamentView() {
   const { t } = useT()
+  const [subTab, setSubTab] = useState<'clan' | 'game'>('clan')
   const [view, setView] = useState<View>({ kind: 'list' })
   const [listState, setListState] = useState<ListState>({ kind: 'loading' })
 
@@ -42,6 +44,23 @@ export function TournamentView() {
   const backToList = () => {
     haptic('light')
     setView({ kind: 'list' })
+  }
+
+  const toggle = (
+    <div className="gt-toggle">
+      <button className={`gt-toggle-btn ${subTab === 'clan' ? 'gt-toggle-on' : ''}`}
+        onClick={() => { haptic('light'); setSubTab('clan'); setView({ kind: 'list' }) }}>
+        {t.tournament.tabClan}
+      </button>
+      <button className={`gt-toggle-btn ${subTab === 'game' ? 'gt-toggle-on' : ''}`}
+        onClick={() => { haptic('light'); setSubTab('game'); setView({ kind: 'list' }) }}>
+        {t.tournament.tabGame}
+      </button>
+    </div>
+  )
+
+  if (subTab === 'game') {
+    return <div>{toggle}<GameTournamentView /></div>
   }
 
   if (view.kind === 'create') {
@@ -80,6 +99,7 @@ export function TournamentView() {
 
   return (
     <div>
+      {toggle}
       <div className="card-title-row">
         <h2 className="section-title" style={{ margin: 0 }}>{t.tournament.listTitle}</h2>
       </div>

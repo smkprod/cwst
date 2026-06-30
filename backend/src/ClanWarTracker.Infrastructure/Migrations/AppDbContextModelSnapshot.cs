@@ -61,6 +61,45 @@ namespace ClanWarTracker.Infrastructure.Migrations
                     b.ToTable("Clans");
                 });
 
+            modelBuilder.Entity("ClanWarTracker.Domain.Entities.GameTournament", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CreatorTelegramUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CreatorName")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Password")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TournamentTag")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TournamentTag")
+                        .IsUnique();
+
+                    b.ToTable("GameTournaments");
+                });
+
             modelBuilder.Entity("ClanWarTracker.Domain.Entities.Player", b =>
                 {
                     b.Property<int>("Id")

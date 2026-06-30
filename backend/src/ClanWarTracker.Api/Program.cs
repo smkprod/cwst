@@ -31,6 +31,7 @@ builder.Services.AddScoped<CancelTournamentUseCase>();
 builder.Services.AddScoped<GetTournamentUseCase>();
 builder.Services.AddScoped<GetTournamentListUseCase>();
 builder.Services.AddScoped<GetPlayerTournamentHistoryUseCase>();
+builder.Services.AddScoped<GameTournamentService>();
 builder.Services.AddControllers();
 
 builder.Services.AddCors(o => o.AddDefaultPolicy(p => p
