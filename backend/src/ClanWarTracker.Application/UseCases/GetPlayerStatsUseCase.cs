@@ -29,19 +29,10 @@ public class GetPlayerStatsUseCase(
             string.Equals(p.PlayerTag, player.PlayerTag, StringComparison.OrdinalIgnoreCase));
         if (me is null) return null;
 
-        // /currentriverrace не возвращает реальный seasonId (всегда 0).
-        // Определяем его по журналу: берём сезон последней завершённой недели.
+        // war.SeasonId уже корректно вычислен в GetCurrentWarAsync (ResolveRealSeasonIdAsync):
+        // сезон последней завершённой недели + переход только когда текущая неделя = section 0.
+        // Здесь больше НЕ пересчитываем по "section >= 3" — это ломалось на сезонах из 4 войн.
         var realSeasonId = war.SeasonId;
-        try
-        {
-            var log = await crApi.GetRiverRaceLogAsync(clan.ClanTag, ct);
-            if (log.Count > 0)
-            {
-                var newest = log[0];
-                realSeasonId = newest.SectionIndex >= 3 ? newest.SeasonId + 1 : newest.SeasonId;
-            }
-        }
-        catch { /* fallback to war.SeasonId */ }
 
         var now = DateTime.UtcNow;
         var hoursLeft = Math.Max(0, (int)war.TimeLeft(now).TotalHours);
