@@ -179,11 +179,15 @@ public class PlayerController(
             ? Math.Round((double)totalFame / totalDecks, 1)
             : 0;
 
+        static PathOfLegendDto? Pol(Domain.Entities.CrPathOfLegend? p) =>
+            p is null ? null : new PathOfLegendDto(p.Trophies, p.LeagueNumber, p.Rank);
+
         var profileDto = new PlayerProfileDto(
             PlayerTag: info.Tag,
             Name: info.Name,
             ExpLevel: info.ExpLevel,
             Trophies: info.Trophies,
+            BestTrophies: info.BestTrophies,
             ClanWarTrophies: info.ClanWarTrophies,
             ClanName: info.ClanName,
             ClanTag: info.ClanTag,
@@ -192,6 +196,14 @@ public class PlayerController(
             WeeksPlayed: weeksPlayed,
             TotalFame: totalFame,
             AvgFamePerAttack: avgFame,
+            WarDayWins: info.WarDayWins,
+            BattleCount: info.BattleCount,
+            ThreeCrownWins: info.ThreeCrownWins,
+            CurrentWinLoseStreak: info.CurrentWinLoseStreak,
+            CurrentPathOfLegend: Pol(info.CurrentPathOfLegend),
+            BestPathOfLegend: Pol(info.BestPathOfLegend),
+            CurrentFavouriteCard: info.CurrentFavouriteCard,
+            CurrentDeck: info.CurrentDeck.Select(c => new PlayerCardDto(c.Name, c.Level, c.MaxLevel, c.IconUrl)).ToList(),
             RoyaleApiUrl: $"https://royaleapi.com/player/{Uri.EscapeDataString(playerTag.TrimStart('#'))}");
 
         return Ok(profileDto);
