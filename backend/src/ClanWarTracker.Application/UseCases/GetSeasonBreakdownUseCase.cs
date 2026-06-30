@@ -16,19 +16,17 @@ public class GetSeasonBreakdownUseCase(IClashRoyaleApi crApi)
         var war = await crApi.GetCurrentWarAsync(clanTag, ct);
         var log = await crApi.GetRiverRaceLogAsync(clanTag, ct);
 
-        // ВАЖНО: /currentriverrace НЕ отдаёт seasonId (приходит 0), поэтому текущий
-        // сезон определяем по журналу: сезон самой свежей завершённой недели.
-        // Если это был колизей (section 3) — сезон завершён, текущий = следующий.
+        // Текущий сезон уже корректно вычислен в GetCurrentWarAsync (ResolveRealSeasonIdAsync:
+        // сезон последней завершённой недели + переход только когда текущая неделя = section 0).
+        // Здесь его НЕ пересчитываем по "section >= 3" — это ломалось на 5-недельных сезонах
+        // (колизей = section 4), из-за чего бот раньше времени показывал следующий сезон.
         int seasonId;
-        if (log.Count > 0)
-        {
-            var newest = log[0]; // журнал отсортирован: свежие недели первыми
-            seasonId = newest.SectionIndex >= 3 ? newest.SeasonId + 1 : newest.SeasonId;
-        }
+        if (war is not null)
+            seasonId = war.SeasonId;
+        else if (log.Count > 0)
+            seasonId = log[0].SeasonId; // фолбэк (CR API лежит): сезон последней завершённой недели
         else
-        {
-            seasonId = war?.SeasonId ?? 0;
-        }
+            return null;
         if (seasonId == 0 && war is null) return null;
 
         // sectionIndex -> накопитель недели
