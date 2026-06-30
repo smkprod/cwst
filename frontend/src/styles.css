@@ -475,6 +475,29 @@ main.with-tabbar { padding-bottom: 80px; }
 .owner-bc-recipients { margin: 0 0 10px; }
 .owner-bc-result { margin: 8px 0 0; text-align: center; }
 
+/* --- Игровые турниры --- */
+.gt-toggle { display: flex; gap: 6px; margin-bottom: 12px; }
+.gt-toggle-btn {
+  flex: 1; padding: 9px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03); color: var(--muted); font: inherit; font-weight: 600; cursor: pointer;
+}
+.gt-toggle-on { background: var(--accent); color: #fff; border-color: var(--accent); }
+.gt-join { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 10px; }
+.gt-join > div { display: flex; flex-direction: column; gap: 2px; }
+.gt-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 700;
+  font-size: 15px; color: var(--text); user-select: all;
+}
+.gt-members { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; }
+.gt-member {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px; border-radius: 10px; background: rgba(255, 255, 255, 0.03);
+}
+.gt-member-rank { font-weight: 800; color: var(--muted); min-width: 34px; }
+.gt-member-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.gt-member-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gt-member-score { font-weight: 700; color: var(--accent); flex-shrink: 0; }
+
 /* --- Место клана по дням (periodLogs из API) --- */
 .wd-row { display: flex; gap: 8px; }
 .wd-day {

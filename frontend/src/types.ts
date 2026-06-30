@@ -407,6 +407,37 @@ export interface TournamentParticipant {
   finalPlacement: number | null
 }
 
+/* --- Игровые турниры (отслеживание турнира CR по тегу) --- */
+export interface GameTournamentMember {
+  rank: number
+  name: string
+  score: number
+  clanName: string | null
+}
+
+export interface GameTournamentLive {
+  name: string
+  description: string | null
+  status: string                 // IN_PREPARATION | IN_PROGRESS | ENDED | UNKNOWN
+  capacity: number
+  maxCapacity: number
+  levelCap: number
+  firstPlaceCardPrize: number
+  gameMode: string | null
+  startsInSeconds: number | null
+  endsInSeconds: number | null
+  members: GameTournamentMember[]
+}
+
+export interface GameTournament {
+  id: number
+  tournamentTag: string
+  password: string | null
+  creatorName: string
+  isCreator: boolean
+  live: GameTournamentLive | null
+}
+
 export interface TournamentMatch {
   id: number
   round: number
