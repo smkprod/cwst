@@ -69,8 +69,11 @@ public class SendRemindersUseCase(
 
             if (slackers.Count > 0)
             {
-                var names = slackers.Select(s => TelegramMention.Mention(
-                    s.Name, allLinked.GetValueOrDefault(s.PlayerTag)?.TelegramUserId));
+                var names = slackers.Select(s =>
+                {
+                    var p = allLinked.GetValueOrDefault(s.PlayerTag);
+                    return TelegramMention.Mention(s.Name, p?.TelegramUserId, p?.TelegramUsername);
+                });
                 parts.Add($"⏰ Ещё не доиграли войну: {string.Join(", ", names)}");
             }
 

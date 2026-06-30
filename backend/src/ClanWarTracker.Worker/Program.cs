@@ -16,6 +16,7 @@ builder.Services.AddScoped<SendDailyReportUseCase>();
 builder.Services.AddScoped<SendFinalCallUseCase>();
 builder.Services.AddScoped<SendWarStartUseCase>();
 builder.Services.AddScoped<SendSmartAlertUseCase>();
+builder.Services.AddScoped<NudgePlayersUseCase>();
 builder.Services.AddScoped<LinkPlayerUseCase>();
 builder.Services.AddScoped<SetupClanUseCase>();
 

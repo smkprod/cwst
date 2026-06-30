@@ -5,10 +5,10 @@ using ClanWarTracker.Domain.Interfaces;
 namespace ClanWarTracker.Application.UseCases;
 
 /// <summary>
-/// «Финальный отзыв» — отправляется один раз в день, ровно за минуту до конца военного
-/// дня (см. SendFinalCallWorker), всем, кто ещё не доиграл 4/4. CR API не отдаёт точное
-/// время сброса дня — расчёт идёт от того же допущения "сброс в 10:00 UTC", на котором уже
-/// держатся напоминания и DayEndsAtUtc.
+/// «Последний звонок» — отправляется один раз в день, примерно за 30 минут до конца
+/// военного дня (см. WarCheckWorker.RunFinalCallLoopAsync), всем, кто ещё не доиграл 4/4.
+/// За полчаса реально успеть доиграть колоды — в отличие от «за минуту». CR API не отдаёт
+/// точное время сброса дня — расчёт идёт от допущения "сброс в 10:00 UTC".
 /// </summary>
 public class SendFinalCallUseCase(
     IClashRoyaleApi crApi,
@@ -42,14 +42,17 @@ public class SendFinalCallUseCase(
 
             var linked = (await players.GetByClanIdAsync(clan.Id, ct))
                 .Where(p => p.TelegramUserId is not null)
-                .ToDictionary(p => p.PlayerTag, p => p.TelegramUserId, StringComparer.OrdinalIgnoreCase);
+                .ToDictionary(p => p.PlayerTag, StringComparer.OrdinalIgnoreCase);
 
             var names = string.Join(", ", slackers.Take(20).Select(s =>
-                $"{TelegramMention.Mention(s.Name, linked.GetValueOrDefault(s.PlayerTag))} ({4 - s.DecksUsedToday}/4 колод)"));
+            {
+                var p = linked.GetValueOrDefault(s.PlayerTag);
+                return $"{TelegramMention.Mention(s.Name, p?.TelegramUserId, p?.TelegramUsername)} ({4 - s.DecksUsedToday}/4 колод)";
+            }));
             var more = slackers.Count > 20 ? $" и ещё {slackers.Count - 20}" : "";
 
             await notifier.SendToChatAsync(clan.TelegramChatId,
-                $"🚨 Война закрывается через минуту! Последний шанс доиграть:\n{names}{more}",
+                $"🚨 Война закрывается через ~30 минут! Последний шанс доиграть КВ:\n{names}{more}",
                 clan.TelegramMessageThreadId, html: true, ct: ct);
             sent++;
         }

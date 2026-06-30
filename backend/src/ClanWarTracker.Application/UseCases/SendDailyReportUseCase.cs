@@ -107,7 +107,7 @@ public class SendDailyReportUseCase(
         // Привязанных к Telegram игроков клана — чтобы упомянуть лентяев напрямую в чате.
         var linked = (await players.GetByClanIdAsync(clan.Id, ct))
             .Where(p => p.TelegramUserId is not null)
-            .ToDictionary(p => p.PlayerTag, p => p.TelegramUserId, StringComparer.OrdinalIgnoreCase);
+            .ToDictionary(p => p.PlayerTag, StringComparer.OrdinalIgnoreCase);
 
         var medals = new[] { "🥇", "🥈", "🥉" };
         var lines = new List<string>
@@ -128,7 +128,10 @@ public class SendDailyReportUseCase(
         {
             lines.Add("");
             var names = string.Join(", ", slackers.Take(15).Select(s =>
-                $"{TelegramMention.Mention(s.Name, linked.GetValueOrDefault(s.PlayerTag))} ({s.DecksToday}/4)"));
+            {
+                var p = linked.GetValueOrDefault(s.PlayerTag);
+                return $"{TelegramMention.Mention(s.Name, p?.TelegramUserId, p?.TelegramUsername)} ({s.DecksToday}/4)";
+            }));
             var more = slackers.Count > 15 ? $" и ещё {slackers.Count - 15}" : "";
             lines.Add($"😴 Не доиграли: {names}{more}");
         }
