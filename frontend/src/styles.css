@@ -475,6 +475,20 @@ main.with-tabbar { padding-bottom: 80px; }
 .owner-bc-recipients { margin: 0 0 10px; }
 .owner-bc-result { margin: 8px 0 0; text-align: center; }
 
+/* --- Место клана по дням (periodLogs из API) --- */
+.wd-row { display: flex; gap: 8px; }
+.wd-day {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 8px 4px; border-radius: 12px; background: rgba(255, 255, 255, 0.03);
+}
+.wd-rank { font-size: 18px; font-weight: 800; color: var(--text); line-height: 1; }
+.wd-rank-1 { color: var(--gold); }
+.wd-rank-2 { color: #c0c7d0; }
+.wd-rank-3 { color: #cd8e5a; }
+.wd-points { font-size: 12px; color: var(--muted); }
+.wd-label { font-size: 11px; color: var(--muted); }
+.wd-defenses { margin: 10px 0 0; text-align: center; }
+
 /* --- Шестерёнка в шапке войны --- */
 .war-settings-btn {
   background: none; border: none; cursor: pointer;

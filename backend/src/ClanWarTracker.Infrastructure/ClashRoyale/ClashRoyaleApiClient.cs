@@ -83,7 +83,28 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
                         DecksUsedToday = c.Participants?.Sum(p => p.DecksUsedToday) ?? 0,
                         DecksUsed = c.Participants?.Sum(p => p.DecksUsed) ?? 0,
                         IsFinished = !string.IsNullOrEmpty(c.FinishTime),
-                    }).ToList()
+                    }).ToList(),
+                // Официальный по-дневный лог для нашего клана (periodLogs[].items[] где clan.tag == наш).
+                DayLogs = (race.PeriodLogs ?? [])
+                    .Select(pl =>
+                    {
+                        var mine = pl.Items?.FirstOrDefault(i =>
+                            string.Equals(i.Clan?.Tag, race.Clan!.Tag, StringComparison.OrdinalIgnoreCase));
+                        return mine is null ? null : new WarPeriodLog
+                        {
+                            PeriodIndex = pl.PeriodIndex,
+                            DayIndex = ((pl.PeriodIndex % 7) + 7) % 7,
+                            PointsEarned = mine.PointsEarned,
+                            ProgressEndOfDay = mine.ProgressEndOfDay,
+                            EndOfDayRank = mine.EndOfDayRank,
+                            NumOfDefensesRemaining = mine.NumOfDefensesRemaining,
+                            ProgressEarnedFromDefenses = mine.ProgressEarnedFromDefenses,
+                        };
+                    })
+                    .Where(x => x is not null)
+                    .Select(x => x!)
+                    .OrderBy(x => x.PeriodIndex)
+                    .ToList(),
             };
         });
     }
@@ -179,7 +200,23 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         [property: JsonPropertyName("seasonId")] int SeasonId,
         [property: JsonPropertyName("sectionIndex")] int SectionIndex,
         [property: JsonPropertyName("clan")] RaceClan? Clan,
-        [property: JsonPropertyName("clans")] List<RaceClan>? Clans);
+        [property: JsonPropertyName("clans")] List<RaceClan>? Clans,
+        [property: JsonPropertyName("periodLogs")] List<PeriodLog>? PeriodLogs);
+
+    private record PeriodLog(
+        [property: JsonPropertyName("periodIndex")] int PeriodIndex,
+        [property: JsonPropertyName("items")] List<PeriodLogEntry>? Items);
+
+    private record PeriodLogEntry(
+        [property: JsonPropertyName("clan")] PeriodLogClan? Clan,
+        [property: JsonPropertyName("pointsEarned")] int PointsEarned,
+        [property: JsonPropertyName("progressStartOfDay")] int ProgressStartOfDay,
+        [property: JsonPropertyName("progressEndOfDay")] int ProgressEndOfDay,
+        [property: JsonPropertyName("endOfDayRank")] int EndOfDayRank,
+        [property: JsonPropertyName("numOfDefensesRemaining")] int NumOfDefensesRemaining,
+        [property: JsonPropertyName("progressEarnedFromDefenses")] int ProgressEarnedFromDefenses);
+
+    private record PeriodLogClan([property: JsonPropertyName("tag")] string? Tag);
 
     private record RaceClan(
         [property: JsonPropertyName("tag")] string Tag,
