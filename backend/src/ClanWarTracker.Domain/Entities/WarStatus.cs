@@ -16,8 +16,26 @@ public class WarStatus
     /// <summary>Все кланы текущей гонки (включая наш) — для таблицы «ситуация в гонке».</summary>
     public List<RaceClanStanding> RaceClans { get; set; } = [];
 
+    /// <summary>
+    /// Официальный по-дневный лог гонки (periodLogs из /currentriverrace) для НАШЕГО клана:
+    /// очки и место на конец каждого дня + остаток защит. Берётся прямо из API, без расчётов.
+    /// </summary>
+    public List<WarPeriodLog> DayLogs { get; set; } = [];
+
     public bool IsWarDay => PeriodType is "warDay" or "colosseum";
     public TimeSpan TimeLeft(DateTime utcNow) => DayEndsAtUtc - utcNow;
+}
+
+/// <summary>Итог одного дня гонки для клана — официальные данные periodLogs.</summary>
+public class WarPeriodLog
+{
+    public int PeriodIndex { get; set; }                 // сквозной индекс дня за сезон
+    public int DayIndex { get; set; }                    // 0..6 (нормализованный день недели гонки)
+    public int PointsEarned { get; set; }                // очки клана за этот день
+    public int ProgressEndOfDay { get; set; }            // накопленный прогресс на конец дня
+    public int EndOfDayRank { get; set; }                // место клана на конец дня (1..5)
+    public int NumOfDefensesRemaining { get; set; }      // сколько защит осталось у клана
+    public int ProgressEarnedFromDefenses { get; set; }  // очки, полученные с защит
 }
 
 /// <summary>Агрегированное состояние одного клана в River Race (своего или соперника).</summary>

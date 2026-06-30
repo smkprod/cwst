@@ -127,6 +127,13 @@ export interface ClanWarLog {
   weeks: WarLogWeek[]        // isOurClan в standings помечает запрошенный клан
 }
 
+export interface WarDayLog {
+  dayIndex: number              // 0..6 (нормализованный день недели гонки)
+  pointsEarned: number          // очки клана за день
+  endOfDayRank: number          // место клана на конец дня (1..5)
+  numOfDefensesRemaining: number
+}
+
 export interface ClanStatus {
   clanTag: string
   clanName: string
@@ -141,6 +148,7 @@ export interface ClanStatus {
   players: PlayerStatus[]
   insights: ClanInsights | null   // Pro-аналитика (null на Free)
   warLog: WarLogWeek[]            // журнал прошлых войн (места кланов и очки)
+  dayLogs: WarDayLog[]            // официальный по-дневный лог гонки (periodLogs из API)
   myPlayerTag?: string       // тег текущего пользователя (если /my/status)
   isAdmin?: boolean          // админ ли текущий пользователь в группе клана
   isClanLeader?: boolean     // leader или coLeader в CR-клане
