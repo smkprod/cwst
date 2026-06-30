@@ -6,10 +6,11 @@ import { useT } from '../lib/i18n'
  * Официальный по-дневный лог гонки (periodLogs из CR API): место клана на конец
  * каждого военного дня + остаток защит. Никаких расчётов — всё прямо из API.
  */
-export function WarDayLogCard({ dayLogs }: { dayLogs: WarDayLog[] }) {
+export function WarDayLogCard({ dayLogs }: { dayLogs?: WarDayLog[] }) {
   const { t } = useT()
   // Только военные дни (dayIndex 3..6 => Д1..Д4); тренировка очков не даёт.
-  const warDays = dayLogs.filter(d => d.dayIndex >= 3).sort((a, b) => a.dayIndex - b.dayIndex)
+  // Защита от undefined: старый бэкенд мог не вернуть поле.
+  const warDays = (dayLogs ?? []).filter(d => d.dayIndex >= 3).sort((a, b) => a.dayIndex - b.dayIndex)
   if (warDays.length === 0) return null
 
   const latest = warDays[warDays.length - 1]
