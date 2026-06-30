@@ -61,8 +61,11 @@ public class NudgePlayersUseCase(
         if (slackers.Count > 0 && clan.TelegramChatId != 0)
         {
             var names = string.Join(", ", slackers.Take(20).Select(s =>
-                $"{TelegramMention.Mention(s.Name, linkedPlayers.GetValueOrDefault(s.PlayerTag)?.TelegramUserId)} " +
-                $"({4 - s.DecksUsedToday}/4 колод)"));
+            {
+                var p = linkedPlayers.GetValueOrDefault(s.PlayerTag);
+                return $"{TelegramMention.Mention(s.Name, p?.TelegramUserId, p?.TelegramUsername)} " +
+                       $"({4 - s.DecksUsedToday}/4 колод)";
+            }));
             await notifier.SendToChatAsync(clan.TelegramChatId,
                 $"👊 Админ пнул лентяев! Нужно отыграть КВ — осталось:\n{names}",
                 clan.TelegramMessageThreadId, html: true, ct: ct);

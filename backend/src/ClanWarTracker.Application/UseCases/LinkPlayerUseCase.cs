@@ -10,7 +10,7 @@ public class LinkPlayerUseCase(
     /// <param name="referrerTelegramUserId">Telegram ID пригласившего (из реф-ссылки), или null.</param>
     /// <returns>Имя игрока из CR API или null, если тег не найден.</returns>
     public async Task<string?> ExecuteAsync(long telegramUserId, string playerTag, long? chatId,
-        long? referrerTelegramUserId = null, CancellationToken ct = default)
+        long? referrerTelegramUserId = null, string? telegramUsername = null, CancellationToken ct = default)
     {
         playerTag = Normalize(playerTag);
         var name = await crApi.GetPlayerNameAsync(playerTag, ct);
@@ -29,6 +29,7 @@ public class LinkPlayerUseCase(
         {
             existing.PlayerTag = playerTag;
             existing.Name = name;
+            if (!string.IsNullOrEmpty(telegramUsername)) existing.TelegramUsername = telegramUsername;
             // Обновляем клан только если привязываем из группы
             if (clan is not null) existing.ClanId = clan.Id;
             await players.SaveChangesAsync(ct);
@@ -46,6 +47,7 @@ public class LinkPlayerUseCase(
             PlayerTag = playerTag,
             Name = name,
             TelegramUserId = telegramUserId,
+            TelegramUsername = telegramUsername,
             ClanId = clan?.Id,
             ReferrerTelegramUserId = referrer is null ? null : referrerTelegramUserId,
         }, ct);

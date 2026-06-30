@@ -148,6 +148,10 @@ CREATE TABLE IF NOT EXISTS ""RecruitmentProfiles"" (
         await db.Database.ExecuteSqlRawAsync(
             "ALTER TABLE \"Players\" ADD COLUMN IF NOT EXISTS \"ReferrerTelegramUserId\" bigint;");
 
+        // @username игрока в Telegram — для тегов по юзернейму в чате.
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Players\" ADD COLUMN IF NOT EXISTS \"TelegramUsername\" text;");
+
         await db.Database.ExecuteSqlRawAsync(@"
 CREATE TABLE IF NOT EXISTS ""Tournaments"" (
     ""Id"" serial PRIMARY KEY,

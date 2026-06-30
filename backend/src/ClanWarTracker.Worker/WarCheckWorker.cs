@@ -95,8 +95,9 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
     /// <summary>
     /// CR API не отдаёт точное время сброса дня войны — система допускает, что сброс
     /// происходит в 10:00 UTC (то же допущение, на котором стоит DayEndsAtUtc). Поэтому
-    /// здесь не нужен частый поллинг: будим воркер раз в сутки, ровно в 09:59 UTC,
-    /// и шлём финальное предупреждение тем, кто не успел доиграть.
+    /// здесь не нужен частый поллинг: будим воркер раз в сутки в 09:30 UTC (за ~30 минут
+    /// до конца дня — за это время реально успеть доиграть), и шлём последний звонок тем,
+    /// кто не успел доиграть.
     /// </summary>
     private async Task RunFinalCallLoopAsync(CancellationToken stoppingToken)
     {
@@ -126,7 +127,7 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
     private static DateTime NextFinalCallUtc()
     {
         var now = DateTime.UtcNow;
-        var target = new DateTime(now.Year, now.Month, now.Day, 9, 59, 0, DateTimeKind.Utc);
+        var target = new DateTime(now.Year, now.Month, now.Day, 9, 30, 0, DateTimeKind.Utc);
         return now < target ? target : target.AddDays(1);
     }
 }
