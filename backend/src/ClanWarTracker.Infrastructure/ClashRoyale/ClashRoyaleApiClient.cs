@@ -47,7 +47,7 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
             // Дальше WarDecksUsed уточняется по снапшоту первого дня в Application-слое.
             var isFirstWarDay = isWarDay && dayIndex == 3;
 
-            var realSeasonId = await ResolveRealSeasonIdAsync(clanTag, race.SeasonId, ct);
+            var realSeasonId = await ResolveRealSeasonIdAsync(clanTag, race.SectionIndex, race.SeasonId, ct);
 
             return new WarStatus
             {
@@ -135,10 +135,15 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
     /// <summary>
     /// /currentriverrace всегда отдаёт seasonId=0 (баг CR API), хотя весь наш дедуп/история
     /// снимков завязаны на реальный сезон. Уточняем по официальному журналу (/riverracelog):
-    /// сезон самой свежей завершённой недели; если это был колизей (section 3) — сезон уже
-    /// сменился, текущий = +1. Журнал недоступен — отдаём сырое значение как есть.
+    /// берём сезон самой свежей завершённой недели. Сезон сменился ТОЛЬКО когда текущая
+    /// неделя — первая в сезоне (currentSectionIndex == 0): тогда предыдущая завершённая
+    /// неделя была колизеем прошлого сезона, и текущий = +1.
+    /// ВАЖНО: нельзя завязываться на "section >= 3" — в сезонах из 5 недель колизей это
+    /// section 4, и после обычной 4-й недели (section 3) сезон ещё НЕ сменился. Привязка
+    /// к section 0 корректна и для 4-, и для 5-недельных сезонов.
+    /// Журнал недоступен — отдаём сырое значение как есть.
     /// </summary>
-    private async Task<int> ResolveRealSeasonIdAsync(string clanTag, int rawSeasonId, CancellationToken ct)
+    private async Task<int> ResolveRealSeasonIdAsync(string clanTag, int currentSectionIndex, int rawSeasonId, CancellationToken ct)
     {
         try
         {
@@ -146,7 +151,7 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
             if (log.Count > 0)
             {
                 var newest = log[0]; // журнал отсортирован: свежие недели первыми
-                return newest.SectionIndex >= 3 ? newest.SeasonId + 1 : newest.SeasonId;
+                return currentSectionIndex == 0 ? newest.SeasonId + 1 : newest.SeasonId;
             }
         }
         catch { /* журнал не критичен — используем сырое значение */ }
