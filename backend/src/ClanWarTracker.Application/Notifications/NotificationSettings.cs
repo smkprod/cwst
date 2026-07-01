@@ -47,6 +47,21 @@ public class NotificationSettings
     public Toggle FinalCall { get; set; } = new();
     public Toggle DailyReport { get; set; } = new();
 
+    /// <summary>
+    /// Во сколько заканчивается военный день у клана — минуты от полуночи UTC (0..1439).
+    /// Задаёт глава в настройках. null — используем допущение по умолчанию (10:00 UTC).
+    /// От этого времени считаются напоминания «за N часов», последний звонок и «до конца дня».
+    /// </summary>
+    public int? WarEndMinuteUtc { get; set; }
+
+    /// <summary>Ближайшее (в будущем) время окончания дня по настройке главы. null — не задано.</summary>
+    public DateTime? NextWarEndUtc(DateTime nowUtc)
+    {
+        if (WarEndMinuteUtc is not int m || m < 0 || m >= 1440) return null;
+        var end = new DateTime(nowUtc.Year, nowUtc.Month, nowUtc.Day, m / 60, m % 60, 0, DateTimeKind.Utc);
+        return nowUtc < end ? end : end.AddDays(1);
+    }
+
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,

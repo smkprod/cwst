@@ -9,6 +9,22 @@ type State =
   | { kind: 'error' }
   | { kind: 'ready'; s: NotificationSettings }
 
+// Время конца КВ хранится на бэке как минуты от 00:00 UTC; в поле показываем ЛОКАЛЬНОЕ время.
+function utcMinToLocalTime(utcMin: number | null): string {
+  if (utcMin == null) return ''
+  const d = new Date()
+  d.setUTCHours(Math.floor(utcMin / 60), utcMin % 60, 0, 0)
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+function localTimeToUtcMin(time: string): number | null {
+  if (!time) return null
+  const [h, m] = time.split(':').map(Number)
+  if (Number.isNaN(h) || Number.isNaN(m)) return null
+  const d = new Date()
+  d.setHours(h, m, 0, 0)
+  return d.getUTCHours() * 60 + d.getUTCMinutes()
+}
+
 export function NotificationSettingsView({ onClose }: { onClose: () => void }) {
   const [state, setState] = useState<State>({ kind: 'loading' })
   const [saving, setSaving] = useState(false)
@@ -75,7 +91,7 @@ export function NotificationSettingsView({ onClose }: { onClose: () => void }) {
                   <div className="notif-hours">
                     <span className="muted small">{t.notif.hoursLabel}</span>
                     <div className="notif-hours-btns">
-                      {[1, 2, 3, 6, 12].map(h => (
+                      {[1, 2, 3, 4, 5, 6].map(h => (
                         <button
                           key={h}
                           className={`btn-mini ${state.s.reminderHoursBeforeEnd === h ? 'notif-on' : ''}`}
@@ -88,6 +104,25 @@ export function NotificationSettingsView({ onClose }: { onClose: () => void }) {
                   </div>
                 </>
               )}
+            </div>
+
+            {/* Во сколько заканчивается КВ (от этого времени считаются напоминания и звонок) */}
+            <div className="card notif-block">
+              <div className="notif-row">
+                <div className="notif-row-text">
+                  <span className="notif-row-label">{t.notif.warEndTitle}</span>
+                  <span className="muted small">{t.notif.warEndDesc}</span>
+                </div>
+                <input
+                  type="time"
+                  className="notif-time"
+                  value={utcMinToLocalTime(state.s.warEndMinuteUtc)}
+                  onChange={e => patch({ warEndMinuteUtc: localTimeToUtcMin(e.target.value) })}
+                />
+              </div>
+              <p className="muted small" style={{ margin: '8px 0 0' }}>
+                {state.s.warEndMinuteUtc == null ? t.notif.warEndDefault : t.notif.warEndLocalHint}
+              </p>
             </div>
 
             {/* Анонс начала КВ */}
