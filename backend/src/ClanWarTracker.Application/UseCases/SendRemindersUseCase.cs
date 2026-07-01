@@ -25,7 +25,9 @@ public class SendRemindersUseCase(
             if (!settings.Reminders.Enabled) continue;
 
             var now = DateTime.UtcNow;
-            var timeLeft = war.TimeLeft(now);
+            // Конец дня: время, заданное главой в настройках, иначе допущение (10:00 UTC).
+            var dayEnd = settings.NextWarEndUtc(now) ?? war.DayEndsAtUtc;
+            var timeLeft = dayEnd - now;
 
             // Шлём только в окне "X часов до конца"
             if (timeLeft > TimeSpan.FromHours(clan.ReminderHoursBeforeEnd) || timeLeft <= TimeSpan.Zero)
