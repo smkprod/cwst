@@ -341,6 +341,7 @@ export interface NotificationSettings {
   warStartChannel: NotifyChannel
   finalCallEnabled: boolean
   dailyReportEnabled: boolean
+  warEndMinuteUtc: number | null   // во сколько заканчивается КВ (минуты от 00:00 UTC), null = 10:00 по умолчанию
 }
 
 export type BroadcastTarget = 'dm' | 'chats' | 'both'

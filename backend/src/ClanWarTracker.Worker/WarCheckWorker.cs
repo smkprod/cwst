@@ -117,20 +117,16 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
     }
 
     /// <summary>
-    /// CR API не отдаёт точное время сброса дня войны — система допускает, что сброс
-    /// происходит в 10:00 UTC (то же допущение, на котором стоит DayEndsAtUtc). Поэтому
-    /// здесь не нужен частый поллинг: будим воркер раз в сутки в 09:30 UTC (за ~30 минут
-    /// до конца дня — за это время реально успеть доиграть), и шлём последний звонок тем,
-    /// кто не успел доиграть.
+    /// «Последний звонок» за ~30 минут до конца военного дня. Время конца у каждого клана
+    /// своё (глава задаёт в настройках), поэтому проверяем часто — каждые 10 минут — и
+    /// SendFinalCallUseCase сам решает, для каких кланов сейчас окно «за 30 минут до конца».
+    /// Дедуп по дню не даёт слать дважды.
     /// </summary>
     private async Task RunFinalCallLoopAsync(CancellationToken stoppingToken)
     {
-        while (!stoppingToken.IsCancellationRequested)
+        using var timer = new PeriodicTimer(SnapshotInterval); // те же 10 минут
+        do
         {
-            var delay = NextFinalCallUtc() - DateTime.UtcNow;
-            if (delay > TimeSpan.Zero)
-                await Task.Delay(delay, stoppingToken);
-
             try
             {
                 using var scope = scopeFactory.CreateScope();
@@ -142,16 +138,7 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
             {
                 logger.LogError(ex, "Final call alert failed");
             }
-
-            // Небольшой запас, чтобы при дрифте таймера не сработать дважды на одну минуту
-            await Task.Delay(TimeSpan.FromMinutes(2), stoppingToken);
         }
-    }
-
-    private static DateTime NextFinalCallUtc()
-    {
-        var now = DateTime.UtcNow;
-        var target = new DateTime(now.Year, now.Month, now.Day, 9, 30, 0, DateTimeKind.Utc);
-        return now < target ? target : target.AddDays(1);
+        while (await timer.WaitForNextTickAsync(stoppingToken));
     }
 }

@@ -86,7 +86,8 @@ public class ClanController(
         bool RemindersEnabled, string RemindersChannel,
         bool WarStartEnabled, string WarStartChannel,
         bool FinalCallEnabled,
-        bool DailyReportEnabled);
+        bool DailyReportEnabled,
+        int? WarEndMinuteUtc = null);   // во сколько заканчивается КВ (минуты от 00:00 UTC), null = 10:00 по умолчанию
 
     /// <summary>GET /api/clans/my/notification-settings — гибкие настройки уведомлений (админ/лидер).</summary>
     [HttpGet("my/notification-settings")]
@@ -112,6 +113,9 @@ public class ClanController(
         if (dto.ReminderHoursBeforeEnd is < 1 or > 12)
             return BadRequest(new { error = "bad_hours", message = "Часы до конца дня: от 1 до 12" });
 
+        if (dto.WarEndMinuteUtc is int end && (end < 0 || end >= 1440))
+            return BadRequest(new { error = "bad_time", message = "Время конца дня: 0..1439 минут UTC" });
+
         clan!.ReminderHoursBeforeEnd = dto.ReminderHoursBeforeEnd;
         clan.NotificationSettingsJson = new NotificationSettings
         {
@@ -119,6 +123,7 @@ public class ClanController(
             WarStart = new ToggleChannel { Enabled = dto.WarStartEnabled, Channel = NotifyChannelExt.ParseChannel(dto.WarStartChannel) },
             FinalCall = new Toggle { Enabled = dto.FinalCallEnabled },
             DailyReport = new Toggle { Enabled = dto.DailyReportEnabled },
+            WarEndMinuteUtc = dto.WarEndMinuteUtc,
         }.Serialize();
         await clans.SaveChangesAsync(ct);
 
@@ -130,7 +135,8 @@ public class ClanController(
         s.Reminders.Enabled, s.Reminders.Channel.ToWire(),
         s.WarStart.Enabled, s.WarStart.Channel.ToWire(),
         s.FinalCall.Enabled,
-        s.DailyReport.Enabled);
+        s.DailyReport.Enabled,
+        s.WarEndMinuteUtc);
 
     /// <summary>Управлять настройками может админ группы или лидер/со-лидер клана.</summary>
     private async Task<bool> CanManageAsync(Clan clan, Player player, CancellationToken ct)
