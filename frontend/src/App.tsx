@@ -13,7 +13,6 @@ import { PlayerList } from './components/PlayerList'
 import { Leaderboard } from './components/Leaderboard'
 import { MyStatsView } from './components/MyStatsView'
 import { NudgeButton } from './components/NudgeButton'
-import { ReminderCard } from './components/ReminderCard'
 import { NotificationSettingsView } from './components/NotificationSettingsView'
 import { AboutCard } from './components/AboutCard'
 import { OwnerPanel } from './components/OwnerPanel'
@@ -161,13 +160,8 @@ export default function App() {
                 {canManage && data.periodType !== 'training' && (
                   <NudgeButton notPlayedCount={notFinished} isPro={isPro} />
                 )}
-                {canManage && (
-                  <ReminderCard
-                    initialHours={data.reminderHoursBeforeEnd ?? 3}
-                    plan={data.plan}
-                    linkedCount={data.players.filter(p => p.isLinked).length}
-                  />
-                )}
+                {/* Автонапоминания перенесены в ⚙️ «Уведомления» (шестерёнка в шапке) —
+                    там же вкл/выкл, канал, часы и время окончания КВ. */}
                 <PlayerList players={data.players} myPlayerTag={data.myPlayerTag} />
               </div>
             )}
