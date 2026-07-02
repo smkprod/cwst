@@ -225,9 +225,13 @@ public class GetClanStatusUseCase(
                 avg = 150; // cold start для соперников
             avg = Math.Clamp(avg, 100, 250);
 
-            // Прогноз только для обычной войны (колизей копится всю неделю — дневной прогноз не имеет смысла).
+            // Прогноз. Обычная война — за сегодня (avg × колоды дня).
+            // Колизей — очки копятся всю неделю, поэтому показываем НАКОПЛЕННУЮ сумму +
+            // прогноз оставшихся колод (а не «за день»): всего медалей к концу дня.
             var projected = isColosseum
-                ? 0
+                ? c.IsFinished
+                    ? c.Fame
+                    : c.Fame + (int)Math.Round(avg * Math.Max(0, maxDecksToday - c.DecksUsedToday))
                 : c.IsFinished
                     ? c.TodayFame
                     : war.IsWarDay
