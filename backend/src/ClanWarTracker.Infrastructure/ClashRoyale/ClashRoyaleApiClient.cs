@@ -57,7 +57,9 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
                 PeriodIndex = dayIndex,
                 SeasonId = realSeasonId,
                 SectionIndex = race.SectionIndex,
-                DayEndsAtUtc = ComputeDayEnd(race.PeriodIndex),
+                // Точное время конца из API, если CR его отдал; иначе допущение «след. 10:00 UTC»
+                DayEndsAtUtc = ApiDayEnd(race.WarEndTime, race.CollectionEndTime)
+                               ?? ComputeDayEnd(race.PeriodIndex),
                 Participants = (race.Clan.Participants ?? []).Select(p => new WarParticipant
                 {
                     PlayerTag = p.Tag,
@@ -183,7 +185,20 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
     private static string Encode(string tag) => Uri.EscapeDataString(tag); // "#" -> "%23"
 
     /// <summary>
-    /// CR API не возвращает время конца дня напрямую.
+    /// Точное время конца текущего дня из ответа API (warEndTime/collectionEndTime).
+    /// CR заполняет эти поля не всегда; используем только если время в будущем и не дальше
+    /// 26 часов (граница ДНЯ, а не конца недели). Иначе — null и работает допущение по умолчанию.
+    /// </summary>
+    private static DateTime? ApiDayEnd(string? warEndTime, string? collectionEndTime)
+    {
+        var end = ParseCrTime(warEndTime) ?? ParseCrTime(collectionEndTime);
+        if (end is not { } e) return null;
+        var now = DateTime.UtcNow;
+        return e > now && e <= now.AddHours(26) ? e : null;
+    }
+
+    /// <summary>
+    /// Фолбэк, когда API не отдал время конца дня.
     /// День River Race заканчивается каждый день в ~10:00 UTC (смена дня).
     /// MVP-аппроксимация: ближайшие 10:00 UTC в будущем.
     /// </summary>
@@ -202,7 +217,9 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         [property: JsonPropertyName("sectionIndex")] int SectionIndex,
         [property: JsonPropertyName("clan")] RaceClan? Clan,
         [property: JsonPropertyName("clans")] List<RaceClan>? Clans,
-        [property: JsonPropertyName("periodLogs")] List<PeriodLog>? PeriodLogs);
+        [property: JsonPropertyName("periodLogs")] List<PeriodLog>? PeriodLogs,
+        [property: JsonPropertyName("warEndTime")] string? WarEndTime,
+        [property: JsonPropertyName("collectionEndTime")] string? CollectionEndTime);
 
     private record PeriodLog(
         [property: JsonPropertyName("periodIndex")] int PeriodIndex,
@@ -529,6 +546,95 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         [property: JsonPropertyName("previousRank")] int PreviousRank,
         [property: JsonPropertyName("score")] int Score,
         [property: JsonPropertyName("clan")] ClanRef? Clan);
+
+    public async Task<ClanWarRanking?> GetClanWarRankingAsync(string clanTag, CancellationToken ct = default)
+    {
+        // Итоговый объект кэшируем на час; сами списки рейтингов (тяжёлые) — на 6 часов ниже.
+        return await cache.GetOrCreateAsync($"clanrank:{clanTag}", async entry =>
+        {
+            entry.Size = 1;
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
+
+            var resp = await http.GetAsync($"clans/{Encode(clanTag)}", ct);
+            if (!resp.IsSuccessStatusCode) return null;
+            var profile = await resp.Content.ReadFromJsonAsync<ClanProfileFull>(cancellationToken: ct);
+            if (profile is null) return null;
+
+            var result = new ClanWarRanking
+            {
+                ClanWarTrophies = profile.ClanWarTrophies ?? 0,
+                CountryName = profile.Location is { IsCountry: true } l ? l.Name : null,
+            };
+
+            // Рейтинг страны (только если у клана указана страна — для регионов rankings нет)
+            if (profile.Location is { IsCountry: true } loc)
+            {
+                var country = await GetWarRankingsAsync(loc.Id.ToString(), ct);
+                if (country is not null)
+                {
+                    var mine = country.FirstOrDefault(x =>
+                        string.Equals(x.Tag, clanTag, StringComparison.OrdinalIgnoreCase));
+                    result.CountryRank = mine?.Rank;
+                    result.CountryPreviousRank = mine?.PreviousRank;
+                    result.CountryTop = country.Take(10).Select(x => new RankedClan
+                    {
+                        Tag = x.Tag,
+                        Name = x.Name,
+                        Rank = x.Rank,
+                        PreviousRank = x.PreviousRank,
+                        WarTrophies = x.ClanScore, // в rankings/clanwars clanScore = КВ-трофеи
+                        Members = x.Members,
+                    }).ToList();
+                }
+            }
+
+            // Мировой рейтинг
+            var global = await GetWarRankingsAsync("global", ct);
+            var mineGlobal = global?.FirstOrDefault(x =>
+                string.Equals(x.Tag, clanTag, StringComparison.OrdinalIgnoreCase));
+            result.GlobalRank = mineGlobal?.Rank;
+            result.GlobalPreviousRank = mineGlobal?.PreviousRank;
+
+            return result;
+        });
+    }
+
+    /// <summary>Топ-1000 кланов по КВ-трофеям для страны (id) или "global". Кэш 6 часов.</summary>
+    private async Task<List<RankingItem>?> GetWarRankingsAsync(string locationId, CancellationToken ct)
+    {
+        return await cache.GetOrCreateAsync($"warrankings:{locationId}", async entry =>
+        {
+            entry.Size = 1;
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(6);
+            var resp = await http.GetAsync($"locations/{locationId}/rankings/clanwars?limit=1000", ct);
+            if (!resp.IsSuccessStatusCode)
+            {
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10); // ошибку не кэшируем надолго
+                return null;
+            }
+            var data = await resp.Content.ReadFromJsonAsync<RankingsResponse>(cancellationToken: ct);
+            return data?.Items;
+        });
+    }
+
+    private record RankingsResponse([property: JsonPropertyName("items")] List<RankingItem>? Items);
+
+    private record RankingItem(
+        [property: JsonPropertyName("tag")] string Tag,
+        [property: JsonPropertyName("name")] string Name,
+        [property: JsonPropertyName("rank")] int Rank,
+        [property: JsonPropertyName("previousRank")] int PreviousRank,
+        [property: JsonPropertyName("clanScore")] int ClanScore,
+        [property: JsonPropertyName("members")] int Members);
+
+    private record ClanProfileFull(
+        [property: JsonPropertyName("clanWarTrophies")] int? ClanWarTrophies,
+        [property: JsonPropertyName("location")] LocationResponse? Location);
+
+    private record LocationResponse(
+        [property: JsonPropertyName("id")] long Id,
+        [property: JsonPropertyName("name")] string Name,
+        [property: JsonPropertyName("isCountry")] bool IsCountry);
 
     private record NamedEntity([property: JsonPropertyName("name")] string Name);
     private record ClanProfile([property: JsonPropertyName("clanWarTrophies")] int? ClanWarTrophies);

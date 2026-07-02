@@ -32,4 +32,10 @@ public interface IClashRoyaleApi
 
     /// <summary>Живые данные игрового турнира по тегу (/tournaments/{tag}). null — не найден.</summary>
     Task<CrTournament?> GetTournamentAsync(string tournamentTag, CancellationToken ct = default);
+
+    /// <summary>
+    /// Место клана в официальных рейтингах по КВ-трофеям: страна (из профиля клана) и мир.
+    /// Ранги только у топ-1000. null — клан не найден или API недоступен.
+    /// </summary>
+    Task<ClanWarRanking?> GetClanWarRankingAsync(string clanTag, CancellationToken ct = default);
 }

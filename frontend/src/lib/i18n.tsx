@@ -17,6 +17,13 @@ const ru = {
   period: { training: 'Тренировочные дни', warDay: 'День войны', colosseum: 'Колизей' },
   header: { dayOf4: '· день', untilEnd: 'До конца дня:', h: 'ч', played: 'сыграли' },
   warDays: { title: '📊 Место клана по дням (из API)', dayShort: 'Д', defensesLeft: 'Осталось защит:' },
+  worldRank: {
+    title: '🌍 Рейтинг клана (КВ-трофеи)',
+    world: 'в мире',
+    trophies: 'КВ-трофеи',
+    topTitle: 'Топ',
+    notRanked: 'Клан пока не в топ-1000 страны/мира — есть куда расти! 💪',
+  },
 
   stats: { weekMedals: 'медали недели', decksToday: 'колод сегодня', medalsPerBattle: 'медалей/бой', active: 'активных' },
 
@@ -533,6 +540,13 @@ const uk: Translations = {
   period: { training: 'Тренувальні дні', warDay: 'День війни', colosseum: 'Колізей' },
   header: { dayOf4: '· день', untilEnd: 'До кінця дня:', h: 'год', played: 'зіграли' },
   warDays: { title: '📊 Місце клану по днях (з API)', dayShort: 'Д', defensesLeft: 'Залишилось захистів:' },
+  worldRank: {
+    title: '🌍 Рейтинг клану (КВ-трофеї)',
+    world: 'у світі',
+    trophies: 'КВ-трофеї',
+    topTitle: 'Топ',
+    notRanked: 'Клан поки не в топ-1000 країни/світу — є куди рости! 💪',
+  },
 
   stats: { weekMedals: 'медалі тижня', decksToday: 'колод сьогодні', medalsPerBattle: 'медалей/бій', active: 'активних' },
 
@@ -1047,6 +1061,13 @@ const en: Translations = {
   period: { training: 'Training Days', warDay: 'War Day', colosseum: 'Coliseum' },
   header: { dayOf4: '· day', untilEnd: 'Until end of day:', h: 'h', played: 'played' },
   warDays: { title: '📊 Clan rank by day (from API)', dayShort: 'D', defensesLeft: 'Defenses left:' },
+  worldRank: {
+    title: '🌍 Clan ranking (CW trophies)',
+    world: 'worldwide',
+    trophies: 'CW trophies',
+    topTitle: 'Top of',
+    notRanked: 'Not in the top-1000 of the country/world yet — room to grow! 💪',
+  },
 
   stats: { weekMedals: 'week medals', decksToday: 'decks today', medalsPerBattle: 'medals/battle', active: 'active' },
 

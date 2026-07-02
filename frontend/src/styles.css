@@ -475,6 +475,27 @@ main.with-tabbar { padding-bottom: 80px; }
 .owner-bc-recipients { margin: 0 0 10px; }
 .owner-bc-result { margin: 8px 0 0; text-align: center; }
 
+/* --- Рейтинг клана страна/мир --- */
+.wr-chips { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.wr-chip {
+  flex: 1; min-width: 90px; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 8px 6px; border-radius: 12px; background: rgba(255, 255, 255, 0.03);
+}
+.wr-chip-value { font-size: 17px; font-weight: 800; }
+.wr-chip-label { font-size: 11px; color: var(--muted); text-align: center; }
+.wr-delta { font-size: 12px; font-weight: 700; }
+.wr-up { color: var(--green); }
+.wr-down { color: var(--red); }
+.wr-top { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
+.wr-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px; border-radius: 10px; background: rgba(255, 255, 255, 0.03);
+}
+.wr-row-ours { outline: 1px solid var(--accent); background: rgba(82, 136, 193, 0.12); }
+.wr-row-rank { font-weight: 800; color: var(--muted); min-width: 32px; }
+.wr-row-name { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wr-row-score { font-weight: 700; color: var(--gold); flex-shrink: 0; font-size: 13px; }
+
 /* --- Выбор типа турнира --- */
 .tt-choice {
   display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
