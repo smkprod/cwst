@@ -61,7 +61,21 @@ export function RaceCard({ race, periodType }: Props) {
                 </div>
 
                 <div className="race-numbers">
-                  {isWarDay ? (
+                  {/* Колизей: лодок нет — clan.fame из API это те же накопленные медали
+                      (дублирует ∑), а periodPoints CR не заполняет. Показываем одну
+                      цифру медалей вместо «паруса» и нулевого «за сегодня». */}
+                  {periodType === 'colosseum' ? (
+                    <>
+                      <span className="race-fame race-fame-today" title={t.race.totalTitle}>
+                        {fmt(c.fame)} 🏅
+                      </span>
+                      {!c.isFinished && c.projectedFame > 0 && (
+                        <span className="race-projected" title={t.race.projTitle}>
+                          → {fmt(c.projectedFame)}
+                        </span>
+                      )}
+                    </>
+                  ) : isWarDay ? (
                     <>
                       <span className="race-fame race-fame-today" title={t.race.todayTitle}>
                         {fmt(c.todayFame)} 🏅
