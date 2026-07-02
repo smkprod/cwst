@@ -149,6 +149,23 @@ export interface ClanRanking {
   countryTop: RankedClanRow[]
 }
 
+/* --- Журнал военных боёв (кто/когда отыграл КВ + исход) --- */
+export interface WarBattleEntry {
+  playerName: string
+  playerTag: string
+  battleTimeUtc: string
+  won: boolean
+  crownsFor: number
+  crownsAgainst: number
+}
+
+export interface WarJournal {
+  won: number
+  lost: number
+  total: number
+  battles: WarBattleEntry[]   // новые первыми
+}
+
 export interface WarDayLog {
   dayIndex: number              // 0..6 (нормализованный день недели гонки)
   pointsEarned: number          // очки клана за день

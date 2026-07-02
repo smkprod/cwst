@@ -10,6 +10,7 @@ builder.Services.AddScoped<GetClanStatusUseCase>();
 builder.Services.AddScoped<GetPlayerStatsUseCase>();
 builder.Services.AddScoped<GetSeasonStatsUseCase>();
 builder.Services.AddScoped<CaptureWarSnapshotsUseCase>();
+builder.Services.AddScoped<CaptureWarBattlesUseCase>();
 builder.Services.AddScoped<SendRemindersUseCase>();
 builder.Services.AddScoped<SendPlanExpiryRemindersUseCase>();
 builder.Services.AddScoped<SendDailyReportUseCase>();

@@ -66,6 +66,19 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
 
             try
             {
+                // Журнал военных боёв (кто/когда отыграл КВ + исход). Отдельный scope.
+                using var scope = scopeFactory.CreateScope();
+                var battles = scope.ServiceProvider.GetRequiredService<CaptureWarBattlesUseCase>();
+                var n = await battles.ExecuteAsync(stoppingToken);
+                if (n > 0) logger.LogInformation("Captured {Count} war battles", n);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "War battle capture failed");
+            }
+
+            try
+            {
                 using var scope = scopeFactory.CreateScope();
                 var expiry = scope.ServiceProvider.GetRequiredService<SendPlanExpiryRemindersUseCase>();
                 await expiry.ExecuteAsync(stoppingToken);

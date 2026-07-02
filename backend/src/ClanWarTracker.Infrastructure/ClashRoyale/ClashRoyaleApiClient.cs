@@ -636,6 +636,66 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         [property: JsonPropertyName("name")] string Name,
         [property: JsonPropertyName("isCountry")] bool IsCountry);
 
+    public async Task<List<CrBattle>> GetPlayerBattlelogAsync(string playerTag, CancellationToken ct = default)
+    {
+        var list = await cache.GetOrCreateAsync($"battlelog:{playerTag}", async entry =>
+        {
+            entry.Size = 1;
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
+            var resp = await http.GetAsync($"players/{Encode(playerTag)}/battlelog", ct);
+            if (!resp.IsSuccessStatusCode) return new List<CrBattle>();
+            var raw = await resp.Content.ReadFromJsonAsync<List<BattlelogEntry>>(cancellationToken: ct);
+            if (raw is null) return new List<CrBattle>();
+
+            var result = new List<CrBattle>();
+            foreach (var b in raw)
+            {
+                var type = b.Type ?? "";
+                // Военные бои: riverRacePvP / riverRaceDuel(Colosseum) / boatBattle
+                var isWar = type.Contains("riverRace", StringComparison.OrdinalIgnoreCase)
+                            || type.Contains("boatBattle", StringComparison.OrdinalIgnoreCase);
+                if (!isWar) continue;
+
+                var me = b.Team?.FirstOrDefault();
+                if (me is null) continue;
+                var time = ParseCrTime(b.BattleTime);
+                if (time is null) continue;
+
+                var opp = b.Opponent?.FirstOrDefault();
+                var crownsFor = me.Crowns;
+                var crownsAgainst = opp?.Crowns ?? 0;
+                var isBoat = type.Contains("boat", StringComparison.OrdinalIgnoreCase);
+                var won = isBoat ? (b.BoatBattleWon ?? crownsFor > crownsAgainst) : crownsFor > crownsAgainst;
+
+                result.Add(new CrBattle
+                {
+                    BattleTimeUtc = time.Value,
+                    PlayerTag = me.Tag,
+                    PlayerName = me.Name,
+                    Won = won,
+                    CrownsFor = crownsFor,
+                    CrownsAgainst = crownsAgainst,
+                    OpponentName = opp?.Name,
+                    Type = type,
+                });
+            }
+            return result;
+        });
+        return list ?? [];
+    }
+
+    private record BattlelogEntry(
+        [property: JsonPropertyName("type")] string? Type,
+        [property: JsonPropertyName("battleTime")] string? BattleTime,
+        [property: JsonPropertyName("boatBattleWon")] bool? BoatBattleWon,
+        [property: JsonPropertyName("team")] List<BattlePlayer>? Team,
+        [property: JsonPropertyName("opponent")] List<BattlePlayer>? Opponent);
+
+    private record BattlePlayer(
+        [property: JsonPropertyName("tag")] string Tag,
+        [property: JsonPropertyName("name")] string Name,
+        [property: JsonPropertyName("crowns")] int Crowns);
+
     private record NamedEntity([property: JsonPropertyName("name")] string Name);
     private record ClanProfile([property: JsonPropertyName("clanWarTrophies")] int? ClanWarTrophies);
 
