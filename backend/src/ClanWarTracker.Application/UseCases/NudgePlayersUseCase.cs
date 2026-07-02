@@ -29,9 +29,12 @@ public class NudgePlayersUseCase(
         var now = DateTime.UtcNow;
         var timeLeft = war.TimeLeft(now);
 
+        // GroupBy (а не ToDictionary): у одного тега может быть несколько записей игрока
+        // (перепривязки/дубли) — берём первую, иначе ToDictionary падает на дубль-ключе.
         var linkedPlayers = (await players.GetByClanIdAsync(clan.Id, ct))
             .Where(p => p.TelegramUserId is not null)
-            .ToDictionary(p => p.PlayerTag);
+            .GroupBy(p => p.PlayerTag, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
         var allSlackers = war.Participants.Where(p => p.DecksUsedToday < 4).ToList();
         // Free: не более 20 человек суммарно получают любые уведомления
