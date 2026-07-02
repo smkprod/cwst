@@ -21,6 +21,7 @@ public class ClanController(
     NudgePlayersUseCase nudge,
     IPlayerRepository players,
     IClanRepository clans,
+    IWarBattleRepository warBattles,
     IClashRoyaleApi crApi,
     ITelegramBotClient bot,
     IMemoryCache cache,
@@ -233,6 +234,34 @@ public class ClanController(
         return data is null
             ? NotFound(new { error = "no_season_data", message = "Данные сезона ещё не накопились" })
             : Ok(data);
+    }
+
+    /// <summary>
+    /// GET /api/clans/my/war-journal — журнал военных боёв клана за текущую неделю:
+    /// кто/когда отыграл КВ и исход, + счёт побед/поражений.
+    /// </summary>
+    [HttpGet("my/war-journal")]
+    public async Task<IActionResult> GetWarJournal(CancellationToken ct)
+    {
+        var (_, clan, error) = await ResolvePlayerClanAsync(ct);
+        if (error is not null) return error;
+
+        // Текущая неделя (сезон+секция) — из текущей гонки.
+        WarStatus? war = null;
+        try { war = await crApi.GetCurrentWarAsync(clan!.ClanTag, ct); }
+        catch { /* API лежит — покажем пусто */ }
+        if (war is null) return Ok(new WarJournalDto(0, 0, 0, []));
+
+        var battles = await warBattles.GetByWeekAsync(clan!.Id, war.SeasonId, war.SectionIndex, ct);
+        var won = battles.Count(b => b.Won);
+
+        return Ok(new WarJournalDto(
+            Won: won,
+            Lost: battles.Count - won,
+            Total: battles.Count,
+            Battles: battles
+                .Select(b => new WarBattleDto(b.PlayerName, b.PlayerTag, b.BattleTimeUtc, b.Won, b.CrownsFor, b.CrownsAgainst))
+                .ToList()));
     }
 
     /// <summary>
