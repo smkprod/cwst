@@ -1,5 +1,5 @@
 import { initData } from './telegram'
-import type { BroadcastResult, BroadcastTarget, ClanHistory, ClanRanking, ClanStatus, ClanWarLog, GameTournament, GlobalTop, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RecruitmentCandidates, RecruitmentStatus, SeasonBreakdown, SeasonStats, Tournament, TournamentSummary } from '../types'
+import type { BroadcastResult, BroadcastTarget, ClanHistory, ClanRanking, ClanStatus, ClanWarLog, GameTournament, GlobalTop, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RecruitmentCandidates, RecruitmentStatus, SeasonBreakdown, SeasonStats, Tournament, TournamentSummary, WarJournal } from '../types'
 
 // Если мы на Render (production), BASE должен быть пустой строкой '', чтобы запросы шли на тот же домен.
 // Для локальной разработки (Development) оставляем localhost:5000.
@@ -51,6 +51,7 @@ export const api = {
       body: JSON.stringify({ hoursBeforeEnd }),
     }),
   getClanRanking: () => request<ClanRanking>('/api/clans/my/ranking'),
+  getWarJournal: () => request<WarJournal>('/api/clans/my/war-journal'),
   getNotificationSettings: () =>
     request<NotificationSettings>('/api/clans/my/notification-settings'),
   setNotificationSettings: (s: NotificationSettings) =>

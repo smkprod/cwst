@@ -63,6 +63,7 @@ public static class DependencyInjection
         services.AddScoped<IRecruitmentRepository, RecruitmentRepository>();
         services.AddScoped<ITournamentRepository, TournamentRepository>();
         services.AddScoped<IGameTournamentRepository, GameTournamentRepository>();
+        services.AddScoped<IWarBattleRepository, WarBattleRepository>();
 
         return services;
     }
@@ -235,6 +236,27 @@ CREATE TABLE IF NOT EXISTS ""GameTournaments"" (
 
         await db.Database.ExecuteSqlRawAsync(
             "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_GameTournaments_TournamentTag\" ON \"GameTournaments\" (\"TournamentTag\");");
+
+        // Журнал военных боёв (кто/когда отыграл КВ и исход).
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""WarBattles"" (
+    ""Id"" serial PRIMARY KEY,
+    ""ClanId"" integer NOT NULL,
+    ""PlayerTag"" varchar(16) NOT NULL,
+    ""PlayerName"" varchar(64) NOT NULL,
+    ""BattleTimeUtc"" timestamptz NOT NULL,
+    ""Won"" boolean NOT NULL,
+    ""CrownsFor"" integer NOT NULL DEFAULT 0,
+    ""CrownsAgainst"" integer NOT NULL DEFAULT 0,
+    ""SeasonId"" integer NOT NULL,
+    ""SectionIndex"" integer NOT NULL
+);");
+
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_WarBattles_ClanId_PlayerTag_BattleTimeUtc\" ON \"WarBattles\" (\"ClanId\", \"PlayerTag\", \"BattleTimeUtc\");");
+
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_WarBattles_ClanId_SeasonId_SectionIndex\" ON \"WarBattles\" (\"ClanId\", \"SeasonId\", \"SectionIndex\");");
     }
 
     /// <summary>Убирает все пробельные символы (включая \r\n) из токена. null, если пусто.</summary>

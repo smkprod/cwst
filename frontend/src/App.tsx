@@ -15,6 +15,7 @@ import { MyStatsView } from './components/MyStatsView'
 import { NudgeButton } from './components/NudgeButton'
 import { NotificationSettingsView } from './components/NotificationSettingsView'
 import { ClanWorldRankCard } from './components/ClanWorldRankCard'
+import { WarJournalCard } from './components/WarJournalCard'
 import { AboutCard } from './components/AboutCard'
 import { OwnerPanel } from './components/OwnerPanel'
 import { LinkPrompt } from './components/LinkPrompt'
@@ -164,6 +165,7 @@ export default function App() {
                 {/* Автонапоминания перенесены в ⚙️ «Уведомления» (шестерёнка в шапке) —
                     там же вкл/выкл, канал, часы и время окончания КВ. */}
                 <PlayerList players={data.players} myPlayerTag={data.myPlayerTag} />
+                <WarJournalCard />
               </div>
             )}
             {tab === 'rating' && (

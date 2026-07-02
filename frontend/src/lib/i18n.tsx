@@ -24,6 +24,13 @@ const ru = {
     topTitle: 'Топ',
     notRanked: 'Клан пока не в топ-1000 страны/мира — есть куда расти! 💪',
   },
+  journal: {
+    title: '📓 Журнал боёв КВ',
+    showAll: 'Показать все',
+    wonLabel: 'побед',
+    lostLabel: 'поражений',
+    totalLabel: 'всего',
+  },
 
   stats: { weekMedals: 'медали недели', decksToday: 'колод сегодня', medalsPerBattle: 'медалей/бой', active: 'активных' },
 
@@ -547,6 +554,13 @@ const uk: Translations = {
     topTitle: 'Топ',
     notRanked: 'Клан поки не в топ-1000 країни/світу — є куди рости! 💪',
   },
+  journal: {
+    title: '📓 Журнал боїв КВ',
+    showAll: 'Показати всі',
+    wonLabel: 'перемог',
+    lostLabel: 'поразок',
+    totalLabel: 'усього',
+  },
 
   stats: { weekMedals: 'медалі тижня', decksToday: 'колод сьогодні', medalsPerBattle: 'медалей/бій', active: 'активних' },
 
@@ -1067,6 +1081,13 @@ const en: Translations = {
     trophies: 'CW trophies',
     topTitle: 'Top of',
     notRanked: 'Not in the top-1000 of the country/world yet — room to grow! 💪',
+  },
+  journal: {
+    title: '📓 CW battle log',
+    showAll: 'Show all',
+    wonLabel: 'wins',
+    lostLabel: 'losses',
+    totalLabel: 'total',
   },
 
   stats: { weekMedals: 'week medals', decksToday: 'decks today', medalsPerBattle: 'medals/battle', active: 'active' },

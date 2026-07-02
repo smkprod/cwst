@@ -14,6 +14,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<TournamentParticipant> TournamentParticipants => Set<TournamentParticipant>();
     public DbSet<TournamentMatch> TournamentMatches => Set<TournamentMatch>();
     public DbSet<GameTournament> GameTournaments => Set<GameTournament>();
+    public DbSet<WarBattle> WarBattles => Set<WarBattle>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -118,6 +119,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(t => t.Name).HasMaxLength(120);
             e.Property(t => t.Password).HasMaxLength(64);
             e.Property(t => t.CreatorName).HasMaxLength(64);
+        });
+
+        mb.Entity<WarBattle>(e =>
+        {
+            e.HasIndex(b => new { b.ClanId, b.PlayerTag, b.BattleTimeUtc }).IsUnique();
+            e.HasIndex(b => new { b.ClanId, b.SeasonId, b.SectionIndex });
+            e.Property(b => b.PlayerTag).HasMaxLength(16);
+            e.Property(b => b.PlayerName).HasMaxLength(64);
         });
     }
 }

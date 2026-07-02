@@ -356,6 +356,53 @@ namespace ClanWarTracker.Infrastructure.Migrations
                     b.ToTable("TournamentParticipants");
                 });
 
+            modelBuilder.Entity("ClanWarTracker.Domain.Entities.WarBattle", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("BattleTimeUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ClanId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("CrownsAgainst")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("CrownsFor")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("PlayerName")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PlayerTag")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SeasonId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("SectionIndex")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("Won")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClanId", "PlayerTag", "BattleTimeUtc")
+                        .IsUnique();
+
+                    b.HasIndex("ClanId", "SeasonId", "SectionIndex");
+
+                    b.ToTable("WarBattles");
+                });
+
             modelBuilder.Entity("ClanWarTracker.Domain.Entities.WarSnapshot", b =>
                 {
                     b.Property<int>("Id")

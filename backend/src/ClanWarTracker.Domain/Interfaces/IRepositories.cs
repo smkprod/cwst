@@ -57,6 +57,18 @@ public interface IWarSnapshotRepository
         CancellationToken ct = default);
 }
 
+public interface IWarBattleRepository
+{
+    /// <summary>Время последнего сохранённого боя игрока — чтобы не перезаписывать старое. null — боёв нет.</summary>
+    Task<DateTime?> GetLastBattleTimeAsync(int clanId, string playerTag, CancellationToken ct = default);
+
+    /// <summary>Бои клана за конкретную неделю (сезон+секция), новые первыми.</summary>
+    Task<List<WarBattle>> GetByWeekAsync(int clanId, int seasonId, int sectionIndex, CancellationToken ct = default);
+
+    Task AddRangeAsync(IEnumerable<WarBattle> battles, CancellationToken ct = default);
+    Task SaveChangesAsync(CancellationToken ct = default);
+}
+
 public interface IGameTournamentRepository
 {
     /// <summary>Все отслеживаемые игровые турниры, новые — первыми.</summary>

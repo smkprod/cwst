@@ -38,4 +38,7 @@ public interface IClashRoyaleApi
     /// Ранги только у топ-1000. null — клан не найден или API недоступен.
     /// </summary>
     Task<ClanWarRanking?> GetClanWarRankingAsync(string clanTag, CancellationToken ct = default);
+
+    /// <summary>Военные бои из боевого лога игрока (только КВ-типы). Пустой список — нет/ошибка.</summary>
+    Task<List<CrBattle>> GetPlayerBattlelogAsync(string playerTag, CancellationToken ct = default);
 }
