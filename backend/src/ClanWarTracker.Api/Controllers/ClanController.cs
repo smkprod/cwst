@@ -235,6 +235,36 @@ public class ClanController(
             : Ok(data);
     }
 
+    /// <summary>
+    /// GET /api/clans/my/ranking — место клана в стране и мире по КВ-трофеям
+    /// (официальные rankings из CR API; ранги только у топ-1000).
+    /// </summary>
+    [HttpGet("my/ranking")]
+    public async Task<IActionResult> GetClanRanking(CancellationToken ct)
+    {
+        var (_, clan, error) = await ResolvePlayerClanAsync(ct);
+        if (error is not null) return error;
+
+        ClanWarRanking? rank;
+        try { rank = await crApi.GetClanWarRankingAsync(clan!.ClanTag, ct); }
+        catch (HttpRequestException ex) when ((int)(ex.StatusCode ?? 0) is >= 500 or 429)
+            { return StatusCode(503, new { error = "cr_api_unavailable", message = ex.Message }); }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("CR API"))
+            { return StatusCode(503, new { error = "cr_api_token_invalid", message = ex.Message }); }
+        if (rank is null) return NotFound(new { error = "no_ranking" });
+
+        return Ok(new ClanRankingDto(
+            rank.ClanWarTrophies,
+            rank.CountryName,
+            rank.CountryRank,
+            rank.CountryPreviousRank is > 0 ? rank.CountryPreviousRank : null,
+            rank.GlobalRank,
+            rank.GlobalPreviousRank is > 0 ? rank.GlobalPreviousRank : null,
+            rank.CountryTop.Select(c => new RankedClanDto(
+                c.Rank, c.PreviousRank, c.Name, c.WarTrophies, c.Members,
+                string.Equals(c.Tag, clan!.ClanTag, StringComparison.OrdinalIgnoreCase))).ToList()));
+    }
+
     /// <summary>POST /api/clans/my/nudge — «пнуть» всех не сыгравших (Admin/Leader; Free: до 20 чел.).</summary>
     [HttpPost("my/nudge")]
     public async Task<IActionResult> NudgeSlackers(CancellationToken ct)

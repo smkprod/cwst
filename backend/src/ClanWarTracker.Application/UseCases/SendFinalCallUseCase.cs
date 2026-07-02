@@ -6,9 +6,9 @@ namespace ClanWarTracker.Application.UseCases;
 
 /// <summary>
 /// «Последний звонок» — примерно за 30 минут до конца военного дня, всем, кто не доиграл 4/4.
-/// Время конца дня берётся из настроек клана (глава задаёт «во сколько заканчивается КВ»),
-/// иначе — допущение по умолчанию (10:00 UTC). Вызывается часто (каждые 10 минут из
-/// WarCheckWorker); отправка происходит только когда «сейчас» попадает в окно за ~30 минут
+/// Время конца дня: настройка клана (глава задаёт «время смены дня») → точное время из API
+/// (war.DayEndsAtUtc, когда CR его отдаёт) → допущение 10:00 UTC. Вызывается часто (каждые
+/// 10 минут из WarCheckWorker); отправка — только когда «сейчас» попадает в окно за ~30 минут
 /// до конца, и не чаще раза в день на клан (дедуп по ключу дня).
 /// </summary>
 public class SendFinalCallUseCase(
@@ -17,9 +17,6 @@ public class SendFinalCallUseCase(
     IPlayerRepository players,
     INotificationSender notifier)
 {
-    // Допущение по умолчанию, если глава не задал время: сброс дня в 10:00 UTC.
-    private const int DefaultEndMinuteUtc = 10 * 60;
-
     /// <param name="reportedKeys">Дедуп между тиками: "clanId:season:section:period".</param>
     /// <returns>Сколько финальных предупреждений отправлено.</returns>
     public async Task<int> ExecuteAsync(ISet<string> reportedKeys, CancellationToken ct = default)
@@ -34,17 +31,16 @@ public class SendFinalCallUseCase(
             var settings = NotificationSettings.Parse(clan.NotificationSettingsJson);
             if (!settings.FinalCall.Enabled) continue;
 
-            // Окно «за ~30 минут до конца»: конец берём из настройки клана, иначе 10:00 UTC.
-            var end = settings.NextWarEndUtc(now)
-                      ?? NextMinuteOfDayUtc(now, DefaultEndMinuteUtc);
-            var minsToEnd = (end - now).TotalMinutes;
-            if (minsToEnd is < 25 or > 35) continue; // не в окне последнего звонка
-
             WarStatus? war;
             try { war = await crApi.GetCurrentWarAsync(clan.ClanTag, ct); }
             catch { continue; } // CR API лежит — в этот день просто не успеем напомнить
 
             if (war is null || !war.IsWarDay) continue;
+
+            // Окно «за ~30 минут до конца»: настройка главы → DayEndsAtUtc (точное из API или 10:00 UTC).
+            var end = settings.NextWarEndUtc(now) ?? war.DayEndsAtUtc;
+            var minsToEnd = (end - now).TotalMinutes;
+            if (minsToEnd is < 25 or > 35) continue; // не в окне последнего звонка
 
             var key = $"{clan.Id}:{war.SeasonId}:{war.SectionIndex}:{war.PeriodIndex}";
             if (!reportedKeys.Add(key)) continue;
@@ -70,11 +66,5 @@ public class SendFinalCallUseCase(
         }
 
         return sent;
-    }
-
-    private static DateTime NextMinuteOfDayUtc(DateTime nowUtc, int minuteOfDay)
-    {
-        var t = new DateTime(nowUtc.Year, nowUtc.Month, nowUtc.Day, minuteOfDay / 60, minuteOfDay % 60, 0, DateTimeKind.Utc);
-        return nowUtc < t ? t : t.AddDays(1);
     }
 }
