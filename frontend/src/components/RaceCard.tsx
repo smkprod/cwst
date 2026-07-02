@@ -34,10 +34,16 @@ export function RaceCard({ race, periodType }: Props) {
 
       <ul className="race-list">
         {race.map(c => {
+          // Колизей: колоды/очки копятся всю неделю — показываем накопленные колоды и
+          // среднее за неделю, без «сегодня/лимита» и без лодок. Обычная война — как было.
           const meta = [
             c.warTrophies > 0 ? `🏆 ${fmt(c.warTrophies)}` : null,
-            isWarDay ? `🃏 ${c.decksUsedToday}/${c.maxDecksToday}` : null,
-            isWarDay && c.decksUsedToday > 0 ? `⚡ ${c.avgFamePerAttack.toFixed(1)}` : null,
+            c.isColosseum
+              ? (c.decksUsed > 0 ? `🃏 ${fmt(c.decksUsed)}` : null)
+              : (isWarDay ? `🃏 ${c.decksUsedToday}/${c.maxDecksToday}` : null),
+            c.isColosseum
+              ? (c.decksUsed > 0 ? `⚡ ${c.avgFamePerAttack.toFixed(1)}` : null)
+              : (isWarDay && c.decksUsedToday > 0 ? `⚡ ${c.avgFamePerAttack.toFixed(1)}` : null),
           ].filter(Boolean).join(' · ')
 
           return (

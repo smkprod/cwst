@@ -60,10 +60,12 @@ public record RaceClanDto(
     int Fame,                 // медали за ВСЮ неделю (накопленные)
     int TodayFame,            // медали за бои ТОЛЬКО сегодня (periodPoints из CR API)
     int BoatPoints,           // очки лодки сегодня (clan.fame из CR API)
-    int ProjectedFame,        // прогноз медалей к концу текущего дня
-    double AvgFamePerAttack,  // среднее медалей за атаку (todayFame / decksUsedToday)
+    int ProjectedFame,        // прогноз медалей к концу текущего дня (0 в колизее — очки копятся всю неделю)
+    double AvgFamePerAttack,  // среднее медалей за атаку (война: сегодня; колизей: за всю неделю)
     int DecksUsedToday,
     int MaxDecksToday,
+    int DecksUsed,            // колоды за всю неделю накопительно (для колизея)
+    bool IsColosseum,         // колизей — своя логика отображения (без «сегодня» и лодок)
     int WarTrophies,          // КВ-трофеи клана (0 — не удалось получить)
     bool IsOurClan,
     bool IsFinished);

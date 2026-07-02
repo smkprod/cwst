@@ -203,35 +203,45 @@ public class GetClanStatusUseCase(
             catch { trophies[c.Tag] = 0; }
         }
 
+        var isColosseum = war.PeriodType == "colosseum";
+
         var rows = war.RaceClans.Select(c =>
         {
             var rosterSize = Math.Min(Math.Max(c.ParticipantCount, 1), MaxClanMembers);
             var maxDecksToday = war.IsWarDay ? rosterSize * DecksPerDayPerPlayer : 0;
             var isOurs = string.Equals(c.Tag, war.ClanTag, StringComparison.OrdinalIgnoreCase);
 
-            // Средняя слава за СЕГОДНЯШНЮЮ атаку: TodayFame / decksUsedToday.
-            // TodayFame = clan.fame из JSON CR API = медали только за сегодня (не накопленные!).
-            // Формула cwstats: не мешаем вчерашние дни.
+            // Средняя слава за атаку.
+            // Колизей: очки/колоды копятся всю неделю — берём накопленное (Fame / DecksUsed).
+            // Обычная война: только сегодня (TodayFame / decksUsedToday), не мешая прошлые дни.
             double avg;
-            if (war.IsWarDay && c.DecksUsedToday > 0)
+            if (isColosseum && c.DecksUsed > 0)
+                avg = (double)c.Fame / c.DecksUsed;
+            else if (!isColosseum && war.IsWarDay && c.DecksUsedToday > 0)
                 avg = (double)c.TodayFame / c.DecksUsedToday;
             else if (isOurs && ourAvgFamePerAttack > 0)
-                avg = ourAvgFamePerAttack; // фолбэк для нас при 0 атак сегодня
+                avg = ourAvgFamePerAttack; // фолбэк для нас при 0 атак
             else
                 avg = 150; // cold start для соперников
             avg = Math.Clamp(avg, 100, 250);
 
-            // Прогноз = avg × maxDecksToday (стиль cwstats: предполагаем полную отдачу).
-            var projected = c.IsFinished
-                ? c.TodayFame
-                : war.IsWarDay
-                    ? (int)Math.Round(avg * maxDecksToday)
-                    : 0;
+            // Прогноз. Обычная война — за сегодня (avg × колоды дня).
+            // Колизей — очки копятся всю неделю, поэтому показываем НАКОПЛЕННУЮ сумму +
+            // прогноз оставшихся колод (а не «за день»): всего медалей к концу дня.
+            var projected = isColosseum
+                ? c.IsFinished
+                    ? c.Fame
+                    : c.Fame + (int)Math.Round(avg * Math.Max(0, maxDecksToday - c.DecksUsedToday))
+                : c.IsFinished
+                    ? c.TodayFame
+                    : war.IsWarDay
+                        ? (int)Math.Round(avg * maxDecksToday)
+                        : 0;
 
             return new
             {
                 c.Tag, c.Name, c.Fame, TodayFame = c.TodayFame, BoatPoints = c.BoatPoints, c.IsFinished,
-                c.DecksUsedToday, MaxDecksToday = maxDecksToday,
+                c.DecksUsedToday, MaxDecksToday = maxDecksToday, c.DecksUsed,
                 Avg = Math.Round(avg, 1), Projected = projected, IsOurs = isOurs,
             };
         })
@@ -250,6 +260,8 @@ public class GetClanStatusUseCase(
             AvgFamePerAttack: r.Avg,
             DecksUsedToday: r.DecksUsedToday,
             MaxDecksToday: r.MaxDecksToday,
+            DecksUsed: r.DecksUsed,
+            IsColosseum: isColosseum,
             WarTrophies: trophies.GetValueOrDefault(r.Tag, 0),
             IsOurClan: r.IsOurs,
             IsFinished: r.IsFinished))

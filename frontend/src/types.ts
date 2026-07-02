@@ -71,9 +71,11 @@ export interface RaceClan {
   todayFame: number          // медали за бои только сегодня (periodPoints из CR API)
   boatPoints: number         // очки лодки сегодня (clan.fame из CR API)
   projectedFame: number      // прогноз медалей к концу дня
-  avgFamePerAttack: number   // todayFame / decksUsedToday
+  avgFamePerAttack: number   // война: сегодня; колизей: за всю неделю
   decksUsedToday: number
   maxDecksToday: number
+  decksUsed: number          // колоды за всю неделю (для колизея)
+  isColosseum: boolean       // колизей — своя логика (без «сегодня» и лодок)
   warTrophies: number        // КВ-трофеи клана (0 — не удалось получить)
   isOurClan: boolean
   isFinished: boolean
