@@ -127,6 +127,26 @@ export interface ClanWarLog {
   weeks: WarLogWeek[]        // isOurClan в standings помечает запрошенный клан
 }
 
+/* --- Рейтинг клана по КВ-трофеям (страна/мир, официальные rankings) --- */
+export interface RankedClanRow {
+  rank: number
+  previousRank: number
+  name: string
+  warTrophies: number
+  members: number
+  isOurClan: boolean
+}
+
+export interface ClanRanking {
+  warTrophies: number
+  countryName: string | null
+  countryRank: number | null
+  countryPreviousRank: number | null
+  globalRank: number | null
+  globalPreviousRank: number | null
+  countryTop: RankedClanRow[]
+}
+
 export interface WarDayLog {
   dayIndex: number              // 0..6 (нормализованный день недели гонки)
   pointsEarned: number          // очки клана за день

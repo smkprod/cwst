@@ -14,6 +14,7 @@ import { Leaderboard } from './components/Leaderboard'
 import { MyStatsView } from './components/MyStatsView'
 import { NudgeButton } from './components/NudgeButton'
 import { NotificationSettingsView } from './components/NotificationSettingsView'
+import { ClanWorldRankCard } from './components/ClanWorldRankCard'
 import { AboutCard } from './components/AboutCard'
 import { OwnerPanel } from './components/OwnerPanel'
 import { LinkPrompt } from './components/LinkPrompt'
@@ -167,6 +168,7 @@ export default function App() {
             )}
             {tab === 'rating' && (
               <div className="fade-in">
+                <ClanWorldRankCard />
                 <Leaderboard players={data.players} myPlayerTag={data.myPlayerTag} plan={data.plan} />
               </div>
             )}
