@@ -28,6 +28,11 @@ public class CaptureWarBattlesUseCase(
             var active = war.Participants.Where(p => p.DecksUsedToday > 0).ToList();
             if (active.Count == 0) continue;
 
+            // Нижняя граница: только бои текущей военной недели. Боевой лог CR отдаёт ~25
+            // последних боёв (недели/месяцы назад) — без этой отсечки первый сбор затянул бы
+            // всю историю и приписал бы её текущей неделе (по 5-7 «боёв» на игрока вместо 4).
+            var weekStart = war.WarWeekStartUtc;
+
             foreach (var p in active)
             {
                 var last = await warBattles.GetLastBattleTimeAsync(clan.Id, p.PlayerTag, ct);
@@ -38,6 +43,7 @@ public class CaptureWarBattlesUseCase(
 
                 foreach (var b in battles)
                 {
+                    if (b.BattleTimeUtc < weekStart) continue;           // прошлая неделя — не наша
                     if (last is { } l && b.BattleTimeUtc <= l) continue; // уже сохранено
                     batch.Add(new WarBattle
                     {

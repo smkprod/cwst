@@ -121,6 +121,10 @@ public static class DependencyInjection
         await db.Database.ExecuteSqlRawAsync(
             "ALTER TABLE \"Clans\" ADD COLUMN IF NOT EXISTS \"NotificationSettingsJson\" text;");
 
+        // Дедуп анонса начала КВ (чтобы не повторялся при деплое/рестарте воркера).
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Clans\" ADD COLUMN IF NOT EXISTS \"LastWarStartKey\" text;");
+
         await db.Database.ExecuteSqlRawAsync(@"
 CREATE TABLE IF NOT EXISTS ""RecruitmentProfiles"" (
     ""Id"" serial PRIMARY KEY,

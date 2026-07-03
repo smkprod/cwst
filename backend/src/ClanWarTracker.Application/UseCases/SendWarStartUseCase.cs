@@ -38,8 +38,14 @@ public class SendWarStartUseCase(
             var settings = NotificationSettings.Parse(clan.NotificationSettingsJson);
             if (!settings.WarStart.Enabled) continue;
 
-            var key = $"{clan.Id}:{war.SeasonId}:{war.SectionIndex}";
-            if (!announcedKeys.Add(key)) continue;
+            // Дедуп через БД (переживает перезапуск воркера при деплое): один анонс на военную неделю.
+            var key = $"{war.SeasonId}:{war.SectionIndex}";
+            if (clan.LastWarStartKey == key) continue;
+
+            // Помечаем и сохраняем СРАЗУ, до отправки — чтобы рестарт/деплой не повторил анонс.
+            clan.LastWarStartKey = key;
+            await clans.SaveChangesAsync(ct);
+            announcedKeys.Add(key); // in-memory дубль-guard в пределах процесса (не обязателен)
 
             var isColosseum = war.PeriodType == "colosseum";
             var title = isColosseum ? "🏟 Колизей начался!" : "⚔️ Клановая война началась!";
