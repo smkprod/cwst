@@ -88,7 +88,11 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
                         IsFinished = !string.IsNullOrEmpty(c.FinishTime),
                     }).ToList(),
                 // Официальный по-дневный лог для нашего клана (periodLogs[].items[] где clan.tag == наш).
+                // ВАЖНО: periodIndex в логе сквозной за сезон и может включать ПРОШЛЫЕ недели —
+                // берём только периоды текущей недели, иначе «медали по дням» показывают старую войну.
                 DayLogs = (race.PeriodLogs ?? [])
+                    .Where(pl => pl.PeriodIndex >= race.PeriodIndex - dayIndex
+                                 && pl.PeriodIndex <= race.PeriodIndex)
                     .Select(pl =>
                     {
                         var mine = pl.Items?.FirstOrDefault(i =>
@@ -314,7 +318,11 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
                             TrophyChange = s.TrophyChange,
                             ClanTag = s.Clan!.Tag,
                             ClanName = s.Clan.Name,
-                            Fame = s.Clan.Fame,
+                            // ВАЖНО (CR API, как и в /currentriverrace): clan.fame в журнале —
+                            // это очки лодки (штурвалы), а МЕДАЛИ недели = сумма fame участников.
+                            Fame = (s.Clan.Participants?.Sum(p => p.Fame) ?? 0) > 0
+                                ? s.Clan.Participants!.Sum(p => p.Fame)
+                                : s.Clan.Fame,
                             Participants = (s.Clan.Participants ?? [])
                                 .Select(p => new RiverRaceLogPlayer
                                 {
