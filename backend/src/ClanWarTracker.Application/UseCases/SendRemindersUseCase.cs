@@ -47,7 +47,11 @@ public class SendRemindersUseCase(
                 ? allLinked
                 : new Dictionary<string, Domain.Entities.Player>(StringComparer.OrdinalIgnoreCase);
 
-            var slackers = war.Participants.Where(p => p.DecksUsedToday < 4).ToList();
+            // Только текущий состав: в списке войны CR API держит и ушедших (за неделю >50).
+            var members = await crApi.GetClanMemberRolesAsync(clan.ClanTag, ct);
+            var slackers = war.Participants
+                .Where(p => p.DecksUsedToday < 4 && (members.Count == 0 || members.ContainsKey(p.PlayerTag)))
+                .ToList();
 
             foreach (var slacker in slackers)
             {

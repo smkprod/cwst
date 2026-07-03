@@ -45,7 +45,11 @@ public class SendFinalCallUseCase(
             var key = $"{clan.Id}:{war.SeasonId}:{war.SectionIndex}:{war.PeriodIndex}";
             if (!reportedKeys.Add(key)) continue;
 
-            var slackers = war.Participants.Where(p => p.DecksUsedToday < 4).ToList();
+            // Только текущий состав: в списке войны CR API держит и ушедших (за неделю >50).
+            var members = await crApi.GetClanMemberRolesAsync(clan.ClanTag, ct);
+            var slackers = war.Participants
+                .Where(p => p.DecksUsedToday < 4 && (members.Count == 0 || members.ContainsKey(p.PlayerTag)))
+                .ToList();
             if (slackers.Count == 0) continue; // все уже доиграли — нечего слать
 
             var linked = (await players.GetByClanIdAsync(clan.Id, ct))
