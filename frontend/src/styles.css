@@ -181,6 +181,23 @@ main.with-tabbar { padding-bottom: 80px; }
 .guest-bullets { list-style: none; margin: 14px auto; padding: 0; max-width: 320px; display: grid; gap: 8px; }
 .setup-steps { margin: 0; padding-left: 22px; display: grid; gap: 8px; }
 
+/* --- Аналитика недели (Pro): медали по дням, темп, герои --- */
+.insights-sub { display: block; font-weight: 700; font-size: 13px; margin-bottom: 8px; }
+.week-days-block { margin-top: 4px; }
+.week-days { display: flex; gap: 10px; align-items: flex-end; }
+.week-day { flex: 1; display: grid; justify-items: center; gap: 3px; }
+.week-day-bar-track { height: 56px; width: 100%; max-width: 46px; display: flex; align-items: flex-end; background: rgba(127,127,127,0.12); border-radius: 6px; overflow: hidden; }
+.week-day-bar { width: 100%; background: var(--green, #4cd964); border-radius: 6px 6px 0 0; }
+.week-day-points { font-weight: 700; }
+.pace-block { display: grid; gap: 6px; margin-top: 4px; }
+.pace-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pace-chip { font-size: 12px; font-weight: 700; }
+.heroes-block { display: grid; gap: 6px; margin-top: 4px; }
+.hero-row { display: flex; align-items: center; gap: 8px; }
+.hero-name { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hero-fame { font-weight: 700; color: var(--green); }
+.insights-card { display: grid; gap: 14px; }
+
 /* --- Личный призыв на военный день («ты не доиграл») --- */
 .my-action-banner { border: 1px solid rgba(255, 122, 118, 0.45); }
 .my-action-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }

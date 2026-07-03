@@ -58,6 +58,19 @@ export function ClanlessView() {
               )}
             </section>
 
+            {/* Турниры доступны и без клана — даём занятие прямо сейчас */}
+            <section className="card community-card">
+              <div className="community-inner">
+                <span className="community-icon">🥇</span>
+                <div className="community-text">
+                  <span className="community-label">{t.clanless.tournamentHint}</span>
+                </div>
+              </div>
+              <button className="btn community-btn" onClick={() => switchTab('tournament')}>
+                {t.clanless.tournamentBtn}
+              </button>
+            </section>
+
             <TopPlayersTeaser />
 
             <p className="muted small" style={{ textAlign: 'center', margin: '16px 0 12px' }}>
