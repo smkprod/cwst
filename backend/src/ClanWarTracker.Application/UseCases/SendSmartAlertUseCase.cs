@@ -15,7 +15,7 @@ public class SendSmartAlertUseCase(
     INotificationSender notifier,
     GetClanStatusUseCase clanStatus)
 {
-    /// <summary>Не чаще одного алерта на игрока за войну.</summary>
+    /// <summary>Не чаще одного алерта на игрока за 6 часов (т.е. максимум ~1 в военный день).</summary>
     private static readonly TimeSpan AlertCooldown = TimeSpan.FromHours(6);
 
     /// <summary>Минимальная просадка шанса победы, чтобы алерт был не спамом, а реальным сигналом.</summary>

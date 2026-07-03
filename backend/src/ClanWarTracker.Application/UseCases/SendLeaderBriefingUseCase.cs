@@ -62,7 +62,11 @@ public class SendLeaderBriefingUseCase(
             var text = BuildBriefing(war);
             sentKeys.Add(key);
             foreach (var r in recipients)
-                await notifier.SendToUserAsync(r.TelegramUserId!.Value, text, ct);
+            {
+                // Per-recipient: сбой у одного лидера не лишает брифинга остальных.
+                try { await notifier.SendToUserAsync(r.TelegramUserId!.Value, text, ct); }
+                catch { /* сеть/блокировка — пропускаем получателя */ }
+            }
             sent++;
         }
 

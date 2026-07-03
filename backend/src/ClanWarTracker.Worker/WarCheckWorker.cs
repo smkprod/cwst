@@ -15,7 +15,6 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
     private static readonly TimeSpan SnapshotInterval = TimeSpan.FromMinutes(10);
     private readonly HashSet<string> _reportedDays = [];
     private readonly HashSet<string> _finalCallKeys = [];
-    private readonly HashSet<string> _warStartKeys = [];
     private readonly HashSet<string> _reminderChatKeys = [];
     private readonly HashSet<string> _briefingKeys = [];
 
@@ -58,7 +57,7 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
             {
                 using var scope = scopeFactory.CreateScope();
                 var warStart = scope.ServiceProvider.GetRequiredService<SendWarStartUseCase>();
-                var sent = await warStart.ExecuteAsync(_warStartKeys, stoppingToken);
+                var sent = await warStart.ExecuteAsync(stoppingToken);
                 if (sent > 0) logger.LogInformation("Announced war start to {Count} clans", sent);
             }
             catch (Exception ex)
