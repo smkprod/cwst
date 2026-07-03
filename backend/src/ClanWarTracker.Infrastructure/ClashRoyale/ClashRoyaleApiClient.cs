@@ -256,7 +256,10 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
     public async Task<Dictionary<string, string>> GetClanMemberRolesAsync(string clanTag, CancellationToken ct = default)
     {
         var members = await GetCachedMembersAsync(clanTag, ct);
-        return members?.Items?.ToDictionary(m => m.Tag, m => m.Role, StringComparer.OrdinalIgnoreCase)
+        // GroupBy на случай дублей тегов в ответе API — ToDictionary иначе бросит исключение.
+        return members?.Items?
+                   .GroupBy(m => m.Tag, StringComparer.OrdinalIgnoreCase)
+                   .ToDictionary(g => g.Key, g => g.First().Role, StringComparer.OrdinalIgnoreCase)
                ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     }
 

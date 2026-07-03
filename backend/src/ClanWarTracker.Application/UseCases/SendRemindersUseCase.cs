@@ -39,7 +39,8 @@ public class SendRemindersUseCase(
             var allLinked = (await players.GetByClanIdAsync(clan.Id, ct))
                 .Where(p => p.TelegramUserId is not null)
                 .OrderBy(p => p.Id)
-                .ToDictionary(p => p.PlayerTag);
+                .GroupBy(p => p.PlayerTag, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
             // Персональные DM — только Pro и если канал включает ЛС
             var allowedForDm = isPro && settings.Reminders.Channel.WantsDm()

@@ -89,10 +89,13 @@ public class SendDailyReportUseCase(
             ? await snapshots.GetSnapshotAsync(clan.Id, final.SeasonId, final.SectionIndex,
                 final.PeriodIndex - 1, ct)
             : null;
+        // GroupBy: у одного тега может быть несколько записей — берём первую (защита от дубль-ключа).
         var prevFameByTag = (prevDay?.Players ?? [])
-            .ToDictionary(p => p.PlayerTag, p => p.Fame, StringComparer.OrdinalIgnoreCase);
+            .GroupBy(p => p.PlayerTag, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First().Fame, StringComparer.OrdinalIgnoreCase);
         var prevDecksByTag = (prevDay?.Players ?? [])
-            .ToDictionary(p => p.PlayerTag, p => p.DecksUsed, StringComparer.OrdinalIgnoreCase);
+            .GroupBy(p => p.PlayerTag, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First().DecksUsed, StringComparer.OrdinalIgnoreCase);
 
         var dayResults = final.Players
             .Select(p => (p.PlayerTag, p.Name,
@@ -107,7 +110,8 @@ public class SendDailyReportUseCase(
         // Привязанных к Telegram игроков клана — чтобы упомянуть лентяев напрямую в чате.
         var linked = (await players.GetByClanIdAsync(clan.Id, ct))
             .Where(p => p.TelegramUserId is not null)
-            .ToDictionary(p => p.PlayerTag, StringComparer.OrdinalIgnoreCase);
+            .GroupBy(p => p.PlayerTag, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
         var medals = new[] { "🥇", "🥈", "🥉" };
         var lines = new List<string>

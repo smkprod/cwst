@@ -42,7 +42,8 @@ public class SendSmartAlertUseCase(
 
             var linked = (await players.GetByClanIdAsync(clan.Id, ct))
                 .Where(p => p.TelegramUserId is not null)
-                .ToDictionary(p => p.PlayerTag, StringComparer.OrdinalIgnoreCase);
+                .GroupBy(p => p.PlayerTag, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
             foreach (var p in status.Players.Where(p => p.Status != "played"))
             {
