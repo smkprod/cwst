@@ -228,6 +228,7 @@ export interface MyStats {
 export interface NudgeResult {
   notifiedDm: number
   skippedCooldown: number
+  taggableCount: number
   unlinkedCount: number
   postedToChat: boolean
 }
