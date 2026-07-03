@@ -1213,7 +1213,7 @@ const en: Translations = {
     howTitle: 'How is the forecast calculated?',
     howDay1: 'For today: medals earned today + ',
     howDay2: " remaining clan attacks × average medals per attack. We count only the current war day's points, not the cumulative week total.",
-    howWeek: '«By end of week: same, but until the end of all 4 war days. "Range" is the ±1σ spread (how the actual result might land). The more days played and the more active the clan — the higher the accuracy.',
+    howWeek: 'By end of week: same, but until the end of all 4 war days. "Range" is the ±1σ spread (how the actual result might land). The more days played and the more active the clan — the higher the accuracy.',
   },
 
   players: { empty: 'No war participants — training may be in progress.', noTg: 'no TG', decksDots: 'of 4 decks' },

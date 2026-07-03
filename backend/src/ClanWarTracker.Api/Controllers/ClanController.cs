@@ -299,7 +299,7 @@ public class ClanController(
                 string.Equals(c.Tag, clan!.ClanTag, StringComparison.OrdinalIgnoreCase))).ToList()));
     }
 
-    /// <summary>POST /api/clans/my/nudge — «пнуть» всех не сыгравших (Admin/Leader; Free: до 20 чел.).</summary>
+    /// <summary>POST /api/clans/my/nudge — «пнуть» всех не сыгравших (Admin/Leader; Free: до 5 чел.).</summary>
     [HttpPost("my/nudge")]
     public async Task<IActionResult> NudgeSlackers(CancellationToken ct)
     {

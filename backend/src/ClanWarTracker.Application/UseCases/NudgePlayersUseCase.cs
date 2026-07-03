@@ -16,7 +16,7 @@ public class NudgePlayersUseCase(
 
     public record NudgeResult(int NotifiedDm, int SkippedCooldown, int TaggableCount, int UnlinkedCount, bool PostedToChat);
 
-    /// <param name="isPro">Free: рассылка до 20 игроков. Pro: без ограничений.</param>
+    /// <param name="isPro">Free: рассылка до 5 игроков. Pro: без ограничений.</param>
     /// <returns>null — война не идёт (тренировка) или клан не найден.</returns>
     public async Task<NudgeResult?> ExecuteAsync(int clanId, bool isPro, CancellationToken ct = default)
     {
@@ -70,7 +70,9 @@ public class NudgePlayersUseCase(
         // пингует и раздувает сообщение в стену из 50-100 имён. Внизу — счётчик непривязанных,
         // чтобы глава видел, скольким нужно привязать аккаунт.
         var taggable = slackers.Where(s => linkedPlayers.ContainsKey(s.PlayerTag)).ToList();
-        var unlinkedCount = slackers.Count - taggable.Count;
+        // Счётчик непривязанных — от ПОЛНОГО списка лентяев (allSlackers), а не от урезанного
+        // Free-лимитом, иначе на Free цифра «ещё N не привязали» занижается.
+        var unlinkedCount = allSlackers.Count(s => !linkedPlayers.ContainsKey(s.PlayerTag));
 
         var postedToChat = false;
         if (taggable.Count > 0 && clan.TelegramChatId != 0)

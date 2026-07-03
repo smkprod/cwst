@@ -63,10 +63,17 @@ public class SendDailyReportUseCase(
             var key = $"{clan.Id}:{final.SeasonId}:{final.SectionIndex}:{final.PeriodIndex}";
             if (!reportedKeys.Add(key)) continue;
 
-            var text = await BuildReportAsync(clan, final, ct);
-            await notifier.SendToChatWithAppButtonAsync(
-                clan.TelegramChatId, text, clan.TelegramMessageThreadId, html: true, ct: ct);
-            sent++;
+            try
+            {
+                var text = await BuildReportAsync(clan, final, ct);
+                await notifier.SendToChatWithAppButtonAsync(
+                    clan.TelegramChatId, text, clan.TelegramMessageThreadId, html: true, ct: ct);
+                sent++;
+            }
+            catch
+            {
+                reportedKeys.Remove(key); // сбой отправки — попробуем в следующий тик (окно 2ч)
+            }
         }
         return sent;
     }
@@ -99,7 +106,11 @@ public class SendDailyReportUseCase(
 
         var dayResults = final.Players
             .Select(p => (p.PlayerTag, p.Name,
-                DecksToday: Math.Clamp(p.DecksUsed - prevDecksByTag.GetValueOrDefault(p.PlayerTag, 0), 0, 4),
+                // Первый военный день (нет вчерашнего снимка): дельта недельного DecksUsed
+                // включала бы тренировочные бои — берём суточный счётчик из снимка.
+                DecksToday: prevDay is null
+                    ? Math.Clamp(p.DecksUsedToday, 0, 4)
+                    : Math.Clamp(p.DecksUsed - prevDecksByTag.GetValueOrDefault(p.PlayerTag, 0), 0, 4),
                 DayFame: p.Fame - prevFameByTag.GetValueOrDefault(p.PlayerTag, 0)))
             .ToList();
 

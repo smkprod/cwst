@@ -20,9 +20,8 @@ public class SendWarStartUseCase(
 {
     private static readonly TimeSpan SendGap = TimeSpan.FromMilliseconds(40);
 
-    /// <param name="announcedKeys">Дедуп между тиками: "clanId:season:section" — один анонс на военную неделю.</param>
-    /// <returns>Сколько кланов получили анонс в чат.</returns>
-    public async Task<int> ExecuteAsync(ISet<string> announcedKeys, CancellationToken ct = default)
+    /// <returns>Сколько кланов получили анонс в чат. Дедуп — персистентный (Clan.LastWarStartKey).</returns>
+    public async Task<int> ExecuteAsync(CancellationToken ct = default)
     {
         var sent = 0;
 
@@ -45,7 +44,6 @@ public class SendWarStartUseCase(
             // Помечаем и сохраняем СРАЗУ, до отправки — чтобы рестарт/деплой не повторил анонс.
             clan.LastWarStartKey = key;
             await clans.SaveChangesAsync(ct);
-            announcedKeys.Add(key); // in-memory дубль-guard в пределах процесса (не обязателен)
 
             var isColosseum = war.PeriodType == "colosseum";
             var title = isColosseum ? "🏟 Колизей начался!" : "⚔️ Клановая война началась!";
