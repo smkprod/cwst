@@ -36,11 +36,11 @@ public class NudgePlayersUseCase(
             .GroupBy(p => p.PlayerTag, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
-        // Только текущий состав клана: в списке войны CR API держит и ушедших участников
-        // (за неделю их бывает >50), из-за чего счётчик «не доиграли / не привязали» раздувался.
+        // Только текущий состав клана (список войны CR API держит и ушедших — за неделю >50).
         var members = await crApi.GetClanMemberRolesAsync(clan.ClanTag, ct);
+        var roster = WarRoster.CurrentMemberTags(war, members);
         var allSlackers = war.Participants
-            .Where(p => p.DecksUsedToday < 4 && (members.Count == 0 || members.ContainsKey(p.PlayerTag)))
+            .Where(p => p.DecksUsedToday < 4 && roster.Contains(p.PlayerTag))
             .ToList();
         // Free: не более 20 человек суммарно получают любые уведомления
         var slackers = isPro ? allSlackers : allSlackers.Take(20).ToList();
