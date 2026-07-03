@@ -36,12 +36,17 @@ const ru = {
 
   race: {
     title: '⛵ Гонка недели',
+    titleColosseum: '🏟 Колизей',
     trainingNote: 'медали с четверга',
     ours: 'мы',
     todayTitle: 'Медали за сегодня',
     boatTitle: 'Очки лодки за сегодня',
     totalTitle: 'Всего медалей за неделю',
     projTitle: 'Прогноз медалей к концу дня (avg × 200)',
+    colosseumNote: 'Медали копятся все 4 дня — без сброса',
+    decksWeekLabel: 'колод за неделю',
+    avgLabel: 'ср. за атаку',
+    colosseumLegend: '🏅 всего за неделю · → прогноз к финалу',
   },
 
   forecast: {
@@ -567,12 +572,17 @@ const uk: Translations = {
 
   race: {
     title: '⛵ Гонка тижня',
+    titleColosseum: '🏟 Колізей',
     trainingNote: 'медалі з четверга',
     ours: 'ми',
     todayTitle: 'Медалі за сьогодні',
     boatTitle: 'Очки човника за сьогодні',
     totalTitle: 'Усього медалей за тиждень',
     projTitle: 'Прогноз медалей до кінця дня (avg × 200)',
+    colosseumNote: 'Медалі накопичуються всі 4 дні — без скидання',
+    decksWeekLabel: 'колод за тиждень',
+    avgLabel: 'сер. за атаку',
+    colosseumLegend: '🏅 всього за тиждень · → прогноз на фінал',
   },
 
   forecast: {
@@ -1096,12 +1106,17 @@ const en: Translations = {
 
   race: {
     title: '⛵ Weekly Race',
+    titleColosseum: '🏟 Colosseum',
     trainingNote: 'medals from Thursday',
     ours: 'us',
     todayTitle: 'Medals today',
     boatTitle: 'Boat points today',
     totalTitle: 'Total medals this week',
     projTitle: 'Projected medals by end of day (avg × 200)',
+    colosseumNote: 'Medals accumulate across all 4 days — no reset',
+    decksWeekLabel: 'decks this week',
+    avgLabel: 'avg per attack',
+    colosseumLegend: '🏅 week total · → projected final',
   },
 
   forecast: {

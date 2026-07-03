@@ -166,6 +166,8 @@ main.with-tabbar { padding-bottom: 80px; }
 .role-icon { font-size: 12px; margin-right: 3px; }
 .race-points { font-size: 11px; font-weight: 600; color: var(--green); }
 .race-meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.race-colosseum-note { margin: -6px 0 10px; }
+.race-colosseum-legend { margin: 10px 0 0; text-align: center; opacity: 0.8; }
 
 /* --- Pro-аналитика: шанс победы + здоровье клана --- */
 .insights-card { display: grid; gap: 14px; }
