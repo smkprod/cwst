@@ -54,7 +54,7 @@ export function ForecastCard({ forecast, stats: _stats, periodType }: Props) {
 
       <div className="forecast-numbers">
         <div className="forecast-block forecast-block-primary">
-          <span className="forecast-label-small">{t.forecast.dayLabel}</span>
+          <span className="forecast-label-small">{periodType === 'colosseum' ? t.forecast.dayLabelColosseum : t.forecast.dayLabel}</span>
           <span className="forecast-value">{fmt(dayTotal)}</span>
           {hasCI && (
             <span className="forecast-ci muted small">
