@@ -17,6 +17,7 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
     private readonly HashSet<string> _finalCallKeys = [];
     private readonly HashSet<string> _warStartKeys = [];
     private readonly HashSet<string> _reminderChatKeys = [];
+    private readonly HashSet<string> _briefingKeys = [];
 
     protected override Task ExecuteAsync(CancellationToken stoppingToken) =>
         Task.WhenAll(
@@ -98,6 +99,19 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
             catch (Exception ex)
             {
                 logger.LogError(ex, "Smart alert failed");
+            }
+
+            try
+            {
+                // Утренний брифинг лидера (Pro): личная сводка-план в начале военного дня.
+                using var scope = scopeFactory.CreateScope();
+                var briefing = scope.ServiceProvider.GetRequiredService<SendLeaderBriefingUseCase>();
+                var sent = await briefing.ExecuteAsync(_briefingKeys, stoppingToken);
+                if (sent > 0) logger.LogInformation("Sent leader briefings to {Count} clans", sent);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Leader briefing failed");
             }
         }
         while (await timer.WaitForNextTickAsync(stoppingToken));
