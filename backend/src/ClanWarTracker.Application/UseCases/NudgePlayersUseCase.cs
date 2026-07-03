@@ -69,10 +69,19 @@ public class NudgePlayersUseCase(
                 return $"{TelegramMention.Mention(s.Name, p?.TelegramUserId, p?.TelegramUsername)} " +
                        $"({4 - s.DecksUsedToday}/4 колод)";
             }));
-            await notifier.SendToChatAsync(clan.TelegramChatId,
-                $"👊 Админ пнул лентяев! Нужно отыграть КВ — осталось:\n{names}",
-                clan.TelegramMessageThreadId, html: true, ct: ct);
-            postedToChat = true;
+            try
+            {
+                await notifier.SendToChatAsync(clan.TelegramChatId,
+                    $"👊 Админ пнул лентяев! Нужно отыграть КВ — осталось:\n{names}",
+                    clan.TelegramMessageThreadId, html: true, ct: ct);
+                postedToChat = true;
+            }
+            catch
+            {
+                // Чат недоступен (бота удалили / чат мигрировал в супергруппу / нет прав) —
+                // не роняем всю команду: личные пинки уже разосланы.
+                postedToChat = false;
+            }
         }
 
         return new NudgeResult(dm, skipped, postedToChat ? slackers.Count : 0, postedToChat);

@@ -1,5 +1,6 @@
 using ClanWarTracker.Domain.Interfaces;
 using Telegram.Bot;
+using Telegram.Bot.Exceptions;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 
@@ -13,8 +14,20 @@ public class TelegramNotificationSender(ITelegramBotClient bot) : INotificationS
     private static bool _resolved;
 
     // Кнопка «Открыть в Mini App» теперь под КАЖДЫМ сообщением бота — и в ЛС, и в чатах.
-    public Task SendToUserAsync(long telegramUserId, string text, CancellationToken ct = default) =>
-        SendAsync(telegramUserId, text, threadId: null, html: false, ct);
+    public async Task SendToUserAsync(long telegramUserId, string text, CancellationToken ct = default)
+    {
+        try
+        {
+            await SendAsync(telegramUserId, text, threadId: null, html: false, ct);
+        }
+        catch (ApiRequestException)
+        {
+            // Игрок не запускал бота / заблокировал его — Telegram отдаёт «chat not found»,
+            // «bot was blocked by the user», «user is deactivated». Это ожидаемо для ЛС:
+            // молча пропускаем, чтобы один недоступный получатель не срывал всю рассылку
+            // (напоминания, финальный пинок, /nudge и т.д.).
+        }
+    }
 
     public Task SendToChatAsync(
         long chatId, string text, int? threadId = null, bool html = false, CancellationToken ct = default) =>
