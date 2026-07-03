@@ -75,14 +75,15 @@ public class SendRemindersUseCase(
             var taggable = slackers.Where(s => allLinked.ContainsKey(s.PlayerTag)).ToList();
             if (taggable.Count > 0)
             {
-                var names = taggable.Select(s =>
+                var names = string.Join("\n", taggable.Select(s =>
                 {
                     var p = allLinked[s.PlayerTag];
-                    return TelegramMention.Mention(s.Name, p.TelegramUserId, p.TelegramUsername);
-                });
+                    return $"• {TelegramMention.Mention(s.Name, p.TelegramUserId, p.TelegramUsername)} " +
+                           $"— осталось {4 - s.DecksUsedToday}/4 🃏";
+                }));
                 var unlinked = slackers.Count - taggable.Count;
-                var note = unlinked > 0 ? $" · ещё {unlinked} без Telegram" : "";
-                parts.Add($"⏰ Ещё не доиграли войну: {string.Join(", ", names)}{note}");
+                var note = unlinked > 0 ? $"\n\n👥 Ещё <b>{unlinked}</b> без Telegram — пусть привяжут аккаунт в боте." : "";
+                parts.Add($"⏰ <b>Ещё не доиграли войну:</b>\n\n{names}{note}");
             }
 
             if (!isPro && allLinked.Count > 0)
