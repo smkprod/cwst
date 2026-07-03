@@ -23,6 +23,12 @@ public class Clan
     /// </summary>
     public string? NotificationSettingsJson { get; set; }
 
+    /// <summary>
+    /// Ключ последней недели ("season:section"), для которой уже отправлен анонс начала КВ.
+    /// Хранится в БД, чтобы анонс НЕ повторялся при перезапуске воркера (деплое). null — ещё не слали.
+    /// </summary>
+    public string? LastWarStartKey { get; set; }
+
     // --- SaaS-тариф ---
     public PlanTier PlanTier { get; set; } = PlanTier.Free;
     public DateTime? PlanExpiresAtUtc { get; set; }      // null = бессрочно
