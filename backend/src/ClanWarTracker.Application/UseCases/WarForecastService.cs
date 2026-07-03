@@ -199,8 +199,13 @@ public class WarForecastService
             : clanAvgFamePerAttack; // фолбэк: ещё не атаковали сегодня
 
         // Прогноз дня = todayAvg × maxDecksToday (предполагаем 100% отдачу, как cwstats).
+        // Колизей: медали не сбрасываются по дням — показываем ВСЮ накопленную сумму за все
+        // дни (totalFame) + прогноз того, что ещё возьмут сегодня, а не срез только за сегодня.
+        var isColosseum = war.PeriodType == "colosseum";
         var projectedDayFame = war.IsWarDay
-            ? (int)Math.Round(todayAvg * maxDecksToday)
+            ? isColosseum
+                ? totalFame + (int)Math.Round(todayAvg * remainingDecksToday)
+                : (int)Math.Round(todayAvg * maxDecksToday)
             : todayPointsSoFar;
 
         var expectedRemainingAttacks = remainingDecksToday; // 100% участие
@@ -243,9 +248,12 @@ public class WarForecastService
         confidence = Math.Clamp(confidence, 30, 95);
 
         // Доверительный интервал (±1σ): неопределённость по оставшимся атакам сегодня.
+        // Для колизея границы сдвинуты на накопленную сумму (projectedDayFame — кумулятивный),
+        // иначе потолок оказался бы ниже прогноза и Math.Clamp упал бы (min > max).
         var sdTotal = Math.Sqrt(expectedRemainingAttacks) * SdPerDeck;
-        var maxDayPoints = (int)(maxDecksToday * MaxFamePerDeck);
-        var low = Math.Clamp(projectedDayFame - (int)sdTotal, todayPointsSoFar, projectedDayFame);
+        var dayFloor = isColosseum ? totalFame : todayPointsSoFar;
+        var maxDayPoints = (isColosseum ? totalFame : 0) + (int)(maxDecksToday * MaxFamePerDeck);
+        var low = Math.Clamp(projectedDayFame - (int)sdTotal, dayFloor, projectedDayFame);
         var high = Math.Clamp(projectedDayFame + (int)sdTotal, projectedDayFame, maxDayPoints);
 
         return new ClanForecastDto(
