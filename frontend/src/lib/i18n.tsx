@@ -79,12 +79,22 @@ const ru = {
   roles: { leader: 'Лидер', coleader: 'Соруководитель', elder: 'Старейшина' },
 
   insights: {
-    title: '🧠 Аналитика клана',
-    lockedNote: 'Шанс победы в гонке в реальном времени, «здоровье» клана и DNA-профили игроков (кто тащит, а кто балласт) — доступно на тарифе Pro. 🔒',
+    title: '🧠 Аналитика недели',
+    lockedNote: 'Шанс победы в реальном времени, медали по дням, темп против прошлой недели и герои недели — на тарифе Pro. 🔒',
     winCaption: 'шанс победы в гонке',
     topRival: 'главный соперник:',
     slackersWarn1: 'Если не доигравшие так и не сыграют — шанс упадёт до ',
     slackersWarn2: '%',
+    dayByDay: '📅 Медали по дням',
+    dayShort: 'Д',
+    placeSuffix: '-е',
+    heroes: '🔥 Герои недели',
+    vsLastWeek: '⚖️ Темп против прошлой недели',
+    lastWeekFinal: 'прошлая:',
+    currentNow: 'сейчас:',
+    ahead: 'идёте лучше прошлой недели',
+    behind: 'отстаёте от прошлой недели',
+    same: 'идёте вровень с прошлой',
   },
 
   warlog: {
@@ -218,9 +228,10 @@ const ru = {
       { icon: '🔮', title: 'Прогноз клана', desc: 'Сколько медалей наберёте за сегодня и к концу недели, с диапазоном и точностью.', pro: false },
       { icon: '📅', title: 'Прошлые войны и сезон', desc: 'Рейтинг игроков за каждую войну (W1, W2…) и суммарный зачёт за весь сезон.', pro: false },
       { icon: '📜', title: 'История по неделям', desc: 'Графики и динамика клана и лично твоя за прошлые недели войн.', pro: false },
-      { icon: '👉', title: '«Пнуть» не сыгравших', desc: 'Разослать напоминание всем сразу одной кнопкой (Free — до 20 человек).', pro: false },
-      { icon: '⏰', title: 'Автонапоминания', desc: 'Личное сообщение каждому не доигравшему за N часов до конца дня.', pro: true },
-      { icon: '📊', title: 'Pro-аналитика', desc: 'Шанс победы в гонке, здоровье клана и архетип каждого игрока (Тащер, Надёжный…).', pro: true },
+      { icon: '👉', title: '«Пнуть» не сыгравших', desc: 'Разослать напоминание всем сразу одной кнопкой (Free — до 5 человек).', pro: false },
+      { icon: '⏰', title: 'Автонапоминания', desc: 'Личное сообщение каждому не доигравшему за N часов до конца дня — без лимитов.', pro: true },
+      { icon: '📊', title: 'Аналитика недели', desc: 'Шанс победы, медали по дням, темп против прошлой недели и герои недели.', pro: true },
+      { icon: '🌅', title: 'Утренний брифинг лидера', desc: 'Каждый военный день — личная сводка-план в ЛС: вчерашний итог, место в гонке, отрыв и цель на день.', pro: true },
     ],
   },
 
@@ -252,7 +263,7 @@ const ru = {
   nudge: {
     sending: 'Пинаю…',
     label: 'Пнуть лентяев',
-    freeLimit: ' · лимит 20 на Free',
+    freeLimit: ' · лимит 5 на Free',
     done: 'Пнул!',
     allPlayed: 'Все уже сыграли 🎉',
     noWar: 'Сейчас не день войны',
@@ -280,7 +291,7 @@ const ru = {
     warEndDefault: 'Не задано — по умолчанию 10:00 UTC. Укажи своё время.',
     warEndLocalHint: 'Указано в твоём местном времени.',
     remindersTitle: 'Напоминания не отыгравшим',
-    remindersDesc: 'Пинг тем, кто не доиграл 4/4, перед концом дня войны.',
+    remindersDesc: 'Пинг тем, кто не доиграл 4/4, перед концом дня войны. Личные сообщения каждому игроку — только на Pro; без Pro в чат уходит общая сводка.',
     warStartTitle: 'Анонс начала КВ',
     warStartDesc: 'Сообщение, когда начинается военный день (четверг).',
     finalCallTitle: 'Финальный пинок',
@@ -347,6 +358,8 @@ const ru = {
     shareBtn: '📣 Отправить инструкцию в чат клана',
     shareText: 'Подключаем клану Clanify: покажет кто не доиграл КВ, пришлёт напоминания и прогноз медалей. Добавьте бота в чат и напишите /setup #ТЕГ_КЛАНА 👉',
     orRecruit: 'Или найди себе новый клан:',
+    tournamentHint: 'Турниры доступны и без клана — собери друзей и сыграй',
+    tournamentBtn: 'К турнирам',
   },
 
   recruit: {
@@ -638,12 +651,22 @@ const uk: Translations = {
   roles: { leader: 'Лідер', coleader: 'Заступник', elder: 'Старійшина' },
 
   insights: {
-    title: '🧠 Аналітика клану',
-    lockedNote: "Шанс перемоги в гонці в реальному часі, «здоров'я» клану та DNA-профілі гравців (хто тягне, а хто баласт) — доступно на тарифі Pro. 🔒",
+    title: '🧠 Аналітика тижня',
+    lockedNote: 'Шанс перемоги в реальному часі, медалі по днях, темп проти минулого тижня та герої тижня — на тарифі Pro. 🔒',
     winCaption: 'шанс перемоги в гонці',
     topRival: 'головний суперник:',
     slackersWarn1: 'Якщо ті, хто не дограв, так і не зіграють — шанс впаде до ',
     slackersWarn2: '%',
+    dayByDay: '📅 Медалі по днях',
+    dayShort: 'Д',
+    placeSuffix: '-е',
+    heroes: '🔥 Герої тижня',
+    vsLastWeek: '⚖️ Темп проти минулого тижня',
+    lastWeekFinal: 'минулий:',
+    currentNow: 'зараз:',
+    ahead: 'йдете краще за минулий тиждень',
+    behind: 'відстаєте від минулого тижня',
+    same: 'йдете нарівні з минулим',
   },
 
   warlog: {
@@ -777,9 +800,10 @@ const uk: Translations = {
       { icon: '🔮', title: 'Прогноз клану', desc: 'Скільки медалей наберете за сьогодні та до кінця тижня, з діапазоном і точністю.', pro: false },
       { icon: '📅', title: 'Минулі війни та сезон', desc: 'Рейтинг гравців за кожну війну (W1, W2…) та сумарний залік за весь сезон.', pro: false },
       { icon: '📜', title: 'Історія по тижнях', desc: 'Графіки та динаміка клану і особисто твоя за минулі тижні воєн.', pro: false },
-      { icon: '👉', title: '«Штовхнути» тих, хто не зіграв', desc: 'Надіслати нагадування всім одразу однією кнопкою (Free — до 20 осіб).', pro: false },
-      { icon: '⏰', title: 'Автонагадування', desc: 'Особисте повідомлення кожному, хто не дограв, за N годин до кінця дня.', pro: true },
-      { icon: '📊', title: 'Pro-аналітика', desc: "Шанс перемоги в гонці, здоров'я клану та архетип кожного гравця (Тащер, Надійний…).", pro: true },
+      { icon: '👉', title: '«Штовхнути» тих, хто не зіграв', desc: 'Надіслати нагадування всім одразу однією кнопкою (Free — до 5 осіб).', pro: false },
+      { icon: '⏰', title: 'Автонагадування', desc: 'Особисте повідомлення кожному, хто не дограв, за N годин до кінця дня — без лімітів.', pro: true },
+      { icon: '📊', title: 'Аналітика тижня', desc: 'Шанс перемоги, медалі по днях, темп проти минулого тижня та герої тижня.', pro: true },
+      { icon: '🌅', title: 'Ранковий брифінг лідера', desc: 'Кожен воєнний день — особисте зведення-план в ОП: вчорашній підсумок, місце в гонці, відрив і ціль на день.', pro: true },
     ],
   },
 
@@ -811,7 +835,7 @@ const uk: Translations = {
   nudge: {
     sending: 'Штовхаю…',
     label: 'Штовхнути ледарів',
-    freeLimit: ' · ліміт 20 на Free',
+    freeLimit: ' · ліміт 5 на Free',
     done: 'Штовхнув!',
     allPlayed: 'Всі вже зіграли 🎉',
     noWar: 'Зараз не день війни',
@@ -839,7 +863,7 @@ const uk: Translations = {
     warEndDefault: 'Не задано — за замовчуванням 10:00 UTC. Вкажи свій час.',
     warEndLocalHint: 'Вказано у твоєму місцевому часі.',
     remindersTitle: 'Нагадування тим, хто не зіграв',
-    remindersDesc: 'Пінг тим, хто не догравав 4/4, перед кінцем дня війни.',
+    remindersDesc: 'Пінг тим, хто не дограв 4/4, перед кінцем дня війни. Особисті повідомлення кожному гравцю — лише на Pro; без Pro в чат іде загальне зведення.',
     warStartTitle: 'Анонс початку КВ',
     warStartDesc: 'Повідомлення, коли починається воєнний день (четвер).',
     finalCallTitle: 'Фінальний штовхач',
@@ -906,6 +930,8 @@ const uk: Translations = {
     shareBtn: '📣 Надіслати інструкцію в чат клану',
     shareText: 'Підключаємо клану Clanify: покаже хто не дограв КВ, надішле нагадування і прогноз медалей. Додайте бота в чат і напишіть /setup #ТЕГ_КЛАНУ 👉',
     orRecruit: 'Або знайди собі новий клан:',
+    tournamentHint: 'Турніри доступні й без клану — збери друзів і зіграй',
+    tournamentBtn: 'До турнірів',
   },
 
   recruit: {
@@ -1195,12 +1221,22 @@ const en: Translations = {
   roles: { leader: 'Leader', coleader: 'Co-leader', elder: 'Elder' },
 
   insights: {
-    title: '🧠 Clan Analytics',
-    lockedNote: "Real-time win chance in the race, clan health, and DNA profiles of players (who carries, who's dead weight) — available on the Pro plan. 🔒",
+    title: '🧠 Week Analytics',
+    lockedNote: 'Real-time win chance, medals day by day, pace vs last week and heroes of the week — on the Pro plan. 🔒',
     winCaption: 'win chance in race',
     topRival: 'top rival:',
     slackersWarn1: "If those who haven't finished don't play — the chance will drop to ",
     slackersWarn2: '%',
+    dayByDay: '📅 Medals by day',
+    dayShort: 'D',
+    placeSuffix: '',
+    heroes: '🔥 Heroes of the week',
+    vsLastWeek: '⚖️ Pace vs last week',
+    lastWeekFinal: 'last week:',
+    currentNow: 'now:',
+    ahead: 'ahead of last week',
+    behind: 'behind last week',
+    same: 'on par with last week',
   },
 
   warlog: {
@@ -1334,9 +1370,10 @@ const en: Translations = {
       { icon: '🔮', title: 'Clan Forecast', desc: "How many medals you'll earn today and by end of week, with range and accuracy.", pro: false },
       { icon: '📅', title: 'Past Wars & Season', desc: 'Player rankings for each war (W1, W2…) and cumulative season standings.', pro: false },
       { icon: '📜', title: 'Weekly History', desc: 'Charts and dynamics for the clan and your personal stats across past war weeks.', pro: false },
-      { icon: '👉', title: 'Nudge slackers', desc: 'Send a reminder to everyone at once with one button (Free — up to 20 people).', pro: false },
-      { icon: '⏰', title: 'Auto-reminders', desc: "Personal message to each player who hasn't finished N hours before the day ends.", pro: true },
-      { icon: '📊', title: 'Pro Analytics', desc: 'Win chance in the race, clan health, and player archetypes (Carry, Reliable…).', pro: true },
+      { icon: '👉', title: 'Nudge slackers', desc: 'Send a reminder to everyone at once with one button (Free — up to 5 people).', pro: false },
+      { icon: '⏰', title: 'Auto-reminders', desc: "Personal message to each player who hasn't finished N hours before the day ends — no limits.", pro: true },
+      { icon: '📊', title: 'Week Analytics', desc: 'Win chance, medals day by day, pace vs last week and heroes of the week.', pro: true },
+      { icon: '🌅', title: 'Morning leader briefing', desc: "Every war day — a personal plan in DM: yesterday's result, race position, gap and today's goal.", pro: true },
     ],
   },
 
@@ -1368,7 +1405,7 @@ const en: Translations = {
   nudge: {
     sending: 'Nudging…',
     label: 'Nudge slackers',
-    freeLimit: ' · limit 20 on Free',
+    freeLimit: ' · limit 5 on Free',
     done: 'Nudged!',
     allPlayed: 'Everyone has played 🎉',
     noWar: 'Not a war day',
@@ -1396,7 +1433,7 @@ const en: Translations = {
     warEndDefault: 'Not set — defaults to 10:00 UTC. Set your own time.',
     warEndLocalHint: 'Shown in your local time.',
     remindersTitle: 'Reminders to non-players',
-    remindersDesc: 'Ping those who haven’t played 4/4 before the war day ends.',
+    remindersDesc: 'Ping those who haven’t played 4/4 before the war day ends. Personal DMs to each player are Pro-only; without Pro a chat summary is sent.',
     warStartTitle: 'War start announcement',
     warStartDesc: 'Message when the war day begins (Thursday).',
     finalCallTitle: 'Final call',
@@ -1463,6 +1500,8 @@ const en: Translations = {
     shareBtn: '📣 Send instructions to clan chat',
     shareText: "Let's connect Clanify to our clan: it shows who hasn't finished war decks, sends reminders and medal forecasts. Add the bot to the chat and type /setup #CLAN_TAG 👉",
     orRecruit: 'Or find yourself a new clan:',
+    tournamentHint: 'Tournaments work without a clan — gather friends and play',
+    tournamentBtn: 'To tournaments',
   },
 
   recruit: {

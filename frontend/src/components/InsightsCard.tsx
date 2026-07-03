@@ -1,12 +1,22 @@
-import type { ClanInsights, Plan } from '../types'
+import type { ClanInsights, Plan, PlayerStatus, WarDayLog, WarLogWeek } from '../types'
+import { fmt } from '../lib/format'
 import { useT } from '../lib/i18n'
 
 interface Props {
   insights: ClanInsights | null
   plan: Plan
+  players: PlayerStatus[]
+  dayLogs: WarDayLog[]
+  warLog: WarLogWeek[]
+  periodType: 'training' | 'warDay' | 'colosseum'
 }
 
-export function InsightsCard({ insights, plan }: Props) {
+/**
+ * «Аналитика недели» (Pro). Вместо прежнего «здоровья клана» (одна цифра из
+ * данных за день) — живая история недели: шанс победы, медали по дням из
+ * официального лога, темп против прошлой недели и герои недели.
+ */
+export function InsightsCard({ insights, plan, players, dayLogs, warLog, periodType }: Props) {
   const { t } = useT()
 
   if (plan !== 'pro') {
@@ -23,10 +33,29 @@ export function InsightsCard({ insights, plan }: Props) {
 
   if (!insights) return null
 
-  const { winChance, winChanceIfSlackersOut, topRivalName, healthScore, healthLabel, factors } = insights
+  const { winChance, winChanceIfSlackersOut, topRivalName } = insights
   const drop = winChance !== null && winChanceIfSlackersOut !== null
     ? winChance - winChanceIfSlackersOut
     : 0
+
+  // Официальный по-дневный лог: только военные дни (3..6 → Д1..Д4)
+  const warDays = dayLogs.filter(d => d.dayIndex >= 3).slice(-4)
+  const maxDayPoints = Math.max(1, ...warDays.map(d => d.pointsEarned))
+
+  // Темп против прошлой недели: итог прошлой vs текущий прогресс с поправкой на день
+  const lastWeek = warLog.length > 0 ? warLog[0] : null
+  const lastOurs = lastWeek?.standings.find(s => s.isOurClan) ?? null
+  const currentFame = players.reduce((sum, p) => sum + p.fame, 0)
+  const daysElapsed = Math.min(4, Math.max(1, warDays.length + (periodType !== 'training' ? 1 : 0)))
+  const expectedByNow = lastOurs ? Math.round(lastOurs.fame * (daysElapsed / 4)) : 0
+  const pace: 'ahead' | 'behind' | 'same' | null = lastOurs && expectedByNow > 0
+    ? currentFame > expectedByNow * 1.1 ? 'ahead'
+      : currentFame < expectedByNow * 0.9 ? 'behind'
+        : 'same'
+    : null
+
+  const heroes = [...players].sort((a, b) => b.fame - a.fame).slice(0, 3).filter(p => p.fame > 0)
+  const heroMedals = ['🥇', '🥈', '🥉']
 
   return (
     <section className="card insights-card">
@@ -60,30 +89,60 @@ export function InsightsCard({ insights, plan }: Props) {
         </div>
       )}
 
-      <div className="health-block">
-        <div className="health-head">
-          <span className="health-score">
-            🩺 {healthScore}<span className="muted">/100</span>
-          </span>
-          <span className={`health-label ${healthScore >= 75 ? 'win-good' : healthScore >= 50 ? 'win-mid' : 'win-bad'}`}>
-            {healthLabel}
-          </span>
-        </div>
-        <div className="health-factors">
-          {factors.map(f => (
-            <div key={f.name} className="health-factor">
-              <span className="health-factor-name muted small">{f.name}</span>
-              <div className="health-factor-track">
-                <div
-                  className={`health-factor-fill ${f.score >= 70 ? 'fill-good' : f.score >= 45 ? 'fill-mid' : 'fill-bad'}`}
-                  style={{ width: `${Math.max(4, f.score)}%` }}
-                />
+      {warDays.length > 0 && (
+        <div className="week-days-block">
+          <span className="insights-sub">{t.insights.dayByDay}</span>
+          <div className="week-days">
+            {warDays.map(d => (
+              <div key={d.dayIndex} className="week-day">
+                <div className="week-day-bar-track">
+                  <div
+                    className="week-day-bar"
+                    style={{ height: `${Math.max(8, Math.round((d.pointsEarned / maxDayPoints) * 100))}%` }}
+                  />
+                </div>
+                <span className="week-day-points small">{fmt(d.pointsEarned)}</span>
+                <span className="muted small">
+                  {t.insights.dayShort}{d.dayIndex - 2} · {d.endOfDayRank}{t.insights.placeSuffix}
+                </span>
               </div>
-              <span className="health-factor-score small">{f.score}</span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {lastOurs && (
+        <div className="pace-block">
+          <span className="insights-sub">{t.insights.vsLastWeek}</span>
+          <div className="pace-row">
+            <span className="muted small">
+              {t.insights.lastWeekFinal} {fmt(lastOurs.fame)} 🏅 · {lastOurs.rank}{t.insights.placeSuffix}
+            </span>
+            <span className="small">
+              {t.insights.currentNow} <b>{fmt(currentFame)}</b> 🏅
+            </span>
+          </div>
+          {pace && (
+            <span className={`pace-chip ${pace === 'ahead' ? 'win-good' : pace === 'behind' ? 'win-bad' : 'win-mid'}`}>
+              {pace === 'ahead' ? '📈 ' + t.insights.ahead : pace === 'behind' ? '📉 ' + t.insights.behind : '➡️ ' + t.insights.same}
+            </span>
+          )}
+        </div>
+      )}
+
+      {heroes.length > 0 && (
+        <div className="heroes-block">
+          <span className="insights-sub">{t.insights.heroes}</span>
+          {heroes.map((p, i) => (
+            <div key={p.playerTag} className="hero-row">
+              <span>{heroMedals[i]}</span>
+              <span className="hero-name">{p.name}</span>
+              <span className="muted small">⚡ {p.avgFamePerAttack.toFixed(0)}</span>
+              <span className="hero-fame">{fmt(p.fame)} 🏅</span>
             </div>
           ))}
         </div>
-      </div>
+      )}
     </section>
   )
 }

@@ -110,6 +110,9 @@ export default function App() {
         <GuestEntry
           onSuccess={(playerTag, clanTag, data) => {
             setState({ kind: 'guest', data, myPlayerTag: playerTag })
+            // Гость ввёл СВОЙ тег — первым делом показываем ЕГО статистику,
+            // а не клан: личная ценность цепляет сильнее общей таблицы.
+            setTab('me')
           }}
         />
       )
@@ -159,7 +162,7 @@ export default function App() {
                 {/* Аналитика к аналитике: цифры → прогноз → инсайты, потом гонка и история */}
                 <StatsStrip stats={data.stats} />
                 <ForecastCard forecast={data.forecast} stats={data.stats} periodType={data.periodType} />
-                <InsightsCard insights={data.insights} plan={data.plan} />
+                <InsightsCard insights={data.insights} plan={data.plan} players={data.players} dayLogs={data.dayLogs ?? []} warLog={data.warLog ?? []} periodType={data.periodType} />
                 <RaceCard race={data.race} periodType={data.periodType} />
                 <WarLogCard log={data.warLog} />
                 {canManage && data.periodType !== 'training' && (
@@ -258,7 +261,7 @@ export default function App() {
                 {/* Аналитика к аналитике: цифры → прогноз → инсайты, потом гонка и история */}
                 <StatsStrip stats={data.stats} />
                 <ForecastCard forecast={data.forecast} stats={data.stats} periodType={data.periodType} />
-                <InsightsCard insights={data.insights} plan={data.plan} />
+                <InsightsCard insights={data.insights} plan={data.plan} players={data.players} dayLogs={data.dayLogs ?? []} warLog={data.warLog ?? []} periodType={data.periodType} />
                 <RaceCard race={data.race} periodType={data.periodType} />
                 <WarLogCard log={data.warLog} />
                 <PlayerList players={data.players} myPlayerTag={myPlayerTag} />

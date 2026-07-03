@@ -45,7 +45,7 @@ export function NudgeButton({ notPlayedCount, isPro }: { notPlayedCount: number;
     <button className="btn btn-nudge" onClick={nudge} disabled={state === 'sending'}>
       {state === 'sending'
         ? t.nudge.sending
-        : `👊 ${t.nudge.label} (${notPlayedCount})${!isPro && notPlayedCount > 20 ? t.nudge.freeLimit : ''}`}
+        : `👊 ${t.nudge.label} (${notPlayedCount})${!isPro && notPlayedCount > 5 ? t.nudge.freeLimit : ''}`}
     </button>
   )
 }

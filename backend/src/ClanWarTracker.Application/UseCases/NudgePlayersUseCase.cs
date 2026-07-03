@@ -44,8 +44,8 @@ public class NudgePlayersUseCase(
         var allSlackers = war.Participants
             .Where(p => p.DecksUsedToday < 4 && roster.Contains(p.PlayerTag))
             .ToList();
-        // Free: не более 20 человек суммарно получают любые уведомления
-        var slackers = isPro ? allSlackers : allSlackers.Take(20).ToList();
+        // Free: не более 5 человек суммарно получают любые уведомления (Pro — без лимита)
+        var slackers = isPro ? allSlackers : allSlackers.Take(5).ToList();
 
         int dm = 0, skipped = 0;
         foreach (var slacker in slackers)
