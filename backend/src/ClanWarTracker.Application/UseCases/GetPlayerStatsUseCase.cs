@@ -45,20 +45,31 @@ public class GetPlayerStatsUseCase(
             WarForecastService.RefineWarDecks(war, firstWarDay);
         }
 
-        var totalWarDecks = war.Participants.Sum(p => p.WarDecksUsed);
-        var totalFame = war.Participants.Sum(p => p.Fame);
+        // Только текущий состав: в списке войны CR API держит и ушедших (за неделю >50),
+        // иначе ранг и размер клана считаются по 100+ участникам. Себя всегда оставляем.
+        Dictionary<string, string> members;
+        try { members = await crApi.GetClanMemberRolesAsync(clan.ClanTag, ct); }
+        catch { members = new(StringComparer.OrdinalIgnoreCase); } // фолбэк — топ-50 в WarRoster
+        var rosterTags = WarRoster.CurrentMemberTags(war, members);
+        var roster = war.Participants
+            .Where(p => rosterTags.Contains(p.PlayerTag)
+                        || string.Equals(p.PlayerTag, me.PlayerTag, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        var totalWarDecks = roster.Sum(p => p.WarDecksUsed);
+        var totalFame = roster.Sum(p => p.Fame);
         // Фолбэк 150 = 50% винрейта (победа 200 / поражение 100)
         var clanAvgFamePerAttack = totalWarDecks > 0 ? (double)totalFame / totalWarDecks : 150.0;
 
         var projection = forecast.ProjectPlayer(me, war, hoursLeft, clanAvgFamePerAttack);
 
-        var ranked = war.Participants.OrderByDescending(p => p.Fame).ToList();
+        var ranked = roster.OrderByDescending(p => p.Fame).ToList();
         var rank = ranked.FindIndex(p =>
             string.Equals(p.PlayerTag, me.PlayerTag, StringComparison.OrdinalIgnoreCase)) + 1;
 
         var contributionPct = totalFame > 0 ? (int)Math.Round(me.Fame * 100.0 / totalFame) : 0;
 
-        var label = PerformanceLabel(projection.AvgFamePerAttack, clanAvgFamePerAttack, rank, war.Participants.Count);
+        var label = PerformanceLabel(projection.AvgFamePerAttack, clanAvgFamePerAttack, rank, roster.Count);
 
         // Сезонная сводка — только на Pro (как и сезонный зачёт клана)
         MySeasonDto? mySeason = null;
@@ -93,7 +104,7 @@ public class GetPlayerStatsUseCase(
             ProjectedDayFame: projection.ProjectedDayFame,
             ProjectedWeekFame: projection.ProjectedWeekFame,
             Rank: rank,
-            ClanSize: war.Participants.Count,
+            ClanSize: roster.Count,
             ContributionPercent: contributionPct,
             PerformanceLabel: label,
             ClanAvgFamePerAttack: Math.Round(clanAvgFamePerAttack, 1),

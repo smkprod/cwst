@@ -10,6 +10,12 @@ interface Props {
   periodType: ClanStatus['periodType']
 }
 
+/**
+ * Два отдельных режима отображения:
+ *  — обычная война (warDay/training): проверенный формат, НЕ меняем;
+ *  — колизей: очки копятся все 4 дня без сброса, лодок нет — свой заголовок,
+ *    подписи словами и легенда, чтобы низ карточки читался без догадок.
+ */
 export function RaceCard({ race, periodType }: Props) {
   const [selected, setSelected] = useState<RaceClan | null>(null)
   const { t } = useT()
@@ -17,7 +23,8 @@ export function RaceCard({ race, periodType }: Props) {
   if (!race || race.length === 0) return null
 
   const maxFame = Math.max(...race.map(c => Math.max(c.fame, 1)))
-  const isWarDay = periodType === 'warDay' || periodType === 'colosseum'
+  const isColosseum = periodType === 'colosseum'
+  const isWarDay = periodType === 'warDay' || isColosseum
 
   const open = (c: RaceClan) => {
     haptic('light')
@@ -27,24 +34,26 @@ export function RaceCard({ race, periodType }: Props) {
   return (
     <section className="card race-card">
       <div className="card-title-row">
-        <div className="card-title">{t.race.title}</div>
+        <div className="card-title">{isColosseum ? t.race.titleColosseum : t.race.title}</div>
         {periodType === 'training' && <span className="muted small">{t.race.trainingNote}</span>}
-        {periodType === 'colosseum' && <span className="trend-chip trend-onpace">{t.period.colosseum}</span>}
       </div>
+      {isColosseum && <p className="muted small race-colosseum-note">{t.race.colosseumNote}</p>}
 
       <ul className="race-list">
         {race.map(c => {
-          // Колизей: колоды/очки копятся всю неделю — показываем накопленные колоды и
-          // среднее за неделю, без «сегодня/лимита» и без лодок. Обычная война — как было.
-          const meta = [
-            c.warTrophies > 0 ? `🏆 ${fmt(c.warTrophies)}` : null,
-            c.isColosseum
-              ? (c.decksUsed > 0 ? `🃏 ${fmt(c.decksUsed)}` : null)
-              : (isWarDay ? `🃏 ${c.decksUsedToday}/${c.maxDecksToday}` : null),
-            c.isColosseum
-              ? (c.decksUsed > 0 ? `⚡ ${c.avgFamePerAttack.toFixed(1)}` : null)
-              : (isWarDay && c.decksUsedToday > 0 ? `⚡ ${c.avgFamePerAttack.toFixed(1)}` : null),
-          ].filter(Boolean).join(' · ')
+          // Колизей: накопленные за неделю колоды и средние медали, с подписями словами.
+          // Обычная война: компактный формат «сегодня/лимит», как было.
+          const meta = isColosseum
+            ? [
+                c.warTrophies > 0 ? `🏆 ${fmt(c.warTrophies)}` : null,
+                c.decksUsed > 0 ? `🃏 ${fmt(c.decksUsed)} ${t.race.decksWeekLabel}` : null,
+                c.decksUsed > 0 ? `⚡ ${c.avgFamePerAttack.toFixed(1)} ${t.race.avgLabel}` : null,
+              ].filter(Boolean).join(' · ')
+            : [
+                c.warTrophies > 0 ? `🏆 ${fmt(c.warTrophies)}` : null,
+                isWarDay ? `🃏 ${c.decksUsedToday}/${c.maxDecksToday}` : null,
+                isWarDay && c.decksUsedToday > 0 ? `⚡ ${c.avgFamePerAttack.toFixed(1)}` : null,
+              ].filter(Boolean).join(' · ')
 
           return (
             <li key={c.tag}>
@@ -69,8 +78,8 @@ export function RaceCard({ race, periodType }: Props) {
                 <div className="race-numbers">
                   {/* Колизей: лодок нет — clan.fame из API это те же накопленные медали
                       (дублирует ∑), а periodPoints CR не заполняет. Показываем одну
-                      цифру медалей вместо «паруса» и нулевого «за сегодня». */}
-                  {periodType === 'colosseum' ? (
+                      цифру медалей недели и прогноз к финалу. */}
+                  {isColosseum ? (
                     <>
                       <span className="race-fame race-fame-today" title={t.race.totalTitle}>
                         {fmt(c.fame)} 🏅
@@ -109,6 +118,8 @@ export function RaceCard({ race, periodType }: Props) {
           )
         })}
       </ul>
+
+      {isColosseum && <p className="muted small race-colosseum-legend">{t.race.colosseumLegend}</p>}
 
       {selected && <ClanWarLogModal clan={selected} onClose={() => setSelected(null)} />}
     </section>

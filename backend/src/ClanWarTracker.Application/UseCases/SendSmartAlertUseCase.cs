@@ -1,3 +1,4 @@
+using ClanWarTracker.Application.DTOs;
 using ClanWarTracker.Domain.Enums;
 using ClanWarTracker.Domain.Interfaces;
 
@@ -26,7 +27,9 @@ public class SendSmartAlertUseCase(
         {
             if (clan.EffectivePlan(DateTime.UtcNow) != PlanTier.Pro) continue;
 
-            var status = await clanStatus.ExecuteAsync(clan.ClanTag, ct);
+            ClanStatusDto? status;
+            try { status = await clanStatus.ExecuteAsync(clan.ClanTag, ct); }
+            catch { continue; } // CR API прилёг — не роняем цикл для остальных кланов
             if (status is null || status.Insights?.WinChance is null) continue;
 
             var ours = status.Race.FirstOrDefault(r => r.IsOurClan);

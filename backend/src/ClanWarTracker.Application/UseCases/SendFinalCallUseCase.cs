@@ -46,7 +46,9 @@ public class SendFinalCallUseCase(
             if (!reportedKeys.Add(key)) continue;
 
             // Только текущий состав: в списке войны CR API держит и ушедших (за неделю >50).
-            var members = await crApi.GetClanMemberRolesAsync(clan.ClanTag, ct);
+            Dictionary<string, string> members;
+            try { members = await crApi.GetClanMemberRolesAsync(clan.ClanTag, ct); }
+            catch { members = new(StringComparer.OrdinalIgnoreCase); } // фолбэк — топ-50 в WarRoster
             var roster = WarRoster.CurrentMemberTags(war, members);
             var slackers = war.Participants
                 .Where(p => p.DecksUsedToday < 4 && roster.Contains(p.PlayerTag))

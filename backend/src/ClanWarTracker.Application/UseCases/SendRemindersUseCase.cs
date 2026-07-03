@@ -1,4 +1,5 @@
 using ClanWarTracker.Application.Notifications;
+using ClanWarTracker.Domain.Entities;
 using ClanWarTracker.Domain.Enums;
 using ClanWarTracker.Domain.Interfaces;
 
@@ -13,12 +14,17 @@ public class SendRemindersUseCase(
     /// <summary>Минимальный интервал между напоминаниями одному игроку.</summary>
     private static readonly TimeSpan ReminderCooldown = TimeSpan.FromHours(6);
 
-
-    public async Task ExecuteAsync(CancellationToken ct = default)
+    /// <param name="chatPostedKeys">
+    /// Дедуп сводки в чат: "clanId:season:section:period". Без него сводка уходила бы
+    /// каждые 30 минут всё окно напоминания (до 6 одинаковых сообщений подряд).
+    /// </param>
+    public async Task ExecuteAsync(ISet<string> chatPostedKeys, CancellationToken ct = default)
     {
         foreach (var clan in await clans.GetAllAsync(ct))
         {
-            var war = await crApi.GetCurrentWarAsync(clan.ClanTag, ct);
+            WarStatus? war;
+            try { war = await crApi.GetCurrentWarAsync(clan.ClanTag, ct); }
+            catch { continue; } // CR API прилёг — не роняем цикл для остальных кланов
             if (war is null || !war.IsWarDay) continue;
 
             var settings = NotificationSettings.Parse(clan.NotificationSettingsJson);
@@ -48,7 +54,9 @@ public class SendRemindersUseCase(
                 : new Dictionary<string, Domain.Entities.Player>(StringComparer.OrdinalIgnoreCase);
 
             // Только текущий состав: в списке войны CR API держит и ушедших (за неделю >50).
-            var members = await crApi.GetClanMemberRolesAsync(clan.ClanTag, ct);
+            Dictionary<string, string> members;
+            try { members = await crApi.GetClanMemberRolesAsync(clan.ClanTag, ct); }
+            catch { members = new(StringComparer.OrdinalIgnoreCase); } // фолбэк — топ-50 в WarRoster
             var roster = WarRoster.CurrentMemberTags(war, members);
             var slackers = war.Participants
                 .Where(p => p.DecksUsedToday < 4 && roster.Contains(p.PlayerTag))
@@ -94,9 +102,21 @@ public class SendRemindersUseCase(
             if (!isPro && allLinked.Count > 0)
                 parts.Add("🔒 Личные напоминания в DM — функция Pro. Подключи Pro, чтобы никто не забывал про атаки.");
 
-            if (parts.Count > 0 && clan.TelegramChatId != 0 && settings.Reminders.Channel.WantsChat())
-                await notifier.SendToChatAsync(clan.TelegramChatId, string.Join("\n\n", parts),
-                    clan.TelegramMessageThreadId, html: true, ct: ct);
+            // Сводка в чат — один раз за военный день (ключ дня), а не каждый тик окна.
+            var chatKey = $"{clan.Id}:{war.SeasonId}:{war.SectionIndex}:{war.PeriodIndex}";
+            if (parts.Count > 0 && clan.TelegramChatId != 0 && settings.Reminders.Channel.WantsChat()
+                && chatPostedKeys.Add(chatKey))
+            {
+                try
+                {
+                    await notifier.SendToChatAsync(clan.TelegramChatId, string.Join("\n\n", parts),
+                        clan.TelegramMessageThreadId, html: true, ct: ct);
+                }
+                catch
+                {
+                    chatPostedKeys.Remove(chatKey); // не отправилось — попробуем в следующий тик
+                }
+            }
         }
     }
 }
