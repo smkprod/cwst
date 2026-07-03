@@ -37,7 +37,9 @@ public class NudgePlayersUseCase(
             .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
         // Только текущий состав клана (список войны CR API держит и ушедших — за неделю >50).
-        var members = await crApi.GetClanMemberRolesAsync(clan.ClanTag, ct);
+        Dictionary<string, string> members;
+        try { members = await crApi.GetClanMemberRolesAsync(clan.ClanTag, ct); }
+        catch { members = new(StringComparer.OrdinalIgnoreCase); } // фолбэк — топ-50 в WarRoster
         var roster = WarRoster.CurrentMemberTags(war, members);
         var allSlackers = war.Participants
             .Where(p => p.DecksUsedToday < 4 && roster.Contains(p.PlayerTag))

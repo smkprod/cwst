@@ -47,7 +47,9 @@ public class GetPlayerStatsUseCase(
 
         // Только текущий состав: в списке войны CR API держит и ушедших (за неделю >50),
         // иначе ранг и размер клана считаются по 100+ участникам. Себя всегда оставляем.
-        var members = await crApi.GetClanMemberRolesAsync(clan.ClanTag, ct);
+        Dictionary<string, string> members;
+        try { members = await crApi.GetClanMemberRolesAsync(clan.ClanTag, ct); }
+        catch { members = new(StringComparer.OrdinalIgnoreCase); } // фолбэк — топ-50 в WarRoster
         var rosterTags = WarRoster.CurrentMemberTags(war, members);
         var roster = war.Participants
             .Where(p => rosterTags.Contains(p.PlayerTag)

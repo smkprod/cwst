@@ -108,7 +108,9 @@ public class SendDailyReportUseCase(
 
         // Лентяи — только из текущего состава клана: снимок недели содержит и ушедших
         // (их медали в итогах дня остаются — они честно заработаны для клана).
-        var memberRoles = await crApi.GetClanMemberRolesAsync(clan.ClanTag, ct);
+        Dictionary<string, string> memberRoles;
+        try { memberRoles = await crApi.GetClanMemberRolesAsync(clan.ClanTag, ct); }
+        catch { memberRoles = new(StringComparer.OrdinalIgnoreCase); } // пустой = показываем всех из снимка
         var slackers = dayResults
             .Where(r => r.DecksToday < 4 &&
                         (memberRoles.Count == 0 || memberRoles.ContainsKey(r.PlayerTag)))
