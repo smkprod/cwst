@@ -24,6 +24,16 @@ public class WarStatus
 
     public bool IsWarDay => PeriodType is "warDay" or "colosseum";
     public TimeSpan TimeLeft(DateTime utcNow) => DayEndsAtUtc - utcNow;
+
+    /// <summary>
+    /// Начало военной части текущей недели (UTC). Военные дни — это PeriodIndex 3..6 (чт-вс);
+    /// текущий военный день длится сутки и заканчивается в <see cref="DayEndsAtUtc"/>, а первый
+    /// военный день недели (четверг) стартовал (PeriodIndex-2) суток назад. Бои раньше этого
+    /// времени относятся к ПРОШЛОЙ неделе и не должны попадать в журнал текущей недели.
+    /// Плюс 3 часа запаса на погрешность времени сброса.
+    /// </summary>
+    public DateTime WarWeekStartUtc =>
+        DayEndsAtUtc.AddDays(-(Math.Clamp(PeriodIndex, 3, 6) - 2)).AddHours(-3);
 }
 
 /// <summary>Итог одного дня гонки для клана — официальные данные periodLogs.</summary>

@@ -253,6 +253,11 @@ public class ClanController(
         if (war is null) return Ok(new WarJournalDto(0, 0, 0, []));
 
         var battles = await warBattles.GetByWeekAsync(clan!.Id, war.SeasonId, war.SectionIndex, ct);
+        // Отсекаем бои раньше начала военной недели: раньше первый сбор мог затянуть старую
+        // историю из боевого лога и пометить её текущей неделей. Только в военные дни — иначе
+        // (в тренировочные дни) окно недели ещё не наступило и отфильтровало бы всё.
+        if (war.IsWarDay)
+            battles = battles.Where(b => b.BattleTimeUtc >= war.WarWeekStartUtc).ToList();
         var won = battles.Count(b => b.Won);
 
         return Ok(new WarJournalDto(
