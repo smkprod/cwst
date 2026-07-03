@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useT } from '../lib/i18n'
-import { haptic } from '../lib/telegram'
+import { haptic, shareToTelegram, botStartLink, BOT_USERNAME } from '../lib/telegram'
 import { LangSwitcher } from './LangSwitcher'
 import { RecruitToggle } from './RecruitToggle'
 import { PlayerSearchView } from './PlayerSearchView'
 import { TournamentView } from './TournamentView'
+import { TopPlayersTeaser } from './TopPlayersTeaser'
 
 type Tab = 'home' | 'search' | 'tournament'
 
@@ -26,15 +27,41 @@ export function ClanlessView() {
 
         {tab === 'home' && (
           <div>
-            <div className="center" style={{ paddingBottom: 24 }}>
+            {/* Психология: не «у тебя ничего нет», а миссия с готовыми шагами и
+                одной кнопкой, которая делает всё за пользователя (шеринг в чат). */}
+            <div className="center" style={{ minHeight: 'auto', paddingBottom: 12 }}>
               <p style={{ fontSize: 40, margin: 0 }}>🏰</p>
-              <p><strong>{t.clanless.title}</strong></p>
-              <p className="muted small" style={{ maxWidth: 280, textAlign: 'center' }}>
-                {t.clanless.hint}
+              <p style={{ margin: '10px 0 2px' }}><strong>{t.clanless.heroTitle}</strong></p>
+              <p className="muted small" style={{ maxWidth: 280, textAlign: 'center', margin: 0 }}>
+                {t.clanless.heroSub}
               </p>
             </div>
-            <p className="muted small" style={{ textAlign: 'center', marginBottom: 12 }}>
-              {t.clanless.recruitHint}
+
+            <section className="card">
+              <div className="card-title">{t.clanless.stepsTitle}</div>
+              <ol className="setup-steps">
+                <li>{t.clanless.step1}</li>
+                <li>{t.clanless.step2}</li>
+                <li>{t.clanless.step3}</li>
+              </ol>
+              {BOT_USERNAME && (
+                <button
+                  className="btn btn-nudge"
+                  style={{ width: '100%', marginTop: 10 }}
+                  onClick={() => {
+                    haptic('medium')
+                    shareToTelegram(t.clanless.shareText, botStartLink())
+                  }}
+                >
+                  {t.clanless.shareBtn}
+                </button>
+              )}
+            </section>
+
+            <TopPlayersTeaser />
+
+            <p className="muted small" style={{ textAlign: 'center', margin: '16px 0 12px' }}>
+              {t.clanless.orRecruit}
             </p>
             <RecruitToggle />
           </div>

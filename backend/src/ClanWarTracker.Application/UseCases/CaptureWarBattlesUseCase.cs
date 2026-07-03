@@ -25,7 +25,15 @@ public class CaptureWarBattlesUseCase(
             catch { continue; }
             if (war is null || !war.IsWarDay) continue;
 
-            var active = war.Participants.Where(p => p.DecksUsedToday > 0).ToList();
+            // Только текущий состав: ушедший игрок играет КВ уже за НОВЫЙ клан, но его бои
+            // из боевого лога попали бы в наш журнал (тип боя тот же riverRace*).
+            Dictionary<string, string> members;
+            try { members = await crApi.GetClanMemberRolesAsync(clan.ClanTag, ct); }
+            catch { members = new(StringComparer.OrdinalIgnoreCase); } // фолбэк — топ-50 в WarRoster
+            var roster = WarRoster.CurrentMemberTags(war, members);
+            var active = war.Participants
+                .Where(p => p.DecksUsedToday > 0 && roster.Contains(p.PlayerTag))
+                .ToList();
             if (active.Count == 0) continue;
 
             // Нижняя граница: только бои текущей военной недели. Боевой лог CR отдаёт ~25

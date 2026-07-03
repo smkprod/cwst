@@ -16,6 +16,7 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
     private readonly HashSet<string> _reportedDays = [];
     private readonly HashSet<string> _finalCallKeys = [];
     private readonly HashSet<string> _warStartKeys = [];
+    private readonly HashSet<string> _reminderChatKeys = [];
 
     protected override Task ExecuteAsync(CancellationToken stoppingToken) =>
         Task.WhenAll(
@@ -32,7 +33,7 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
             {
                 using var scope = scopeFactory.CreateScope();
                 var useCase = scope.ServiceProvider.GetRequiredService<SendRemindersUseCase>();
-                await useCase.ExecuteAsync(stoppingToken);
+                await useCase.ExecuteAsync(_reminderChatKeys, stoppingToken);
                 logger.LogInformation("Reminder check completed at {Time}", DateTime.UtcNow);
             }
             catch (Exception ex)
