@@ -73,10 +73,17 @@ public class SendFinalCallUseCase(
             var unlinked = slackers.Count - taggable.Count;
             var more = unlinked > 0 ? $"\n\n👥 Ещё <b>{unlinked}</b> не привязали Telegram." : "";
 
-            await notifier.SendToChatAsync(clan.TelegramChatId,
-                $"🚨 <b>Война закрывается через ~30 минут!</b>\nПоследний шанс доиграть КВ:\n\n{names}{more}",
-                clan.TelegramMessageThreadId, html: true, ct: ct);
-            sent++;
+            try
+            {
+                await notifier.SendToChatAsync(clan.TelegramChatId,
+                    $"🚨 <b>Война закрывается через ~30 минут!</b>\nПоследний шанс доиграть КВ:\n\n{names}{more}",
+                    clan.TelegramMessageThreadId, html: true, ct: ct);
+                sent++;
+            }
+            catch
+            {
+                reportedKeys.Remove(key); // сбой — попробуем в следующий тик, пока окно не закрылось
+            }
         }
 
         return sent;
