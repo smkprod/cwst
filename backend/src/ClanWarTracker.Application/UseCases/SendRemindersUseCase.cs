@@ -70,14 +70,19 @@ public class SendRemindersUseCase(
             // (уведомляет их напрямую, даже без username), плюс up-sell DM для Free.
             var parts = new List<string>();
 
-            if (slackers.Count > 0)
+            // Тегаем только тех, кого реально можно тегнуть (привязан Telegram). Непривязанных
+            // не перечисляем — их имя из CR не пингует и превращает сводку в стену имён.
+            var taggable = slackers.Where(s => allLinked.ContainsKey(s.PlayerTag)).ToList();
+            if (taggable.Count > 0)
             {
-                var names = slackers.Select(s =>
+                var names = taggable.Select(s =>
                 {
-                    var p = allLinked.GetValueOrDefault(s.PlayerTag);
-                    return TelegramMention.Mention(s.Name, p?.TelegramUserId, p?.TelegramUsername);
+                    var p = allLinked[s.PlayerTag];
+                    return TelegramMention.Mention(s.Name, p.TelegramUserId, p.TelegramUsername);
                 });
-                parts.Add($"⏰ Ещё не доиграли войну: {string.Join(", ", names)}");
+                var unlinked = slackers.Count - taggable.Count;
+                var note = unlinked > 0 ? $" · ещё {unlinked} без Telegram" : "";
+                parts.Add($"⏰ Ещё не доиграли войну: {string.Join(", ", names)}{note}");
             }
 
             if (!isPro && allLinked.Count > 0)

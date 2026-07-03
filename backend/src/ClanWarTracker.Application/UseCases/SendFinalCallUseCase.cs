@@ -53,12 +53,17 @@ public class SendFinalCallUseCase(
                 .GroupBy(p => p.PlayerTag, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
-            var names = string.Join(", ", slackers.Take(20).Select(s =>
+            // Тегаем только привязанных — иначе получается стена имён, которая никого не пингует.
+            var taggable = slackers.Where(s => linked.ContainsKey(s.PlayerTag)).ToList();
+            if (taggable.Count == 0) continue;
+
+            var names = string.Join(", ", taggable.Take(30).Select(s =>
             {
-                var p = linked.GetValueOrDefault(s.PlayerTag);
-                return $"{TelegramMention.Mention(s.Name, p?.TelegramUserId, p?.TelegramUsername)} ({4 - s.DecksUsedToday}/4 колод)";
+                var p = linked[s.PlayerTag];
+                return $"{TelegramMention.Mention(s.Name, p.TelegramUserId, p.TelegramUsername)} ({4 - s.DecksUsedToday}/4 колод)";
             }));
-            var more = slackers.Count > 20 ? $" и ещё {slackers.Count - 20}" : "";
+            var unlinked = slackers.Count - taggable.Count;
+            var more = unlinked > 0 ? $"\n👥 Ещё {unlinked} не привязали Telegram." : "";
 
             await notifier.SendToChatAsync(clan.TelegramChatId,
                 $"🚨 Война закрывается через ~30 минут! Последний шанс доиграть КВ:\n{names}{more}",

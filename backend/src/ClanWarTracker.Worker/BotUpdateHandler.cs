@@ -191,7 +191,10 @@ public class BotUpdateHandler(
                     var nudgeResult = await sp.GetRequiredService<NudgePlayersUseCase>()
                         .ExecuteAsync(nudgeClan.Id, isProNudge, ct);
                     if (nudgeResult is null) { await Reply(msg, "Сейчас не день войны — пинать некого.", ct); return; }
-                    if (!nudgeResult.PostedToChat) await Reply(msg, "Все уже отыграли 4/4 — пинать некого 🎉", ct);
+                    if (nudgeResult.TaggableCount == 0 && nudgeResult.UnlinkedCount == 0)
+                        await Reply(msg, "Все уже отыграли 4/4 — пинать некого 🎉", ct);
+                    else if (nudgeResult.TaggableCount == 0)
+                        await Reply(msg, $"{nudgeResult.UnlinkedCount} не доиграли, но никто из них не привязал Telegram — тегнуть некого. Пусть откроют бота и привяжут аккаунт.", ct);
                     break;
 
                 case "/status":
