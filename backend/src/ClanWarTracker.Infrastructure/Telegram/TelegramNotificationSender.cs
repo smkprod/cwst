@@ -1,5 +1,6 @@
 using ClanWarTracker.Domain.Interfaces;
 using Telegram.Bot;
+using Telegram.Bot.Exceptions;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.ReplyMarkups;
 
@@ -19,7 +20,7 @@ public class TelegramNotificationSender(ITelegramBotClient bot) : INotificationS
         {
             await SendAsync(telegramUserId, text, threadId: null, html: false, ct);
         }
-        catch (Telegram.Bot.Exceptions.ApiRequestException)
+        catch (ApiRequestException)
         {
             // Игрок не запускал бота / заблокировал его — Telegram отдаёт «chat not found»,
             // «bot was blocked by the user», «user is deactivated». Это ожидаемо для ЛС:
