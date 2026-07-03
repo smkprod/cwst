@@ -49,6 +49,13 @@ const ru = {
     colosseumLegend: '🏅 всего за неделю · → прогноз к финалу',
   },
 
+  actionBanner: {
+    played: 'Ты отыграл',
+    decks: 'колод',
+    left: 'до конца дня',
+    cta: 'Доиграй — не теряй медали клана 💪',
+  },
+
   forecast: {
     titleSimple: '🔮 Прогноз',
     title: '🔮 Прогноз клана',
@@ -318,12 +325,28 @@ const ru = {
     exit: 'Сменить',
     linkForStats: 'Привяжи аккаунт через /link для сезонной статистики и уведомлений',
     notInWarRoster: 'Тебя нет в составе текущей войны',
+    heroTitle: 'Вся клановая война — в одном экране',
+    heroSub: 'Живой статус колод, прогнозы и рейтинг твоего клана',
+    b1: '📊 Кто отыграл, а кто спит — видно сразу',
+    b2: '🔮 Прогноз медалей и шанс победы',
+    b3: '🔔 Напоминания — никто не забудет про КВ',
+    topTitle: '🏆 Лучшие игроки прямо сейчас',
+    topCountSuffix: 'игроков уже соревнуются в рейтинге',
   },
 
   clanless: {
     title: 'Ты без клана',
     hint: 'Аккаунт привязан, но бот не добавлен ни в одну группу клана. Попроси администратора клана добавить бота и выполнить /setup.',
     recruitHint: 'Пока ты можешь разместить заявку в бирже — лидеры кланов с Pro увидят тебя.',
+    heroTitle: 'Твой клан ещё не подключён',
+    heroSub: 'Подключи — и весь клан увидит войну как на ладони',
+    stepsTitle: 'Это занимает 2 минуты:',
+    step1: 'Добавь бота в чат клана',
+    step2: 'Напиши там /setup #ТЕГ_КЛАНА',
+    step3: 'Готово — статус, прогнозы и напоминания',
+    shareBtn: '📣 Отправить инструкцию в чат клана',
+    shareText: 'Подключаем клану Clanify: покажет кто не доиграл КВ, пришлёт напоминания и прогноз медалей. Добавьте бота в чат и напишите /setup #ТЕГ_КЛАНА 👉',
+    orRecruit: 'Или найди себе новый клан:',
   },
 
   recruit: {
@@ -583,6 +606,13 @@ const uk: Translations = {
     decksWeekLabel: 'колод за тиждень',
     avgLabel: 'сер. за атаку',
     colosseumLegend: '🏅 всього за тиждень · → прогноз на фінал',
+  },
+
+  actionBanner: {
+    played: 'Ти відіграв',
+    decks: 'колод',
+    left: 'до кінця дня',
+    cta: 'Дограй — не втрачай медалі клану 💪',
   },
 
   forecast: {
@@ -854,12 +884,28 @@ const uk: Translations = {
     exit: 'Змінити',
     linkForStats: "Прив'яжи акаунт через /link для сезонної статистики та сповіщень",
     notInWarRoster: 'Тебе немає у складі поточної війни',
+    heroTitle: 'Уся кланова війна — на одному екрані',
+    heroSub: 'Живий статус колод, прогнози та рейтинг твого клану',
+    b1: '📊 Хто відіграв, а хто спить — видно одразу',
+    b2: '🔮 Прогноз медалей і шанс перемоги',
+    b3: '🔔 Нагадування — ніхто не забуде про КВ',
+    topTitle: '🏆 Найкращі гравці просто зараз',
+    topCountSuffix: 'гравців уже змагаються в рейтингу',
   },
 
   clanless: {
     title: 'Ти без клану',
     hint: 'Акаунт прив\'язаний, але бот не доданий до жодної групи клану. Попроси адміністратора клану додати бота і виконати /setup.',
     recruitHint: 'Поки ти можеш розмістити заявку на біржі — лідери кланів з Pro побачать тебе.',
+    heroTitle: 'Твій клан ще не підключено',
+    heroSub: 'Підключи — і весь клан бачитиме війну як на долоні',
+    stepsTitle: 'Це займає 2 хвилини:',
+    step1: 'Додай бота в чат клану',
+    step2: 'Напиши там /setup #ТЕГ_КЛАНУ',
+    step3: 'Готово — статус, прогнози та нагадування',
+    shareBtn: '📣 Надіслати інструкцію в чат клану',
+    shareText: 'Підключаємо клану Clanify: покаже хто не дограв КВ, надішле нагадування і прогноз медалей. Додайте бота в чат і напишіть /setup #ТЕГ_КЛАНУ 👉',
+    orRecruit: 'Або знайди собі новий клан:',
   },
 
   recruit: {
@@ -1117,6 +1163,13 @@ const en: Translations = {
     decksWeekLabel: 'decks this week',
     avgLabel: 'avg per attack',
     colosseumLegend: '🏅 week total · → projected final',
+  },
+
+  actionBanner: {
+    played: 'You played',
+    decks: 'decks',
+    left: 'until day end',
+    cta: "Finish your decks — don't lose clan medals 💪",
   },
 
   forecast: {
@@ -1388,12 +1441,28 @@ const en: Translations = {
     exit: 'Switch',
     linkForStats: 'Link your account via /link for season stats and notifications',
     notInWarRoster: 'You are not in the current war roster',
+    heroTitle: 'Your whole clan war — on one screen',
+    heroSub: "Live deck status, forecasts and your clan's rating",
+    b1: "📊 Who played and who's sleeping — at a glance",
+    b2: '🔮 Medal forecast and win chance',
+    b3: '🔔 Reminders — nobody forgets the war',
+    topTitle: '🏆 Top players right now',
+    topCountSuffix: 'players already competing',
   },
 
   clanless: {
     title: 'No clan',
     hint: "Your account is linked, but the bot hasn't been added to any clan group. Ask your clan admin to add the bot and run /setup.",
     recruitHint: 'In the meantime, you can post a listing on the board — Pro clan leaders will see you.',
+    heroTitle: 'Your clan is not connected yet',
+    heroSub: 'Connect it — and the whole clan sees the war at a glance',
+    stepsTitle: 'It takes 2 minutes:',
+    step1: 'Add the bot to your clan chat',
+    step2: 'Type /setup #CLAN_TAG there',
+    step3: 'Done — status, forecasts and reminders',
+    shareBtn: '📣 Send instructions to clan chat',
+    shareText: "Let's connect Clanify to our clan: it shows who hasn't finished war decks, sends reminders and medal forecasts. Add the bot to the chat and type /setup #CLAN_TAG 👉",
+    orRecruit: 'Or find yourself a new clan:',
   },
 
   recruit: {

@@ -169,6 +169,23 @@ main.with-tabbar { padding-bottom: 80px; }
 .race-colosseum-note { margin: -6px 0 10px; }
 .race-colosseum-legend { margin: 10px 0 0; text-align: center; opacity: 0.8; }
 
+/* --- Стартовые экраны: тизер топа, буллеты ценности, шаги подключения --- */
+.teaser-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.teaser-row { display: flex; align-items: center; gap: 8px; }
+.teaser-medal { flex: none; }
+.teaser-name { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.teaser-clan { display: block; font-weight: 400; }
+.teaser-fame { flex: none; font-weight: 700; color: var(--green); }
+.teaser-count { margin: 10px 0 0; text-align: center; }
+.guest-entry { padding: 12px 14px 0; }
+.guest-bullets { list-style: none; margin: 14px auto; padding: 0; max-width: 320px; display: grid; gap: 8px; }
+.setup-steps { margin: 0; padding-left: 22px; display: grid; gap: 8px; }
+
+/* --- Личный призыв на военный день («ты не доиграл») --- */
+.my-action-banner { border: 1px solid rgba(255, 122, 118, 0.45); }
+.my-action-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.my-action-cta { margin: 6px 0 0; }
+
 /* --- Pro-аналитика: шанс победы + здоровье клана --- */
 .insights-card { display: grid; gap: 14px; }
 .win-block { display: grid; gap: 8px; }

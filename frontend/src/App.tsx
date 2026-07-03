@@ -29,6 +29,7 @@ import { GuestMyStats } from './components/GuestMyStats'
 import { TournamentView } from './components/TournamentView'
 import { InviteCard } from './components/InviteCard'
 import { LeaderCtaCard } from './components/LeaderCtaCard'
+import { MyActionBanner } from './components/MyActionBanner'
 
 type State =
   | { kind: 'loading' }
@@ -153,6 +154,8 @@ export default function App() {
             {tab === 'war' && (
               <div className="fade-in">
                 <WarHeader status={data} canManage={canManage} onOpenSettings={() => { haptic('light'); setSettingsOpen(true) }} />
+                {/* Личный призыв — первым делом: «ты не доиграл» цепляет сильнее общих цифр */}
+                <MyActionBanner status={data} />
                 {/* Аналитика к аналитике: цифры → прогноз → инсайты, потом гонка и история */}
                 <StatsStrip stats={data.stats} />
                 <ForecastCard forecast={data.forecast} stats={data.stats} periodType={data.periodType} />
