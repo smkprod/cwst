@@ -68,20 +68,20 @@ public class NudgePlayersUseCase(
         var postedToChat = false;
         if (taggable.Count > 0 && clan.TelegramChatId != 0)
         {
-            var names = string.Join(", ", taggable.Take(30).Select(s =>
+            var names = string.Join("\n", taggable.Take(30).Select(s =>
             {
                 var p = linkedPlayers[s.PlayerTag];
-                return $"{TelegramMention.Mention(s.Name, p.TelegramUserId, p.TelegramUsername)} " +
-                       $"({4 - s.DecksUsedToday}/4 колод)";
+                return $"• {TelegramMention.Mention(s.Name, p.TelegramUserId, p.TelegramUsername)} " +
+                       $"— осталось {4 - s.DecksUsedToday}/4 🃏";
             }));
             var unlinkedNote = unlinkedCount > 0
-                ? $"\n\n👥 Ещё {unlinkedCount} не привязали Telegram — их пинг не достанет. " +
+                ? $"\n\n👥 Ещё <b>{unlinkedCount}</b> не привязали Telegram — их пинг не достанет. " +
                   "Пусть откроют бота и привяжут аккаунт."
                 : "";
             try
             {
                 await notifier.SendToChatAsync(clan.TelegramChatId,
-                    $"👊 Админ пнул лентяев! Нужно отыграть КВ — осталось:\n{names}{unlinkedNote}",
+                    $"👊 <b>Админ пнул лентяев!</b>\nНужно срочно отыграть Клановую войну:\n\n{names}{unlinkedNote}",
                     clan.TelegramMessageThreadId, html: true, ct: ct);
                 postedToChat = true;
             }
