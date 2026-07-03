@@ -1,4 +1,4 @@
-import type { ClanInsights, Plan, PlayerStatus, WarDayLog, WarLogWeek } from '../types'
+import type { ClanInsights, Plan, PlayerStatus, RaceClan, WarDayLog, WarLogWeek } from '../types'
 import { fmt } from '../lib/format'
 import { useT } from '../lib/i18n'
 
@@ -8,6 +8,7 @@ interface Props {
   players: PlayerStatus[]
   dayLogs: WarDayLog[]
   warLog: WarLogWeek[]
+  race: RaceClan[]
   periodType: 'training' | 'warDay' | 'colosseum'
 }
 
@@ -16,7 +17,7 @@ interface Props {
  * данных за день) — живая история недели: шанс победы, медали по дням из
  * официального лога, темп против прошлой недели и герои недели.
  */
-export function InsightsCard({ insights, plan, players, dayLogs, warLog, periodType }: Props) {
+export function InsightsCard({ insights, plan, players, dayLogs, warLog, race, periodType }: Props) {
   const { t } = useT()
 
   if (plan !== 'pro') {
@@ -42,10 +43,13 @@ export function InsightsCard({ insights, plan, players, dayLogs, warLog, periodT
   const warDays = dayLogs.filter(d => d.dayIndex >= 3).slice(-4)
   const maxDayPoints = Math.max(1, ...warDays.map(d => d.pointsEarned))
 
-  // Темп против прошлой недели: итог прошлой vs текущий прогресс с поправкой на день
+  // Темп против прошлой недели: итог прошлой vs текущий прогресс с поправкой на день.
+  // «Сейчас» берём из гонки (общие медали клана, включая ушедших) — та же цифра,
+  // что и в таблице «Гонка/Колизей», чтобы карточки не противоречили друг другу.
   const lastWeek = warLog.length > 0 ? warLog[0] : null
   const lastOurs = lastWeek?.standings.find(s => s.isOurClan) ?? null
-  const currentFame = players.reduce((sum, p) => sum + p.fame, 0)
+  const currentFame = race.find(c => c.isOurClan)?.fame
+    ?? players.reduce((sum, p) => sum + p.fame, 0)
   const daysElapsed = Math.min(4, Math.max(1, warDays.length + (periodType !== 'training' ? 1 : 0)))
   const expectedByNow = lastOurs ? Math.round(lastOurs.fame * (daysElapsed / 4)) : 0
   const pace: 'ahead' | 'behind' | 'same' | null = lastOurs && expectedByNow > 0
