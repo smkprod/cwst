@@ -50,7 +50,8 @@ public class SendFinalCallUseCase(
 
             var linked = (await players.GetByClanIdAsync(clan.Id, ct))
                 .Where(p => p.TelegramUserId is not null)
-                .ToDictionary(p => p.PlayerTag, StringComparer.OrdinalIgnoreCase);
+                .GroupBy(p => p.PlayerTag, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
             var names = string.Join(", ", slackers.Take(20).Select(s =>
             {
