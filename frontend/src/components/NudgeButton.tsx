@@ -20,7 +20,7 @@ export function NudgeButton({ notPlayedCount, isPro }: { notPlayedCount: number;
       hapticNotify('success')
       const parts: string[] = []
       if (r.notifiedDm > 0) parts.push(`${t.nudge.dm} ${r.notifiedDm}`)
-      if (r.postedToChat) parts.push(`${t.nudge.chat} ${r.unlinkedCount}`)
+      if (r.postedToChat) parts.push(`${t.nudge.chat} ${r.taggableCount}`)
       if (r.skippedCooldown > 0) parts.push(`${t.nudge.skipped} ${r.skippedCooldown}`)
       setResultText(parts.length > 0 ? `${t.nudge.done} ${parts.join(' · ')}` : t.nudge.allPlayed)
       setState('done')

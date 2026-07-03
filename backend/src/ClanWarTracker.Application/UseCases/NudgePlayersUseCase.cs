@@ -14,7 +14,7 @@ public class NudgePlayersUseCase(
 {
     private static readonly TimeSpan NudgeCooldown = TimeSpan.FromMinutes(30);
 
-    public record NudgeResult(int NotifiedDm, int SkippedCooldown, int UnlinkedCount, bool PostedToChat);
+    public record NudgeResult(int NotifiedDm, int SkippedCooldown, int TaggableCount, int UnlinkedCount, bool PostedToChat);
 
     /// <param name="isPro">Free: рассылка до 20 игроков. Pro: без ограничений.</param>
     /// <returns>null — война не идёт (тренировка) или клан не найден.</returns>
@@ -58,21 +58,30 @@ public class NudgePlayersUseCase(
         }
         await players.SaveChangesAsync(ct);
 
-        // Публично в чат клана — все лентяи, привязанные помечены кликабельным упоминанием,
-        // у каждого указано сколько колод осталось доиграть.
+        // Публично в чат клана — тегаем ТОЛЬКО тех, кого реально можно тегнуть (привязан
+        // Telegram). Непривязанных не пишем: их имя из CR — просто текст, он никого не
+        // пингует и раздувает сообщение в стену из 50-100 имён. Внизу — счётчик непривязанных,
+        // чтобы глава видел, скольким нужно привязать аккаунт.
+        var taggable = slackers.Where(s => linkedPlayers.ContainsKey(s.PlayerTag)).ToList();
+        var unlinkedCount = slackers.Count - taggable.Count;
+
         var postedToChat = false;
-        if (slackers.Count > 0 && clan.TelegramChatId != 0)
+        if (taggable.Count > 0 && clan.TelegramChatId != 0)
         {
-            var names = string.Join(", ", slackers.Take(20).Select(s =>
+            var names = string.Join(", ", taggable.Take(30).Select(s =>
             {
-                var p = linkedPlayers.GetValueOrDefault(s.PlayerTag);
-                return $"{TelegramMention.Mention(s.Name, p?.TelegramUserId, p?.TelegramUsername)} " +
+                var p = linkedPlayers[s.PlayerTag];
+                return $"{TelegramMention.Mention(s.Name, p.TelegramUserId, p.TelegramUsername)} " +
                        $"({4 - s.DecksUsedToday}/4 колод)";
             }));
+            var unlinkedNote = unlinkedCount > 0
+                ? $"\n\n👥 Ещё {unlinkedCount} не привязали Telegram — их пинг не достанет. " +
+                  "Пусть откроют бота и привяжут аккаунт."
+                : "";
             try
             {
                 await notifier.SendToChatAsync(clan.TelegramChatId,
-                    $"👊 Админ пнул лентяев! Нужно отыграть КВ — осталось:\n{names}",
+                    $"👊 Админ пнул лентяев! Нужно отыграть КВ — осталось:\n{names}{unlinkedNote}",
                     clan.TelegramMessageThreadId, html: true, ct: ct);
                 postedToChat = true;
             }
@@ -84,6 +93,6 @@ public class NudgePlayersUseCase(
             }
         }
 
-        return new NudgeResult(dm, skipped, postedToChat ? slackers.Count : 0, postedToChat);
+        return new NudgeResult(dm, skipped, taggable.Count, unlinkedCount, postedToChat);
     }
 }
