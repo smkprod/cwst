@@ -41,6 +41,10 @@ public class WarPeriodLog
 {
     public int PeriodIndex { get; set; }                 // сквозной индекс дня за сезон
     public int DayIndex { get; set; }                    // 0..6 (нормализованный день недели гонки)
+
+    /// <summary>0 = текущая неделя, 1 = прошлая и т.д. CR в periodLogs может отдавать
+    /// дни прошлых недель — потребители фильтруют/подписывают по этому полю.</summary>
+    public int WeekOffset { get; set; }
     public int PointsEarned { get; set; }                // очки клана за этот день
     public int ProgressEndOfDay { get; set; }            // накопленный прогресс на конец дня
     public int EndOfDayRank { get; set; }                // место клана на конец дня (1..5)
