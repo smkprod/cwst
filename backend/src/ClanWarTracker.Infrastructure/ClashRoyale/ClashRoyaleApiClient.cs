@@ -88,32 +88,60 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
                         IsFinished = !string.IsNullOrEmpty(c.FinishTime),
                     }).ToList(),
                 // Официальный по-дневный лог для нашего клана (periodLogs[].items[] где clan.tag == наш).
-                // ВАЖНО: periodIndex в логе сквозной за сезон и может включать ПРОШЛЫЕ недели —
-                // берём только периоды текущей недели, иначе «медали по дням» показывают старую войну.
-                DayLogs = (race.PeriodLogs ?? [])
-                    .Where(pl => pl.PeriodIndex >= race.PeriodIndex - dayIndex
-                                 && pl.PeriodIndex <= race.PeriodIndex)
-                    .Select(pl =>
-                    {
-                        var mine = pl.Items?.FirstOrDefault(i =>
-                            string.Equals(i.Clan?.Tag, race.Clan!.Tag, StringComparison.OrdinalIgnoreCase));
-                        return mine is null ? null : new WarPeriodLog
-                        {
-                            PeriodIndex = pl.PeriodIndex,
-                            DayIndex = ((pl.PeriodIndex % 7) + 7) % 7,
-                            PointsEarned = mine.PointsEarned,
-                            ProgressEndOfDay = mine.ProgressEndOfDay,
-                            EndOfDayRank = mine.EndOfDayRank,
-                            NumOfDefensesRemaining = mine.NumOfDefensesRemaining,
-                            ProgressEarnedFromDefenses = mine.ProgressEarnedFromDefenses,
-                        };
-                    })
-                    .Where(x => x is not null)
-                    .Select(x => x!)
-                    .OrderBy(x => x.PeriodIndex)
-                    .ToList(),
+                // ВАЖНО: periodIndex в логе сквозной за сезон и может включать ПРОШЛЫЕ недели.
+                // Не выбрасываем их (масштаб индексов у CR плавает между неделями/сезонами) —
+                // размечаем каждый день признаком WeekOffset (0 = текущая неделя, 1 = прошлая…),
+                // а потребители сами решают, что показывать и как подписывать.
+                DayLogs = BuildDayLogs(race),
             };
         });
+    }
+
+    private static List<WarPeriodLog> BuildDayLogs(RiverRaceResponse race)
+    {
+        var entries = (race.PeriodLogs ?? [])
+            .Select(pl =>
+            {
+                var mine = pl.Items?.FirstOrDefault(i =>
+                    string.Equals(i.Clan?.Tag, race.Clan!.Tag, StringComparison.OrdinalIgnoreCase));
+                return mine is null ? null : new WarPeriodLog
+                {
+                    PeriodIndex = pl.PeriodIndex,
+                    DayIndex = ((pl.PeriodIndex % 7) + 7) % 7,
+                    PointsEarned = mine.PointsEarned,
+                    ProgressEndOfDay = mine.ProgressEndOfDay,
+                    EndOfDayRank = mine.EndOfDayRank,
+                    NumOfDefensesRemaining = mine.NumOfDefensesRemaining,
+                    ProgressEarnedFromDefenses = mine.ProgressEarnedFromDefenses,
+                };
+            })
+            .Where(x => x is not null)
+            .Select(x => x!)
+            .OrderBy(x => x.PeriodIndex)
+            .ToList();
+        if (entries.Count == 0) return entries;
+
+        // Якорь текущей недели: если race.periodIndex сквозной (>= 7) — берём его неделю.
+        // Иначе (индекс со сброшенной базой) считаем текущей неделю самого свежего периода,
+        // НО только если лог «дотягивается» до текущего дня недели — иначе это прошлая неделя
+        // (например, 1-й военный день: завершённых периодов этой недели ещё нет).
+        var maxWeek = entries.Max(e => e.PeriodIndex / 7);
+        var currentDayIndex = ((race.PeriodIndex % 7) + 7) % 7;
+        int currentWeek;
+        if (race.PeriodIndex >= 7)
+        {
+            currentWeek = race.PeriodIndex / 7;
+        }
+        else
+        {
+            var maxWeekMaxDay = entries.Where(e => e.PeriodIndex / 7 == maxWeek).Max(e => e.DayIndex);
+            // Периоды лога — ЗАВЕРШЁННЫЕ дни, т.е. максимум текущей недели = currentDayIndex-1.
+            currentWeek = maxWeekMaxDay < currentDayIndex ? maxWeek : maxWeek + 1;
+        }
+
+        foreach (var e in entries)
+            e.WeekOffset = Math.Max(0, currentWeek - e.PeriodIndex / 7);
+        return entries;
     }
 
     public async Task<string?> GetPlayerNameAsync(string playerTag, CancellationToken ct = default)

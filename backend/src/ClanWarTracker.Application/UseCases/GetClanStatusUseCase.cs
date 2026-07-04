@@ -184,7 +184,7 @@ public class GetClanStatusUseCase(
             Insights: insights,
             WarLog: warLog,
             DayLogs: war.DayLogs
-                .Select(d => new WarDayLogDto(d.DayIndex, d.PointsEarned, d.EndOfDayRank, d.NumOfDefensesRemaining))
+                .Select(d => new WarDayLogDto(d.DayIndex, d.PointsEarned, d.EndOfDayRank, d.NumOfDefensesRemaining, d.WeekOffset))
                 .ToList());
     }
 

@@ -192,6 +192,12 @@ main.with-tabbar { padding-bottom: 80px; }
 .pace-block { display: grid; gap: 6px; margin-top: 4px; }
 .pace-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
 .pace-chip { font-size: 12px; font-weight: 700; }
+.pace-track { position: relative; height: 10px; border-radius: 6px; background: rgba(127,127,127,0.16); overflow: visible; }
+.pace-fill { height: 100%; border-radius: 6px; transition: width 0.4s ease; }
+.pace-fill-good { background: var(--green, #4cd964); }
+.pace-fill-bad { background: #ff7a76; }
+.pace-tick { position: absolute; top: -3px; bottom: -3px; width: 2px; background: #ffd60a; border-radius: 1px; }
+.pace-goal { margin: 2px 0 0; }
 .heroes-block { display: grid; gap: 6px; margin-top: 4px; }
 .hero-row { display: flex; align-items: center; gap: 8px; }
 .hero-name { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
