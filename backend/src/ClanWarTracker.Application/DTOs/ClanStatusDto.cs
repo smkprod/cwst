@@ -21,7 +21,8 @@ public record WarDayLogDto(
     int DayIndex,                 // 0..6 (нормализованный день недели гонки)
     int PointsEarned,             // очки клана за день
     int EndOfDayRank,             // место клана на конец дня (1..5)
-    int NumOfDefensesRemaining);  // осталось защит
+    int NumOfDefensesRemaining,   // осталось защит
+    int WeekOffset);              // 0 = текущая неделя, 1 = прошлая…
 
 /// <summary>Одна завершённая неделя из официального журнала войн клана.</summary>
 public record WarLogWeekDto(

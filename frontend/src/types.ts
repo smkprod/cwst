@@ -171,6 +171,7 @@ export interface WarDayLog {
   pointsEarned: number          // очки клана за день
   endOfDayRank: number          // место клана на конец дня (1..5)
   numOfDefensesRemaining: number
+  weekOffset: number            // 0 = текущая неделя, 1 = прошлая…
 }
 
 export interface ClanStatus {
