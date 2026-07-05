@@ -53,34 +53,30 @@ export function InsightsCard({ insights, plan, players, dayLogs, warLog, race, p
   ).slice(-4)
   const maxDayPoints = Math.max(1, ...warDays.map(d => d.pointsEarned))
 
-  // Темп против прошлой недели. «Сейчас» — из гонки (общие медали клана, включая ушедших),
-  // та же цифра, что и в таблице «Гонка/Колизей». Прошедшее время считаем от номера дня и
-  // часов до конца (НЕ от лога — он у CR ненадёжен), поэтому сравнение честное:
-  // день 3 из 4 → ждём ~68% от итога прошлой недели, а не четверть.
+  // Сравнение с прошлой неделей — БЕЗ «графика на сегодня»: сравниваем ПРОГНОЗ финиша
+  // с итогом прошлой недели (то же число «→ прогноз», что и в таблице гонки). Это
+  // честно и вперёд-смотряще: не «отстаёте», пока неделя не доиграна, а «финишируете
+  // выше/ниже/вровень». Ту же цифру «сейчас» берём из гонки (медали всего клана).
   const lastWeek = warLog.length > 0 ? warLog[0] : null
   const lastOurs = lastWeek?.standings.find(s => s.isOurClan) ?? null
-  const currentFame = race.find(c => c.isOurClan)?.fame
-    ?? players.reduce((sum, p) => sum + p.fame, 0)
-  const dayNumber = Math.min(4, Math.max(1, periodIndex - 2))           // 1..4
-  const dayFraction = Math.min(1, Math.max(0, (24 - hoursLeft) / 24))   // сколько сегодняшнего дня прошло
-  const elapsed = Math.min(4, dayNumber - 1 + dayFraction)              // военных дней прошло (дробно)
+  const oursRace = race.find(c => c.isOurClan)
+  const currentFame = oursRace?.fame ?? players.reduce((sum, p) => sum + p.fame, 0)
   const lastFame = lastOurs?.fame ?? 0
-  const expectedByNow = lastFame > 0 ? Math.round(lastFame * (elapsed / 4)) : 0
-  const delta = currentFame - expectedByNow
-  const pace: 'ahead' | 'behind' | 'same' | null = lastFame > 0 && expectedByNow > 0
-    ? Math.abs(delta) <= expectedByNow * 0.05 ? 'same'
-      : delta > 0 ? 'ahead' : 'behind'
-    : null
-  // Цель: сколько медалей в день нужно до конца недели, чтобы побить прошлую
-  const daysRemaining = Math.max(0, 4 - elapsed)
-  const alreadyBeaten = lastFame > 0 && currentFame >= lastFame
-  const needPerDay = !alreadyBeaten && lastFame > 0 && daysRemaining > 0.1
-    ? Math.ceil((lastFame - currentFame) / daysRemaining)
-    : null
-  const currentPerDay = elapsed > 0.1 ? Math.round(currentFame / elapsed) : null
-  // Прогресс-бар: заливка = сейчас/прошлая, метка — где должны быть по графику
+  const dayNumber = Math.min(4, Math.max(1, periodIndex - 2))          // 1..4
+  const elapsed = Math.min(4, Math.max(0.25, dayNumber - 1 + Math.min(1, Math.max(0, (24 - hoursLeft) / 24))))
+
+  // Прогноз финиша недели: колизей — из гонки (avg × колоды, копится всю неделю);
+  // обычная война — экстраполяция текущего темпа на 4 дня (пока идёт неделя).
+  const projectedFinal = periodType === 'colosseum'
+    ? Math.max(oursRace?.projectedFame ?? 0, currentFame)
+    : (elapsed >= 0.5 ? Math.round(currentFame / elapsed * 4) : 0)
+  const finalDelta = projectedFinal - lastFame
+  const outcome: 'above' | 'below' | 'even' | null =
+    lastFame <= 0 || projectedFinal <= 0 ? null
+      : Math.abs(finalDelta) <= lastFame * 0.03 ? 'even'
+        : finalDelta > 0 ? 'above' : 'below'
+  // Полоса: насколько уже приблизились к итогу прошлой недели
   const fillPct = lastFame > 0 ? Math.min(100, Math.round((currentFame / lastFame) * 100)) : 0
-  const tickPct = lastFame > 0 ? Math.min(100, Math.round((expectedByNow / lastFame) * 100)) : 0
 
   const heroes = [...players].sort((a, b) => b.fame - a.fame).slice(0, 3).filter(p => p.fame > 0)
   const heroMedals = ['🥇', '🥈', '🥉']
@@ -117,40 +113,28 @@ export function InsightsCard({ insights, plan, players, dayLogs, warLog, race, p
         </div>
       )}
 
-      {/* Актуальное и действие — на виду: темп к прошлой неделе + цель на день */}
+      {/* На виду: прогноз финиша против прошлой недели (вперёд-смотрящее сравнение) */}
       {lastOurs && lastFame > 0 && (
         <div className="pace-block">
           <span className="insights-sub">{t.insights.vsLastWeek}</span>
 
-          {/* Прогресс к итогу прошлой недели; метка — где нужно быть прямо сейчас */}
           <div className="pace-track">
             <div
-              className={`pace-fill ${pace === 'behind' ? 'pace-fill-bad' : 'pace-fill-good'}`}
+              className={`pace-fill ${outcome === 'below' ? 'pace-fill-bad' : 'pace-fill-good'}`}
               style={{ width: `${Math.max(2, fillPct)}%` }}
             />
-            <div className="pace-tick" style={{ left: `${tickPct}%` }} />
           </div>
           <div className="pace-row">
-            <span className="small">
-              <b>{fmt(currentFame)}</b> 🏅 <span className="muted">/ {fmt(lastFame)}</span>
-            </span>
-            <span className="muted small">
-              {t.insights.scheduleLabel} {fmt(expectedByNow)} · {t.insights.dayLabel} {dayNumber}/4
-            </span>
+            <span className="muted small">{t.insights.lastLabel} {fmt(lastFame)} 🏅 · {lastOurs.rank}{t.insights.placeSuffix}</span>
+            <span className="small"><b>{fmt(currentFame)}</b> 🏅 {t.insights.nowLabel}</span>
           </div>
 
-          {alreadyBeaten ? (
-            <p className="pace-goal small">🎉 {t.insights.beaten}</p>
-          ) : needPerDay !== null ? (
-            <p className="pace-goal small">
-              🎯 {t.insights.goal1} <b>{fmt(needPerDay)}</b> 🏅{t.insights.goal2}
-              {currentPerDay !== null && <span className="muted"> · {t.insights.paceNow} ~{fmt(currentPerDay)}</span>}
-            </p>
-          ) : pace && (
-            <span className={`pace-chip ${pace === 'ahead' ? 'win-good' : pace === 'behind' ? 'win-bad' : 'win-mid'}`}>
-              {pace === 'ahead' && <>📈 {t.insights.aheadBy} <b>{fmt(delta)}</b> 🏅</>}
-              {pace === 'behind' && <>📉 {t.insights.behindBy} <b>{fmt(-delta)}</b> 🏅</>}
-              {pace === 'same' && <>➡️ {t.insights.onSchedule}</>}
+          {outcome && (
+            <span className={`pace-chip ${outcome === 'above' ? 'win-good' : outcome === 'below' ? 'win-bad' : 'win-mid'}`}>
+              🔮 {t.insights.projLabel} {fmt(projectedFinal)} 🏅 —{' '}
+              {outcome === 'above' && <>{t.insights.finishAbove} {fmt(finalDelta)}</>}
+              {outcome === 'below' && <>{t.insights.finishBelow} {fmt(-finalDelta)}</>}
+              {outcome === 'even' && <>{t.insights.finishEven}</>}
             </span>
           )}
         </div>
