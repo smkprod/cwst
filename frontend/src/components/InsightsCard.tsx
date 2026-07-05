@@ -117,30 +117,7 @@ export function InsightsCard({ insights, plan, players, dayLogs, warLog, race, p
         </div>
       )}
 
-      {warDays.length > 0 && (
-        <div className="week-days-block">
-          <span className="insights-sub">
-            {shownIsCurrentWeek ? t.insights.dayByDay : t.insights.dayByDayLastWeek}
-          </span>
-          <div className="week-days">
-            {warDays.map(d => (
-              <div key={d.dayIndex} className="week-day">
-                <div className="week-day-bar-track">
-                  <div
-                    className="week-day-bar"
-                    style={{ height: `${Math.max(8, Math.round((d.pointsEarned / maxDayPoints) * 100))}%` }}
-                  />
-                </div>
-                <span className="week-day-points small">{fmt(d.pointsEarned)}</span>
-                <span className="muted small">
-                  {t.insights.dayShort}{d.dayIndex - 2} · {d.endOfDayRank}{t.insights.placeSuffix}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
+      {/* Актуальное и действие — на виду: темп к прошлой неделе + цель на день */}
       {lastOurs && lastFame > 0 && (
         <div className="pace-block">
           <span className="insights-sub">{t.insights.vsLastWeek}</span>
@@ -162,38 +139,66 @@ export function InsightsCard({ insights, plan, players, dayLogs, warLog, race, p
             </span>
           </div>
 
-          {pace && (
+          {alreadyBeaten ? (
+            <p className="pace-goal small">🎉 {t.insights.beaten}</p>
+          ) : needPerDay !== null ? (
+            <p className="pace-goal small">
+              🎯 {t.insights.goal1} <b>{fmt(needPerDay)}</b> 🏅{t.insights.goal2}
+              {currentPerDay !== null && <span className="muted"> · {t.insights.paceNow} ~{fmt(currentPerDay)}</span>}
+            </p>
+          ) : pace && (
             <span className={`pace-chip ${pace === 'ahead' ? 'win-good' : pace === 'behind' ? 'win-bad' : 'win-mid'}`}>
               {pace === 'ahead' && <>📈 {t.insights.aheadBy} <b>{fmt(delta)}</b> 🏅</>}
               {pace === 'behind' && <>📉 {t.insights.behindBy} <b>{fmt(-delta)}</b> 🏅</>}
               {pace === 'same' && <>➡️ {t.insights.onSchedule}</>}
             </span>
           )}
-
-          {/* Практичная цель: сколько нужно в день, чтобы побить прошлую неделю */}
-          {alreadyBeaten ? (
-            <p className="pace-goal small">🎉 {t.insights.beaten}</p>
-          ) : needPerDay !== null && (
-            <p className="pace-goal small">
-              🎯 {t.insights.goal1} <b>{fmt(needPerDay)}</b> 🏅{t.insights.goal2}
-              {currentPerDay !== null && <span className="muted"> · {t.insights.paceNow} ~{fmt(currentPerDay)}</span>}
-            </p>
-          )}
         </div>
       )}
 
-      {heroes.length > 0 && (
-        <div className="heroes-block">
-          <span className="insights-sub">{t.insights.heroes}</span>
-          {heroes.map((p, i) => (
-            <div key={p.playerTag} className="hero-row">
-              <span>{heroMedals[i]}</span>
-              <span className="hero-name">{p.name}</span>
-              <span className="muted small">⚡ {p.avgFamePerAttack.toFixed(0)}</span>
-              <span className="hero-fame">{fmt(p.fame)} 🏅</span>
+      {/* Детали (медали по дням + герои недели) — под тап, чтобы не перегружать экран */}
+      {(warDays.length > 0 || heroes.length > 0) && (
+        <details className="insights-more">
+          <summary>{t.insights.more}</summary>
+
+          {warDays.length > 0 && (
+            <div className="week-days-block">
+              <span className="insights-sub">
+                {shownIsCurrentWeek ? t.insights.dayByDay : t.insights.dayByDayLastWeek}
+              </span>
+              <div className="week-days">
+                {warDays.map(d => (
+                  <div key={d.dayIndex} className="week-day">
+                    <div className="week-day-bar-track">
+                      <div
+                        className="week-day-bar"
+                        style={{ height: `${Math.max(8, Math.round((d.pointsEarned / maxDayPoints) * 100))}%` }}
+                      />
+                    </div>
+                    <span className="week-day-points small">{fmt(d.pointsEarned)}</span>
+                    <span className="muted small">
+                      {t.insights.dayShort}{d.dayIndex - 2} · {d.endOfDayRank}{t.insights.placeSuffix}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
-          ))}
-        </div>
+          )}
+
+          {heroes.length > 0 && (
+            <div className="heroes-block">
+              <span className="insights-sub">{t.insights.heroes}</span>
+              {heroes.map((p, i) => (
+                <div key={p.playerTag} className="hero-row">
+                  <span>{heroMedals[i]}</span>
+                  <span className="hero-name">{p.name}</span>
+                  <span className="muted small">⚡ {p.avgFamePerAttack.toFixed(0)}</span>
+                  <span className="hero-fame">{fmt(p.fame)} 🏅</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </details>
       )}
     </section>
   )
