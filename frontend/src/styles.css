@@ -198,6 +198,25 @@ main.with-tabbar { padding-bottom: 80px; }
 .pace-fill-bad { background: #ff7a76; }
 .pace-tick { position: absolute; top: -3px; bottom: -3px; width: 2px; background: #ffd60a; border-radius: 1px; }
 .pace-goal { margin: 2px 0 0; }
+
+/* --- Прогрессивное раскрытие: детали под тап, чтобы разгрузить экран --- */
+.collapse-summary, .insights-more > summary {
+  cursor: pointer; list-style: none; user-select: none;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.collapse-summary::-webkit-details-marker, .insights-more > summary::-webkit-details-marker { display: none; }
+.insights-more { margin-top: 2px; }
+.insights-more > summary {
+  font-size: 13px; font-weight: 600; opacity: 0.85; padding: 4px 0;
+}
+.insights-more > summary::after,
+.collapse-summary::after {
+  content: '▾'; font-size: 12px; opacity: 0.6; transition: transform 0.2s ease;
+}
+details[open] > .insights-more > summary::after { }
+.insights-more[open] > summary::after,
+details.collapse-card[open] > .collapse-summary::after { transform: rotate(180deg); }
+.insights-more > *:not(summary) { margin-top: 10px; }
 .heroes-block { display: grid; gap: 6px; margin-top: 4px; }
 .hero-row { display: flex; align-items: center; gap: 8px; }
 .hero-name { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

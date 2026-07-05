@@ -100,6 +100,7 @@ const ru = {
     goal2: '/день',
     paceNow: 'сейчас темп',
     beaten: 'Прошлая неделя уже побита!',
+    more: '📂 Медали по дням и герои недели',
   },
 
   warlog: {
@@ -677,6 +678,7 @@ const uk: Translations = {
     goal2: '/день',
     paceNow: 'зараз темп',
     beaten: 'Минулий тиждень уже побито!',
+    more: '📂 Медалі по днях і герої тижня',
   },
 
   warlog: {
@@ -1252,6 +1254,7 @@ const en: Translations = {
     goal2: '/day',
     paceNow: 'current pace',
     beaten: 'Last week already beaten!',
+    more: '📂 Medals by day & heroes of the week',
   },
 
   warlog: {
