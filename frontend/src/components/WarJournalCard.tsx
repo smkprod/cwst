@@ -44,16 +44,18 @@ export function WarJournalCard() {
 
   const latest = j.battles.slice(0, 5)
 
+  // Свёрнут по умолчанию: счёт побед/поражений виден сразу в шапке, сами бои — под тап,
+  // чтобы не растягивать экран войны списком.
   return (
-    <section className="card">
-      <div className="card-title-row">
+    <details className="card collapse-card">
+      <summary className="card-title-row collapse-summary">
         <div className="card-title">{t.journal.title}</div>
         <span className="jr-score">
           <span className="jr-score-win">✅ {fmt(j.won)}</span>
           {' · '}
           <span className="jr-score-loss">❌ {fmt(j.lost)}</span>
         </span>
-      </div>
+      </summary>
 
       <ul className="jr-list">
         {latest.map(b => <Row key={`${b.playerTag}-${b.battleTimeUtc}`} b={b} />)}
@@ -66,7 +68,7 @@ export function WarJournalCard() {
       )}
 
       {full && <WarJournalModal journal={j} t={t} onClose={() => setFull(false)} />}
-    </section>
+    </details>
   )
 }
 
