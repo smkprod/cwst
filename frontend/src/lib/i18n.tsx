@@ -101,6 +101,12 @@ const ru = {
     paceNow: 'сейчас темп',
     beaten: 'Прошлая неделя уже побита!',
     more: '📂 Медали по дням и герои недели',
+    lastLabel: 'прошлая:',
+    nowLabel: 'сейчас',
+    projLabel: 'прогноз финиша:',
+    finishAbove: 'это выше прошлой на',
+    finishBelow: 'это ниже прошлой на',
+    finishEven: 'финиш примерно вровень с прошлой',
   },
 
   warlog: {
@@ -679,6 +685,12 @@ const uk: Translations = {
     paceNow: 'зараз темп',
     beaten: 'Минулий тиждень уже побито!',
     more: '📂 Медалі по днях і герої тижня',
+    lastLabel: 'минулий:',
+    nowLabel: 'зараз',
+    projLabel: 'прогноз фінішу:',
+    finishAbove: 'це вище за минулий на',
+    finishBelow: 'це нижче за минулий на',
+    finishEven: 'фініш приблизно нарівні з минулим',
   },
 
   warlog: {
@@ -1255,6 +1267,12 @@ const en: Translations = {
     paceNow: 'current pace',
     beaten: 'Last week already beaten!',
     more: '📂 Medals by day & heroes of the week',
+    lastLabel: 'last week:',
+    nowLabel: 'now',
+    projLabel: 'projected finish:',
+    finishAbove: 'that’s above last week by',
+    finishBelow: 'that’s below last week by',
+    finishEven: 'finishing about level with last week',
   },
 
   warlog: {
