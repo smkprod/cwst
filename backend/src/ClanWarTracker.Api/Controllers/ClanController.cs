@@ -18,6 +18,7 @@ public class ClanController(
     GetClanHistoryUseCase getHistory,
     GetSeasonStatsUseCase getSeason,
     GetSeasonBreakdownUseCase getSeasonBreakdown,
+    GetSeasonArchiveUseCase getSeasonArchive,
     NudgePlayersUseCase nudge,
     IPlayerRepository players,
     IClanRepository clans,
@@ -234,6 +235,19 @@ public class ClanController(
         return data is null
             ? NotFound(new { error = "no_season_data", message = "Данные сезона ещё не накопились" })
             : Ok(data);
+    }
+
+    /// <summary>
+    /// GET /api/clans/my/season-archive — архив лучших игроков за ПРОШЛЫЕ сезоны
+    /// (текущий сезон живёт во вкладке «Сезон»). Пусто, пока не завершится первый сезон.
+    /// </summary>
+    [HttpGet("my/season-archive")]
+    public async Task<IActionResult> GetMyClanSeasonArchive(CancellationToken ct)
+    {
+        var (_, clan, error) = await ResolvePlayerClanAsync(ct);
+        if (error is not null) return error;
+
+        return Ok(await getSeasonArchive.ExecuteAsync(clan!.Id, ct));
     }
 
     /// <summary>
