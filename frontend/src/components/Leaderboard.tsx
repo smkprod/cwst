@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
-import type { GlobalTop, Plan, PlayerStatus, SeasonBreakdown, SeasonPlayer } from '../types'
+import type { GlobalTop, Plan, PlayerStatus, SeasonArchive, SeasonBreakdown, SeasonPlayer } from '../types'
 import { fmt } from '../lib/format'
 import { haptic } from '../lib/telegram'
 import { useT } from '../lib/i18n'
@@ -13,7 +13,7 @@ interface Props {
   plan: Plan
 }
 
-type Selection = 'current' | 'season' | 'global'
+type Selection = 'current' | 'season' | 'archive' | 'global'
 
 type BreakdownState =
   | { kind: 'idle' }
@@ -25,6 +25,11 @@ type GlobalState =
   | { kind: 'loading' }
   | { kind: 'empty' }
   | { kind: 'ready'; data: GlobalTop }
+type ArchiveState =
+  | { kind: 'idle' }
+  | { kind: 'loading' }
+  | { kind: 'empty' }
+  | { kind: 'ready'; data: SeasonArchive }
 
 const MEDALS = ['🥇', '🥈', '🥉']
 
@@ -32,6 +37,7 @@ export function Leaderboard({ players, myPlayerTag, plan }: Props) {
   const [sel, setSel] = useState<Selection>('current')
   const [breakdown, setBreakdown] = useState<BreakdownState>({ kind: 'idle' })
   const [global, setGlobal] = useState<GlobalState>({ kind: 'idle' })
+  const [archive, setArchive] = useState<ArchiveState>({ kind: 'idle' })
   const [selected, setSelected] = useState<PlayerStatus | null>(null)
   const { t } = useT()
 
@@ -50,6 +56,14 @@ export function Leaderboard({ players, myPlayerTag, plan }: Props) {
       .then(data => setGlobal(data.players.length === 0 ? { kind: 'empty' } : { kind: 'ready', data }))
       .catch(() => setGlobal({ kind: 'empty' }))
   }, [sel, global.kind])
+
+  useEffect(() => {
+    if (sel !== 'archive' || archive.kind !== 'idle') return
+    setArchive({ kind: 'loading' })
+    api.getSeasonArchive()
+      .then(data => setArchive(data.seasons.length === 0 ? { kind: 'empty' } : { kind: 'ready', data }))
+      .catch(() => setArchive({ kind: 'empty' }))
+  }, [sel, archive.kind])
 
   const openByTag = (tag: string) => {
     const p = players.find(x => x.playerTag === tag)
@@ -76,6 +90,7 @@ export function Leaderboard({ players, myPlayerTag, plan }: Props) {
         >
           <option value="current">{t.leaderboard.current}</option>
           <option value="season">{t.leaderboard.season}</option>
+          <option value="archive">{t.leaderboard.archive}</option>
           <option value="global">{t.leaderboard.global}</option>
         </select>
       </div>
@@ -84,9 +99,10 @@ export function Leaderboard({ players, myPlayerTag, plan }: Props) {
         <WeekBoard players={players} myPlayerTag={myPlayerTag} onOpen={openByTag} plan={plan} />
       )}
       {sel === 'season' && <SeasonBoard state={breakdown} myPlayerTag={myPlayerTag} rosterTags={new Set(players.map(p => p.playerTag))} onOpen={openByTag} />}
+      {sel === 'archive' && <ArchiveBoard state={archive} myPlayerTag={myPlayerTag} />}
       {sel === 'global' && <GlobalBoard state={global} />}
 
-      {sel !== 'global' && (
+      {sel !== 'global' && sel !== 'archive' && (
         <>
           <div style={{ height: 12 }} />
           <HistoryCard plan={plan} />
@@ -216,6 +232,57 @@ function GlobalBoard({ state }: { state: GlobalState }) {
         ))}
       </ul>
     </>
+  )
+}
+
+function ArchiveBoard({ state, myPlayerTag }: { state: ArchiveState; myPlayerTag?: string }) {
+  const { t } = useT()
+
+  if (state.kind === 'loading' || state.kind === 'idle') {
+    return <div className="center"><div className="spinner" /></div>
+  }
+  if (state.kind === 'empty') {
+    return <p className="center muted">{t.leaderboard.archiveEmpty}</p>
+  }
+
+  return (
+    <div className="archive-list">
+      {state.data.seasons.map((s, si) => {
+        const mvp = s.topPlayers[0]
+        return (
+          <details key={s.seasonId} className="card collapse-card" open={si === 0}>
+            <summary className="card-title-row collapse-summary">
+              <div className="card-title">{t.leaderboard.seasonMeta}{s.seasonId}</div>
+              <span className="muted small">
+                {s.weeksTracked} {t.leaderboard.archiveWeeks} · {fmt(s.clanTotalFame)} 🏅
+              </span>
+            </summary>
+
+            {mvp && mvp.totalFame > 0 && (
+              <div className="mvp-banner">
+                {t.leaderboard.mvpSeason} <strong>{mvp.name}</strong> — {fmt(mvp.totalFame)} {t.leaderboard.medals}
+              </div>
+            )}
+
+            <ul className="rating-list">
+              {s.topPlayers.map(p => (
+                <li key={p.playerTag}>
+                  <div className={`rating-row ${p.playerTag === myPlayerTag ? 'rating-me' : ''}`}>
+                    <span className="rating-rank">{p.rank <= 3 ? MEDALS[p.rank - 1] : `#${p.rank}`}</span>
+                    <span className="rating-name">
+                      {p.name}
+                      {p.playerTag === myPlayerTag && <span className="me-badge">{t.leaderboard.you}</span>}
+                    </span>
+                    <span className="rating-avg muted">{p.weeksParticipated} {t.leaderboard.weeks}</span>
+                    <span className="rating-fame">{fmt(p.totalFame)} 🏅</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )
+      })}
+    </div>
   )
 }
 

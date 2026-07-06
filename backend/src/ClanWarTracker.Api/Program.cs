@@ -12,6 +12,7 @@ builder.Services.AddScoped<GetPlayerStatsUseCase>();
 builder.Services.AddScoped<GetClanHistoryUseCase>();
 builder.Services.AddScoped<GetSeasonStatsUseCase>();
 builder.Services.AddScoped<GetSeasonBreakdownUseCase>();
+builder.Services.AddScoped<GetSeasonArchiveUseCase>();
 builder.Services.AddScoped<GetGlobalTopUseCase>();
 builder.Services.AddScoped<NudgePlayersUseCase>();
 builder.Services.AddScoped<OwnerBroadcastUseCase>();

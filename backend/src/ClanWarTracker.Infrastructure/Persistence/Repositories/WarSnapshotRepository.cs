@@ -103,6 +103,14 @@ public class WarSnapshotRepository(AppDbContext db) : IWarSnapshotRepository
             .Select(s => (int?)s.SeasonId)
             .MaxAsync(ct);
 
+    public async Task<List<int>> GetSeasonIdsAsync(int clanId, CancellationToken ct = default) =>
+        await db.WarSnapshots
+            .Where(s => s.ClanId == clanId)
+            .Select(s => s.SeasonId)
+            .Distinct()
+            .OrderByDescending(id => id)
+            .ToListAsync(ct);
+
     public async Task<List<WarSnapshot>> GetByClanAsync(int clanId, int weeks, CancellationToken ct = default)
     {
         // Берём последние N недель: ключ недели = (SeasonId, SectionIndex)

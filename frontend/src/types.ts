@@ -279,6 +279,18 @@ export interface SeasonStats {
   players: SeasonPlayer[]
 }
 
+/* --- Архив прошлых сезонов: топ игроков за каждый завершённый сезон --- */
+export interface SeasonArchiveEntry {
+  seasonId: number
+  weeksTracked: number
+  clanTotalFame: number
+  topPlayers: SeasonPlayer[]
+}
+
+export interface SeasonArchive {
+  seasons: SeasonArchiveEntry[]
+}
+
 /* --- Разбивка сезона по неделям (Pro): каждая война + общий зачёт --- */
 export interface SeasonWeekPlayer {
   playerTag: string

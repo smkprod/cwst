@@ -1,5 +1,5 @@
 import { initData } from './telegram'
-import type { BroadcastResult, BroadcastTarget, ClanHistory, ClanRanking, ClanStatus, ClanWarLog, GameTournament, GlobalTop, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RecruitmentCandidates, RecruitmentStatus, SeasonBreakdown, SeasonStats, Tournament, TournamentSummary, WarJournal } from '../types'
+import type { BroadcastResult, BroadcastTarget, ClanHistory, ClanRanking, ClanStatus, ClanWarLog, GameTournament, GlobalTop, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RecruitmentCandidates, RecruitmentStatus, SeasonArchive, SeasonBreakdown, SeasonStats, Tournament, TournamentSummary, WarJournal } from '../types'
 
 // Если мы на Render (production), BASE должен быть пустой строкой '', чтобы запросы шли на тот же домен.
 // Для локальной разработки (Development) оставляем localhost:5000.
@@ -63,6 +63,7 @@ export const api = {
   getMyClanHistory: (weeks = 8) => request<ClanHistory>(`/api/clans/my/history?weeks=${weeks}`),
   getMyClanSeason: () => request<SeasonStats>('/api/clans/my/season'),
   getSeasonBreakdown: () => request<SeasonBreakdown>('/api/clans/my/season-weeks'),
+  getSeasonArchive: () => request<SeasonArchive>('/api/clans/my/season-archive'),
   getGlobalTop: () => request<GlobalTop>('/api/players/top'),
 
   getRecruitmentStatus: () => request<RecruitmentStatus>('/api/recruitment/me'),
