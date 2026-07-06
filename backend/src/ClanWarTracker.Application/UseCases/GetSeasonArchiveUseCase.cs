@@ -4,9 +4,9 @@ using ClanWarTracker.Domain.Interfaces;
 namespace ClanWarTracker.Application.UseCases;
 
 /// <summary>
-/// Архив лучших игроков за ПРОШЛЫЕ сезоны. Текущий (самый свежий) сезон не включаем —
-/// он живёт во вкладке «Сезон». По каждому завершённому сезону берём топ-игроков из
-/// того же агрегата, что и сезонный зачёт (сумма финальной славы по неделям).
+/// Архив лучших игроков по сезонам, новые — первыми. Включаем и текущий сезон (у молодых
+/// кланов он часто единственный) — иначе архив был бы пустым. По каждому сезону берём
+/// топ-игроков из того же агрегата, что и сезонный зачёт (сумма финальной славы по неделям).
 /// </summary>
 public class GetSeasonArchiveUseCase(
     IWarSnapshotRepository snapshots,
@@ -18,12 +18,12 @@ public class GetSeasonArchiveUseCase(
     public async Task<SeasonArchiveDto> ExecuteAsync(int clanId, CancellationToken ct = default)
     {
         var ids = await snapshots.GetSeasonIdsAsync(clanId, ct);
-        if (ids.Count <= 1) return new SeasonArchiveDto([]); // только текущий сезон — архива ещё нет
+        if (ids.Count == 0) return new SeasonArchiveDto([]);
 
-        var pastIds = ids.Skip(1).Take(MaxSeasons).ToList(); // пропускаем самый свежий (текущий)
+        var seasonIds = ids.Take(MaxSeasons).ToList();
 
         var entries = new List<SeasonArchiveEntryDto>();
-        foreach (var id in pastIds)
+        foreach (var id in seasonIds)
         {
             var s = await seasonStats.ExecuteAsync(clanId, id, ct);
             if (s is null || s.Players.Count == 0) continue;
