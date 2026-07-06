@@ -66,17 +66,24 @@ public class GetSeasonBreakdownUseCase(IClashRoyaleApi crApi)
 
         var currentSection = war?.SectionIndex ?? weeks.Keys.Max();
 
-        // Колизей в разбивке текущего сезона — это ТОЛЬКО идущая сейчас неделя, если CR
-        // сообщает periodType == "colosseum". Завершённые недели текущего сезона колизеем
-        // быть не могут (колизей всегда последний). Никаких "section == 3".
+        // Колизей — всегда ПОСЛЕДНЯЯ неделя сезона. Определяем так:
+        //  • идущая сейчас неделя — по periodType == "colosseum" (CR сообщает напрямую);
+        //  • завершённая неделя — если это максимальная секция сезона И в сезоне уже НЕТ
+        //    идущей недели (сезон дошёл до финала). Пока сезон идёт, живая неделя всегда
+        //    самая поздняя, поэтому завершённые колизеем не помечаются — путаницы нет.
+        // Это чинит баг: после окончания колизея он показывался как «Война N».
         var colosseumNow = war?.PeriodType == "colosseum";
+        var hasLiveWeek = weeks.Values.Any(w => w.IsCurrent);
+        var maxSection = weeks.Keys.Max();
+        bool IsColosseumWeek(int section, bool isCurrent) =>
+            (isCurrent && colosseumNow) || (!isCurrent && !hasLiveWeek && section == maxSection);
 
         var weekDtos = weeks
             .OrderBy(kv => kv.Key)
             .Select(kv => new SeasonWeekDto(
                 SectionIndex: kv.Key,
-                Label: kv.Value.IsCurrent && colosseumNow ? "Колизей" : $"Война {kv.Key + 1}",
-                IsColosseum: kv.Value.IsCurrent && colosseumNow,
+                Label: IsColosseumWeek(kv.Key, kv.Value.IsCurrent) ? "Колизей" : $"Война {kv.Key + 1}",
+                IsColosseum: IsColosseumWeek(kv.Key, kv.Value.IsCurrent),
                 IsCurrent: kv.Value.IsCurrent,
                 ClanFame: kv.Value.ClanFame,
                 Players: kv.Value.Players
