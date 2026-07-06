@@ -150,10 +150,25 @@ public class GetClanStatusUseCase(
         try
         {
             var raceLog = await crApi.GetRiverRaceLogAsync(war.ClanTag, ct);
+
+            // Колизей — последняя (максимальная) секция сезона. Флаг из журнала срабатывает
+            // только когда в логе появился более новый сезон, поэтому свежий колизей текущего
+            // сезона показывался как «WN». Досчитываем по контексту живой войны: сезон в прошлом
+            // (w.SeasonId < текущего) ИЛИ живая неделя уже «завернулась» на меньшую секцию
+            // (война перешла к тренировке след. недели) — значит последняя неделя = колизей.
+            var maxSecBySeason = raceLog
+                .GroupBy(w => w.SeasonId)
+                .ToDictionary(g => g.Key, g => g.Max(w => w.SectionIndex));
+            bool IsColosseum(Domain.Entities.RiverRaceLogWeek w) =>
+                w.IsColosseum
+                || (w.SectionIndex == maxSecBySeason[w.SeasonId]
+                    && (w.SeasonId < war.SeasonId
+                        || (w.SeasonId == war.SeasonId && war.SectionIndex < w.SectionIndex)));
+
             warLog = raceLog.Take(6).Select(w => new WarLogWeekDto(
                 SeasonId: w.SeasonId,
                 SectionIndex: w.SectionIndex,
-                IsColosseum: w.IsColosseum,
+                IsColosseum: IsColosseum(w),
                 Standings: w.Standings.Select(s => new WarLogClanDto(
                     Rank: s.Rank,
                     Name: s.ClanName,
