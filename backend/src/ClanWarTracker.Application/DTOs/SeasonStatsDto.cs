@@ -14,6 +14,15 @@ public record SeasonPlayerDto(
     int BestWeekFame,         // лучшая неделя
     int Rank);
 
+/// <summary>Архив прошлых сезонов: по каждому завершённому сезону — топ игроков.</summary>
+public record SeasonArchiveDto(List<SeasonArchiveEntryDto> Seasons);
+
+public record SeasonArchiveEntryDto(
+    int SeasonId,
+    int WeeksTracked,
+    int ClanTotalFame,                  // медали клана за сезон (сумма топа+хвоста)
+    List<SeasonPlayerDto> TopPlayers);  // топ-10 сезона, MVP первым
+
 /// <summary>Сезонная сводка для конкретного игрока (вкладка «Я»).</summary>
 public record MySeasonDto(
     int SeasonId,
