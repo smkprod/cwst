@@ -83,13 +83,17 @@ public class CaptureWarSnapshotsUseCase(
         var log = await crApi.GetRiverRaceLogAsync(clan.ClanTag, ct);
         if (log.Count == 0) return;
 
-        var existing = (await snapshots.GetByClanAsync(clan.Id, weeks: 16, ct))
-            .Select(s => (s.SeasonId, s.SectionIndex))
-            .ToHashSet();
+        // Не просто «есть неделя», а «есть неделя С ДАННЫМИ»: старые бэкфиллы могли записать
+        // 0 славы (до фикса, когда славу клана путали с очками лодки). Такие недели
+        // перезаписываем свежими данными из журнала, а нормальные — не трогаем.
+        var existingFame = (await snapshots.GetByClanAsync(clan.Id, weeks: 16, ct))
+            .GroupBy(s => (s.SeasonId, s.SectionIndex))
+            .ToDictionary(g => g.Key, g => g.Max(s => s.TotalFame));
 
         foreach (var w in log)
         {
-            if (existing.Contains((w.SeasonId, w.SectionIndex))) continue;
+            if (existingFame.TryGetValue((w.SeasonId, w.SectionIndex), out var haveFame) && haveFame > 0)
+                continue; // неделя уже сохранена с реальными данными
 
             var ours = w.Standings.FirstOrDefault(s =>
                 string.Equals(s.ClanTag, clan.ClanTag, StringComparison.OrdinalIgnoreCase));
