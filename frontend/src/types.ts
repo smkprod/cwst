@@ -395,6 +395,7 @@ export interface NotificationSettings {
   finalCallEnabled: boolean
   dailyReportEnabled: boolean
   warEndMinuteUtc: number | null   // во сколько заканчивается КВ (минуты от 00:00 UTC), null = 10:00 по умолчанию
+  perfectDayEnabled: boolean       // поздравление «900 за день» в чат
 }
 
 export type BroadcastTarget = 'dm' | 'chats' | 'both'

@@ -47,6 +47,9 @@ public class NotificationSettings
     public Toggle FinalCall { get; set; } = new();
     public Toggle DailyReport { get; set; } = new();
 
+    /// <summary>Поздравление в чат, когда игрок набирает 900 медалей за день (идеальный день).</summary>
+    public Toggle PerfectDay { get; set; } = new();
+
     /// <summary>
     /// Во сколько заканчивается военный день у клана — минуты от полуночи UTC (0..1439).
     /// Задаёт глава в настройках. null — используем допущение по умолчанию (10:00 UTC).

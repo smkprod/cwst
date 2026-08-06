@@ -313,6 +313,8 @@ const ru = {
     finalCallDesc: 'За ~30 минут до конца дня — последний шанс доиграть.',
     dailyReportTitle: 'Ежедневный отчёт',
     dailyReportDesc: 'Итоги дня/недели в чат: топ, лентяи, медали.',
+    perfectDayTitle: '🏆 Поздравление за 900',
+    perfectDayDesc: 'Смешное поздравление в чат, когда игрок набивает 900 медалей за день.',
   },
 
   reminder: {
@@ -900,6 +902,8 @@ const uk: Translations = {
     finalCallDesc: 'За ~30 хвилин до кінця дня — останній шанс дограти.',
     dailyReportTitle: 'Щоденний звіт',
     dailyReportDesc: 'Підсумки дня/тижня в чат: топ, ледарі, медалі.',
+    perfectDayTitle: '🏆 Привітання за 900',
+    perfectDayDesc: 'Смішне привітання в чат, коли гравець набиває 900 медалей за день.',
   },
 
   reminder: {
@@ -1485,6 +1489,8 @@ const en: Translations = {
     finalCallDesc: '~30 minutes before the day ends — last chance to play.',
     dailyReportTitle: 'Daily report',
     dailyReportDesc: 'Day/week summary to chat: top, slackers, medals.',
+    perfectDayTitle: '🏆 900-a-day shoutout',
+    perfectDayDesc: 'A funny chat shoutout when a player scores 900 medals in a day.',
   },
 
   reminder: {
