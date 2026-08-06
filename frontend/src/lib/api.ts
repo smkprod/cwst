@@ -1,5 +1,5 @@
 import { initData } from './telegram'
-import type { BroadcastResult, BroadcastTarget, ClanHistory, ClanRanking, ClanStatus, ClanWarLog, GameTournament, GlobalTop, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RecruitmentCandidates, RecruitmentStatus, Achievements, SeasonArchive, SeasonBreakdown, SeasonStats, Tournament, TournamentSummary, WarJournal } from '../types'
+import type { BroadcastResult, BroadcastTarget, ClanHistory, ClanRanking, ClanStatus, ClanWarLog, GameTournament, GlobalTop, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, Tournament, TournamentSummary, WarJournal } from '../types'
 
 // Если мы на Render (production), BASE должен быть пустой строкой '', чтобы запросы шли на тот же домен.
 // Для локальной разработки (Development) оставляем localhost:5000.
@@ -66,6 +66,18 @@ export const api = {
   getSeasonArchive: () => request<SeasonArchive>('/api/clans/my/season-archive'),
   getGlobalTop: () => request<GlobalTop>('/api/players/top'),
   getMyAchievements: () => request<Achievements>('/api/players/me/achievements'),
+  // 204 (нет данных: не привязан / нет войны) — отдаём null, а не падаем на пустом теле
+  getWhatsNew: async (): Promise<WhatsNew | null> => {
+    const res = await fetch(`${BASE}/api/players/me/whats-new`, {
+      headers: { 'X-Telegram-Init-Data': window.Telegram?.WebApp?.initData ?? '' },
+    })
+    if (!res.ok || res.status === 204) return null
+    return res.json().catch(() => null)
+  },
+  getRespectStatus: () => request<RespectStatus>('/api/players/me/respect-status'),
+  giveRespect: (tag: string) =>
+    request<{ ok: boolean; total: number }>(
+      `/api/players/${encodeURIComponent(tag.replace('#', ''))}/respect`, { method: 'POST' }),
 
   getRecruitmentStatus: () => request<RecruitmentStatus>('/api/recruitment/me'),
   applyRecruitment: (note: string) =>

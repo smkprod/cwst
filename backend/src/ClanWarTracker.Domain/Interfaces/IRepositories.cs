@@ -72,6 +72,21 @@ public interface IWarBattleRepository
     Task SaveChangesAsync(CancellationToken ct = default);
 }
 
+public interface IRespectRepository
+{
+    /// <summary>Респект игрока за конкретный день (лимит «1 в сутки»). null — ещё не давал.</summary>
+    Task<Respect?> GetByGiverAndDayAsync(string fromPlayerTag, string dayUtc, CancellationToken ct = default);
+
+    /// <summary>Респекты клана за день (для «топа респектов дня»).</summary>
+    Task<List<Respect>> GetByClanAndDayAsync(int clanId, string dayUtc, CancellationToken ct = default);
+
+    /// <summary>Сколько респектов получил игрок: всего и начиная с указанного момента.</summary>
+    Task<(int Total, int Since)> CountForPlayerAsync(string toPlayerTag, DateTime sinceUtc, CancellationToken ct = default);
+
+    Task AddAsync(Respect respect, CancellationToken ct = default);
+    Task SaveChangesAsync(CancellationToken ct = default);
+}
+
 public interface IGameTournamentRepository
 {
     /// <summary>Все отслеживаемые игровые турниры, новые — первыми.</summary>

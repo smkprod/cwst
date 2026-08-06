@@ -168,6 +168,23 @@ const ru = {
     currentDeck: '🃏 Текущая колода',
   },
 
+  whatsNew: {
+    title: '✨ Пока тебя не было',
+    gained: 'набрал',
+    medals: 'медалей',
+    climbed: 'поднялся на',
+    places: 'мест(а)',
+    nowRank: 'теперь',
+    passedYou: 'обошёл тебя',
+    gotRespects: 'респектов получено:',
+    decksLeft: 'Осталось колод сегодня:',
+    goPlay: 'успей сыграть!',
+  },
+  respect: {
+    give: 'Дать респект',
+    sent: 'Респект отправлен!',
+    usedToday: 'Респект уже дан сегодня',
+  },
   ach: {
     title: '🏆 Витрина наград',
     badges: {
@@ -771,6 +788,23 @@ const uk: Translations = {
     currentDeck: '🃏 Поточна колода',
   },
 
+  whatsNew: {
+    title: '✨ Поки тебе не було',
+    gained: 'набрав',
+    medals: 'медалей',
+    climbed: 'піднявся на',
+    places: 'місць',
+    nowRank: 'тепер',
+    passedYou: 'обійшов тебе',
+    gotRespects: 'респектів отримано:',
+    decksLeft: 'Залишилось колод сьогодні:',
+    goPlay: 'встигни зіграти!',
+  },
+  respect: {
+    give: 'Дати респект',
+    sent: 'Респект надіслано!',
+    usedToday: 'Респект вже дано сьогодні',
+  },
   ach: {
     title: '🏆 Вітрина нагород',
     badges: {
@@ -1372,6 +1406,23 @@ const en: Translations = {
     currentDeck: '🃏 Current deck',
   },
 
+  whatsNew: {
+    title: '✨ While you were away',
+    gained: 'earned',
+    medals: 'medals',
+    climbed: 'climbed',
+    places: 'places',
+    nowRank: 'now',
+    passedYou: 'passed you',
+    gotRespects: 'respects received:',
+    decksLeft: 'Decks left today:',
+    goPlay: 'go play!',
+  },
+  respect: {
+    give: 'Give respect',
+    sent: 'Respect sent!',
+    usedToday: 'Respect already given today',
+  },
   ach: {
     title: '🏆 Trophy Cabinet',
     badges: {

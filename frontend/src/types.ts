@@ -206,6 +206,26 @@ export interface MySeason {
   weeksTracked: number
 }
 
+/* --- «Что нового»: персональная дельта с прошлого визита --- */
+export interface WhatsNew {
+  isFirstVisit: boolean
+  lastVisitAtUtc: string | null
+  fameDelta: number
+  rankDelta: number          // +N = поднялся на N мест
+  rank: number
+  respectsSince: number
+  passedByName: string | null
+  decksLeftToday: number
+  badgesEarned: string[]
+}
+
+/* --- Респекты 👏 --- */
+export interface RespectStatus {
+  givenToday: boolean
+  givenToName: string | null
+  myTotal: number
+}
+
 /* --- Витрина наград: значки с уровнями и прогрессом (эффект владения + Зейгарник) --- */
 export interface Achievement {
   key: 'streak' | 'dailyStreak' | 'perfectDays' | 'mvpWeeks' | 'totalFame' | 'warsPlayed'

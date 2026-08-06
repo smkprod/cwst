@@ -9,6 +9,7 @@ import { InsightsCard } from './components/InsightsCard'
 import { RaceCard } from './components/RaceCard'
 import { WarLogCard } from './components/WarLogCard'
 import { StatsStrip } from './components/StatsStrip'
+import { WhatsNewCard } from './components/WhatsNewCard'
 import { PlayerList } from './components/PlayerList'
 import { Leaderboard } from './components/Leaderboard'
 import { MyStatsView } from './components/MyStatsView'
@@ -159,6 +160,8 @@ export default function App() {
                 <WarHeader status={data} canManage={canManage} onOpenSettings={() => { haptic('light'); setSettingsOpen(true) }} />
                 {/* Личный призыв — первым делом: «ты не доиграл» цепляет сильнее общих цифр */}
                 <MyActionBanner status={data} />
+                {/* Что изменилось лично у тебя с прошлого захода (сама решает, показываться ли) */}
+                <WhatsNewCard />
                 {/* Аналитика к аналитике: цифры → прогноз → инсайты, потом гонка и история */}
                 <StatsStrip stats={data.stats} />
                 <ForecastCard forecast={data.forecast} stats={data.stats} periodType={data.periodType} />

@@ -14,7 +14,10 @@ public class PlayerController(
     GetPlayerStatsUseCase getStats,
     GetGlobalTopUseCase getGlobalTop,
     GetPlayerTournamentHistoryUseCase getTournamentHistory,
-    GetAchievementsUseCase getAchievements) : ControllerBase
+    GetAchievementsUseCase getAchievements,
+    GetWhatsNewUseCase getWhatsNew,
+    GiveRespectUseCase giveRespect,
+    IRespectRepository respects) : ControllerBase
 {
     /// <summary>
     /// GET /api/players/top — глобальный топ игроков, привязавших аккаунт к боту,
@@ -53,6 +56,43 @@ public class PlayerController(
                 : NotFound(new { error = "not_in_current_war", message = "Игрока нет в текущем составе войны" });
         }
         return Ok(stats);
+    }
+
+    /// <summary>
+    /// GET /api/players/me/whats-new — персональная дельта с прошлого визита.
+    /// ВАЖНО: вызов обновляет отметку визита, поэтому дёргается один раз при входе.
+    /// </summary>
+    [HttpGet("me/whats-new")]
+    public async Task<IActionResult> WhatsNew(CancellationToken ct)
+    {
+        var userId = (long)HttpContext.Items["TelegramUserId"]!;
+        var data = await getWhatsNew.ExecuteAsync(userId, ct);
+        return data is null ? NoContent() : Ok(data);
+    }
+
+    /// <summary>POST /api/players/{tag}/respect — дать респект 👏 согильдийцу (1 в сутки).</summary>
+    [HttpPost("{tag}/respect")]
+    public async Task<IActionResult> GiveRespect(string tag, CancellationToken ct)
+    {
+        var userId = (long)HttpContext.Items["TelegramUserId"]!;
+        var result = await giveRespect.ExecuteAsync(userId, tag, ct);
+        return result.Ok
+            ? Ok(new { ok = true, total = result.TargetTotal })
+            : BadRequest(new { error = result.Error });
+    }
+
+    /// <summary>GET /api/players/me/respect-status — дал ли я уже респект сегодня.</summary>
+    [HttpGet("me/respect-status")]
+    public async Task<IActionResult> RespectStatus(CancellationToken ct)
+    {
+        var userId = (long)HttpContext.Items["TelegramUserId"]!;
+        var player = await players.GetByTelegramIdAsync(userId, ct);
+        if (player is null) return NotFound(new { error = "player_not_linked" });
+
+        var day = DateTime.UtcNow.ToString("yyyy-MM-dd");
+        var given = await respects.GetByGiverAndDayAsync(player.PlayerTag, day, ct);
+        var (total, _) = await respects.CountForPlayerAsync(player.PlayerTag, DateTime.UtcNow, ct);
+        return Ok(new { givenToday = given is not null, givenToName = given?.ToName, myTotal = total });
     }
 
     /// <summary>

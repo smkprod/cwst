@@ -19,6 +19,7 @@ builder.Services.AddScoped<SendWarStartUseCase>();
 builder.Services.AddScoped<SendSmartAlertUseCase>();
 builder.Services.AddScoped<SendLeaderBriefingUseCase>();
 builder.Services.AddScoped<SendPerfectDayUseCase>();
+builder.Services.AddScoped<SendRespectDigestUseCase>();
 builder.Services.AddScoped<NudgePlayersUseCase>();
 builder.Services.AddScoped<LinkPlayerUseCase>();
 builder.Services.AddScoped<SetupClanUseCase>();
