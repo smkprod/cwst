@@ -505,86 +505,12 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
 
     private record CardIconUrls([property: JsonPropertyName("medium")] string? Medium);
 
-    public async Task<CrTournament?> GetTournamentAsync(string tournamentTag, CancellationToken ct = default)
-    {
-        // Таблица турнира меняется во время игры — кэш короткий (2 минуты).
-        return await cache.GetOrCreateAsync($"tournament:{tournamentTag}", async entry =>
-        {
-            entry.Size = 1;
-            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(2);
-            var resp = await http.GetAsync($"tournaments/{Encode(tournamentTag)}", ct);
-            if (resp.StatusCode == HttpStatusCode.NotFound) return null;
-            if (resp.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.Unauthorized)
-                throw new InvalidOperationException(
-                    "CR API отклонил ключ (403). Ключ привязан к IP — создай новый на developer.clashroyale.com.");
-            if (!resp.IsSuccessStatusCode) return null;
-            var t = await resp.Content.ReadFromJsonAsync<TournamentResponse>(cancellationToken: ct);
-            if (t is null) return null;
-            return new CrTournament
-            {
-                Tag = t.Tag,
-                Name = t.Name,
-                Description = t.Description,
-                Status = t.Status ?? "UNKNOWN",
-                Capacity = t.Capacity,
-                MaxCapacity = t.MaxCapacity,
-                LevelCap = t.LevelCap,
-                FirstPlaceCardPrize = t.FirstPlaceCardPrize,
-                GameMode = t.GameMode?.Name,
-                CreatedTime = ParseCrTime(t.CreatedTime),
-                StartedTime = ParseCrTime(t.StartedTime),
-                EndedTime = ParseCrTime(t.EndedTime),
-                PreparationDuration = t.PreparationDuration,
-                Duration = t.Duration,
-                Members = (t.MembersList ?? [])
-                    .Select(m => new CrTournamentMember
-                    {
-                        Tag = m.Tag,
-                        Name = m.Name,
-                        Rank = m.Rank,
-                        PreviousRank = m.PreviousRank,
-                        Score = m.Score,
-                        ClanName = m.Clan?.Name,
-                    })
-                    .OrderBy(m => m.Rank == 0 ? int.MaxValue : m.Rank) // rank 0 = ещё без места, вниз
-                    .ToList(),
-            };
-        });
-    }
-
     /// <summary>CR API отдаёт время как "20260630T120000.000Z". null — пусто/не распарсилось.</summary>
     private static DateTime? ParseCrTime(string? s) =>
         DateTime.TryParseExact(s, "yyyyMMdd'T'HHmmss.fff'Z'", CultureInfo.InvariantCulture,
             DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var dt)
             ? dt
             : null;
-
-    private record TournamentResponse(
-        [property: JsonPropertyName("tag")] string Tag,
-        [property: JsonPropertyName("name")] string Name,
-        [property: JsonPropertyName("description")] string? Description,
-        [property: JsonPropertyName("status")] string? Status,
-        [property: JsonPropertyName("capacity")] int Capacity,
-        [property: JsonPropertyName("maxCapacity")] int MaxCapacity,
-        [property: JsonPropertyName("levelCap")] int LevelCap,
-        [property: JsonPropertyName("firstPlaceCardPrize")] int FirstPlaceCardPrize,
-        [property: JsonPropertyName("preparationDuration")] int PreparationDuration,
-        [property: JsonPropertyName("duration")] int Duration,
-        [property: JsonPropertyName("createdTime")] string? CreatedTime,
-        [property: JsonPropertyName("startedTime")] string? StartedTime,
-        [property: JsonPropertyName("endedTime")] string? EndedTime,
-        [property: JsonPropertyName("gameMode")] GameModeRef? GameMode,
-        [property: JsonPropertyName("membersList")] List<TournamentMemberResponse>? MembersList);
-
-    private record GameModeRef([property: JsonPropertyName("name")] string? Name);
-
-    private record TournamentMemberResponse(
-        [property: JsonPropertyName("tag")] string Tag,
-        [property: JsonPropertyName("name")] string Name,
-        [property: JsonPropertyName("rank")] int Rank,
-        [property: JsonPropertyName("previousRank")] int PreviousRank,
-        [property: JsonPropertyName("score")] int Score,
-        [property: JsonPropertyName("clan")] ClanRef? Clan);
 
     public async Task<ClanWarRanking?> GetClanWarRankingAsync(string clanTag, CancellationToken ct = default)
     {

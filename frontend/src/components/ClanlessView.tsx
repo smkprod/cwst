@@ -2,12 +2,10 @@ import { useState } from 'react'
 import { useT } from '../lib/i18n'
 import { haptic, shareToTelegram, botStartLink, BOT_USERNAME } from '../lib/telegram'
 import { LangSwitcher } from './LangSwitcher'
-import { RecruitToggle } from './RecruitToggle'
 import { PlayerSearchView } from './PlayerSearchView'
-import { TournamentView } from './TournamentView'
 import { TopPlayersTeaser } from './TopPlayersTeaser'
 
-type Tab = 'home' | 'search' | 'tournament'
+type Tab = 'home' | 'search'
 
 export function ClanlessView() {
   const { t } = useT()
@@ -58,25 +56,8 @@ export function ClanlessView() {
               )}
             </section>
 
-            {/* Турниры доступны и без клана — даём занятие прямо сейчас */}
-            <section className="card community-card">
-              <div className="community-inner">
-                <span className="community-icon">🥇</span>
-                <div className="community-text">
-                  <span className="community-label">{t.clanless.tournamentHint}</span>
-                </div>
-              </div>
-              <button className="btn community-btn" onClick={() => switchTab('tournament')}>
-                {t.clanless.tournamentBtn}
-              </button>
-            </section>
-
             <TopPlayersTeaser />
 
-            <p className="muted small" style={{ textAlign: 'center', margin: '16px 0 12px' }}>
-              {t.clanless.orRecruit}
-            </p>
-            <RecruitToggle />
           </div>
         )}
 
@@ -86,11 +67,6 @@ export function ClanlessView() {
           </div>
         )}
 
-        {tab === 'tournament' && (
-          <div className="fade-in">
-            <TournamentView />
-          </div>
-        )}
       </main>
 
       <nav className="tabbar" role="tablist">
@@ -111,15 +87,6 @@ export function ClanlessView() {
         >
           <span className="tab-icon">🔍</span>
           <span className="tab-label">{t.tabs.search}</span>
-        </button>
-        <button
-          role="tab"
-          aria-selected={tab === 'tournament'}
-          className={`tab ${tab === 'tournament' ? 'tab-active' : ''}`}
-          onClick={() => switchTab('tournament')}
-        >
-          <span className="tab-icon">🥇</span>
-          <span className="tab-label">{t.tabs.tournament}</span>
         </button>
       </nav>
     </>

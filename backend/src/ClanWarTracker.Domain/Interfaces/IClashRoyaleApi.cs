@@ -30,8 +30,6 @@ public interface IClashRoyaleApi
     /// <summary>Полный профиль игрока: уровень, трофеи, клан, карты. null — не найден.</summary>
     Task<CrPlayerInfo?> GetPlayerInfoAsync(string playerTag, CancellationToken ct = default);
 
-    /// <summary>Живые данные игрового турнира по тегу (/tournaments/{tag}). null — не найден.</summary>
-    Task<CrTournament?> GetTournamentAsync(string tournamentTag, CancellationToken ct = default);
 
     /// <summary>
     /// Место клана в официальных рейтингах по КВ-трофеям: страна (из профиля клана) и мир.

@@ -22,20 +22,6 @@ builder.Services.AddScoped<OwnerBroadcastUseCase>();
 builder.Services.AddScoped<SetClanPlanUseCase>();
 builder.Services.AddScoped<LinkPlayerUseCase>();
 builder.Services.AddScoped<SetupClanUseCase>();
-builder.Services.AddScoped<TournamentBracketService>();
-builder.Services.AddScoped<CreateTournamentUseCase>();
-builder.Services.AddScoped<JoinTournamentUseCase>();
-builder.Services.AddScoped<LeaveTournamentUseCase>();
-builder.Services.AddScoped<UpdateTournamentUseCase>();
-builder.Services.AddScoped<GenerateTournamentBracketUseCase>();
-builder.Services.AddScoped<StartTournamentUseCase>();
-builder.Services.AddScoped<SetTournamentMatchResultUseCase>();
-builder.Services.AddScoped<FinishTournamentUseCase>();
-builder.Services.AddScoped<CancelTournamentUseCase>();
-builder.Services.AddScoped<GetTournamentUseCase>();
-builder.Services.AddScoped<GetTournamentListUseCase>();
-builder.Services.AddScoped<GetPlayerTournamentHistoryUseCase>();
-builder.Services.AddScoped<GameTournamentService>();
 builder.Services.AddControllers();
 
 builder.Services.AddCors(o => o.AddDefaultPolicy(p => p

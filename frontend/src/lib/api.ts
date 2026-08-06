@@ -1,5 +1,5 @@
 import { initData } from './telegram'
-import type { BroadcastResult, BroadcastTarget, ClanHistory, ClanRanking, ClanStatus, ClanWarLog, GameTournament, GlobalTop, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, Tournament, TournamentSummary, WarJournal } from '../types'
+import type { BroadcastResult, BroadcastTarget, ClanHistory, ClanRanking, ClanStatus, ClanWarLog, GlobalTop, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerStats, PlayerHistory, PlayerProfile, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, WarJournal } from '../types'
 
 // Если мы на Render (production), BASE должен быть пустой строкой '', чтобы запросы шли на тот же домен.
 // Для локальной разработки (Development) оставляем localhost:5000.
@@ -79,18 +79,6 @@ export const api = {
     request<{ ok: boolean; total: number }>(
       `/api/players/${encodeURIComponent(tag.replace('#', ''))}/respect`, { method: 'POST' }),
 
-  getRecruitmentStatus: () => request<RecruitmentStatus>('/api/recruitment/me'),
-  applyRecruitment: (note: string) =>
-    request<{ ok: boolean }>('/api/recruitment', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ note }),
-    }),
-  withdrawRecruitment: () =>
-    request<{ ok: boolean }>('/api/recruitment', { method: 'DELETE' }),
-  getRecruitmentCandidates: () =>
-    request<RecruitmentCandidates>('/api/recruitment/candidates'),
-
   // Панель владельца
   ownerGetStats: () => request<OwnerStats>('/api/owner/stats'),
   ownerGetClans: () => request<OwnerClan[]>('/api/owner/clans'),
@@ -109,57 +97,4 @@ export const api = {
       body: JSON.stringify({ text, target }),
     }),
 
-  // Турниры
-  getTournaments: () => request<TournamentSummary[]>('/api/tournaments'),
-  getTournament: (id: number) => request<Tournament>(`/api/tournaments/${id}`),
-  createTournament: (req: {
-    name: string; description?: string; prizeInfo?: string
-    clanInviteLink: string; bestOf: number; minParticipants: number; maxParticipants: number
-  }) =>
-    request<Tournament>('/api/tournaments', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(req),
-    }),
-  updateTournament: (id: number, req: {
-    name: string; description?: string; prizeInfo?: string
-    clanInviteLink: string; bestOf: number; minParticipants: number; maxParticipants: number
-  }) =>
-    request<Tournament>(`/api/tournaments/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(req),
-    }),
-  joinTournament: (id: number) =>
-    request<Tournament>(`/api/tournaments/${id}/join`, { method: 'POST' }),
-  leaveTournament: (id: number) =>
-    request<Tournament>(`/api/tournaments/${id}/leave`, { method: 'POST' }),
-  generateTournamentBracket: (id: number) =>
-    request<Tournament>(`/api/tournaments/${id}/bracket`, { method: 'POST' }),
-  startTournament: (id: number) =>
-    request<Tournament>(`/api/tournaments/${id}/start`, { method: 'POST' }),
-  finishTournament: (id: number) =>
-    request<Tournament>(`/api/tournaments/${id}/finish`, { method: 'POST' }),
-  setTournamentMatchResult: (id: number, matchId: number, scoreA: number, scoreB: number) =>
-    request<Tournament>(`/api/tournaments/${id}/matches/${matchId}/result`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ scoreA, scoreB }),
-    }),
-  cancelTournament: (id: number) =>
-    request<{ ok: boolean }>(`/api/tournaments/${id}`, { method: 'DELETE' }),
-  getPlayerTournamentHistory: (tag: string) =>
-    request<PlayerTournamentHistory[]>(`/api/players/${encodeURIComponent(tag.replace('#', ''))}/tournaments`),
-
-  // Игровые турниры (отслеживание турнира CR по тегу)
-  getGameTournaments: () => request<GameTournament[]>('/api/game-tournaments'),
-  getGameTournament: (id: number) => request<GameTournament>(`/api/game-tournaments/${id}`),
-  addGameTournament: (tag: string, password?: string) =>
-    request<GameTournament>('/api/game-tournaments', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tag, password: password ?? null }),
-    }),
-  removeGameTournament: (id: number) =>
-    request<{ ok: boolean }>(`/api/game-tournaments/${id}`, { method: 'DELETE' }),
 }

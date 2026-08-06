@@ -60,9 +60,6 @@ public static class DependencyInjection
         services.AddScoped<IClanRepository, ClanRepository>();
         services.AddScoped<IPlayerRepository, PlayerRepository>();
         services.AddScoped<IWarSnapshotRepository, WarSnapshotRepository>();
-        services.AddScoped<IRecruitmentRepository, RecruitmentRepository>();
-        services.AddScoped<ITournamentRepository, TournamentRepository>();
-        services.AddScoped<IGameTournamentRepository, GameTournamentRepository>();
         services.AddScoped<IWarBattleRepository, WarBattleRepository>();
         services.AddScoped<IRespectRepository, RespectRepository>();
 
@@ -126,24 +123,6 @@ public static class DependencyInjection
         await db.Database.ExecuteSqlRawAsync(
             "ALTER TABLE \"Clans\" ADD COLUMN IF NOT EXISTS \"LastWarStartKey\" text;");
 
-        await db.Database.ExecuteSqlRawAsync(@"
-CREATE TABLE IF NOT EXISTS ""RecruitmentProfiles"" (
-    ""Id"" serial PRIMARY KEY,
-    ""PlayerTag"" varchar(16) NOT NULL,
-    ""TelegramUserId"" bigint NOT NULL,
-    ""Name"" varchar(64) NOT NULL,
-    ""Note"" varchar(500),
-    ""IsActive"" boolean NOT NULL DEFAULT true,
-    ""CreatedAtUtc"" timestamptz NOT NULL,
-    ""UpdatedAtUtc"" timestamptz NOT NULL
-);");
-
-        await db.Database.ExecuteSqlRawAsync(
-            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_RecruitmentProfiles_PlayerTag\" ON \"RecruitmentProfiles\" (\"PlayerTag\");");
-
-        await db.Database.ExecuteSqlRawAsync(
-            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_RecruitmentProfiles_TelegramUserId\" ON \"RecruitmentProfiles\" (\"TelegramUserId\");");
-
         // Игроки без клана: ClanId теперь nullable
         await db.Database.ExecuteSqlRawAsync(
             "ALTER TABLE \"Players\" ALTER COLUMN \"ClanId\" DROP NOT NULL;");
@@ -158,89 +137,6 @@ CREATE TABLE IF NOT EXISTS ""RecruitmentProfiles"" (
         // @username игрока в Telegram — для тегов по юзернейму в чате.
         await db.Database.ExecuteSqlRawAsync(
             "ALTER TABLE \"Players\" ADD COLUMN IF NOT EXISTS \"TelegramUsername\" text;");
-
-        await db.Database.ExecuteSqlRawAsync(@"
-CREATE TABLE IF NOT EXISTS ""Tournaments"" (
-    ""Id"" serial PRIMARY KEY,
-    ""Name"" varchar(80) NOT NULL,
-    ""Description"" varchar(2000),
-    ""PrizeInfo"" varchar(500),
-    ""ClanInviteLink"" varchar(300) NOT NULL,
-    ""CreatorTelegramUserId"" bigint NOT NULL,
-    ""CreatorPlayerTag"" varchar(16) NOT NULL,
-    ""CreatorName"" varchar(64) NOT NULL,
-    ""BestOf"" integer NOT NULL DEFAULT 1,
-    ""MaxParticipants"" integer NOT NULL DEFAULT 16,
-    ""Status"" integer NOT NULL DEFAULT 0,
-    ""CreatedAtUtc"" timestamptz NOT NULL,
-    ""BracketGeneratedAtUtc"" timestamptz,
-    ""CompletedAtUtc"" timestamptz
-);");
-
-        await db.Database.ExecuteSqlRawAsync(
-            "CREATE INDEX IF NOT EXISTS \"IX_Tournaments_CreatorTelegramUserId\" ON \"Tournaments\" (\"CreatorTelegramUserId\");");
-
-        // Колонки, добавленные после первого релиза турниров (CREATE TABLE выше не дотягивает их
-        // в уже существующую таблицу) — старт турнира вручную и минимум участников для запуска.
-        await db.Database.ExecuteSqlRawAsync(
-            "ALTER TABLE \"Tournaments\" ADD COLUMN IF NOT EXISTS \"StartedAtUtc\" timestamptz;");
-
-        await db.Database.ExecuteSqlRawAsync(
-            "ALTER TABLE \"Tournaments\" ADD COLUMN IF NOT EXISTS \"MinParticipants\" integer NOT NULL DEFAULT 2;");
-
-        await db.Database.ExecuteSqlRawAsync(@"
-CREATE TABLE IF NOT EXISTS ""TournamentParticipants"" (
-    ""Id"" serial PRIMARY KEY,
-    ""TournamentId"" integer NOT NULL REFERENCES ""Tournaments"" (""Id"") ON DELETE CASCADE,
-    ""TelegramUserId"" bigint NOT NULL,
-    ""PlayerTag"" varchar(16) NOT NULL,
-    ""PlayerName"" varchar(64) NOT NULL,
-    ""Seed"" integer NOT NULL DEFAULT 0,
-    ""Status"" integer NOT NULL DEFAULT 0,
-    ""FinalPlacement"" integer,
-    ""JoinedAtUtc"" timestamptz NOT NULL
-);");
-
-        await db.Database.ExecuteSqlRawAsync(
-            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_TournamentParticipants_TournamentId_PlayerTag\" ON \"TournamentParticipants\" (\"TournamentId\", \"PlayerTag\");");
-
-        await db.Database.ExecuteSqlRawAsync(
-            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_TournamentParticipants_TournamentId_TelegramUserId\" ON \"TournamentParticipants\" (\"TournamentId\", \"TelegramUserId\");");
-
-        await db.Database.ExecuteSqlRawAsync(@"
-CREATE TABLE IF NOT EXISTS ""TournamentMatches"" (
-    ""Id"" serial PRIMARY KEY,
-    ""TournamentId"" integer NOT NULL REFERENCES ""Tournaments"" (""Id"") ON DELETE CASCADE,
-    ""Round"" integer NOT NULL,
-    ""SlotIndex"" integer NOT NULL,
-    ""ParticipantAId"" integer REFERENCES ""TournamentParticipants"" (""Id""),
-    ""ParticipantBId"" integer REFERENCES ""TournamentParticipants"" (""Id""),
-    ""ScoreA"" integer NOT NULL DEFAULT 0,
-    ""ScoreB"" integer NOT NULL DEFAULT 0,
-    ""WinnerParticipantId"" integer REFERENCES ""TournamentParticipants"" (""Id""),
-    ""Status"" integer NOT NULL DEFAULT 0,
-    ""NextMatchId"" integer REFERENCES ""TournamentMatches"" (""Id""),
-    ""NextMatchSlot"" integer NOT NULL DEFAULT 0,
-    ""UpdatedAtUtc"" timestamptz
-);");
-
-        await db.Database.ExecuteSqlRawAsync(
-            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_TournamentMatches_TournamentId_Round_SlotIndex\" ON \"TournamentMatches\" (\"TournamentId\", \"Round\", \"SlotIndex\");");
-
-        // Отслеживаемые игровые турниры (живые данные тянутся из CR API по тегу).
-        await db.Database.ExecuteSqlRawAsync(@"
-CREATE TABLE IF NOT EXISTS ""GameTournaments"" (
-    ""Id"" serial PRIMARY KEY,
-    ""TournamentTag"" varchar(16) NOT NULL,
-    ""Name"" varchar(120) NOT NULL,
-    ""Password"" varchar(64),
-    ""CreatorTelegramUserId"" bigint NOT NULL,
-    ""CreatorName"" varchar(64) NOT NULL,
-    ""CreatedAtUtc"" timestamptz NOT NULL
-);");
-
-        await db.Database.ExecuteSqlRawAsync(
-            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_GameTournaments_TournamentTag\" ON \"GameTournaments\" (\"TournamentTag\");");
 
         // Журнал военных боёв (кто/когда отыграл КВ и исход).
         await db.Database.ExecuteSqlRawAsync(@"

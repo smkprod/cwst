@@ -21,13 +21,10 @@ import { AboutCard } from './components/AboutCard'
 import { OwnerPanel } from './components/OwnerPanel'
 import { LinkPrompt } from './components/LinkPrompt'
 import { PlayerSearchView } from './components/PlayerSearchView'
-import { RecruitBoard } from './components/RecruitBoard'
-import { RecruitToggle } from './components/RecruitToggle'
 import { ClanlessView } from './components/ClanlessView'
 import { CommunityCard } from './components/CommunityCard'
 import { GuestEntry } from './components/GuestEntry'
 import { GuestMyStats } from './components/GuestMyStats'
-import { TournamentView } from './components/TournamentView'
 import { InviteCard } from './components/InviteCard'
 import { LeaderCtaCard } from './components/LeaderCtaCard'
 import { MyActionBanner } from './components/MyActionBanner'
@@ -41,7 +38,7 @@ type State =
   | { kind: 'ready'; data: ClanStatus }
   | { kind: 'guest'; data: ClanStatus; myPlayerTag: string }
 
-type Tab = 'war' | 'rating' | 'me' | 'search' | 'owner' | 'recruit' | 'tournament'
+type Tab = 'war' | 'rating' | 'me' | 'search' | 'owner'
 
 export default function App() {
   const [state, setState] = useState<State>({ kind: 'loading' })
@@ -147,8 +144,6 @@ export default function App() {
         { id: 'rating', icon: '🏆', label: t.tabs.rating },
         { id: 'me', icon: '👤', label: t.tabs.me },
         { id: 'search', icon: '🔍', label: t.tabs.search },
-        { id: 'tournament', icon: '🥇', label: t.tabs.tournament },
-        ...(data.isClanLeader && data.plan === 'pro' ? [{ id: 'recruit' as Tab, icon: '👥', label: t.tabs.recruit }] : []),
         ...(data.isOwner ? [{ id: 'owner' as Tab, icon: '⚙️', label: t.tabs.owner }] : []),
       ]
 
@@ -187,7 +182,6 @@ export default function App() {
               <div className="fade-in">
                 <MyStatsView />
                 <div style={{ height: 12 }} />
-                <RecruitToggle />
                 <div style={{ height: 12 }} />
                 <InviteCard />
                 <div style={{ height: 12 }} />
@@ -199,16 +193,6 @@ export default function App() {
             {tab === 'search' && (
               <div className="fade-in">
                 <PlayerSearchView />
-              </div>
-            )}
-            {tab === 'tournament' && (
-              <div className="fade-in">
-                <TournamentView />
-              </div>
-            )}
-            {tab === 'recruit' && data.isClanLeader && data.plan === 'pro' && (
-              <div className="fade-in">
-                <RecruitBoard />
               </div>
             )}
             {tab === 'owner' && data.isOwner && (
@@ -247,7 +231,6 @@ export default function App() {
         { id: 'rating', icon: '🏆', label: t.tabs.rating },
         { id: 'me', icon: '👤', label: t.tabs.me },
         { id: 'search', icon: '🔍', label: t.tabs.search },
-        { id: 'tournament', icon: '🥇', label: t.tabs.tournament },
       ]
 
       return (
@@ -291,11 +274,6 @@ export default function App() {
             {tab === 'search' && (
               <div className="fade-in">
                 <PlayerSearchView />
-              </div>
-            )}
-            {tab === 'tournament' && (
-              <div className="fade-in">
-                <TournamentView />
               </div>
             )}
           </main>
