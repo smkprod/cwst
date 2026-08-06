@@ -206,6 +206,21 @@ export interface MySeason {
   weeksTracked: number
 }
 
+/* --- Витрина наград: значки с уровнями и прогрессом (эффект владения + Зейгарник) --- */
+export interface Achievement {
+  key: 'streak' | 'perfectDays' | 'mvpWeeks' | 'totalFame' | 'warsPlayed'
+  level: number          // 0 нет, 1 бронза, 2 серебро, 3 золото
+  value: number
+  nextAt: number | null  // порог следующего уровня, null = золото
+  thresholds: number[]
+}
+
+export interface Achievements {
+  playerTag: string
+  badges: Achievement[]
+  weeksAnalyzed: number
+}
+
 export interface MyStats {
   playerTag: string
   name: string

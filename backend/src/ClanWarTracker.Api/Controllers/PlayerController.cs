@@ -13,7 +13,8 @@ public class PlayerController(
     IClashRoyaleApi crApi,
     GetPlayerStatsUseCase getStats,
     GetGlobalTopUseCase getGlobalTop,
-    GetPlayerTournamentHistoryUseCase getTournamentHistory) : ControllerBase
+    GetPlayerTournamentHistoryUseCase getTournamentHistory,
+    GetAchievementsUseCase getAchievements) : ControllerBase
 {
     /// <summary>
     /// GET /api/players/top — глобальный топ игроков, привязавших аккаунт к боту,
@@ -52,6 +53,22 @@ public class PlayerController(
                 : NotFound(new { error = "not_in_current_war", message = "Игрока нет в текущем составе войны" });
         }
         return Ok(stats);
+    }
+
+    /// <summary>
+    /// GET /api/players/me/achievements — витрина наград: значки с уровнями и
+    /// прогрессом до следующего (считается из накопленных снапшотов клана).
+    /// </summary>
+    [HttpGet("me/achievements")]
+    public async Task<IActionResult> MyAchievements(CancellationToken ct)
+    {
+        var userId = (long)HttpContext.Items["TelegramUserId"]!;
+        var player = await players.GetByTelegramIdAsync(userId, ct);
+        if (player is null) return NotFound(new { error = "player_not_linked" });
+        if (player.ClanId is not int clanId)
+            return NotFound(new { error = "no_clan", message = "Игрок не состоит в клане бота" });
+
+        return Ok(await getAchievements.ExecuteAsync(clanId, player.PlayerTag, ct));
     }
 
     /// <summary>

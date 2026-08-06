@@ -168,6 +168,19 @@ const ru = {
     currentDeck: '🃏 Текущая колода',
   },
 
+  ach: {
+    title: '🏆 Витрина наград',
+    badges: {
+      streak: 'Серия войн',
+      perfectDays: 'Идеальные дни',
+      mvpWeeks: 'MVP недели',
+      totalFame: 'Медали за всё время',
+      warsPlayed: 'Войн сыграно',
+    } as Record<string, string>,
+    lvlNone: '', lvlBronze: '🥉', lvlSilver: '🥈', lvlGold: '🥇',
+    toNext: 'до след. уровня',
+    maxed: 'максимум!',
+  },
   me: {
     notInWar: 'Тебя нет в составе текущей войны',
     loadError: 'Не удалось загрузить статистику',
@@ -757,6 +770,19 @@ const uk: Translations = {
     currentDeck: '🃏 Поточна колода',
   },
 
+  ach: {
+    title: '🏆 Вітрина нагород',
+    badges: {
+      streak: 'Серія війн',
+      perfectDays: 'Ідеальні дні',
+      mvpWeeks: 'MVP тижня',
+      totalFame: 'Медалі за весь час',
+      warsPlayed: 'Війн зіграно',
+    } as Record<string, string>,
+    lvlNone: '', lvlBronze: '🥉', lvlSilver: '🥈', lvlGold: '🥇',
+    toNext: 'до наст. рівня',
+    maxed: 'максимум!',
+  },
   me: {
     notInWar: 'Тебе немає у складі поточної війни',
     loadError: 'Не вдалося завантажити статистику',
@@ -1344,6 +1370,19 @@ const en: Translations = {
     currentDeck: '🃏 Current deck',
   },
 
+  ach: {
+    title: '🏆 Trophy Cabinet',
+    badges: {
+      streak: 'War streak',
+      perfectDays: 'Perfect days',
+      mvpWeeks: 'Week MVPs',
+      totalFame: 'All-time medals',
+      warsPlayed: 'Wars played',
+    } as Record<string, string>,
+    lvlNone: '', lvlBronze: '🥉', lvlSilver: '🥈', lvlGold: '🥇',
+    toNext: 'to next level',
+    maxed: 'maxed!',
+  },
   me: {
     notInWar: 'You are not in the current war',
     loadError: 'Failed to load stats',
