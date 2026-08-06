@@ -168,6 +168,37 @@ const ru = {
     currentDeck: '🃏 Текущая колода',
   },
 
+  whatsNew: {
+    title: '✨ Пока тебя не было',
+    gained: 'набрал',
+    medals: 'медалей',
+    climbed: 'поднялся на',
+    places: 'мест(а)',
+    nowRank: 'теперь',
+    passedYou: 'обошёл тебя',
+    gotRespects: 'респектов получено:',
+    decksLeft: 'Осталось колод сегодня:',
+    goPlay: 'успей сыграть!',
+  },
+  respect: {
+    give: 'Дать респект',
+    sent: 'Респект отправлен!',
+    usedToday: 'Респект уже дан сегодня',
+  },
+  ach: {
+    title: '🏆 Витрина наград',
+    badges: {
+      streak: 'Серия войн',
+      dailyStreak: 'Серия дней 4/4',
+      perfectDays: 'Идеальные дни',
+      mvpWeeks: 'MVP недели',
+      totalFame: 'Медали за всё время',
+      warsPlayed: 'Войн сыграно',
+    } as Record<string, string>,
+    lvlNone: '', lvlBronze: '🥉', lvlSilver: '🥈', lvlGold: '🥇',
+    toNext: 'до след. уровня',
+    maxed: 'максимум!',
+  },
   me: {
     notInWar: 'Тебя нет в составе текущей войны',
     loadError: 'Не удалось загрузить статистику',
@@ -313,6 +344,8 @@ const ru = {
     finalCallDesc: 'За ~30 минут до конца дня — последний шанс доиграть.',
     dailyReportTitle: 'Ежедневный отчёт',
     dailyReportDesc: 'Итоги дня/недели в чат: топ, лентяи, медали.',
+    perfectDayTitle: '🏆 Поздравление за 900',
+    perfectDayDesc: 'Смешное поздравление в чат, когда игрок набивает 900 медалей за день.',
   },
 
   reminder: {
@@ -755,6 +788,37 @@ const uk: Translations = {
     currentDeck: '🃏 Поточна колода',
   },
 
+  whatsNew: {
+    title: '✨ Поки тебе не було',
+    gained: 'набрав',
+    medals: 'медалей',
+    climbed: 'піднявся на',
+    places: 'місць',
+    nowRank: 'тепер',
+    passedYou: 'обійшов тебе',
+    gotRespects: 'респектів отримано:',
+    decksLeft: 'Залишилось колод сьогодні:',
+    goPlay: 'встигни зіграти!',
+  },
+  respect: {
+    give: 'Дати респект',
+    sent: 'Респект надіслано!',
+    usedToday: 'Респект вже дано сьогодні',
+  },
+  ach: {
+    title: '🏆 Вітрина нагород',
+    badges: {
+      streak: 'Серія війн',
+      dailyStreak: 'Серія днів 4/4',
+      perfectDays: 'Ідеальні дні',
+      mvpWeeks: 'MVP тижня',
+      totalFame: 'Медалі за весь час',
+      warsPlayed: 'Війн зіграно',
+    } as Record<string, string>,
+    lvlNone: '', lvlBronze: '🥉', lvlSilver: '🥈', lvlGold: '🥇',
+    toNext: 'до наст. рівня',
+    maxed: 'максимум!',
+  },
   me: {
     notInWar: 'Тебе немає у складі поточної війни',
     loadError: 'Не вдалося завантажити статистику',
@@ -900,6 +964,8 @@ const uk: Translations = {
     finalCallDesc: 'За ~30 хвилин до кінця дня — останній шанс дограти.',
     dailyReportTitle: 'Щоденний звіт',
     dailyReportDesc: 'Підсумки дня/тижня в чат: топ, ледарі, медалі.',
+    perfectDayTitle: '🏆 Привітання за 900',
+    perfectDayDesc: 'Смішне привітання в чат, коли гравець набиває 900 медалей за день.',
   },
 
   reminder: {
@@ -1340,6 +1406,37 @@ const en: Translations = {
     currentDeck: '🃏 Current deck',
   },
 
+  whatsNew: {
+    title: '✨ While you were away',
+    gained: 'earned',
+    medals: 'medals',
+    climbed: 'climbed',
+    places: 'places',
+    nowRank: 'now',
+    passedYou: 'passed you',
+    gotRespects: 'respects received:',
+    decksLeft: 'Decks left today:',
+    goPlay: 'go play!',
+  },
+  respect: {
+    give: 'Give respect',
+    sent: 'Respect sent!',
+    usedToday: 'Respect already given today',
+  },
+  ach: {
+    title: '🏆 Trophy Cabinet',
+    badges: {
+      streak: 'War streak',
+      dailyStreak: 'Daily 4/4 streak',
+      perfectDays: 'Perfect days',
+      mvpWeeks: 'Week MVPs',
+      totalFame: 'All-time medals',
+      warsPlayed: 'Wars played',
+    } as Record<string, string>,
+    lvlNone: '', lvlBronze: '🥉', lvlSilver: '🥈', lvlGold: '🥇',
+    toNext: 'to next level',
+    maxed: 'maxed!',
+  },
   me: {
     notInWar: 'You are not in the current war',
     loadError: 'Failed to load stats',
@@ -1485,6 +1582,8 @@ const en: Translations = {
     finalCallDesc: '~30 minutes before the day ends — last chance to play.',
     dailyReportTitle: 'Daily report',
     dailyReportDesc: 'Day/week summary to chat: top, slackers, medals.',
+    perfectDayTitle: '🏆 900-a-day shoutout',
+    perfectDayDesc: 'A funny chat shoutout when a player scores 900 medals in a day.',
   },
 
   reminder: {

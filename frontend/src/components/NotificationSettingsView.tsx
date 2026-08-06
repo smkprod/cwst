@@ -162,6 +162,16 @@ export function NotificationSettingsView({ onClose }: { onClose: () => void }) {
               />
             </div>
 
+            {/* Поздравление «900 за день» */}
+            <div className="card notif-block">
+              <ToggleRow
+                label={t.notif.perfectDayTitle}
+                desc={t.notif.perfectDayDesc}
+                on={state.s.perfectDayEnabled}
+                onToggle={() => patch({ perfectDayEnabled: !state.s.perfectDayEnabled })}
+              />
+            </div>
+
             <button className="btn btn-nudge notif-save" disabled={saving} onClick={save}>
               {saving ? t.notif.saving : saved ? t.notif.saved : t.notif.save}
             </button>

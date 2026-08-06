@@ -206,6 +206,41 @@ export interface MySeason {
   weeksTracked: number
 }
 
+/* --- «Что нового»: персональная дельта с прошлого визита --- */
+export interface WhatsNew {
+  isFirstVisit: boolean
+  lastVisitAtUtc: string | null
+  fameDelta: number
+  rankDelta: number          // +N = поднялся на N мест
+  rank: number
+  respectsSince: number
+  passedByName: string | null
+  decksLeftToday: number
+  badgesEarned: string[]
+}
+
+/* --- Респекты 👏 --- */
+export interface RespectStatus {
+  givenToday: boolean
+  givenToName: string | null
+  myTotal: number
+}
+
+/* --- Витрина наград: значки с уровнями и прогрессом (эффект владения + Зейгарник) --- */
+export interface Achievement {
+  key: 'streak' | 'dailyStreak' | 'perfectDays' | 'mvpWeeks' | 'totalFame' | 'warsPlayed'
+  level: number          // 0 нет, 1 бронза, 2 серебро, 3 золото
+  value: number
+  nextAt: number | null  // порог следующего уровня, null = золото
+  thresholds: number[]
+}
+
+export interface Achievements {
+  playerTag: string
+  badges: Achievement[]
+  weeksAnalyzed: number
+}
+
 export interface MyStats {
   playerTag: string
   name: string
@@ -395,6 +430,7 @@ export interface NotificationSettings {
   finalCallEnabled: boolean
   dailyReportEnabled: boolean
   warEndMinuteUtc: number | null   // во сколько заканчивается КВ (минуты от 00:00 UTC), null = 10:00 по умолчанию
+  perfectDayEnabled: boolean       // поздравление «900 за день» в чат
 }
 
 export type BroadcastTarget = 'dm' | 'chats' | 'both'

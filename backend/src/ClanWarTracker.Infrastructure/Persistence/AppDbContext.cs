@@ -15,6 +15,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<TournamentMatch> TournamentMatches => Set<TournamentMatch>();
     public DbSet<GameTournament> GameTournaments => Set<GameTournament>();
     public DbSet<WarBattle> WarBattles => Set<WarBattle>();
+    public DbSet<Respect> Respects => Set<Respect>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -53,6 +54,18 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
              .WithMany(c => c.Players)
              .HasForeignKey(p => p.ClanId)
              .IsRequired(false);
+        });
+
+        mb.Entity<Respect>(e =>
+        {
+            e.HasIndex(r => new { r.FromPlayerTag, r.DayUtc }).IsUnique(); // лимит «1 в сутки»
+            e.HasIndex(r => new { r.ClanId, r.DayUtc });                   // топ дня по клану
+            e.HasIndex(r => r.ToPlayerTag);                                // счётчики получателя
+            e.Property(r => r.FromPlayerTag).HasMaxLength(16);
+            e.Property(r => r.ToPlayerTag).HasMaxLength(16);
+            e.Property(r => r.FromName).HasMaxLength(64);
+            e.Property(r => r.ToName).HasMaxLength(64);
+            e.Property(r => r.DayUtc).HasMaxLength(10);
         });
 
         mb.Entity<RecruitmentProfile>(e =>
