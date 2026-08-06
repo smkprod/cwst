@@ -27,6 +27,9 @@ public class WarSnapshotRepository(AppDbContext db) : IWarSnapshotRepository
             existing.TotalDecksUsed = snapshot.TotalDecksUsed;
             existing.ParticipantCount = snapshot.ParticipantCount;
             existing.PeriodType = snapshot.PeriodType;
+            // "log" (подтверждённый финал) никогда не понижаем обратно до "live":
+            // живой тик текущей недели не должен затирать метку качества.
+            if (snapshot.Source == "log" || existing.Source != "log") existing.Source = snapshot.Source;
 
             // Заменяем игроков: состав мог измениться (кик/вступление) — проще пересоздать
             db.PlayerWarSnapshots.RemoveRange(existing.Players);

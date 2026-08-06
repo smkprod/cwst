@@ -20,13 +20,17 @@ public class GetSeasonStatsUseCase(IWarSnapshotRepository snapshots)
         var all = await snapshots.GetBySeasonAsync(clanId, seasonId.Value, ct);
         if (all.Count == 0) return new SeasonStatsDto(seasonId.Value, 0, []);
 
-        // Финальный снимок каждой недели = самый ПОЛНЫЙ (максимум накопленных медалей),
-        // а не просто последний по PeriodIndex. Слава за неделю только растёт, поэтому
-        // «максимум TotalFame» = финал. Так случайный неполный/нулевой снимок (например,
-        // старый бэкфилл колизея с 0 славы и высоким PeriodIndex) не перекрывает реальные данные.
+        // Финал недели: сначала снимок, подтверждённый официальным журналом (Source="log"),
+        // и только если такого нет — самый полный живой снимок (слава за неделю только
+        // растёт, поэтому максимум TotalFame = финал). Так недоснятая неделя не занижает
+        // сезон, а случайный нулевой снимок не перекрывает реальные данные.
         var weekFinals = all
             .GroupBy(s => s.SectionIndex)
-            .Select(g => g.OrderByDescending(s => s.TotalFame).ThenByDescending(s => s.PeriodIndex).First())
+            .Select(g => g
+                .OrderByDescending(s => s.Source == "log" && s.TotalFame > 0)
+                .ThenByDescending(s => s.TotalFame)
+                .ThenByDescending(s => s.PeriodIndex)
+                .First())
             .ToList();
 
         var agg = new Dictionary<string, (string Name, int Total, int Weeks, int Best)>(StringComparer.OrdinalIgnoreCase);

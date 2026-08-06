@@ -16,6 +16,13 @@ public class WarSnapshot
     public int PeriodIndex { get; set; }         // 0..6 (3..6 — военные дни)
     public required string PeriodType { get; set; } // "warDay" | "colosseum"
 
+    /// <summary>
+    /// Откуда данные: "live" — снято с текущей войны (может быть неполным, если день
+    /// закончился между тиками), "log" — из официального журнала (/riverracelog), т.е.
+    /// подтверждённый финал недели. Агрегаты предпочитают "log" — это гарантия качества.
+    /// </summary>
+    public string Source { get; set; } = "live";
+
     public DateTime CapturedAtUtc { get; set; }  // время последнего обновления
     public int TotalFame { get; set; }           // слава клана (накопительная за неделю)
     public int TotalDecksUsed { get; set; }      // колоды за неделю
