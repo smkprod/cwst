@@ -17,6 +17,8 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
     private readonly HashSet<string> _finalCallKeys = [];
     private readonly HashSet<string> _reminderChatKeys = [];
     private readonly HashSet<string> _briefingKeys = [];
+    private readonly HashSet<string> _perfectDayKeys = [];
+    private readonly HashSet<string> _respectDigestKeys = [];
 
     protected override Task ExecuteAsync(CancellationToken stoppingToken) =>
         Task.WhenAll(
@@ -112,6 +114,19 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
             {
                 logger.LogError(ex, "Leader briefing failed");
             }
+
+            try
+            {
+                // Вечерний топ респектов дня в чат клана.
+                using var scope = scopeFactory.CreateScope();
+                var digest = scope.ServiceProvider.GetRequiredService<SendRespectDigestUseCase>();
+                var sent = await digest.ExecuteAsync(_respectDigestKeys, stoppingToken);
+                if (sent > 0) logger.LogInformation("Sent {Count} respect digests", sent);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Respect digest failed");
+            }
         }
         while (await timer.WaitForNextTickAsync(stoppingToken));
     }
@@ -138,6 +153,20 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
             catch (Exception ex)
             {
                 logger.LogError(ex, "Snapshot capture failed");
+            }
+
+            try
+            {
+                // Поздравление «900 за день» — в частом цикле, чтобы прилетало в чат
+                // почти сразу после четвёртой победы, пока эмоция горячая.
+                using var scope = scopeFactory.CreateScope();
+                var perfectDay = scope.ServiceProvider.GetRequiredService<SendPerfectDayUseCase>();
+                var sent = await perfectDay.ExecuteAsync(_perfectDayKeys, stoppingToken);
+                if (sent > 0) logger.LogInformation("Sent {Count} perfect-day congrats", sent);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Perfect day congrats failed");
             }
         }
         while (await timer.WaitForNextTickAsync(stoppingToken));

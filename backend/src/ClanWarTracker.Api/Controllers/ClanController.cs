@@ -89,7 +89,8 @@ public class ClanController(
         bool WarStartEnabled, string WarStartChannel,
         bool FinalCallEnabled,
         bool DailyReportEnabled,
-        int? WarEndMinuteUtc = null);   // во сколько заканчивается КВ (минуты от 00:00 UTC), null = 10:00 по умолчанию
+        int? WarEndMinuteUtc = null,    // во сколько заканчивается КВ (минуты от 00:00 UTC), null = 10:00 по умолчанию
+        bool PerfectDayEnabled = true); // поздравление «900 за день» в чат
 
     /// <summary>GET /api/clans/my/notification-settings — гибкие настройки уведомлений (админ/лидер).</summary>
     [HttpGet("my/notification-settings")]
@@ -125,6 +126,7 @@ public class ClanController(
             WarStart = new ToggleChannel { Enabled = dto.WarStartEnabled, Channel = NotifyChannelExt.ParseChannel(dto.WarStartChannel) },
             FinalCall = new Toggle { Enabled = dto.FinalCallEnabled },
             DailyReport = new Toggle { Enabled = dto.DailyReportEnabled },
+            PerfectDay = new Toggle { Enabled = dto.PerfectDayEnabled },
             WarEndMinuteUtc = dto.WarEndMinuteUtc,
         }.Serialize();
         await clans.SaveChangesAsync(ct);
@@ -138,7 +140,8 @@ public class ClanController(
         s.WarStart.Enabled, s.WarStart.Channel.ToWire(),
         s.FinalCall.Enabled,
         s.DailyReport.Enabled,
-        s.WarEndMinuteUtc);
+        s.WarEndMinuteUtc,
+        s.PerfectDay.Enabled);
 
     /// <summary>Управлять настройками может админ группы или лидер/со-лидер клана.</summary>
     private async Task<bool> CanManageAsync(Clan clan, Player player, CancellationToken ct)

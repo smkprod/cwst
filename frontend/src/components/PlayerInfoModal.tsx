@@ -14,6 +14,8 @@ interface Props {
 export function PlayerInfoModal({ player: p, isMe, onClose }: Props) {
   const [history, setHistory] = useState<PlayerHistory | null>(null)
   const [historyState, setHistoryState] = useState<'loading' | 'ready' | 'error'>('loading')
+  // Респект 👏: 'idle' — можно дать, 'sent' — только что дал, 'used' — лимит на сегодня исчерпан
+  const [respect, setRespect] = useState<'loading' | 'idle' | 'sent' | 'used'>('loading')
   const { t } = useT()
 
   const STATUS_META: Record<PlayStatus, { icon: string; label: string; cls: string }> = {
@@ -37,6 +39,21 @@ export function PlayerInfoModal({ player: p, isMe, onClose }: Props) {
       .catch(() => { if (alive) setHistoryState('error') })
     return () => { alive = false }
   }, [p.playerTag])
+
+  useEffect(() => {
+    if (isMe) return                       // себе респект не дают
+    let alive = true
+    api.getRespectStatus()
+      .then(s => { if (alive) setRespect(s.givenToday ? 'used' : 'idle') })
+      .catch(() => { if (alive) setRespect('idle') })
+    return () => { alive = false }
+  }, [isMe])
+
+  const sendRespect = async () => {
+    haptic('medium')
+    setRespect('sent')                     // оптимистично: ощущение мгновенной награды
+    try { await api.giveRespect(p.playerTag) } catch { setRespect('used') }
+  }
 
   const close = () => {
     haptic('light')
@@ -71,6 +88,18 @@ export function PlayerInfoModal({ player: p, isMe, onClose }: Props) {
         <div className={`modal-status ${meta.cls}`}>
           {meta.icon} {meta.label} · {t.playerModal.decksToday} <strong>{p.decksUsedToday}/4</strong>
         </div>
+
+        {!isMe && respect !== 'loading' && (
+          <button
+            className={`btn-respect ${respect === 'idle' ? '' : 'btn-respect-done'}`}
+            onClick={sendRespect}
+            disabled={respect !== 'idle'}
+          >
+            {respect === 'idle' && <>👏 {t.respect.give}</>}
+            {respect === 'sent' && <>✅ {t.respect.sent}</>}
+            {respect === 'used' && <>👏 {t.respect.usedToday}</>}
+          </button>
+        )}
 
         {p.dnaLabel && (
           <div className="dna-row">

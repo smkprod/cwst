@@ -13,4 +13,10 @@ public class Player
     public DateTime? LastSmartAlertSentAt { get; set; }   // анти-спам персональных алертов о влиянии на победу
     /// <summary>Кто пригласил этого игрока (Telegram ID пригласившего). null — пришёл сам.</summary>
     public long? ReferrerTelegramUserId { get; set; }
+
+    // «Что нового»: снимок на момент прошлого визита в Mini App — для персональной
+    // карточки-дельты при входе (ранг ↑/↓, медали +N, респекты с прошлого раза).
+    public DateTime? LastVisitAtUtc { get; set; }
+    public int? LastVisitFame { get; set; }
+    public int? LastVisitRank { get; set; }
 }

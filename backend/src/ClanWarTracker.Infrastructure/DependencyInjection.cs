@@ -64,6 +64,7 @@ public static class DependencyInjection
         services.AddScoped<ITournamentRepository, TournamentRepository>();
         services.AddScoped<IGameTournamentRepository, GameTournamentRepository>();
         services.AddScoped<IWarBattleRepository, WarBattleRepository>();
+        services.AddScoped<IRespectRepository, RespectRepository>();
 
         return services;
     }
@@ -261,6 +262,34 @@ CREATE TABLE IF NOT EXISTS ""WarBattles"" (
 
         await db.Database.ExecuteSqlRawAsync(
             "CREATE INDEX IF NOT EXISTS \"IX_WarBattles_ClanId_SeasonId_SectionIndex\" ON \"WarBattles\" (\"ClanId\", \"SeasonId\", \"SectionIndex\");");
+
+        // «Что нового»: снимок прошлого визита игрока в Mini App.
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Players\" ADD COLUMN IF NOT EXISTS \"LastVisitAtUtc\" timestamptz;");
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Players\" ADD COLUMN IF NOT EXISTS \"LastVisitFame\" integer;");
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Players\" ADD COLUMN IF NOT EXISTS \"LastVisitRank\" integer;");
+
+        // Респекты 👏 — социальная награда между согильдийцами (1 в сутки).
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""Respects"" (
+    ""Id"" serial PRIMARY KEY,
+    ""ClanId"" integer NOT NULL,
+    ""FromPlayerTag"" varchar(16) NOT NULL,
+    ""FromName"" varchar(64) NOT NULL,
+    ""ToPlayerTag"" varchar(16) NOT NULL,
+    ""ToName"" varchar(64) NOT NULL,
+    ""DayUtc"" varchar(10) NOT NULL,
+    ""CreatedAtUtc"" timestamptz NOT NULL
+);");
+
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_Respects_FromPlayerTag_DayUtc\" ON \"Respects\" (\"FromPlayerTag\", \"DayUtc\");");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_Respects_ClanId_DayUtc\" ON \"Respects\" (\"ClanId\", \"DayUtc\");");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_Respects_ToPlayerTag\" ON \"Respects\" (\"ToPlayerTag\");");
     }
 
     /// <summary>Убирает все пробельные символы (включая \r\n) из токена. null, если пусто.</summary>
