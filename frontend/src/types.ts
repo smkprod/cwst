@@ -208,7 +208,7 @@ export interface MySeason {
 
 /* --- Витрина наград: значки с уровнями и прогрессом (эффект владения + Зейгарник) --- */
 export interface Achievement {
-  key: 'streak' | 'perfectDays' | 'mvpWeeks' | 'totalFame' | 'warsPlayed'
+  key: 'streak' | 'dailyStreak' | 'perfectDays' | 'mvpWeeks' | 'totalFame' | 'warsPlayed'
   level: number          // 0 нет, 1 бронза, 2 серебро, 3 золото
   value: number
   nextAt: number | null  // порог следующего уровня, null = золото

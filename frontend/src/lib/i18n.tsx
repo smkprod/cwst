@@ -172,6 +172,7 @@ const ru = {
     title: '🏆 Витрина наград',
     badges: {
       streak: 'Серия войн',
+      dailyStreak: 'Серия дней 4/4',
       perfectDays: 'Идеальные дни',
       mvpWeeks: 'MVP недели',
       totalFame: 'Медали за всё время',
@@ -774,6 +775,7 @@ const uk: Translations = {
     title: '🏆 Вітрина нагород',
     badges: {
       streak: 'Серія війн',
+      dailyStreak: 'Серія днів 4/4',
       perfectDays: 'Ідеальні дні',
       mvpWeeks: 'MVP тижня',
       totalFame: 'Медалі за весь час',
@@ -1374,6 +1376,7 @@ const en: Translations = {
     title: '🏆 Trophy Cabinet',
     badges: {
       streak: 'War streak',
+      dailyStreak: 'Daily 4/4 streak',
       perfectDays: 'Perfect days',
       mvpWeeks: 'Week MVPs',
       totalFame: 'All-time medals',

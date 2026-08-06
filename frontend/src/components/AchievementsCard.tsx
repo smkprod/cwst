@@ -6,6 +6,7 @@ import { useT, type Translations } from '../lib/i18n'
 
 const BADGE_ICONS: Record<Achievement['key'], string> = {
   streak: '🔥',
+  dailyStreak: '📆',
   perfectDays: '💯',
   mvpWeeks: '👑',
   totalFame: '🏅',

@@ -19,6 +19,7 @@ public class GetAchievementsUseCase(IWarSnapshotRepository snapshots)
     private static readonly Dictionary<string, int[]> Levels = new()
     {
         ["streak"] = [3, 5, 10],
+        ["dailyStreak"] = [3, 7, 15],
         ["perfectDays"] = [1, 5, 15],
         ["mvpWeeks"] = [1, 3, 8],
         ["totalFame"] = [10_000, 40_000, 100_000],
@@ -36,6 +37,7 @@ public class GetAchievementsUseCase(IWarSnapshotRepository snapshots)
             .ToList();
 
         int totalFame = 0, warsPlayed = 0, mvpWeeks = 0, perfectDays = 0, streak = 0;
+        var dayDecks = new List<int>(); // 4/4-дни в хронологии — для «серии дней»
 
         foreach (var week in weeks)
         {
@@ -57,9 +59,11 @@ public class GetAchievementsUseCase(IWarSnapshotRepository snapshots)
                 streak = 0;
             }
 
-            // Идеальные дни: дельта славы игрока между соседними дневными снимками недели
+            // Идеальные дни + дневные колоды: дельты между соседними дневными снимками недели.
+            // Колоды за день считаем той же дельтой (недельный DecksUsed растёт монотонно);
+            // для первого военного дня берём суточный счётчик из снимка.
             var days = week.Where(s => s.PeriodIndex >= 3).OrderBy(s => s.PeriodIndex).ToList();
-            var prevFame = 0;
+            int prevFame = 0, prevDecks = -1;
             foreach (var day in days)
             {
                 var p = day.Players.FirstOrDefault(x =>
@@ -67,12 +71,29 @@ public class GetAchievementsUseCase(IWarSnapshotRepository snapshots)
                 var fame = p?.Fame ?? prevFame;
                 if (fame - prevFame >= 900) perfectDays++;
                 prevFame = fame;
+
+                var decksToday = p is null ? 0
+                    : prevDecks < 0 ? Math.Clamp(p.DecksUsedToday, 0, 4)
+                    : Math.Clamp(p.DecksUsed - prevDecks, 0, 4);
+                prevDecks = p?.DecksUsed ?? prevDecks;
+                dayDecks.Add(decksToday);
             }
+        }
+
+        // Серия дней: подряд закрытых военных дней (4/4 колоды), считая с конца.
+        // Сегодняшний (последний) день серию не рвёт, пока не доигран, — просто не входит в неё.
+        var dailyStreak = 0;
+        for (var i = dayDecks.Count - 1; i >= 0; i--)
+        {
+            if (dayDecks[i] >= 4) { dailyStreak++; continue; }
+            if (i == dayDecks.Count - 1) continue; // текущий день ещё идёт
+            break;
         }
 
         List<AchievementDto> badges =
         [
             Badge("streak", streak),
+            Badge("dailyStreak", dailyStreak),
             Badge("perfectDays", perfectDays),
             Badge("mvpWeeks", mvpWeeks),
             Badge("totalFame", totalFame),
