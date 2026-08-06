@@ -138,25 +138,27 @@ public class PlayerController(
                 ? Math.Round(Math.Clamp((double)r.Snapshot.TotalFame / r.Snapshot.TotalDecksUsed, 100, 250), 1)
                 : 0)).ToList();
 
-        // Дополняем недостающие недели официальным журналом текущего клана игрока
+        // Официальный журнал клана — ПРИОРИТЕТНЫЙ источник: он пофамильный и всегда полный,
+        // тогда как наш снимок недели мог сняться неудачно (например, колизей с 0 славы) и
+        // раньше такая «дырка» навсегда перекрывала правильные данные из API.
+        // Поэтому: неделя из журнала перезаписывает нашу, а снимки остаются только для
+        // недель, которых в журнале нет (он отдаёт ~10 недель и только по текущему клану).
         try
         {
             var clanTag = await crApi.GetPlayerClanTagAsync(playerTag, ct);
             if (clanTag is not null)
             {
-                var seen = merged.Select(m => (m.SeasonId, m.SectionIndex)).ToHashSet();
                 var log = await crApi.GetRiverRaceLogAsync(clanTag, ct);
                 foreach (var w in log)
                 {
-                    if (seen.Contains((w.SeasonId, w.SectionIndex))) continue;
                     var standing = w.Standings.FirstOrDefault(s =>
                         string.Equals(s.ClanTag, clanTag, StringComparison.OrdinalIgnoreCase));
                     var me = standing?.Participants.FirstOrDefault(p =>
                         string.Equals(p.PlayerTag, playerTag, StringComparison.OrdinalIgnoreCase));
-                    if (me is null || me.Fame == 0) continue;
+                    if (me is null || me.Fame == 0) continue; // не участвовал — не затираем
 
                     var clanDecks = standing!.Participants.Sum(p => p.DecksUsed);
-                    merged.Add(new PlayerWeekHistoryDto(
+                    var fromLog = new PlayerWeekHistoryDto(
                         SeasonId: w.SeasonId,
                         SectionIndex: w.SectionIndex,
                         IsColosseum: w.IsColosseum,
@@ -169,7 +171,12 @@ public class PlayerController(
                             : 0,
                         ClanAvgFamePerAttack: standing.Fame > 0 && clanDecks > 0
                             ? Math.Round(Math.Clamp((double)standing.Fame / clanDecks, 100, 250), 1)
-                            : 0));
+                            : 0);
+
+                    var existing = merged.FindIndex(m =>
+                        m.SeasonId == w.SeasonId && m.SectionIndex == w.SectionIndex);
+                    if (existing >= 0) merged[existing] = fromLog;
+                    else merged.Add(fromLog);
                 }
             }
         }
