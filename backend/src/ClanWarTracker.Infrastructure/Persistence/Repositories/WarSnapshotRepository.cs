@@ -106,6 +106,12 @@ public class WarSnapshotRepository(AppDbContext db) : IWarSnapshotRepository
             .Select(s => (int?)s.SeasonId)
             .MaxAsync(ct);
 
+    public async Task<Dictionary<int, DateTime>> GetLastCapturedByClanAsync(CancellationToken ct = default) =>
+        await db.WarSnapshots
+            .GroupBy(s => s.ClanId)
+            .Select(g => new { ClanId = g.Key, Last = g.Max(s => s.CapturedAtUtc) })
+            .ToDictionaryAsync(x => x.ClanId, x => x.Last, ct);
+
     public async Task<List<int>> GetSeasonIdsAsync(int clanId, CancellationToken ct = default) =>
         await db.WarSnapshots
             .Where(s => s.ClanId == clanId)

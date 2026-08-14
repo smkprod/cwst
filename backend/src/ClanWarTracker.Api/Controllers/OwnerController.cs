@@ -13,7 +13,8 @@ namespace ClanWarTracker.Api.Controllers;
 [Route("api/owner")]
 public class OwnerController(
     IClanRepository clans,
-    IPlayerRepository players,
+    GetOwnerDashboardUseCase dashboard,
+    GetOwnerClanDetailUseCase clanDetail,
     SetClanPlanUseCase setPlan,
     OwnerBroadcastUseCase broadcast,
     IConfiguration config) : ControllerBase
@@ -21,28 +22,25 @@ public class OwnerController(
     public record SetPlanRequest(string Tier, int? Days);
     public record BroadcastRequest(string Text, string Target);
 
-    /// <summary>GET /api/owner/clans — все кланы сервиса с тарифами.</summary>
+    /// <summary>GET /api/owner/clans — кланы сервиса: тариф, активность, привязки.</summary>
     [HttpGet("clans")]
     public async Task<IActionResult> GetClans(CancellationToken ct)
     {
         if (!IsOwner()) return StatusCode(403, new { error = "not_owner" });
+        return Ok(await dashboard.GetClansAsync(ct));
+    }
 
-        var now = DateTime.UtcNow;
-        var list = new List<object>();
-        foreach (var clan in await clans.GetAllAsync(ct))
-        {
-            var clanPlayers = await players.GetByClanIdAsync(clan.Id, ct);
-            list.Add(new
-            {
-                id = clan.Id,
-                clanTag = clan.ClanTag,
-                name = clan.Name,
-                plan = clan.EffectivePlan(now) == PlanTier.Pro ? "pro" : "free",
-                planExpiresAtUtc = clan.PlanExpiresAtUtc,
-                linkedPlayers = clanPlayers.Count(p => p.TelegramUserId is not null),
-            });
-        }
-        return Ok(list);
+    /// <summary>
+    /// GET /api/owner/clans/{id} — детали клана: привязанные игроки с @username и ролями
+    /// (главы первыми — с ними имеет смысл говорить про Pro).
+    /// </summary>
+    [HttpGet("clans/{id:int}")]
+    public async Task<IActionResult> GetClanDetail(int id, CancellationToken ct)
+    {
+        if (!IsOwner()) return StatusCode(403, new { error = "not_owner" });
+
+        var detail = await clanDetail.ExecuteAsync(id, ct);
+        return detail is null ? NotFound(new { error = "clan_not_found" }) : Ok(detail);
     }
 
     /// <summary>POST /api/owner/clans/{id}/plan — выдать тариф. Body: { tier: "pro"|"free", days?: 30 }.</summary>
@@ -63,26 +61,12 @@ public class OwnerController(
         return ok ? Ok(new { ok = true }) : NotFound(new { error = "clan_not_found" });
     }
 
-    /// <summary>
-    /// GET /api/owner/stats — воронка: сколько пользователей дошли до каждого шага.
-    /// </summary>
+    /// <summary>GET /api/owner/stats — детальная сводка по сервису.</summary>
     [HttpGet("stats")]
     public async Task<IActionResult> GetStats(CancellationToken ct)
     {
         if (!IsOwner()) return StatusCode(403, new { error = "not_owner" });
-
-        var allPlayers = await players.GetAllLinkedAsync(ct);
-        var allClans  = await clans.GetAllAsync(ct);
-        var now = DateTime.UtcNow;
-
-        return Ok(new {
-            totalClans       = allClans.Count,
-            proClans         = allClans.Count(c => c.EffectivePlan(now) == Domain.Enums.PlanTier.Pro),
-            totalLinkedUsers = allPlayers.Count,
-            usersWithClan    = allPlayers.Count(p => p.ClanId.HasValue),
-            usersWithoutClan = allPlayers.Count(p => !p.ClanId.HasValue),
-            chatsWithBot     = allClans.Count(c => c.TelegramChatId != 0),
-        });
+        return Ok(await dashboard.GetStatsAsync(ct));
     }
 
     /// <summary>
