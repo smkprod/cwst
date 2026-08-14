@@ -1168,3 +1168,53 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 }
 .btn-respect:active { transform: scale(0.97); }
 .btn-respect-done { background: rgba(255,255,255,0.08); color: inherit; opacity: 0.75; cursor: default; }
+
+/* --- Панель владельца: вкладки, сводка, кланы --- */
+.adm-tabs { display: flex; gap: 6px; margin-bottom: 12px; overflow-x: auto; }
+.adm-tab {
+  flex: 1; white-space: nowrap; padding: 9px 10px; border: none; border-radius: 10px;
+  background: rgba(255,255,255,0.06); color: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.adm-tab-on { background: var(--accent, #8774e1); color: #fff; }
+
+.adm-hero { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.adm-hero-cell { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 6px; text-align: center; }
+.adm-hero-value { font-size: 24px; font-weight: 700; line-height: 1.1; }
+.adm-hero-label { font-size: 12px; opacity: 0.75; }
+
+.adm-block { margin-bottom: 12px; }
+.adm-block-title { font-size: 14px; font-weight: 700; margin: 0 0 8px; }
+.adm-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.adm-row:last-child { border-bottom: none; }
+.adm-row-label { font-size: 13px; opacity: 0.85; }
+.adm-row-value { font-size: 15px; font-weight: 700; }
+.adm-good { color: #4ade80; }
+.adm-bad { color: #f87171; }
+.adm-warn { color: #fbbf24; }
+.adm-note { margin: 8px 0 0; line-height: 1.4; }
+
+.adm-alert-card { border: 1px solid rgba(251,191,36,0.35); background: rgba(251,191,36,0.06); margin-bottom: 12px; }
+.adm-alert-row { font-size: 13px; margin: 4px 0 0; line-height: 1.4; }
+
+.adm-search {
+  width: 100%; padding: 10px 12px; margin-bottom: 8px; border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04);
+  color: inherit; font-size: 14px;
+}
+.adm-filters { display: flex; gap: 6px; margin-bottom: 10px; overflow-x: auto; padding-bottom: 2px; }
+.adm-filters .btn-mini { white-space: nowrap; }
+.adm-filter-on { background: var(--accent, #8774e1); color: #fff; }
+
+.adm-card-head {
+  width: 100%; display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
+  background: none; border: none; color: inherit; text-align: left; cursor: pointer; padding: 0;
+}
+.adm-card-right { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+.adm-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-left: 6px; vertical-align: middle; }
+.adm-dot-bad { background: #f87171; }
+.adm-card-body { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08); }
+
+.adm-member { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 5px 0; font-size: 13px; }
+.adm-member-leader { font-weight: 600; }
+.adm-member-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adm-member-tg { background: none; border: none; color: var(--accent, #8774e1); font-size: 13px; cursor: pointer; padding: 0; }

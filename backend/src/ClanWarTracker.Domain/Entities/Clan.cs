@@ -39,6 +39,9 @@ public class Clan
     /// </summary>
     public PlanReminderStage PlanReminderStageSent { get; set; } = PlanReminderStage.None;
 
+    /// <summary>Когда клан подключили к боту. null — подключён до появления поля.</summary>
+    public DateTime? CreatedAtUtc { get; set; }
+
     public List<Player> Players { get; set; } = [];
 
     /// <summary>Действующий тариф с учётом срока: просроченный Pro = Free.</summary>

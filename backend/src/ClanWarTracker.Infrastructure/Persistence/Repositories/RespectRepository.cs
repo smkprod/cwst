@@ -22,6 +22,9 @@ public class RespectRepository(AppDbContext db) : IRespectRepository
         return (total, since);
     }
 
+    public Task<int> CountSinceAsync(DateTime sinceUtc, CancellationToken ct = default) =>
+        db.Respects.CountAsync(r => r.CreatedAtUtc >= sinceUtc, ct);
+
     public async Task AddAsync(Respect respect, CancellationToken ct = default) =>
         await db.Respects.AddAsync(respect, ct);
 

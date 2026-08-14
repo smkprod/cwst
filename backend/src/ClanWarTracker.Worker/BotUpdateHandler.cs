@@ -291,7 +291,7 @@ public class BotUpdateHandler(
 
             if (autoName is not null)
             {
-                existingClan = new Clan { ClanTag = clanTag, Name = autoName, TelegramChatId = 0 };
+                existingClan = new Clan { ClanTag = clanTag, Name = autoName, TelegramChatId = 0, CreatedAtUtc = DateTime.UtcNow };
                 await clanRepo.AddAsync(existingClan, ct);
                 await clanRepo.SaveChangesAsync(ct);
             }

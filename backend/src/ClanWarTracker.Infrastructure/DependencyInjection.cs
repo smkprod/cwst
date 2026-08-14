@@ -263,6 +263,12 @@ CREATE TABLE IF NOT EXISTS ""WarBattles"" (
         await db.Database.ExecuteSqlRawAsync(
             "CREATE INDEX IF NOT EXISTS \"IX_WarBattles_ClanId_SeasonId_SectionIndex\" ON \"WarBattles\" (\"ClanId\", \"SeasonId\", \"SectionIndex\");");
 
+        // Даты подключения клана / привязки игрока — для статистики роста в панели владельца.
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Clans\" ADD COLUMN IF NOT EXISTS \"CreatedAtUtc\" timestamptz;");
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Players\" ADD COLUMN IF NOT EXISTS \"CreatedAtUtc\" timestamptz;");
+
         // Источник данных недели: "live" (текущая война) / "log" (подтверждённый финал).
         await db.Database.ExecuteSqlRawAsync(
             "ALTER TABLE \"WarSnapshots\" ADD COLUMN IF NOT EXISTS \"Source\" text NOT NULL DEFAULT 'live';");
