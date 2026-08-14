@@ -41,7 +41,12 @@ public class GetAchievementsUseCase(IWarSnapshotRepository snapshots)
 
         foreach (var week in weeks)
         {
-            var final = week.OrderByDescending(s => s.TotalFame).ThenByDescending(s => s.PeriodIndex).First();
+            // Тот же приоритет, что и в сезонном зачёте: подтверждённый журналом финал важнее живого
+            var final = week
+                .OrderByDescending(s => s.Source == "log" && s.TotalFame > 0)
+                .ThenByDescending(s => s.TotalFame)
+                .ThenByDescending(s => s.PeriodIndex)
+                .First();
             var mine = final.Players.FirstOrDefault(p =>
                 string.Equals(p.PlayerTag, playerTag, StringComparison.OrdinalIgnoreCase));
             var myWeekFame = mine?.Fame ?? 0;

@@ -32,16 +32,13 @@ public class CaptureWarSnapshotsUseCase(
                 if (war is null || !war.IsWarDay) continue;
 
                 // Сохраняем только текущих участников клана (из API, кэш 5 мин).
-                // Фолбэк на топ-50 самых активных, если API недоступен.
                 var memberTags = await crApi.GetClanMemberRolesAsync(clan.ClanTag, ct);
-                var roster = memberTags.Count > 0
-                    ? war.Participants.Where(p => memberTags.ContainsKey(p.PlayerTag)).ToList()
-                    : war.Participants
-                        .OrderByDescending(p => p.DecksUsedToday)
-                        .ThenByDescending(p => p.DecksUsed)
-                        .ThenByDescending(p => p.Fame)
-                        .Take(50)
-                        .ToList();
+                if (memberTags.Count == 0) continue; // состав неизвестен — лучше пропустить тик,
+                                                     // чем записать неполную неделю: следующий
+                                                     // тик через 10 минут, а финал всё равно
+                                                     // подтвердится журналом.
+                var roster = war.Participants.Where(p => memberTags.ContainsKey(p.PlayerTag)).ToList();
+                if (roster.Count == 0) continue;     // пустой состав = битые данные, не пишем
 
                 await snapshots.UpsertAsync(new WarSnapshot
                 {
@@ -83,17 +80,19 @@ public class CaptureWarSnapshotsUseCase(
         var log = await crApi.GetRiverRaceLogAsync(clan.ClanTag, ct);
         if (log.Count == 0) return;
 
-        // Не просто «есть неделя», а «есть неделя С ДАННЫМИ»: старые бэкфиллы могли записать
-        // 0 славы (до фикса, когда славу клана путали с очками лодки). Такие недели
-        // перезаписываем свежими данными из журнала, а нормальные — не трогаем.
-        var existingFame = (await snapshots.GetByClanAsync(clan.Id, weeks: 16, ct))
-            .GroupBy(s => (s.SeasonId, s.SectionIndex))
-            .ToDictionary(g => g.Key, g => g.Max(s => s.TotalFame));
+        // Журнал — источник истины по завершённым неделям. Живой снимок мог не поймать
+        // финал (день закончился между тиками, API моргнул, бот лежал), и такая неделя
+        // тихо оставалась недосчитанной — как колизей 133 сезона.
+        // Поэтому пропускаем неделю ТОЛЬКО если она уже подтверждена журналом.
+        // Всё остальное перезаписываем, пока неделя в 10-недельном окне журнала.
+        var verifiedWeeks = (await snapshots.GetByClanAsync(clan.Id, weeks: 16, ct))
+            .Where(s => s.Source == "log" && s.TotalFame > 0)
+            .Select(s => (s.SeasonId, s.SectionIndex))
+            .ToHashSet();
 
         foreach (var w in log)
         {
-            if (existingFame.TryGetValue((w.SeasonId, w.SectionIndex), out var haveFame) && haveFame > 0)
-                continue; // неделя уже сохранена с реальными данными
+            if (verifiedWeeks.Contains((w.SeasonId, w.SectionIndex))) continue;
 
             var ours = w.Standings.FirstOrDefault(s =>
                 string.Equals(s.ClanTag, clan.ClanTag, StringComparison.OrdinalIgnoreCase));
@@ -106,6 +105,7 @@ public class CaptureWarSnapshotsUseCase(
                 SectionIndex = w.SectionIndex,
                 PeriodIndex = 6,                       // финал недели (последний военный день)
                 PeriodType = w.IsColosseum ? "colosseum" : "warDay",
+                Source = "log",                        // подтверждённый финал
                 CapturedAtUtc = DateTime.UtcNow,
                 TotalFame = ours.Fame,
                 TotalDecksUsed = ours.Participants.Sum(p => p.DecksUsed),

@@ -30,6 +30,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             e.HasIndex(s => new { s.ClanId, s.SeasonId, s.SectionIndex, s.PeriodIndex }).IsUnique();
             e.Property(s => s.PeriodType).HasMaxLength(16);
+            e.Property(s => s.Source).HasMaxLength(8).HasDefaultValue("live");
             e.HasOne(s => s.Clan)
              .WithMany()
              .HasForeignKey(s => s.ClanId);
