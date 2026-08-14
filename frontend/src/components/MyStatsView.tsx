@@ -5,6 +5,7 @@ import { fmt, fmtShort } from '../lib/format'
 import { haptic, shareToTelegram } from '../lib/telegram'
 import { AchievementsCard } from './AchievementsCard'
 import { useT, perfLabel, type Translations } from '../lib/i18n'
+import { TournamentHistoryCard } from './TournamentHistoryCard'
 
 type State =
   | { kind: 'loading' }
@@ -148,6 +149,7 @@ export function MyStatsView() {
 
       <AchievementsCard />
 
+      <TournamentHistoryCard playerTag={s.playerTag} />
 
       <button className="btn btn-share" onClick={share}>
         {t.me.share}

@@ -13,6 +13,7 @@ public class PlayerController(
     IClashRoyaleApi crApi,
     GetPlayerStatsUseCase getStats,
     GetGlobalTopUseCase getGlobalTop,
+    GetPlayerTournamentHistoryUseCase getTournamentHistory,
     GetAchievementsUseCase getAchievements,
     GetWhatsNewUseCase getWhatsNew,
     GiveRespectUseCase giveRespect,
@@ -190,6 +191,14 @@ public class PlayerController(
                 .ToList());
 
         return Ok(dto);
+    }
+
+    /// <summary>GET /api/players/{tag}/tournaments — история участия игрока в турнирах Clanify.</summary>
+    [HttpGet("{tag}/tournaments")]
+    public async Task<IActionResult> Tournaments(string tag, CancellationToken ct)
+    {
+        var playerTag = "#" + tag.TrimStart('#').ToUpperInvariant();
+        return Ok(await getTournamentHistory.ExecuteAsync(playerTag, ct));
     }
 
     /// <summary>

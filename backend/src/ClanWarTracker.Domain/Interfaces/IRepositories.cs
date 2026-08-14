@@ -86,3 +86,46 @@ public interface IRespectRepository
     Task AddAsync(Respect respect, CancellationToken ct = default);
     Task SaveChangesAsync(CancellationToken ct = default);
 }
+
+public interface IGameTournamentRepository
+{
+    /// <summary>Все отслеживаемые игровые турниры, новые — первыми.</summary>
+    Task<List<GameTournament>> GetAllAsync(CancellationToken ct = default);
+    Task<GameTournament?> GetByIdAsync(int id, CancellationToken ct = default);
+    Task<GameTournament?> GetByTagAsync(string tournamentTag, CancellationToken ct = default);
+    Task AddAsync(GameTournament tournament, CancellationToken ct = default);
+    Task RemoveAsync(GameTournament tournament, CancellationToken ct = default);
+    Task SaveChangesAsync(CancellationToken ct = default);
+}
+
+public interface IRecruitmentRepository
+{
+    Task<RecruitmentProfile?> GetByPlayerTagAsync(string playerTag, CancellationToken ct = default);
+    Task<List<RecruitmentProfile>> GetActiveAsync(CancellationToken ct = default);
+    Task UpsertAsync(RecruitmentProfile profile, CancellationToken ct = default);
+    Task SaveChangesAsync(CancellationToken ct = default);
+}
+
+public interface ITournamentRepository
+{
+    /// <summary>Турнир с загруженными участниками и матчами (с навигацией на участников матча).</summary>
+    Task<Tournament?> GetByIdAsync(int id, CancellationToken ct = default);
+
+    /// <summary>Турниры, ещё не завершённые и не отменённые (для вкладки "Турниры"), новые — первыми.</summary>
+    Task<List<Tournament>> GetActiveAsync(CancellationToken ct = default);
+
+    Task AddAsync(Tournament tournament, CancellationToken ct = default);
+
+    /// <summary>
+    /// Атомарно проверяет лимит активных турниров создателя и, если он не превышен,
+    /// добавляет турнир и сохраняет — в одной сериализуемой транзакции. Возвращает false,
+    /// если лимит уже достигнут (в т.ч. из-за гонки одновременных запросов — против спама).
+    /// </summary>
+    Task<bool> TryAddWithinActiveLimitAsync(Tournament tournament, long creatorTelegramUserId,
+        int maxActive, CancellationToken ct = default);
+
+    /// <summary>История участия игрока: его записи участника с загруженным турниром, новые — первыми.</summary>
+    Task<List<TournamentParticipant>> GetPlayerHistoryAsync(string playerTag, CancellationToken ct = default);
+
+    Task SaveChangesAsync(CancellationToken ct = default);
+}

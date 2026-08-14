@@ -450,3 +450,121 @@ export interface OwnerClan {
   planExpiresAtUtc: string | null
   linkedPlayers: number
 }
+
+/* --- Биржа игроков --- */
+export interface RecruitmentStatus {
+  isActive: boolean
+  note: string | null
+}
+
+export interface RecruitmentCandidate {
+  playerTag: string
+  name: string
+  note: string | null
+  telegramUserId: number
+  totalFame: number
+  weeksPlayed: number
+  avgFamePerAttack: number
+  updatedAtUtc: string
+}
+
+export interface RecruitmentCandidates {
+  candidates: RecruitmentCandidate[]
+}
+
+/* --- Турниры Clanify --- */
+export type TournamentStatus = 'registrationOpen' | 'bracketReady' | 'inProgress' | 'completed' | 'cancelled'
+export type TournamentParticipantStatus = 'active' | 'eliminated' | 'withdrawn'
+export type TournamentMatchStatus = 'pending' | 'ready' | 'bye' | 'completed'
+
+export interface TournamentSummary {
+  id: number
+  name: string
+  status: TournamentStatus
+  bestOf: number
+  maxParticipants: number
+  participantCount: number
+  creatorName: string
+  createdAtUtc: string
+}
+
+export interface TournamentParticipant {
+  id: number
+  playerTag: string
+  playerName: string
+  seed: number
+  status: TournamentParticipantStatus
+  finalPlacement: number | null
+}
+
+/* --- Игровые турниры (отслеживание турнира CR по тегу) --- */
+export interface GameTournamentMember {
+  rank: number
+  name: string
+  score: number
+  clanName: string | null
+}
+
+export interface GameTournamentLive {
+  name: string
+  description: string | null
+  status: string                 // IN_PREPARATION | IN_PROGRESS | ENDED | UNKNOWN
+  capacity: number
+  maxCapacity: number
+  levelCap: number
+  firstPlaceCardPrize: number
+  gameMode: string | null
+  startsInSeconds: number | null
+  endsInSeconds: number | null
+  members: GameTournamentMember[]
+}
+
+export interface GameTournament {
+  id: number
+  tournamentTag: string
+  password: string | null
+  creatorName: string
+  isCreator: boolean
+  live: GameTournamentLive | null
+}
+
+export interface TournamentMatch {
+  id: number
+  round: number
+  slotIndex: number
+  participantA: TournamentParticipant | null
+  participantB: TournamentParticipant | null
+  scoreA: number
+  scoreB: number
+  winner: TournamentParticipant | null
+  status: TournamentMatchStatus
+  nextMatchId: number | null
+}
+
+export interface Tournament {
+  id: number
+  name: string
+  description: string | null
+  prizeInfo: string | null
+  clanInviteLink: string
+  creatorName: string
+  bestOf: number
+  minParticipants: number
+  maxParticipants: number
+  status: TournamentStatus
+  createdAtUtc: string
+  isCreator: boolean
+  isParticipant: boolean
+  canJoin: boolean
+  participants: TournamentParticipant[]
+  matches: TournamentMatch[]
+}
+
+export interface PlayerTournamentHistory {
+  tournamentId: number
+  tournamentName: string
+  status: TournamentStatus
+  finalPlacement: number | null
+  participantCount: number
+  createdAtUtc: string
+}
