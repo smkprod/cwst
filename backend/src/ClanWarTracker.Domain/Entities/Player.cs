@@ -14,6 +14,9 @@ public class Player
     /// <summary>Кто пригласил этого игрока (Telegram ID пригласившего). null — пришёл сам.</summary>
     public long? ReferrerTelegramUserId { get; set; }
 
+    /// <summary>Когда игрок привязал аккаунт. null — привязан до появления поля.</summary>
+    public DateTime? CreatedAtUtc { get; set; }
+
     // «Что нового»: снимок на момент прошлого визита в Mini App — для персональной
     // карточки-дельты при входе (ранг ↑/↓, медали +N, респекты с прошлого раза).
     public DateTime? LastVisitAtUtc { get; set; }

@@ -50,6 +50,7 @@ public class LinkPlayerUseCase(
             TelegramUsername = telegramUsername,
             ClanId = clan?.Id,
             ReferrerTelegramUserId = referrer is null ? null : referrerTelegramUserId,
+            CreatedAtUtc = DateTime.UtcNow,
         }, ct);
         await players.SaveChangesAsync(ct);
 

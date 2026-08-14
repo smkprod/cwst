@@ -40,6 +40,7 @@ public class SetupClanUseCase(IClashRoyaleApi crApi, IClanRepository clans)
                 TelegramMessageThreadId = messageThreadId,
                 PlanTier = PlanTier.Pro,
                 PlanExpiresAtUtc = DateTime.UtcNow.AddDays(TrialDays),
+                CreatedAtUtc = DateTime.UtcNow,
             }, ct);
         }
 

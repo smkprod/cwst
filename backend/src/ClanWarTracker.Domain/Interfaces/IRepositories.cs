@@ -41,6 +41,12 @@ public interface IWarSnapshotRepository
     /// <summary>Все сезоны клана с данными, новые — первыми (для архива прошлых сезонов).</summary>
     Task<List<int>> GetSeasonIdsAsync(int clanId, CancellationToken ct = default);
 
+    /// <summary>
+    /// Время последнего снимка по каждому клану (панель владельца: живой ли клан).
+    /// Одним запросом, чтобы не дёргать БД по клану.
+    /// </summary>
+    Task<Dictionary<int, DateTime>> GetLastCapturedByClanAsync(CancellationToken ct = default);
+
     /// <summary>Один снимок по полному ключу (с игроками). null — не снимали.</summary>
     Task<WarSnapshot?> GetSnapshotAsync(int clanId, int seasonId, int sectionIndex, int periodIndex,
         CancellationToken ct = default);
@@ -82,6 +88,9 @@ public interface IRespectRepository
 
     /// <summary>Сколько респектов получил игрок: всего и начиная с указанного момента.</summary>
     Task<(int Total, int Since)> CountForPlayerAsync(string toPlayerTag, DateTime sinceUtc, CancellationToken ct = default);
+
+    /// <summary>Сколько респектов роздано по всему сервису с указанного момента.</summary>
+    Task<int> CountSinceAsync(DateTime sinceUtc, CancellationToken ct = default);
 
     Task AddAsync(Respect respect, CancellationToken ct = default);
     Task SaveChangesAsync(CancellationToken ct = default);

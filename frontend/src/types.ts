@@ -411,12 +411,33 @@ export interface GlobalTop {
 
 /* --- Панель владельца --- */
 export interface OwnerStats {
+  // Кланы
   totalClans: number
   proClans: number
+  freeClans: number
+  chatsWithBot: number
+  activeClans7d: number
+  silentClans: number
+  // Пользователи
   totalLinkedUsers: number
   usersWithClan: number
   usersWithoutClan: number
-  chatsWithBot: number
+  usersWithUsername: number
+  invitedUsers: number
+  // Рост (только по записям с известной датой)
+  newClans7d: number
+  newClans30d: number
+  newUsers7d: number
+  newUsers30d: number
+  clansWithKnownDate: number
+  usersWithKnownDate: number
+  // Pro
+  proExpiring7d: number
+  proExpired: number
+  proForever: number
+  // Вовлечённость
+  respects7d: number
+  avgLinkedPerClan: number
 }
 
 export type NotifyChannel = 'dm' | 'chat' | 'both'
@@ -448,7 +469,36 @@ export interface OwnerClan {
   name: string
   plan: Plan
   planExpiresAtUtc: string | null
+  daysLeft: number | null       // сколько дней Pro осталось; null — бессрочно/Free
   linkedPlayers: number
+  hasChat: boolean
+  createdAtUtc: string | null
+  lastActivityUtc: string | null
+  isActive: boolean             // была активность за неделю
+}
+
+export interface OwnerMember {
+  playerTag: string
+  name: string
+  telegramUsername: string | null
+  telegramUserId: number | null
+  role: string | null           // leader | coLeader | elder | member
+  isLeader: boolean
+  linkedAtUtc: string | null
+}
+
+export interface OwnerClanDetail {
+  id: number
+  clanTag: string
+  name: string
+  plan: Plan
+  planExpiresAtUtc: string | null
+  telegramChatId: number
+  telegramMessageThreadId: number | null
+  createdAtUtc: string | null
+  lastActivityUtc: string | null
+  clanMemberCount: number       // всего в клане по CR (0 — API не ответил)
+  members: OwnerMember[]
 }
 
 /* --- Биржа игроков --- */
