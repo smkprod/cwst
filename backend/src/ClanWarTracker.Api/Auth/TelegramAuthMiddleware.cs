@@ -1,3 +1,6 @@
+using ClanWarTracker.Domain.Interfaces;
+using Microsoft.Extensions.Caching.Memory;
+
 namespace ClanWarTracker.Api.Auth;
 
 /// <summary>
@@ -8,8 +11,11 @@ namespace ClanWarTracker.Api.Auth;
 /// В Development при пустом initData пускаем под Telegram:DevUserId (локальная разработка).
 /// </summary>
 public class TelegramAuthMiddleware(RequestDelegate next, IConfiguration config, IHostEnvironment env,
-    ILogger<TelegramAuthMiddleware> logger)
+    ILogger<TelegramAuthMiddleware> logger, IMemoryCache cache)
 {
+    /// <summary>Как часто перепроверяем @username одного пользователя (он меняется редко).</summary>
+    private static readonly TimeSpan UsernameSyncInterval = TimeSpan.FromHours(6);
+
     public async Task InvokeAsync(HttpContext ctx)
     {
         if (!ctx.Request.Path.StartsWithSegments("/api"))
@@ -52,7 +58,7 @@ public class TelegramAuthMiddleware(RequestDelegate next, IConfiguration config,
             return;
         }
 
-        if (!TelegramInitDataValidator.TryValidate(initData, botToken, out var userId))
+        if (!TelegramInitDataValidator.TryValidate(initData, botToken, out var userId, out var username))
         {
             logger.LogWarning("Невалидный initData (len={Len})", initData.Length);
             ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
@@ -65,6 +71,42 @@ public class TelegramAuthMiddleware(RequestDelegate next, IConfiguration config,
         }
 
         ctx.Items["TelegramUserId"] = userId;
+        await SyncUsernameAsync(ctx, userId, username);
         await next(ctx);
+    }
+
+    /// <summary>
+    /// Подтягивает @username из initData в БД. Раньше он записывался только при /link,
+    /// поэтому у привязавшихся другим путём (или сменивших ник) его не было — а без него
+    /// бот не может тегнуть человека в чате. Пишем только при реальном изменении и не чаще
+    /// раза в 6 часов на пользователя, чтобы не дёргать БД на каждый запрос Mini App.
+    /// </summary>
+    private async Task SyncUsernameAsync(HttpContext ctx, long userId, string? username)
+    {
+        if (string.IsNullOrEmpty(username)) return;
+
+        var cacheKey = $"tguser:{userId}";
+        if (cache.TryGetValue(cacheKey, out string? known) && known == username) return;
+
+        try
+        {
+            var players = ctx.RequestServices.GetRequiredService<IPlayerRepository>();
+            var player = await players.GetByTelegramIdAsync(userId, ctx.RequestAborted);
+            if (player is not null && player.TelegramUsername != username)
+            {
+                player.TelegramUsername = username;
+                await players.SaveChangesAsync(ctx.RequestAborted);
+            }
+            cache.Set(cacheKey, username, new MemoryCacheEntryOptions
+            {
+                Size = 1,
+                AbsoluteExpirationRelativeToNow = UsernameSyncInterval,
+            });
+        }
+        catch (Exception ex)
+        {
+            // Не роняем запрос: юзернейм — приятный бонус, а не условие авторизации
+            logger.LogWarning(ex, "Не удалось обновить @username для {UserId}", userId);
+        }
     }
 }

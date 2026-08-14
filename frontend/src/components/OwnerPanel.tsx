@@ -130,7 +130,11 @@ function Overview({ stats, clans }: { stats: OwnerStats; clans: OwnerClan[] }) {
         <Row label="Состоят в клане" value={stats.usersWithClan} />
         <Row label="Без клана" value={stats.usersWithoutClan} accent={stats.usersWithoutClan > 0 ? 'warn' : undefined} />
         <Row label="Конверсия в клан" value={`${conversion}%`} />
-        <Row label="Можно тегнуть (есть @username)" value={stats.usersWithUsername} />
+        <Row
+          label="Можно тегнуть (есть @username)"
+          value={stats.usersWithUsername}
+          accent={stats.usersWithUsername < stats.totalLinkedUsers ? 'warn' : 'good'}
+        />
         <Row label="Пришли по приглашению" value={stats.invitedUsers} />
       </Block>
 
@@ -319,6 +323,8 @@ function ClanCard({ clan: c, onChanged, t }: {
             <>
               <p className="muted small">
                 В клане по CR: {detail.clanMemberCount || '—'} · привязано к боту: {detail.members.length}
+                {detail.members.some(m => !m.telegramUsername) &&
+                  ` · без @username: ${detail.members.filter(m => !m.telegramUsername).length}`}
               </p>
 
               {detail.members.length === 0 && (

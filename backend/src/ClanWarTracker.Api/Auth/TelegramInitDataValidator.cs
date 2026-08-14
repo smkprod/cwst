@@ -16,9 +16,15 @@ public static class TelegramInitDataValidator
     /// <summary>Максимальный возраст initData — сутки (защита от replay).</summary>
     private const long MaxAgeSeconds = 86400;
 
-    public static bool TryValidate(string initData, string botToken, out long telegramUserId)
+    public static bool TryValidate(string initData, string botToken, out long telegramUserId) =>
+        TryValidate(initData, botToken, out telegramUserId, out _);
+
+    /// <param name="telegramUsername">@username без «@»; null — у пользователя его нет.</param>
+    public static bool TryValidate(string initData, string botToken, out long telegramUserId,
+        out string? telegramUsername)
     {
         telegramUserId = 0;
+        telegramUsername = null;
         if (string.IsNullOrWhiteSpace(initData)) return false;
 
         // 1. Разбираем query string вручную и декодируем значения ровно один раз
@@ -63,6 +69,13 @@ public static class TelegramInitDataValidator
         {
             using var doc = System.Text.Json.JsonDocument.Parse(userJson);
             telegramUserId = doc.RootElement.GetProperty("id").GetInt64();
+            // username есть не у всех аккаунтов Telegram — это нормально
+            if (doc.RootElement.TryGetProperty("username", out var uname) &&
+                uname.ValueKind == System.Text.Json.JsonValueKind.String)
+            {
+                var value = uname.GetString();
+                if (!string.IsNullOrWhiteSpace(value)) telegramUsername = value;
+            }
             return telegramUserId != 0;
         }
         catch (System.Text.Json.JsonException)
