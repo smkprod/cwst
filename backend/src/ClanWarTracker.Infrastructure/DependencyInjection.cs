@@ -263,6 +263,10 @@ CREATE TABLE IF NOT EXISTS ""WarBattles"" (
         await db.Database.ExecuteSqlRawAsync(
             "CREATE INDEX IF NOT EXISTS \"IX_WarBattles_ClanId_SeasonId_SectionIndex\" ON \"WarBattles\" (\"ClanId\", \"SeasonId\", \"SectionIndex\");");
 
+        // Источник данных недели: "live" (текущая война) / "log" (подтверждённый финал).
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"WarSnapshots\" ADD COLUMN IF NOT EXISTS \"Source\" text NOT NULL DEFAULT 'live';");
+
         // «Что нового»: снимок прошлого визита игрока в Mini App.
         await db.Database.ExecuteSqlRawAsync(
             "ALTER TABLE \"Players\" ADD COLUMN IF NOT EXISTS \"LastVisitAtUtc\" timestamptz;");
