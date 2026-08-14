@@ -58,6 +58,10 @@ public class BotUpdateHandler(
 
         try
         {
+            // Любое сообщение — повод освежить @username: он нужен, чтобы тегать человека
+            // в чате, а меняться может в любой момент (и раньше писался только при /link).
+            await RefreshUsernameAsync(msg, sp, ct);
+
             // Быстрый поиск по тегу: пользователь просто отправляет #ТЕГ без команды
             if (msg.Chat.Type == ChatType.Private && !text.StartsWith('/') && IsLikelyCrTag(text))
             {
@@ -389,6 +393,28 @@ public class BotUpdateHandler(
     }
 
     /// <summary>Похоже на CR-тег: 3–12 буквенно-цифровых символов, можно с # вначале.</summary>
+    /// <summary>
+    /// Обновляет сохранённый @username, если он изменился. Дёшево: один поиск по
+    /// уникальному индексу, запись только при реальном отличии.
+    /// </summary>
+    private static async Task RefreshUsernameAsync(Message msg, IServiceProvider sp, CancellationToken ct)
+    {
+        var username = msg.From?.Username;
+        if (string.IsNullOrEmpty(username) || msg.From is null) return;
+
+        try
+        {
+            var players = sp.GetRequiredService<IPlayerRepository>();
+            var player = await players.GetByTelegramIdAsync(msg.From.Id, ct);
+            if (player is not null && player.TelegramUsername != username)
+            {
+                player.TelegramUsername = username;
+                await players.SaveChangesAsync(ct);
+            }
+        }
+        catch { /* не критично — обработка сообщения важнее */ }
+    }
+
     private static bool IsLikelyCrTag(string text)
     {
         var t = text.Trim();
