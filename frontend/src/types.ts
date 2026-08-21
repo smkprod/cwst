@@ -645,3 +645,65 @@ export interface PlayerTournamentHistory {
   participantCount: number
   createdAtUtc: string
 }
+
+/* --- Подбор колод под коллекцию игрока --- */
+
+export interface DeckCard {
+  name: string
+  level: number            // 0 — карта ещё не открыта
+  maxLevel: number
+  elixirCost: number
+  iconUrl: string
+  owned: boolean
+  evoUnlocked: boolean     // игрок открыл эволюцию этой карты
+  hasEvo: boolean          // у карты вообще есть эволюция
+  evoIconUrl: string | null
+}
+
+export interface DeckSuggestion {
+  id: string
+  name: string
+  archetype: string
+  difficulty: 'easy' | 'medium' | 'hard'
+  note: string
+  cards: DeckCard[]
+  ownedCount: number
+  missing: string[]
+  avgLevel: number
+  avgElixir: number
+  maxedCount: number
+  evoUnlocked: number
+  evoAvailable: number
+  readiness: number        // 0..100
+  verdict: string
+}
+
+export interface DeckSuggestions {
+  playerTag: string
+  maxCardLevel: number
+  baseUpdated: string      // «по состоянию на» — база правится вручную
+  baseSource: string
+  baseSize: number       // колод, прошедших сверку со справочником карт
+  baseSkipped: number    // отброшено из-за незнакомого имени карты
+  ready: DeckSuggestion[]  // можно собрать прямо сейчас
+  almost: DeckSuggestion[] // не хватает 1–2 карт
+}
+
+/* --- Витрина клана, который ещё не подключён к боту --- */
+
+export interface ClanOverview {
+  clanTag: string
+  clanName: string | null
+  connected: boolean
+  warTrophies: number
+  memberCount: number | null
+  countryName: string | null
+  countryRank: number | null
+  globalRank: number | null
+  countryTop: RankedClanRow[]
+}
+
+export interface LinkedPlayer {
+  playerTag: string
+  name: string
+}
