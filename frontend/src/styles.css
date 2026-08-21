@@ -1422,3 +1422,9 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 }
 .analysis-metric-value { font-size: 16px; font-weight: 700; line-height: 1.1; }
 .analysis-metric-label { font-size: 10px; color: var(--muted, #708499); line-height: 1.2; }
+
+/* --- Кнопка подбора колод --- */
+.decks-cta { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.decks-cta-text { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
+.decks-cta-title { font-size: 14px; font-weight: 700; }
+.decks-cta-btn { flex-shrink: 0; padding: 8px 16px; }

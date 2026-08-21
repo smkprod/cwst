@@ -9,7 +9,11 @@ import { useT, type Translations } from '../lib/i18n'
  * списком недостающего. Обещать колоду, которую человек физически не может составить,
  * хуже, чем не показать её вовсе.
  */
-export function DeckSuggestionsView({ playerTag }: { playerTag: string }) {
+export function DeckSuggestionsView({ playerTag, embedded = false }: {
+  playerTag: string
+  /** Внутри шторки заголовок уже есть — второй раз его печатать не надо. */
+  embedded?: boolean
+}) {
   const { t } = useT()
   const [data, setData] = useState<DeckSuggestions | null>(null)
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading')
@@ -34,16 +38,22 @@ export function DeckSuggestionsView({ playerTag }: { playerTag: string }) {
 
   return (
     <div>
-      <section className="card">
-        <div className="card-title-row">
-          <div className="card-title">{t.decks.title}</div>
-          <span className="muted small">{data.baseSize} {t.decks.decksWord}</span>
-        </div>
-        <p className="muted small" style={{ margin: '0 0 4px' }}>{t.decks.hint}</p>
-        <p className="muted small" style={{ margin: 0, opacity: 0.75 }}>
-          {data.baseUpdated} · {data.baseSource}
+      {embedded ? (
+        <p className="muted small" style={{ margin: '0 0 4px' }}>
+          {t.decks.hint} · {data.baseSize} {t.decks.decksWord} · {data.baseUpdated}
         </p>
-      </section>
+      ) : (
+        <section className="card">
+          <div className="card-title-row">
+            <div className="card-title">{t.decks.title}</div>
+            <span className="muted small">{data.baseSize} {t.decks.decksWord}</span>
+          </div>
+          <p className="muted small" style={{ margin: '0 0 4px' }}>{t.decks.hint}</p>
+          <p className="muted small" style={{ margin: 0, opacity: 0.75 }}>
+            {data.baseUpdated} · {data.baseSource}
+          </p>
+        </section>
+      )}
 
       {nothing && (
         <p className="center muted small" style={{ marginTop: 16 }}>{t.decks.empty}</p>

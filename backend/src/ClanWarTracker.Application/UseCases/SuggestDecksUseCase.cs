@@ -16,8 +16,11 @@ namespace ClanWarTracker.Application.UseCases;
 public class SuggestDecksUseCase(IClashRoyaleApi crApi)
 {
     private const int DeckSize = 8;
-    private const int MaxReady = 12;
-    private const int MaxAlmost = 8;
+
+    // Подбор теперь живёт в отдельной шторке, а не в куске вкладки, — места хватает.
+    // Верхнюю границу всё же держим: список из 90 колод никто не дочитает.
+    private const int MaxReady = 20;
+    private const int MaxAlmost = 12;
 
     /// <summary>Сколько карт может не хватать, чтобы колода попала в «почти собрана».</summary>
     private const int AlmostGap = 2;

@@ -4,7 +4,14 @@ import type { PlayerAnalysis, PlayerCard, PlayerHistory, PlayerProfile } from '.
 import { fmt } from '../lib/format'
 import { useT, type Translations } from '../lib/i18n'
 
-export function PlayerProfileCard({ profile }: { profile: PlayerProfile }) {
+export function PlayerProfileCard({ profile, embedded = false }: {
+  profile: PlayerProfile
+  /**
+   * На вкладке «Я» история войн и недельная статистика уже нарисованы графиками выше,
+   * поэтому здесь их не повторяем — иначе один и тот же факт стоит на экране дважды.
+   */
+  embedded?: boolean
+}) {
   const { t } = useT()
   const [tab, setTab] = useState<'profile' | 'wars'>('profile')
   const [warHistory, setWarHistory] = useState<PlayerHistory | null>(null)
@@ -68,20 +75,22 @@ export function PlayerProfileCard({ profile }: { profile: PlayerProfile }) {
           )}
         </div>
 
-        <div className="profile-tabs">
-          <button
-            className={`profile-tab ${tab === 'profile' ? 'profile-tab-active' : ''}`}
-            onClick={() => setTab('profile')}
-          >
-            {t.search.tabProfile}
-          </button>
-          <button
-            className={`profile-tab ${tab === 'wars' ? 'profile-tab-active' : ''}`}
-            onClick={() => setTab('wars')}
-          >
-            {t.search.tabWars}
-          </button>
-        </div>
+        {!embedded && (
+          <div className="profile-tabs">
+            <button
+              className={`profile-tab ${tab === 'profile' ? 'profile-tab-active' : ''}`}
+              onClick={() => setTab('profile')}
+            >
+              {t.search.tabProfile}
+            </button>
+            <button
+              className={`profile-tab ${tab === 'wars' ? 'profile-tab-active' : ''}`}
+              onClick={() => setTab('wars')}
+            >
+              {t.search.tabWars}
+            </button>
+          </div>
+        )}
       </section>
 
       {tab === 'profile' && (
@@ -160,7 +169,7 @@ export function PlayerProfileCard({ profile }: { profile: PlayerProfile }) {
             </section>
           )}
 
-          {profile.weeksPlayed > 0 && (
+          {!embedded && profile.weeksPlayed > 0 && (
             <section className="card" style={{ marginTop: 10 }}>
               <div className="cards-section-title">{t.search.warStats}</div>
               <div className="profile-stats" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
@@ -186,7 +195,7 @@ export function PlayerProfileCard({ profile }: { profile: PlayerProfile }) {
         </>
       )}
 
-      {tab === 'wars' && (
+      {!embedded && tab === 'wars' && (
         <section className="card" style={{ marginTop: 10 }}>
           <div className="cards-section-title">{t.playerModal.pastWars}</div>
 

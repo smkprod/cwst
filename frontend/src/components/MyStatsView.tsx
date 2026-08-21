@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { api, ApiError } from '../lib/api'
-import type { MyStats, PlayerHistory, PlayerWeekHistory } from '../types'
+import type { MyStats, PlayerHistory, PlayerProfile, PlayerWeekHistory } from '../types'
 import { fmt, fmtShort } from '../lib/format'
 import { haptic, shareToTelegram } from '../lib/telegram'
 import { AchievementsCard } from './AchievementsCard'
 import { useT, perfLabel, type Translations } from '../lib/i18n'
 import { TournamentHistoryCard } from './TournamentHistoryCard'
+import { PlayerProfileCard } from './PlayerProfileCard'
+import { DecksButton } from './DecksButton'
 
 type State =
   | { kind: 'loading' }
@@ -22,6 +24,7 @@ const PERF_META: Record<string, { emoji: string; cls: string }> = {
 export function MyStatsView() {
   const [state, setState] = useState<State>({ kind: 'loading' })
   const [history, setHistory] = useState<PlayerHistory | null>(null)
+  const [profile, setProfile] = useState<PlayerProfile | null>(null)
   const { t } = useT()
 
   useEffect(() => {
@@ -39,6 +42,9 @@ export function MyStatsView() {
   useEffect(() => {
     if (!playerTag) return
     api.getPlayerHistory(playerTag).then(setHistory).catch(() => setHistory(null))
+    // Профиль из CR API — отдельный запрос: он про коллекцию и карьеру, а не про
+    // текущую войну, и его провал не должен ронять вкладку целиком.
+    api.getPlayerProfile(playerTag).then(setProfile).catch(() => setProfile(null))
   }, [playerTag])
 
   if (state.kind === 'loading') {
@@ -148,6 +154,13 @@ export function MyStatsView() {
       )}
 
       <AchievementsCard />
+
+      {profile && (
+        <>
+          <DecksButton playerTag={s.playerTag} />
+          <PlayerProfileCard profile={profile} embedded />
+        </>
+      )}
 
       <TournamentHistoryCard playerTag={s.playerTag} />
 
