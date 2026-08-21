@@ -87,7 +87,7 @@ public record PlayerStatusDto(
     string Status,            // "played" | "timeLeft" | "notPlayed"
     bool IsLinked,
     int ConsecutiveWars,      // Pro: сколько недель подряд участвовал (0 на Free)
-    string? Role,             // "Лидер" | "Соруководитель" | "Старейшина" | null (обычный)
+    string? Role,             // "leader" | "coLeader" | "elder" | null (рядовой); перевод — на фронте
     string? DnaLabel,         // Pro: архетип игрока ("Тащер 💪", "Надёжный 🛡" ...), null — мало данных/Free
     int ReliabilityScore);    // Pro: надёжность 0..100 (0 — нет данных/Free)
 

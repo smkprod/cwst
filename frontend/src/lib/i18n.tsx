@@ -1896,12 +1896,13 @@ export function useT() {
 }
 
 /** Translate a role string from the server (always Russian) */
+/** Роль приходит с сервера сырой ("leader"/"coLeader"/"elder") — переводим здесь. */
 export function roleLabel(serverRole: string | undefined, t: Translations): string | undefined {
   if (!serverRole) return undefined
-  if (serverRole === 'Лидер') return t.roles.leader
-  if (serverRole === 'Соруководитель') return t.roles.coleader
-  if (serverRole === 'Старейшина') return t.roles.elder
-  return serverRole
+  if (serverRole === 'leader') return t.roles.leader
+  if (serverRole === 'coLeader') return t.roles.coleader
+  if (serverRole === 'elder') return t.roles.elder
+  return undefined
 }
 
 /** Translate performance label from server (always Russian) */

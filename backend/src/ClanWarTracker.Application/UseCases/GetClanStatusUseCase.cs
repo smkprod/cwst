@@ -507,12 +507,15 @@ public class GetClanStatusUseCase(
     internal static int ComputeWinChance(double ourProjected, double rivalProjected, double sigma) =>
         ToChance((ourProjected - rivalProjected) / sigma);
 
+    /// <summary>
+    /// Роль отдаём СЫРОЙ ("leader"/"coLeader"/"elder"), а не готовой подписью: перевод —
+    /// дело фронта, там три языка. Раньше сервер слал русский текст, и клиент сопоставлял
+    /// иконки по русской строке — хрупко и мешало показать роль на других языках.
+    /// </summary>
     private static string? RoleLabel(string? apiRole) => apiRole switch
     {
-        "leader" => "Лидер",
-        "coLeader" => "Соруководитель",
-        "elder" => "Старейшина",
-        _ => null   // "member" — не отображаем
+        "leader" or "coLeader" or "elder" => apiRole,
+        _ => null   // "member" — рядовых не отображаем
     };
 
     public static WarPlayStatus Classify(int decksUsed, int hoursLeft, bool isWarDay)

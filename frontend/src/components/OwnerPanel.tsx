@@ -9,6 +9,13 @@ type State =
   | { kind: 'error' }
   | { kind: 'ready'; clans: OwnerClan[]; stats: OwnerStats }
 
+/** Лидер в клане ровно один, соруков может быть много — значки обязаны различаться. */
+const ROLE_LABEL: Record<string, string> = {
+  leader: '👑 Глава',
+  coLeader: '⚜️ Сорук',
+  elder: '⭐ Старейшина',
+}
+
 type Section = 'overview' | 'clans' | 'broadcast'
 type ClanFilter = 'all' | 'pro' | 'free' | 'silent' | 'expiring'
 
@@ -321,10 +328,13 @@ function ClanCard({ clan: c, onChanged, t }: {
 
           {detail && (
             <>
-              <p className="muted small">
-                В клане по CR: {detail.clanMemberCount || '—'} · привязано к боту: {detail.members.length}
-                {detail.members.some(m => !m.telegramUsername) &&
-                  ` · без @username: ${detail.members.filter(m => !m.telegramUsername).length}`}
+              {/* Каждый пункт целиком, иначе перенос рвёт «без @username:» и число */}
+              <p className="muted small adm-detail-meta">
+                <span>В клане по CR: {detail.clanMemberCount || '—'}</span>
+                <span>· привязано к боту: {detail.members.length}</span>
+                {detail.members.some(m => !m.telegramUsername) && (
+                  <span>· без @username: {detail.members.filter(m => !m.telegramUsername).length}</span>
+                )}
               </p>
 
               {detail.members.length === 0 && (
@@ -334,7 +344,10 @@ function ClanCard({ clan: c, onChanged, t }: {
               {detail.members.map(m => (
                 <div key={m.playerTag} className={`adm-member ${m.isLeader ? 'adm-member-leader' : ''}`}>
                   <span className="adm-member-name">
-                    {m.isLeader && '👑 '}{m.name}
+                    {m.role && ROLE_LABEL[m.role] && (
+                      <span className={`role-badge role-${m.role}`}>{ROLE_LABEL[m.role]}</span>
+                    )}
+                    <span className="adm-member-nick">{m.name}</span>
                   </span>
                   {m.telegramUsername ? (
                     <button
