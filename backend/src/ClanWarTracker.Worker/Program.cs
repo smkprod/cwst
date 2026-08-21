@@ -22,6 +22,7 @@ builder.Services.AddScoped<SendPerfectDayUseCase>();
 builder.Services.AddScoped<SendRespectDigestUseCase>();
 builder.Services.AddScoped<NudgePlayersUseCase>();
 builder.Services.AddScoped<LinkPlayerUseCase>();
+builder.Services.AddScoped<BindPlayerUseCase>();
 builder.Services.AddScoped<SetupClanUseCase>();
 
 builder.Services.AddHostedService<WarCheckWorker>();

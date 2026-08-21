@@ -112,6 +112,8 @@ public class BotUpdateHandler(
                                   "/status — статус текущей войны\n" +
                                   "/remind N — напоминания за N часов до конца дня\n" +
                                   "/nudge — пнуть тех, кто не отыграл (тег по @username)\n" +
+                                  "/bind #ТЕГ — привязать игрока к Telegram (ответом на его сообщение)\n" +
+                                  "/unlinked — кого ещё не привязали\n" +
                                   "/settopic — слать уведомления в эту тему (запусти внутри темы)\n\n" +
                                   "Участники: напишите боту /start в личку и отправьте свой тег CR.",
                             messageThreadId: msg.MessageThreadId,
@@ -198,8 +200,117 @@ public class BotUpdateHandler(
                     if (nudgeResult.TaggableCount == 0 && nudgeResult.UnlinkedCount == 0)
                         await Reply(msg, "Все уже отыграли 4/4 — пинать некого 🎉", ct);
                     else if (nudgeResult.TaggableCount == 0)
-                        await Reply(msg, $"{nudgeResult.UnlinkedCount} не доиграли, но никто из них не привязал Telegram — тегнуть некого. Пусть откроют бота и привяжут аккаунт.", ct);
+                        await Reply(msg, $"{nudgeResult.UnlinkedCount} не доиграли, но никто из них не привязан — тегнуть некого.\n\nПривяжи их сам: ответь на сообщение игрока командой /bind #ТЕГ. Список: /unlinked", ct);
                     break;
+
+                case "/bind":
+                case "/привязать":
+                case "/прив'язати":
+                {
+                    if (msg.Chat.Type == ChatType.Private) { await Reply(msg, "⚠️ Команда работает в групповом чате клана.", ct); return; }
+                    if (!await IsAdminAsync(msg, ct)) { await Reply(msg, "Привязывать игроков может только админ группы.", ct); return; }
+
+                    var bindRepo = sp.GetRequiredService<IClanRepository>();
+                    var bindClan = await bindRepo.GetByChatIdAsync(msg.Chat.Id, ct);
+                    if (bindClan is null) { await Reply(msg, "Клан не привязан. Сначала /setup #ТЕГ.", ct); return; }
+
+                    if (arg is null)
+                    {
+                        await Reply(msg,
+                            "Как привязать игрока:\n\n" +
+                            "1) Ответь на любое сообщение человека командой:\n" +
+                            "   /bind #ТЕГИГРОКА\n" +
+                            "   Так подтянется и юзернейм, и аккаунт — это надёжнее.\n\n" +
+                            "2) Или укажи юзернейм вручную:\n" +
+                            "   /bind #ТЕГИГРОКА @username\n\n" +
+                            "Посмотреть, кого ещё не привязали: /unlinked", ct);
+                        return;
+                    }
+
+                    // Ответ на сообщение даёт и ID, и юзернейм: ID переживает смену ника
+                    var replyFrom = msg.ReplyToMessage?.From;
+                    var bindUsername = replyFrom?.Username
+                        ?? (parts.Length > 2 ? parts[2].TrimStart('@') : null);
+                    var bindUserId = replyFrom?.Id;
+
+                    if (string.IsNullOrWhiteSpace(bindUsername) && bindUserId is null)
+                    {
+                        await Reply(msg, "Не понял, кого привязывать. Ответь этой командой на сообщение игрока " +
+                                         "или укажи юзернейм: /bind #ТЕГ @username", ct);
+                        return;
+                    }
+
+                    var bindResult = await sp.GetRequiredService<BindPlayerUseCase>()
+                        .BindAsync(bindClan.Id, arg, bindUsername, bindUserId, ct);
+
+                    await Reply(msg, bindResult.Outcome switch
+                    {
+                        BindOutcome.TagNotFound => "Игрок с таким тегом не найден. Проверь тег.",
+                        BindOutcome.NotInClan => "Этого тега нет в текущем составе клана.",
+                        _ => $"✅ {bindResult.PlayerName} привязан к " +
+                             (bindUsername is not null ? $"@{bindUsername}" : "аккаунту") + ".\n" +
+                             "Теперь бот будет тегать его в чате при /nudge и напоминаниях." +
+                             (bindResult.CanDm
+                                 ? ""
+                                 : "\n\n⚠️ В личные сообщения бот писать не сможет, пока игрок сам не нажмёт «Старт» у бота — Telegram запрещает писать первым. В чате тег работает.")
+                    }, ct);
+                    break;
+                }
+
+                case "/unbind":
+                case "/отвязать":
+                case "/відв'язати":
+                {
+                    if (msg.Chat.Type == ChatType.Private) { await Reply(msg, "⚠️ Команда работает в групповом чате клана.", ct); return; }
+                    if (!await IsAdminAsync(msg, ct)) { await Reply(msg, "Отвязывать игроков может только админ группы.", ct); return; }
+                    if (arg is null) { await Reply(msg, "Укажи тег: /unbind #ТЕГИГРОКА", ct); return; }
+
+                    var unbindRepo = sp.GetRequiredService<IClanRepository>();
+                    var unbindClan = await unbindRepo.GetByChatIdAsync(msg.Chat.Id, ct);
+                    if (unbindClan is null) { await Reply(msg, "Клан не привязан. Сначала /setup #ТЕГ.", ct); return; }
+
+                    var unbindResult = await sp.GetRequiredService<BindPlayerUseCase>()
+                        .UnbindAsync(unbindClan.Id, arg, ct);
+
+                    await Reply(msg, unbindResult.Outcome == BindOutcome.Ok
+                        ? $"✅ Привязка {unbindResult.PlayerName} снята."
+                        : "Нечего снимать: либо тег не привязан, либо игрок привязался сам — такую привязку может убрать только он.", ct);
+                    break;
+                }
+
+                case "/unlinked":
+                case "/непривязанные":
+                case "/неприв'язані":
+                {
+                    if (msg.Chat.Type == ChatType.Private) { await Reply(msg, "⚠️ Команда работает в групповом чате клана.", ct); return; }
+
+                    var ulRepo = sp.GetRequiredService<IClanRepository>();
+                    var ulClan = await ulRepo.GetByChatIdAsync(msg.Chat.Id, ct);
+                    if (ulClan is null) { await Reply(msg, "Клан не привязан. Сначала /setup #ТЕГ.", ct); return; }
+
+                    var ulApi = sp.GetRequiredService<IClashRoyaleApi>();
+                    var ulWar = await ulApi.GetCurrentWarAsync(ulClan.ClanTag, ct);
+                    if (ulWar is null) { await Reply(msg, "Не удалось получить состав клана.", ct); return; }
+
+                    var ulRoles = await ulApi.GetClanMemberRolesAsync(ulClan.ClanTag, ct);
+                    var ulLinked = (await sp.GetRequiredService<IPlayerRepository>().GetByClanIdAsync(ulClan.Id, ct))
+                        .Where(p => p.TelegramUserId is not null || !string.IsNullOrEmpty(p.TelegramUsername))
+                        .Select(p => p.PlayerTag)
+                        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                    var ulMissing = ulWar.Participants
+                        .Where(p => (ulRoles.Count == 0 || ulRoles.ContainsKey(p.PlayerTag)) && !ulLinked.Contains(p.PlayerTag))
+                        .OrderBy(p => p.Name)
+                        .ToList();
+
+                    if (ulMissing.Count == 0) { await Reply(msg, "Все привязаны 🎉 Бот сможет тегнуть каждого.", ct); return; }
+
+                    var ulList = string.Join("\n", ulMissing.Take(40).Select(p => $"• {p.Name} — {p.PlayerTag}"));
+                    await Reply(msg,
+                        $"👥 Ещё не привязаны ({ulMissing.Count}):\n\n{ulList}\n\n" +
+                        "Привяжи ответом на сообщение человека: /bind #ТЕГ", ct);
+                    break;
+                }
 
                 case "/status":
                     var statusUseCase = sp.GetRequiredService<GetClanStatusUseCase>();

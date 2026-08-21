@@ -55,8 +55,9 @@ public class SendFinalCallUseCase(
                 .ToList();
             if (slackers.Count == 0) continue; // все уже доиграли — нечего слать
 
+            // Для упоминания в чате достаточно @username — регистрация у бота не нужна
             var linked = (await players.GetByClanIdAsync(clan.Id, ct))
-                .Where(p => p.TelegramUserId is not null)
+                .Where(p => p.TelegramUserId is not null || !string.IsNullOrEmpty(p.TelegramUsername))
                 .GroupBy(p => p.PlayerTag, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
@@ -71,7 +72,7 @@ public class SendFinalCallUseCase(
                        $"— осталось {4 - s.DecksUsedToday}/4 🃏";
             }));
             var unlinked = slackers.Count - taggable.Count;
-            var more = unlinked > 0 ? $"\n\n👥 Ещё <b>{unlinked}</b> не привязали Telegram." : "";
+            var more = unlinked > 0 ? $"\n\n👥 Ещё <b>{unlinked}</b> без Telegram — админ может привязать через /bind." : "";
 
             try
             {

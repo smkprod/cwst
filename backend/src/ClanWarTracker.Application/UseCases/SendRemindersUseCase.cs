@@ -42,15 +42,18 @@ public class SendRemindersUseCase(
             var isPro = clan.EffectivePlan(now) == PlanTier.Pro;
 
             // Все привязанные игроки клана, отсортированы по Id (стабильный порядок)
+            // Тег в чате работает по @username; для ЛС ниже отдельно нужен TelegramUserId
             var allLinked = (await players.GetByClanIdAsync(clan.Id, ct))
-                .Where(p => p.TelegramUserId is not null)
+                .Where(p => p.TelegramUserId is not null || !string.IsNullOrEmpty(p.TelegramUsername))
                 .OrderBy(p => p.Id)
                 .GroupBy(p => p.PlayerTag, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
             // Персональные DM — только Pro и если канал включает ЛС
+            // В ЛС Telegram не даёт писать первым — нужен подтверждённый TelegramUserId
             var allowedForDm = isPro && settings.Reminders.Channel.WantsDm()
-                ? allLinked
+                ? allLinked.Where(kv => kv.Value.TelegramUserId is not null)
+                    .ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.OrdinalIgnoreCase)
                 : new Dictionary<string, Domain.Entities.Player>(StringComparer.OrdinalIgnoreCase);
 
             // Только текущий состав: в списке войны CR API держит и ушедших (за неделю >50).
