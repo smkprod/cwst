@@ -17,7 +17,35 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
 {
     private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(2);
 
+    /// <summary>Сколько держим «последнее хорошее» состояние войны на случай падения CR API.</summary>
+    private static readonly TimeSpan StaleTtl = TimeSpan.FromMinutes(30);
+
     public async Task<WarStatus?> GetCurrentWarAsync(string clanTag, CancellationToken ct = default)
+    {
+        var staleKey = $"war-stale:{clanTag}";
+        try
+        {
+            var fresh = await FetchCurrentWarAsync(clanTag, ct);
+            // Держим копию отдельно от основного кэша: она переживает его истечение
+            // и выручает, когда CR API уходит на обслуживание.
+            cache.Set(staleKey, fresh, new MemoryCacheEntryOptions
+            {
+                Size = 1,
+                AbsoluteExpirationRelativeToNow = StaleTtl,
+            });
+            return fresh;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            // CR API прилёг. Лучше показать данные пятиминутной давности, чем пустой
+            // экран с ошибкой: за это время в войне всё равно почти ничего не меняется.
+            // Ошибку ключа (403) сюда не пускаем — её обязан увидеть владелец.
+            if (cache.TryGetValue(staleKey, out WarStatus? stale)) return stale;
+            throw;
+        }
+    }
+
+    private async Task<WarStatus?> FetchCurrentWarAsync(string clanTag, CancellationToken ct)
     {
         return await cache.GetOrCreateAsync($"war:{clanTag}", async entry =>
         {
