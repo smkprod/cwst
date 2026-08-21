@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, ApiError } from '../lib/api'
-import type { MyStats, PlayerHistory, PlayerProfile, PlayerWeekHistory } from '../types'
+import type { LinkedPlayer, MyStats, PlayerHistory, PlayerProfile, PlayerWeekHistory } from '../types'
 import { fmt, fmtShort } from '../lib/format'
 import { haptic, shareToTelegram } from '../lib/telegram'
 import { AchievementsCard } from './AchievementsCard'
@@ -25,7 +25,14 @@ export function MyStatsView() {
   const [state, setState] = useState<State>({ kind: 'loading' })
   const [history, setHistory] = useState<PlayerHistory | null>(null)
   const [profile, setProfile] = useState<PlayerProfile | null>(null)
+  const [me, setMe] = useState<LinkedPlayer | null>(null)
   const { t } = useT()
+
+  // Тег нужен и тогда, когда статистики войны нет: профиль, разбор и колоды
+  // берутся из CR API по тегу и к текущей войне отношения не имеют.
+  useEffect(() => {
+    api.getMe().then(setMe).catch(() => setMe(null))
+  }, [])
 
   useEffect(() => {
     api.getMyStats()
@@ -38,7 +45,7 @@ export function MyStatsView() {
       }))
   }, [t.me.notInWar, t.me.loadError])
 
-  const playerTag = state.kind === 'ready' ? state.data.playerTag : null
+  const playerTag = state.kind === 'ready' ? state.data.playerTag : me?.playerTag ?? null
   useEffect(() => {
     if (!playerTag) return
     api.getPlayerHistory(playerTag).then(setHistory).catch(() => setHistory(null))
@@ -47,11 +54,25 @@ export function MyStatsView() {
     api.getPlayerProfile(playerTag).then(setProfile).catch(() => setProfile(null))
   }, [playerTag])
 
+  // Профиль, разбор и колоды не зависят от войны — показываем их всегда,
+  // когда известен тег. Раньше отсутствие в составе войны делало вкладку тупиком.
+  const profileSection = profile && playerTag && (
+    <>
+      <DecksButton playerTag={playerTag} />
+      <PlayerProfileCard profile={profile} embedded />
+    </>
+  )
+
   if (state.kind === 'loading') {
     return <div className="center"><div className="spinner" /></div>
   }
   if (state.kind === 'error') {
-    return <p className="center muted">{state.message}</p>
+    return (
+      <div>
+        <p className="center muted" style={{ margin: '24px 0 8px' }}>{state.message}</p>
+        {profileSection}
+      </div>
+    )
   }
 
   const s = state.data
@@ -155,12 +176,7 @@ export function MyStatsView() {
 
       <AchievementsCard />
 
-      {profile && (
-        <>
-          <DecksButton playerTag={s.playerTag} />
-          <PlayerProfileCard profile={profile} embedded />
-        </>
-      )}
+      {profileSection}
 
       <TournamentHistoryCard playerTag={s.playerTag} />
 

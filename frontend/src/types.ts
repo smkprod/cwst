@@ -658,11 +658,14 @@ export interface PlayerTournamentHistory {
 
 /* --- Подбор колод под коллекцию игрока --- */
 
+export type CardRarity = 'common' | 'rare' | 'epic' | 'legendary' | 'champion'
+
 export interface DeckCard {
   name: string
   level: number            // 0 — карта ещё не открыта
   maxLevel: number
   elixirCost: number
+  rarity: CardRarity
   iconUrl: string
   owned: boolean
   evoUnlocked: boolean     // игрок открыл эволюцию этой карты
@@ -670,17 +673,24 @@ export interface DeckCard {
   evoIconUrl: string | null
 }
 
+export interface DeckRarity {
+  rarity: CardRarity
+  count: number
+}
+
 export interface DeckSuggestion {
   id: string
   name: string
   archetype: string
-  difficulty: 'easy' | 'medium' | 'hard'
   note: string
   cards: DeckCard[]
   ownedCount: number
   missing: string[]
   avgLevel: number
   avgElixir: number
+  cycleCost: number        // 4 самые дешёвые карты — скорость прокрутки колоды
+  levelsToMax: number      // сколько уровней ещё качать по открытым картам
+  rarity: DeckRarity[]
   maxedCount: number
   evoUnlocked: number
   evoAvailable: number

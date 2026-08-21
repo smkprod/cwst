@@ -1374,9 +1374,6 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
   font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 6px;
   background: rgba(255,255,255,0.07); color: var(--muted, #708499); white-space: nowrap;
 }
-.diff-easy { background: rgba(49,181,69,0.18); color: var(--green, #31b545); }
-.diff-mid { background: rgba(255,200,61,0.18); color: var(--gold, #ffc83d); }
-.diff-hard { background: rgba(255,107,107,0.18); color: var(--red, #ff6b6b); }
 
 .deck-readiness { flex-shrink: 0; text-align: right; display: flex; flex-direction: column; }
 .deck-readiness-value { font-size: 16px; font-weight: 700; color: var(--muted, #708499); }
@@ -1428,3 +1425,24 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 .decks-cta-text { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
 .decks-cta-title { font-size: 14px; font-weight: 700; }
 .decks-cta-btn { flex-shrink: 0; padding: 8px 16px; }
+
+/* --- Статистика колоды вместо субъективной «сложности» --- */
+.deck-stats {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 8px;
+}
+.deck-stat {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  padding: 6px 3px; border-radius: 7px; background: rgba(255,255,255,0.05); text-align: center;
+}
+.deck-stat-value { font-size: 14px; font-weight: 700; line-height: 1.1; }
+.deck-stat-label { font-size: 9px; color: var(--muted, #708499); line-height: 1.2; }
+
+.rarity-chip {
+  font-size: 10px; font-weight: 600; padding: 1px 5px; border-radius: 5px;
+  background: rgba(255,255,255,0.07); white-space: nowrap;
+}
+.rarity-common { color: #b0bec5; }
+.rarity-rare { background: rgba(255,145,0,0.16); color: #ff9100; }
+.rarity-epic { background: rgba(156,107,255,0.18); color: var(--purple, #9c6bff); }
+.rarity-legendary { background: rgba(0,200,255,0.16); color: #4fc3f7; }
+.rarity-champion { background: rgba(255,200,61,0.18); color: var(--gold, #ffc83d); }
