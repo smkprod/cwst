@@ -9,11 +9,11 @@ import { PlayerSearchView } from './PlayerSearchView'
 import { TournamentView } from './TournamentView'
 import { TopPlayersTeaser } from './TopPlayersTeaser'
 import { PlayerProfileCard } from './PlayerProfileCard'
-import { DeckSuggestionsView } from './DeckSuggestionsView'
+import { DecksButton } from './DecksButton'
 import { RegionTopCard } from './RegionTopCard'
 import { BotTourCard } from './BotTourCard'
 
-type Tab = 'profile' | 'decks' | 'clan' | 'search' | 'tournament'
+type Tab = 'profile' | 'clan' | 'search' | 'tournament'
 
 /**
  * Экран игрока, чей клан не подключён к боту. Раньше здесь была одна инструкция и
@@ -71,7 +71,6 @@ export function ClanlessView() {
 
   const tabs: { id: Tab; icon: string; label: string }[] = [
     { id: 'profile', icon: '👤', label: t.clanless.tabProfile },
-    { id: 'decks', icon: '🃏', label: t.clanless.tabDecks },
     { id: 'clan', icon: '🏰', label: t.clanless.tabClan },
     { id: 'search', icon: '🔍', label: t.tabs.search },
     { id: 'tournament', icon: '🥇', label: t.tabs.tournament },
@@ -94,15 +93,12 @@ export function ClanlessView() {
             {profileState === 'error' && (
               <p className="center muted small" style={{ marginTop: 16 }}>{t.clanless.profileError}</p>
             )}
-            {hasProfile && <PlayerProfileCard profile={profile} />}
-          </div>
-        )}
-
-        {tab === 'decks' && (
-          <div className="fade-in">
-            {hasProfile
-              ? <DeckSuggestionsView playerTag={profile.playerTag} />
-              : <p className="center muted small" style={{ marginTop: 16 }}>{t.clanless.profileError}</p>}
+            {hasProfile && (
+              <>
+                <DecksButton playerTag={profile.playerTag} />
+                <PlayerProfileCard profile={profile} />
+              </>
+            )}
           </div>
         )}
 

@@ -236,5 +236,167 @@ public static class MetaDecks
         new("giant-witch", "Giant Witch", "Битдаун", "easy",
             "Стартовая колода без легендарок: Гигант впереди, Ведьма сзади.",
             ["Giant", "Witch", "Musketeer", "Mini P.E.K.K.A", "Valkyrie", "Arrows", "Zap", "Cannon"]),
+
+        // --- Ещё варианты популярных архетипов ---
+        new("hog-mighty", "Mighty Miner Hog", "Цикл", "hard",
+            "Могучий шахтёр съедает танк на защите, Хог давит в ответ.",
+            ["Mighty Miner", "Hog Rider", "Firecracker", "Skeletons", "Ice Spirit", "Cannon", "Fireball", "The Log"]),
+
+        new("hog-cage", "Hog Goblin Cage", "Цикл", "easy",
+            "Клетка тянет танк на себя, Хог уходит бить башню без сопровождения.",
+            ["Hog Rider", "Goblin Cage", "Musketeer", "Ice Spirit", "Skeletons", "Barbarian Barrel", "Fireball", "Electro Spirit"]),
+
+        new("hog-freeze", "Hog Freeze", "Цикл", "medium",
+            "Заморозка на защитников — и Хог успевает снять полбашни.",
+            ["Hog Rider", "Freeze", "Ice Golem", "Skeletons", "Ice Spirit", "Cannon", "Fireball", "The Log"]),
+
+        new("miner-mortar", "Miner Mortar", "Контроль", "hard",
+            "Мортира заставляет отвечать, Шахтёр добивает то, что ей мешает.",
+            ["Miner", "Mortar", "Bats", "Knight", "Skeletons", "Ice Spirit", "Rocket", "The Log"]),
+
+        new("miner-eq", "Miner Earthquake", "Контроль", "medium",
+            "Землетрясение сносит здания и рой, Шахтёр работает по башне.",
+            ["Miner", "Earthquake", "Bats", "Knight", "Musketeer", "Inferno Tower", "Skeletons", "The Log"]),
+
+        new("gy-cycle", "Graveyard Cycle", "Могила", "hard",
+            "Дешёвая версия Могилы: циклишь быстрее и ставишь её чаще соперника.",
+            ["Graveyard", "Poison", "Knight", "Musketeer", "Bats", "Ice Spirit", "Barbarian Barrel", "Tesla"]),
+
+        new("gy-golden", "Golden Knight Graveyard", "Могила", "hard",
+            "Золотой рыцарь пробегает сквозь защиту и расчищает место под Могилу.",
+            ["Golden Knight", "Graveyard", "Poison", "Baby Dragon", "Bats", "Tornado", "Barbarian Barrel", "Tombstone"]),
+
+        new("loon-cycle", "Balloon Cycle", "Шар", "medium",
+            "Быстрый цикл вокруг Шара: он прилетает снова и снова.",
+            ["Balloon", "Firecracker", "Ice Golem", "Skeletons", "Ice Spirit", "Tesla", "Fireball", "The Log"]),
+
+        new("lava-clone", "LavaLoon Clone", "Битдаун", "hard",
+            "Клон удваивает Шар и Лаву в момент, когда защиту уже потратили.",
+            ["Lava Hound", "Balloon", "Clone", "Skeleton Dragons", "Mega Minion", "Guards", "Fireball", "Arrows"]),
+
+        new("golem-lightning", "Golem Lightning", "Битдаун", "medium",
+            "Молния выносит защитные постройки и мушкетёрш перед Големом.",
+            ["Golem", "Baby Dragon", "Mega Minion", "Electro Wizard", "Lightning", "Tornado", "Barbarian Barrel", "Elixir Collector"]),
+
+        new("giant-sparky", "Giant Sparky", "Битдаун", "medium",
+            "Гигант держит удар, Спарки за ним сносит всё одним выстрелом.",
+            ["Giant", "Sparky", "Rage", "Zap", "Electro Wizard", "Bats", "Tornado", "Barbarian Barrel"]),
+
+        new("gg-witch", "Goblin Giant Witch", "Битдаун", "easy",
+            "Гоблин-гигант и Ведьма создают постоянный поток мелочи к башне.",
+            ["Goblin Giant", "Witch", "Baby Dragon", "Mega Minion", "Zap", "Fireball", "Barbarian Barrel", "Tombstone"]),
+
+        new("rg-cart", "Royal Giant Cannon Cart", "Королевский гигант", "medium",
+            "Телега держит мост и добивает то, что осталось после Гиганта.",
+            ["Royal Giant", "Cannon Cart", "Hunter", "Electro Spirit", "Skeletons", "Barbarian Barrel", "Fireball", "Mother Witch"]),
+
+        new("rg-furnace", "Royal Giant Furnace", "Королевский гигант", "easy",
+            "Печка постоянно давит на башню, Гигант доводит дело до конца.",
+            ["Royal Giant", "Furnace", "Musketeer", "Guards", "Barbarian Barrel", "Fireball", "Electro Spirit", "Tesla"]),
+
+        new("xbow-ghost", "X-Bow Royal Ghost", "Осада", "hard",
+            "Призрак защищает Арбалет и незаметно наказывает за перегруз.",
+            ["X-Bow", "Tesla", "Royal Ghost", "Archers", "Skeletons", "Ice Spirit", "Fireball", "The Log"]),
+
+        new("pekka-magic", "PEKKA Magic Archer", "Мостовой спам", "hard",
+            "Волшебный лучник простреливает всю линию, П.Е.К.К.А закрывает защиту.",
+            ["P.E.K.K.A", "Battle Ram", "Bandit", "Magic Archer", "Royal Ghost", "Zap", "Poison", "Electro Wizard"]),
+
+        new("mk-bridge", "Mega Knight Bridge", "Мостовой спам", "easy",
+            "Прыжок Мега-рыцаря на мост сразу после размена — просто и больно.",
+            ["Mega Knight", "Bandit", "Royal Ghost", "Electro Wizard", "Zap", "Fireball", "Skeletons", "Battle Ram"]),
+
+        new("lj-ram", "Lumberjack Battle Ram", "Мостовой спам", "medium",
+            "Дровосек роняет ярость на Таран — тот доезжает почти всегда.",
+            ["Lumberjack", "Battle Ram", "Royal Ghost", "Electro Wizard", "Zap", "Fireball", "Skeletons", "Goblin Cage"]),
+
+        new("ram-mother", "Ram Rider Mother Witch", "Мостовой спам", "medium",
+            "Защита соперника превращается в свиней и бежит обратно к его башне.",
+            ["Ram Rider", "Mother Witch", "Valkyrie", "Electro Spirit", "Skeletons", "Barbarian Barrel", "Fireball", "Tesla"]),
+
+        new("exe-tornado", "Executioner Tornado", "Контроль", "hard",
+            "Торнадо стягивает войска под топор Палача, Хог давит следом.",
+            ["Executioner", "Tornado", "Hog Rider", "Ice Golem", "Skeletons", "Musketeer", "Fireball", "The Log"]),
+
+        new("magic-miner", "Magic Archer Miner", "Контроль", "hard",
+            "Лучник простреливает насквозь, Шахтёр капает по башне каждый цикл.",
+            ["Magic Archer", "Miner", "Poison", "Bats", "Valkyrie", "Inferno Tower", "Skeletons", "The Log"]),
+
+        new("hunter-hogs", "Hunter Royal Hogs", "Королевские хряки", "medium",
+            "Охотник вблизи сносит всё, Хряки идут по двум флангам.",
+            ["Hunter", "Fisherman", "Royal Hogs", "Electro Spirit", "Skeletons", "Barbarian Barrel", "Fireball", "Tesla"]),
+
+        new("drill-cycle", "Goblin Drill Cycle", "Контроль", "medium",
+            "Бур появляется там, где защиты нет, и заставляет тратить карты впустую.",
+            ["Goblin Drill", "Valkyrie", "Musketeer", "Bats", "Skeletons", "Fireball", "The Log", "Tesla"]),
+
+        new("sk-hog", "Skeleton King Hog", "Цикл", "medium",
+            "Король скелетов копит души на защите и выпускает армию под Хога.",
+            ["Skeleton King", "Hog Rider", "Firecracker", "Skeletons", "Ice Spirit", "Cannon", "Fireball", "The Log"]),
+
+        new("queen-gy", "Archer Queen Graveyard", "Могила", "hard",
+            "Королева невидимкой прикрывает Могилу и добивает башню.",
+            ["Archer Queen", "Graveyard", "Poison", "Knight", "Bats", "Baby Dragon", "Barbarian Barrel", "Tombstone"]),
+
+        new("monk-hog", "Monk Hog", "Цикл", "medium",
+            "Монах отражает заклинания обратно, Хог работает по башне.",
+            ["Monk", "Hog Rider", "Firecracker", "Skeletons", "Ice Spirit", "Cannon", "Fireball", "The Log"]),
+
+        new("lp-mortar", "Little Prince Mortar", "Осада", "hard",
+            "Маленький принц со Стражем держит Мортиру дольше, чем сопернику удобно.",
+            ["Little Prince", "Mortar", "Knight", "Archers", "Skeletons", "Ice Spirit", "Fireball", "The Log"]),
+
+        new("empress-hog", "Spirit Empress Hog", "Цикл", "hard",
+            "Императрица закрывает воздух и рой, Хог заходит без помех.",
+            ["Spirit Empress", "Hog Rider", "Firecracker", "Skeletons", "Ice Spirit", "Cannon", "Fireball", "The Log"]),
+
+        new("golden-drill", "Golden Knight Drill", "Контроль", "hard",
+            "Бур и рывок Золотого рыцаря бьют туда, где защиты уже не осталось.",
+            ["Golden Knight", "Goblin Drill", "Bats", "Valkyrie", "Musketeer", "Skeletons", "Earthquake", "The Log"]),
+
+        // --- Стартовые колоды: без легендарок и чемпионов, собираются на низких аренах ---
+        new("starter-hog", "Хог для старта", "Стартовая", "easy",
+            "Всё дешёвое и обычное: Хог бьёт, остальное защищает. Хороший первый вариант.",
+            ["Hog Rider", "Musketeer", "Valkyrie", "Cannon", "Arrows", "Fireball", "Skeletons", "Bomber"]),
+
+        new("starter-giant", "Гигант с волшебником", "Стартовая", "easy",
+            "Гигант впереди, Волшебник сзади — понятная схема без редких карт.",
+            ["Giant", "Wizard", "Musketeer", "Mini P.E.K.K.A", "Valkyrie", "Arrows", "Zap", "Cannon"]),
+
+        new("starter-rg", "Королевский гигант для старта", "Стартовая", "easy",
+            "Ставишь Гиганта у моста и защищаешь его — работает с самых низких арен.",
+            ["Royal Giant", "Musketeer", "Valkyrie", "Mini P.E.K.K.A", "Arrows", "Fireball", "Skeletons", "Tesla"]),
+
+        new("starter-barbs", "Варвары и Гигант", "Стартовая", "easy",
+            "Варвары держат любую атаку, Гигант ведёт свою. Ничего сложного.",
+            ["Barbarians", "Giant", "Musketeer", "Valkyrie", "Arrows", "Fireball", "Skeletons", "Bomber"]),
+
+        new("starter-balloon", "Гигант и Шар", "Стартовая", "easy",
+            "Гигант забирает внимание башни, Шар прилетает следом.",
+            ["Balloon", "Giant", "Musketeer", "Valkyrie", "Arrows", "Zap", "Skeletons", "Tombstone"]),
+
+        new("starter-prince", "Гигант и Принц", "Стартовая", "easy",
+            "Принц за Гигантом — самый прямой способ снести башню на низких аренах.",
+            ["Prince", "Giant", "Musketeer", "Valkyrie", "Arrows", "Fireball", "Skeletons", "Cannon"]),
+
+        new("starter-hut", "Ведьма и хижина", "Стартовая", "easy",
+            "Постоянный поток скелетов и гоблинов: соперник не успевает чистить.",
+            ["Witch", "Goblin Hut", "Giant", "Musketeer", "Arrows", "Fireball", "Valkyrie", "Cannon"]),
+
+        new("starter-mortar", "Мортира для старта", "Стартовая", "medium",
+            "Дешёвая осада на обычных картах — учит считать эликсир.",
+            ["Mortar", "Knight", "Archers", "Skeletons", "Arrows", "Fireball", "Bomber", "Musketeer"]),
+
+        new("starter-ebarbs", "Элитные варвары", "Стартовая", "easy",
+            "Королевский гигант тянет защиту, Элитные варвары добивают.",
+            ["Elite Barbarians", "Royal Giant", "Musketeer", "Valkyrie", "Arrows", "Fireball", "Skeletons", "Tesla"]),
+
+        new("starter-horde", "Орда миньонов", "Стартовая", "easy",
+            "Орда сносит любой танк, Гигант ведёт атаку. Всё карты обычные.",
+            ["Minion Horde", "Giant", "Musketeer", "Valkyrie", "Arrows", "Zap", "Skeletons", "Cannon"]),
+
+        new("starter-dragon", "Гигант и малыш дракон", "Стартовая", "easy",
+            "Малыш дракон закрывает рой, Мини П.Е.К.К.А — танков. Универсально.",
+            ["Giant", "Mini P.E.K.K.A", "Musketeer", "Baby Dragon", "Valkyrie", "Arrows", "Zap", "Cannon"]),
     ];
 }
