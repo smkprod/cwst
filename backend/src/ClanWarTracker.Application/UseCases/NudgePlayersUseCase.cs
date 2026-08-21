@@ -31,8 +31,10 @@ public class NudgePlayersUseCase(
 
         // GroupBy (а не ToDictionary): у одного тега может быть несколько записей игрока
         // (перепривязки/дубли) — берём первую, иначе ToDictionary падает на дубль-ключе.
+        // Тегнуть можно и того, у кого есть только @username: для упоминания в чате
+        // регистрация не нужна. TelegramUserId требуется лишь для личных сообщений.
         var linkedPlayers = (await players.GetByClanIdAsync(clan.Id, ct))
-            .Where(p => p.TelegramUserId is not null)
+            .Where(p => p.TelegramUserId is not null || !string.IsNullOrEmpty(p.TelegramUsername))
             .GroupBy(p => p.PlayerTag, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
@@ -52,6 +54,10 @@ public class NudgePlayersUseCase(
         {
             if (!linkedPlayers.TryGetValue(slacker.PlayerTag, out var player)) continue;
             if (now - player.LastReminderSentAt < NudgeCooldown) { skipped++; continue; }
+
+            // Telegram запрещает боту писать первым: без ID личное сообщение отправить
+            // некуда. Такой игрок всё равно получит тег в чате — это ниже.
+            if (player.TelegramUserId is null) continue;
 
             var decksLeft = 4 - slacker.DecksUsedToday;
             await notifier.SendToUserAsync(
@@ -84,8 +90,8 @@ public class NudgePlayersUseCase(
                        $"— осталось {4 - s.DecksUsedToday}/4 🃏";
             }));
             var unlinkedNote = unlinkedCount > 0
-                ? $"\n\n👥 Ещё <b>{unlinkedCount}</b> не привязали Telegram — их пинг не достанет. " +
-                  "Пусть откроют бота и привяжут аккаунт."
+                ? $"\n\n👥 Ещё <b>{unlinkedCount}</b> без Telegram — их тег не достанет. " +
+                  "Админ может привязать их сам: ответь на сообщение игрока командой /bind #ТЕГ"
                 : "";
             try
             {
