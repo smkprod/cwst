@@ -66,6 +66,7 @@ public class SendDailyReportUseCase(
             try
             {
                 var text = await BuildReportAsync(clan, final, ct);
+                if (text is null) continue;   // нечем посчитать день — молчим
                 await notifier.SendToChatWithAppButtonAsync(
                     clan.TelegramChatId, text, clan.TelegramMessageThreadId, html: true, ct: ct);
                 sent++;
@@ -78,7 +79,8 @@ public class SendDailyReportUseCase(
         return sent;
     }
 
-    private async Task<string> BuildReportAsync(Clan clan, WarSnapshot final, CancellationToken ct)
+    /// <returns>Текст отчёта или null, если день посчитать нечем (нет вчерашнего снимка).</returns>
+    private async Task<string?> BuildReportAsync(Clan clan, WarSnapshot final, CancellationToken ct)
     {
         var dayNumber = final.PeriodIndex - 2;          // 3..6 -> 1..4
         var isWeekFinal = final.PeriodIndex >= 6;
@@ -92,10 +94,15 @@ public class SendDailyReportUseCase(
         // суточный счётчик сбрасывается по своим часам, не синхронизированным с
         // переходом periodIndex: на стыке дней игрок, который только отыграл и уже
         // получил медали, может на мгновение показать DecksUsedToday=0.
+        //
+        // Без вчерашнего снимка дельту посчитать нельзя, а подстановка нуля превращает
+        // недельную славу в «за день» и раздувает весь отчёт (см. SendPerfectDayUseCase).
+        // Лучше не прислать отчёт, чем прислать с выдуманными числами.
         var prevDay = final.PeriodIndex > 3
             ? await snapshots.GetSnapshotAsync(clan.Id, final.SeasonId, final.SectionIndex,
                 final.PeriodIndex - 1, ct)
             : null;
+        if (final.PeriodIndex > 3 && prevDay is null) return null;
         // GroupBy: у одного тега может быть несколько записей — берём первую (защита от дубль-ключа).
         var prevFameByTag = (prevDay?.Players ?? [])
             .GroupBy(p => p.PlayerTag, StringComparer.OrdinalIgnoreCase)
@@ -105,6 +112,9 @@ public class SendDailyReportUseCase(
             .ToDictionary(g => g.Key, g => g.First().DecksUsed, StringComparer.OrdinalIgnoreCase);
 
         var dayResults = final.Players
+            // Игроков, которых вчера в клане не было, пропускаем: их вчерашняя слава
+            // неизвестна, а ноль вместо неё засчитал бы им всю неделю как один день.
+            .Where(p => prevDay is null || prevFameByTag.ContainsKey(p.PlayerTag))
             .Select(p => (p.PlayerTag, p.Name,
                 // Первый военный день (нет вчерашнего снимка): дельта недельного DecksUsed
                 // включала бы тренировочные бои — берём суточный счётчик из снимка.

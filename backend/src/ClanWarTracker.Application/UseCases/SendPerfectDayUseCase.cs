@@ -48,9 +48,18 @@ public class SendPerfectDayUseCase(
             // Медали за СЕГОДНЯ = недельная (накопительная) слава − финал вчерашнего дня.
             // Суточному счётчику DecksUsedToday не доверяем — он сбрасывается по своим часам
             // (см. SendDailyReportUseCase), а дельта славы врать не умеет.
-            var prevDay = war.PeriodIndex > 3
-                ? await snapshots.GetSnapshotAsync(clan.Id, war.SeasonId, war.SectionIndex, war.PeriodIndex - 1, ct)
-                : null;
+            //
+            // КРИТИЧНО: без вчерашнего снимка дельту посчитать НЕЛЬЗЯ. Раньше отсутствующая
+            // база молча подставлялась нулём, и вся недельная слава засчитывалась как
+            // «за сегодня» — на второй день КВ игрок с 1450 за неделю получал поздравление
+            // за 900, набрав 650. Теперь в таком случае молчим: не поздравить обидно,
+            // а поздравить ложно — стыдно на весь чат.
+            var isFirstWarDay = war.PeriodIndex <= 3;
+            var prevDay = isFirstWarDay
+                ? null
+                : await snapshots.GetSnapshotAsync(clan.Id, war.SeasonId, war.SectionIndex, war.PeriodIndex - 1, ct);
+            if (!isFirstWarDay && prevDay is null) continue;   // базы нет — пропускаем клан
+
             var prevFameByTag = (prevDay?.Players ?? [])
                 .GroupBy(p => p.PlayerTag, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(g => g.Key, g => g.First().Fame, StringComparer.OrdinalIgnoreCase);
@@ -64,8 +73,17 @@ public class SendPerfectDayUseCase(
             {
                 if (memberRoles.Count > 0 && !memberRoles.ContainsKey(p.PlayerTag)) continue;
 
-                var dayFame = p.Fame - prevFameByTag.GetValueOrDefault(p.PlayerTag, 0);
-                if (dayFame < PerfectDayFame) continue;
+                // В первый военный день базы и не должно быть: накопленное за неделю = за день.
+                // В остальные дни игрока обязано быть во вчерашнем снимке — иначе он вступил
+                // среди недели, его вчерашняя слава неизвестна, и ноль подставлять нельзя
+                // (см. комментарий выше).
+                int prevFame;
+                if (isFirstWarDay) prevFame = 0;
+                else if (!prevFameByTag.TryGetValue(p.PlayerTag, out prevFame)) continue;
+
+                // Ровно максимум: меньше — не идеальный день, а больше за день физически
+                // не набрать, значит база врёт — и это не повод писать в чат.
+                if (p.Fame - prevFame != PerfectDayFame) continue;
 
                 var key = $"{clan.Id}:{war.SeasonId}:{war.SectionIndex}:{war.PeriodIndex}:{p.PlayerTag}";
                 if (congratulatedKeys.Contains(key)) continue;
