@@ -5,6 +5,12 @@ import { fmt } from '../lib/format'
 import { haptic, openExternalLink } from '../lib/telegram'
 import { useT, roleLabel } from '../lib/i18n'
 
+const ROLE_ICON: Record<string, string> = {
+  leader: '👑',
+  coLeader: '⚜️',
+  elder: '⭐',
+}
+
 interface Props {
   player: PlayerStatus
   isMe: boolean
@@ -78,9 +84,13 @@ export function PlayerInfoModal({ player: p, isMe, onClose }: Props) {
             </h3>
             <span className="muted small">
               {p.playerTag} · #{p.rank} {t.playerModal.rankInClan}
-              {roleName && ` · ${roleName}`}
               {!p.isLinked && ` · ${t.playerModal.noTg}`}
             </span>
+            {roleName && (
+              <span className={`role-badge role-${p.role}`}>
+                {ROLE_ICON[p.role!]} {roleName}
+              </span>
+            )}
           </div>
           <button className="modal-close" onClick={close} aria-label={t.playerModal.close}>✕</button>
         </div>

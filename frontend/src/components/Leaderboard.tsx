@@ -169,13 +169,13 @@ function WeekBoard({ players, myPlayerTag, onOpen, plan }: {
             >
               <span className="rating-rank">#{p.rank}</span>
               <span className="rating-name">
-                {p.name}
-                {p.playerTag === myPlayerTag && <span className="me-badge">{t.leaderboard.you}</span>}
-                {plan === 'pro' && p.consecutiveWars >= 3 && (
-                  <span className="streak-badge" title={`${p.consecutiveWars} ${t.leaderboard.streakTitle}`}>
-                    🔥{p.consecutiveWars}
-                  </span>
-                )}
+                <span className="rating-name-row">
+                  <span className="rating-name-text">{p.name}</span>
+                  {p.playerTag === myPlayerTag && <span className="me-badge">{t.leaderboard.you}</span>}
+                  {plan === 'pro' && p.consecutiveWars >= 3 && (
+                    <span className="streak-badge">🔥{p.consecutiveWars}</span>
+                  )}
+                </span>
               </span>
               <span className="rating-avg muted">{p.avgFamePerAttack > 0 ? `${Math.round(p.avgFamePerAttack)}${t.leaderboard.perAttack}` : ''}</span>
               <span className="rating-fame">{fmt(p.fame)} 🏅</span>
@@ -219,9 +219,11 @@ function GlobalBoard({ state }: { state: GlobalState }) {
             <div className={`rating-row ${p.isMe ? 'rating-me' : ''}`}>
               <span className="rating-rank">{p.rank <= 3 ? MEDALS[p.rank - 1] : `#${p.rank}`}</span>
               <span className="rating-name">
-                {p.name}
-                {p.isMe && <span className="me-badge">{t.leaderboard.you}</span>}
-                <span className="muted small" style={{ display: 'block' }}>{p.clanName}</span>
+                <span className="rating-name-row">
+                  <span className="rating-name-text">{p.name}</span>
+                  {p.isMe && <span className="me-badge">{t.leaderboard.you}</span>}
+                </span>
+                <span className="rating-name-sub muted small">{p.clanName}</span>
               </span>
               <span className="rating-avg muted">
                 {p.weeksParticipated} {t.leaderboard.weeks}{p.avgFamePerAttack > 0 ? ` · ${Math.round(p.avgFamePerAttack)}${t.leaderboard.perAttack}` : ''}
@@ -270,8 +272,10 @@ function ArchiveBoard({ state, myPlayerTag }: { state: ArchiveState; myPlayerTag
                   <div className={`rating-row ${p.playerTag === myPlayerTag ? 'rating-me' : ''}`}>
                     <span className="rating-rank">{p.rank <= 3 ? MEDALS[p.rank - 1] : `#${p.rank}`}</span>
                     <span className="rating-name">
-                      {p.name}
-                      {p.playerTag === myPlayerTag && <span className="me-badge">{t.leaderboard.you}</span>}
+                      <span className="rating-name-row">
+                        <span className="rating-name-text">{p.name}</span>
+                        {p.playerTag === myPlayerTag && <span className="me-badge">{t.leaderboard.you}</span>}
+                      </span>
                     </span>
                     <span className="rating-avg muted">{p.weeksParticipated} {t.leaderboard.weeks}</span>
                     <span className="rating-fame">{fmt(p.totalFame)} 🏅</span>
@@ -326,8 +330,10 @@ function SeasonBoard({ state, myPlayerTag, rosterTags, onOpen }: {
               >
                 <span className="rating-rank">{p.rank <= 3 ? MEDALS[p.rank - 1] : `#${p.rank}`}</span>
                 <span className="rating-name">
-                  {p.name}
-                  {p.playerTag === myPlayerTag && <span className="me-badge">{t.leaderboard.you}</span>}
+                  <span className="rating-name-row">
+                    <span className="rating-name-text">{p.name}</span>
+                    {p.playerTag === myPlayerTag && <span className="me-badge">{t.leaderboard.you}</span>}
+                  </span>
                 </span>
                 <span className="rating-avg muted">
                   {p.weeksParticipated} {t.leaderboard.weeks} · {t.leaderboard.best} {fmt(p.bestWeekFame)}
