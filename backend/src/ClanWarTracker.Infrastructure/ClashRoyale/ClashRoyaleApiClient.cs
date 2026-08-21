@@ -285,14 +285,23 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         [property: JsonPropertyName("decksUsed")] int DecksUsed,
         [property: JsonPropertyName("decksUsedToday")] int DecksUsedToday);
 
-    public async Task<Dictionary<string, string>> GetClanMemberRolesAsync(string clanTag, CancellationToken ct = default)
+    public async Task<Dictionary<string, ClanMemberInfo>> GetClanMembersAsync(string clanTag, CancellationToken ct = default)
     {
         var members = await GetCachedMembersAsync(clanTag, ct);
         // GroupBy на случай дублей тегов в ответе API — ToDictionary иначе бросит исключение.
         return members?.Items?
                    .GroupBy(m => m.Tag, StringComparer.OrdinalIgnoreCase)
-                   .ToDictionary(g => g.Key, g => g.First().Role, StringComparer.OrdinalIgnoreCase)
-               ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                   .ToDictionary(
+                       g => g.Key,
+                       g => new ClanMemberInfo(g.Key, g.First().Role, g.First().Trophies),
+                       StringComparer.OrdinalIgnoreCase)
+               ?? new Dictionary<string, ClanMemberInfo>(StringComparer.OrdinalIgnoreCase);
+    }
+
+    public async Task<Dictionary<string, string>> GetClanMemberRolesAsync(string clanTag, CancellationToken ct = default)
+    {
+        var members = await GetClanMembersAsync(clanTag, ct);
+        return members.ToDictionary(kv => kv.Key, kv => kv.Value.Role, StringComparer.OrdinalIgnoreCase);
     }
 
     public async Task<string?> GetPlayerClanRoleAsync(string clanTag, string playerTag, CancellationToken ct = default)
@@ -745,5 +754,6 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
     private record ClanMembersResponse([property: JsonPropertyName("items")] List<ClanMember>? Items);
     private record ClanMember(
         [property: JsonPropertyName("tag")] string Tag,
-        [property: JsonPropertyName("role")] string Role);
+        [property: JsonPropertyName("role")] string Role,
+        [property: JsonPropertyName("trophies")] int Trophies = 0);
 }

@@ -14,6 +14,9 @@ public interface IClashRoyaleApi
     /// <summary>Роли всех текущих участников клана: tag → "leader"/"coLeader"/"elder"/"member". Пустой словарь — ошибка API.</summary>
     Task<Dictionary<string, string>> GetClanMemberRolesAsync(string clanTag, CancellationToken ct = default);
 
+    /// <summary>Состав клана с ролями и кубками (тот же кэшированный ответ, что и роли).</summary>
+    Task<Dictionary<string, ClanMemberInfo>> GetClanMembersAsync(string clanTag, CancellationToken ct = default);
+
     /// <summary>КВ-трофеи клана (clanWarTrophies). null — клан не найден или API недоступен.</summary>
     Task<int?> GetClanWarTrophiesAsync(string clanTag, CancellationToken ct = default);
 
