@@ -109,6 +109,7 @@ public class SuggestDecksUseCase(IClashRoyaleApi crApi)
                 Level: mine?.Level ?? 0,
                 MaxLevel: maxLevel,
                 ElixirCost: meta.ElixirCost,
+                Rarity: meta.Rarity,
                 IconUrl: icon,
                 Owned: mine is not null,
                 EvoUnlocked: evoUnlockedHere,
@@ -123,9 +124,23 @@ public class SuggestDecksUseCase(IClashRoyaleApi crApi)
         var evoAvailable = cards.Count(c => c.HasEvo);
         var evoUnlocked = cards.Count(c => c.EvoUnlocked);
 
-        // Средний эликсир считаем по всей колоде — это свойство самой колоды,
-        // а не коллекции игрока, поэтому недостающие карты тоже учитываются.
+        // Средний эликсир и цикл — свойства самой колоды, а не коллекции игрока,
+        // поэтому недостающие карты тоже учитываются.
         var avgElixir = Math.Round(cards.Average(c => c.ElixirCost), 1);
+
+        // Цикл: 4 самые дешёвые карты. Классическая метрика — за столько эликсира
+        // колода прокручивается до нужной карты, и по ней сравнивают скорость колод.
+        var cycleCost = cards.OrderBy(c => c.ElixirCost).Take(4).Sum(c => c.ElixirCost);
+
+        // Сколько уровней ещё качать. Только по открытым картам: у недостающих
+        // уровня не существует, и приписывать им ноль значило бы придумать цифру.
+        var levelsToMax = ownedCards.Sum(c => Math.Max(0, maxLevel - c.Level));
+
+        var rarity = cards
+            .GroupBy(c => c.Rarity, StringComparer.OrdinalIgnoreCase)
+            .Select(g => new DeckRarityDto(g.Key.ToLowerInvariant(), g.Count()))
+            .OrderBy(r => RarityOrder(r.Rarity))
+            .ToList();
 
         var readiness = Readiness(ownedCount, avgLevel, maxLevel);
 
@@ -133,19 +148,32 @@ public class SuggestDecksUseCase(IClashRoyaleApi crApi)
             Id: deck.Id,
             Name: deck.Name,
             Archetype: deck.Archetype,
-            Difficulty: deck.Difficulty,
             Note: deck.Note,
             Cards: cards,
             OwnedCount: ownedCount,
             Missing: missing,
             AvgLevel: avgLevel,
             AvgElixir: avgElixir,
+            CycleCost: cycleCost,
+            LevelsToMax: levelsToMax,
+            Rarity: rarity,
             MaxedCount: maxed,
             EvoUnlocked: evoUnlocked,
             EvoAvailable: evoAvailable,
             Readiness: readiness,
             Verdict: Verdict(ownedCount, missing, avgLevel, maxLevel));
     }
+
+    /// <summary>От обычных к чемпионам — тот же порядок, что в игре.</summary>
+    private static int RarityOrder(string rarity) => rarity.ToLowerInvariant() switch
+    {
+        "common" => 0,
+        "rare" => 1,
+        "epic" => 2,
+        "legendary" => 3,
+        "champion" => 4,
+        _ => 5,
+    };
 
     /// <summary>
     /// 0..100. Половина веса — открыты ли все карты (без этого колода не существует),

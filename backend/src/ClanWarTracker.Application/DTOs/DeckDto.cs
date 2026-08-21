@@ -9,24 +9,33 @@ public record DeckCardDto(
     int Level,                  // 0 — карта не открыта
     int MaxLevel,
     int ElixirCost,
+    string Rarity,              // common | rare | epic | legendary | champion
     string IconUrl,
     bool Owned,
     bool EvoUnlocked,           // игрок открыл эволюцию этой карты
     bool HasEvo,                // у карты вообще есть эволюция
     string? EvoIconUrl);
 
-/// <summary>Колода меты, примеренная на коллекцию конкретного игрока.</summary>
+/// <summary>Сколько карт колоды приходится на одну редкость.</summary>
+public record DeckRarityDto(string Rarity, int Count);
+
+/// <summary>
+/// Колода меты, примеренная на коллекцию конкретного игрока.
+/// Никаких оценок вроде «сложности» — только то, что можно посчитать.
+/// </summary>
 public record DeckSuggestionDto(
     string Id,
     string Name,
     string Archetype,
-    string Difficulty,          // easy | medium | hard
     string Note,
     List<DeckCardDto> Cards,
     int OwnedCount,             // сколько из 8 карт открыто
     List<string> Missing,       // чего не хватает (имена карт)
     double AvgLevel,            // средний уровень открытых карт колоды
     double AvgElixir,
+    int CycleCost,              // 4 самые дешёвые карты — за сколько эликсира колода прокручивается
+    int LevelsToMax,            // сколько уровней ещё качать по уже открытым картам
+    List<DeckRarityDto> Rarity, // состав по редкостям: во что обойдётся прокачка
     int MaxedCount,             // карт на потолке уровня
     int EvoUnlocked,            // эволюций колоды открыто у игрока
     int EvoAvailable,           // сколько карт колоды вообще имеют эволюцию

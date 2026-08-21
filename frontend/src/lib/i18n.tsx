@@ -504,7 +504,13 @@ const ru = {
     maxed: 'на максимуме',
     showNote: 'Как играть',
     hideNote: 'Свернуть',
-    difficulty: { easy: 'Просто', medium: 'Средне', hard: 'Сложно' } as Record<string, string>,
+    cycle: 'цикл',
+    levelsToMax: 'уровней качать',
+    rarityTitle: 'Состав',
+    rarity: {
+      common: 'обыч.', rare: 'редк.', epic: 'эпич.',
+      legendary: 'легенд.', champion: 'чемп.',
+    } as Record<string, string>,
   },
 
   recruit: {
@@ -1221,7 +1227,13 @@ const uk: Translations = {
     maxed: 'на максимумі',
     showNote: 'Як грати',
     hideNote: 'Згорнути',
-    difficulty: { easy: 'Просто', medium: 'Середньо', hard: 'Складно' } as Record<string, string>,
+    cycle: 'цикл',
+    levelsToMax: 'рівнів качати',
+    rarityTitle: 'Склад',
+    rarity: {
+      common: 'звич.', rare: 'рідк.', epic: 'епіч.',
+      legendary: 'легенд.', champion: 'чемп.',
+    } as Record<string, string>,
   },
 
   recruit: {
@@ -1936,7 +1948,13 @@ const en: Translations = {
     maxed: 'maxed',
     showNote: 'How to play',
     hideNote: 'Collapse',
-    difficulty: { easy: 'Easy', medium: 'Medium', hard: 'Hard' } as Record<string, string>,
+    cycle: 'cycle',
+    levelsToMax: 'levels to go',
+    rarityTitle: 'Rarity',
+    rarity: {
+      common: 'common', rare: 'rare', epic: 'epic',
+      legendary: 'legend.', champion: 'champ.',
+    } as Record<string, string>,
   },
 
   recruit: {
