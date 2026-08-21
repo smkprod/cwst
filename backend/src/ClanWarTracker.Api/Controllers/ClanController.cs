@@ -170,6 +170,47 @@ public class ClanController(
     }
 
     /// <summary>
+    /// GET /api/clans/{tag}/overview — витрина любого клана по тегу: подключён ли он к боту,
+    /// КВ-трофеи, состав и топ кланов его страны. Нужна игроку, чей клан ещё не с нами:
+    /// он видит и своё положение, и куда можно перейти.
+    /// </summary>
+    [HttpGet("{tag}/overview")]
+    public async Task<IActionResult> GetClanOverview(string tag, CancellationToken ct)
+    {
+        var clanTag = "#" + tag.TrimStart('#').ToUpperInvariant();
+        var known = await clans.GetByTagAsync(clanTag, ct);
+
+        ClanWarRanking? rank = null;
+        string? name;
+        int? memberCount;
+        try
+        {
+            rank = await crApi.GetClanWarRankingAsync(clanTag, ct);
+            name = await crApi.GetClanNameAsync(clanTag, ct);
+            memberCount = await crApi.GetClanMemberCountAsync(clanTag, ct);
+        }
+        catch (HttpRequestException ex) when ((int)(ex.StatusCode ?? 0) is >= 500 or 429)
+            { return StatusCode(503, new { error = "cr_api_unavailable", message = ex.Message }); }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("CR API"))
+            { return StatusCode(503, new { error = "cr_api_token_invalid", message = ex.Message }); }
+
+        if (rank is null && name is null) return NotFound(new { error = "clan_not_found" });
+
+        return Ok(new ClanOverviewDto(
+            ClanTag: clanTag,
+            ClanName: name ?? known?.Name,
+            Connected: known is not null,
+            WarTrophies: rank?.ClanWarTrophies ?? 0,
+            MemberCount: memberCount,
+            CountryName: rank?.CountryName,
+            CountryRank: rank?.CountryRank,
+            GlobalRank: rank?.GlobalRank,
+            CountryTop: rank?.CountryTop.Select(c => new RankedClanDto(
+                c.Rank, c.PreviousRank, c.Name, c.WarTrophies, c.Members,
+                string.Equals(c.Tag, clanTag, StringComparison.OrdinalIgnoreCase))).ToList() ?? []));
+    }
+
+    /// <summary>
     /// GET /api/clans/{tag}/warlog — журнал прошлых войн любого клана из официального
     /// riverracelog (tag без #). IsOurClan помечает запрошенный клан.
     /// </summary>

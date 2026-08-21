@@ -338,6 +338,65 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         return roles.TryGetValue(playerTag, out var role) ? role : null;
     }
 
+    public async Task<int?> GetClanMemberCountAsync(string clanTag, CancellationToken ct = default)
+    {
+        var members = await GetCachedMembersAsync(clanTag, ct);
+        return members?.Items?.Count;
+    }
+
+    /// <summary>
+    /// Справочник карт меняется раз в сезон, а весит прилично — держим сутки.
+    /// Ключ словаря — имя карты: именно по имени карты приходят и в профиле игрока,
+    /// и в нашей базе мета-колод, а числовые id в разных источниках не совпадают.
+    /// </summary>
+    public async Task<IReadOnlyDictionary<string, CrCatalogCard>> GetAllCardsAsync(CancellationToken ct = default)
+    {
+        var result = await cache.GetOrCreateAsync("cardcatalog", async entry =>
+        {
+            entry.Size = 1;
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(24);
+
+            var resp = await http.GetAsync("cards", ct);
+            if (!resp.IsSuccessStatusCode)
+            {
+                // Ошибку надолго не кэшируем, иначе сутки без колод из-за одной икоты
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
+                return (Dictionary<string, CrCatalogCard>?)null;
+            }
+
+            var data = await resp.Content.ReadFromJsonAsync<CardCatalogResponse>(cancellationToken: ct);
+            // items — обычные карты, supportItems — башенные войска (в колодах они не участвуют)
+            var all = (data?.Items ?? []).Where(c => c.IconUrls?.Medium is not null);
+
+            return all
+                .GroupBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(
+                    g => g.Key,
+                    g => new CrCatalogCard
+                    {
+                        Name = g.First().Name,
+                        ElixirCost = g.First().ElixirCost ?? 0,
+                        Rarity = g.First().Rarity ?? "",
+                        IconUrl = g.First().IconUrls!.Medium!,
+                        EvoIconUrl = g.First().IconUrls!.EvolutionMedium,
+                        MaxEvolutionLevel = g.First().MaxEvolutionLevel,
+                    },
+                    StringComparer.OrdinalIgnoreCase);
+        });
+
+        return result ?? new Dictionary<string, CrCatalogCard>(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private record CardCatalogResponse(
+        [property: JsonPropertyName("items")] List<CatalogCardResponse>? Items);
+
+    private record CatalogCardResponse(
+        [property: JsonPropertyName("name")] string Name,
+        [property: JsonPropertyName("elixirCost")] int? ElixirCost,
+        [property: JsonPropertyName("rarity")] string? Rarity,
+        [property: JsonPropertyName("iconUrls")] CardIconUrls? IconUrls,
+        [property: JsonPropertyName("maxEvolutionLevel")] int MaxEvolutionLevel = 0);
+
     public async Task<int?> GetClanWarTrophiesAsync(string clanTag, CancellationToken ct = default)
     {
         // Трофеи меняются только по итогам недели — кэш на час

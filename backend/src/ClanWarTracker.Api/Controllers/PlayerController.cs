@@ -19,8 +19,30 @@ public class PlayerController(
     GetAchievementsUseCase getAchievements,
     GetWhatsNewUseCase getWhatsNew,
     GiveRespectUseCase giveRespect,
+    SuggestDecksUseCase suggestDecks,
     IRespectRepository respects) : ControllerBase
 {
+    /// <summary>
+    /// GET /api/players/{tag}/decks — какие колоды меты игрок может собрать из своей
+    /// коллекции и до каких не хватает пары карт.
+    /// </summary>
+    [HttpGet("{tag}/decks")]
+    public async Task<IActionResult> Decks(string tag, CancellationToken ct)
+    {
+        var playerTag = "#" + tag.TrimStart('#').ToUpperInvariant();
+
+        DeckSuggestionsDto? result;
+        try { result = await suggestDecks.ExecuteAsync(playerTag, ct); }
+        catch (HttpRequestException ex) when ((int)(ex.StatusCode ?? 0) is >= 500 or 429)
+            { return StatusCode(503, new { error = "cr_api_unavailable", message = ex.Message }); }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("CR API"))
+            { return StatusCode(503, new { error = "cr_api_token_invalid", message = ex.Message }); }
+
+        return result is null
+            ? NotFound(new { error = "player_not_found", message = "Игрок не найден" })
+            : Ok(result);
+    }
+
     /// <summary>
     /// GET /api/players/top — глобальный топ игроков, привязавших аккаунт к боту,
     /// по всем кланам сервиса (слава за последние недели).
@@ -250,12 +272,15 @@ public class PlayerController(
 
         // Разбор под набор — Pro-функция. Тариф смотрим у клана ТОГО, КТО СМОТРИТ:
         // это его инструмент подбора, а не свойство просматриваемого игрока.
+        // Исключение — собственный профиль: свой разбор человек видит всегда, тарифом
+        // закрыт подбор ЧУЖИХ игроков, а не право знать про себя.
         var viewerId = (long)HttpContext.Items["TelegramUserId"]!;
         var viewer = await players.GetByTelegramIdAsync(viewerId, ct);
         var viewerClan = viewer?.ClanId is int vc ? await clans.GetByIdAsync(vc, ct) : null;
         var viewerIsPro = viewerClan?.EffectivePlan(DateTime.UtcNow) == PlanTier.Pro;
+        var isSelf = string.Equals(viewer?.PlayerTag, playerTag, StringComparison.OrdinalIgnoreCase);
 
-        var analysis = viewerIsPro
+        var analysis = viewerIsPro || isSelf
             ? AnalyzePlayerService.Build(info, weeksPlayed, avgFame)
             : null;
 

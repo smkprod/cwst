@@ -17,6 +17,7 @@ builder.Services.AddScoped<GetGlobalTopUseCase>();
 builder.Services.AddScoped<GetAchievementsUseCase>();
 builder.Services.AddScoped<GetWhatsNewUseCase>();
 builder.Services.AddScoped<GiveRespectUseCase>();
+builder.Services.AddScoped<SuggestDecksUseCase>();
 builder.Services.AddScoped<NudgePlayersUseCase>();
 builder.Services.AddScoped<OwnerBroadcastUseCase>();
 builder.Services.AddScoped<GetOwnerDashboardUseCase>();
