@@ -16,6 +16,9 @@ public class GetAchievementsUseCase(IWarSnapshotRepository snapshots)
 {
     private const int WeeksWindow = 26; // полгода истории достаточно и дёшево
 
+    /// <summary>4 атаки без поражений — максимум за военный день.</summary>
+    private const int PerfectDayFame = 900;
+
     private static readonly Dictionary<string, int[]> Levels = new()
     {
         ["streak"] = [3, 5, 10],
@@ -64,24 +67,42 @@ public class GetAchievementsUseCase(IWarSnapshotRepository snapshots)
                 streak = 0;
             }
 
-            // Идеальные дни + дневные колоды: дельты между соседними дневными снимками недели.
-            // Колоды за день считаем той же дельтой (недельный DecksUsed растёт монотонно);
-            // для первого военного дня берём суточный счётчик из снимка.
-            var days = week.Where(s => s.PeriodIndex >= 3).OrderBy(s => s.PeriodIndex).ToList();
-            int prevFame = 0, prevDecks = -1;
+            // Идеальные дни + дневные колоды: дельты между СОСЕДНИМИ дневными снимками.
+            // Считаем только там, где база достоверна: либо это первый военный день
+            // (накопленное за неделю = за день), либо предыдущий день реально снят.
+            // Иначе пропуск снимка превратил бы недельную славу в один «идеальный день»
+            // — ровно та ошибка, из-за которой бот ложно поздравлял с 900.
+            var days = week.Where(s => s.PeriodIndex is >= 3 and <= 6)
+                .GroupBy(s => s.PeriodIndex)
+                .Select(g => g.OrderByDescending(s => s.TotalFame).First())
+                .OrderBy(s => s.PeriodIndex)
+                .ToList();
+
+            int? prevFame = null, prevDecks = null;
+            var prevPeriod = -1;
             foreach (var day in days)
             {
                 var p = day.Players.FirstOrDefault(x =>
                     string.Equals(x.PlayerTag, playerTag, StringComparison.OrdinalIgnoreCase));
-                var fame = p?.Fame ?? prevFame;
-                if (fame - prevFame >= 900) perfectDays++;
-                prevFame = fame;
 
-                var decksToday = p is null ? 0
-                    : prevDecks < 0 ? Math.Clamp(p.DecksUsedToday, 0, 4)
-                    : Math.Clamp(p.DecksUsed - prevDecks, 0, 4);
-                prevDecks = p?.DecksUsed ?? prevDecks;
-                dayDecks.Add(decksToday);
+                var isFirstWarDay = day.PeriodIndex == 3;
+                var hasBaseline = isFirstWarDay || (day.PeriodIndex == prevPeriod + 1 && prevFame is not null);
+
+                if (p is not null && hasBaseline)
+                {
+                    var baseFame = isFirstWarDay ? 0 : prevFame!.Value;
+                    // Ровно максимум: меньше — не идеальный день, больше физически нельзя
+                    // (значит база всё-таки врёт, и засчитывать нечего).
+                    if (p.Fame - baseFame == PerfectDayFame) perfectDays++;
+
+                    var decksToday = isFirstWarDay || prevDecks is null
+                        ? Math.Clamp(p.DecksUsedToday, 0, 4)
+                        : Math.Clamp(p.DecksUsed - prevDecks.Value, 0, 4);
+                    dayDecks.Add(decksToday);
+                }
+
+                if (p is not null) { prevFame = p.Fame; prevDecks = p.DecksUsed; }
+                prevPeriod = day.PeriodIndex;
             }
         }
 
