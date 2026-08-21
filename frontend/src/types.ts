@@ -388,7 +388,26 @@ export interface PlayerProfile {
   bestPathOfLegend: PathOfLegend | null
   currentFavouriteCard: string | null
   currentDeck: PlayerCard[]
+  wins: number
+  losses: number
+  maxCardLevel: number          // текущий потолок уровня карт в игре
+  analysis: PlayerAnalysis | null  // разбор под набор; null — не Pro или нет колоды
   royaleApiUrl: string
+}
+
+/** Разбор профиля под набор в клан (Pro). */
+export interface PlayerAnalysis {
+  tier: 'top' | 'strong' | 'mid' | 'developing'
+  verdict: string
+  recommendedClanLevel: string
+  avgDeckLevel: number
+  maxCardLevel: number
+  maxedInDeck: number
+  deckSize: number
+  maxedTotal: number
+  cardsTotal: number
+  winRate: number | null        // null — боёв мало, процент был бы случайностью
+  notes: string[]
 }
 
 /* --- Глобальный топ бота (все кланы, привязанные игроки) --- */

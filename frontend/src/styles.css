@@ -1271,3 +1271,39 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 /* --- Управление списком игроков: сортировка + фильтр в одну строку --- */
 .pl-controls { display: flex; gap: 6px; margin-bottom: 8px; }
 .pl-controls .rating-select { flex: 1; min-width: 0; }
+
+/* --- Разбор игрока (Pro): вердикт по силе колоды --- */
+.analysis-card { border: 1px solid rgba(255,255,255,0.10); }
+.analysis-card.tier-top { border-color: rgba(255,200,61,0.45); background: rgba(255,200,61,0.06); }
+.analysis-card.tier-strong { border-color: rgba(49,181,69,0.40); background: rgba(49,181,69,0.05); }
+.analysis-card.tier-mid { border-color: rgba(240,168,33,0.35); }
+.analysis-card.tier-dev { border-color: rgba(229,57,53,0.30); }
+
+.tier-badge { font-size: 11px; font-weight: 800; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+.tier-badge.tier-top { background: rgba(255,200,61,0.20); color: var(--gold, #ffc83d); }
+.tier-badge.tier-strong { background: rgba(49,181,69,0.20); color: var(--green, #31b545); }
+.tier-badge.tier-mid { background: rgba(240,168,33,0.20); color: var(--yellow, #f0a821); }
+.tier-badge.tier-dev { background: rgba(229,57,53,0.18); color: var(--red, #e53935); }
+
+.analysis-main { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.analysis-level { font-size: 32px; font-weight: 800; line-height: 1.1; }
+.analysis-level-label { font-size: 12px; opacity: 0.75; margin-left: 4px; }
+.analysis-track { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.10); overflow: hidden; margin: 8px 0 10px; }
+.analysis-fill { height: 100%; border-radius: 3px; background: var(--accent, #8774e1); transition: width 0.4s ease; }
+.analysis-card.tier-top .analysis-fill { background: var(--gold, #ffc83d); }
+.analysis-card.tier-strong .analysis-fill { background: var(--green, #31b545); }
+.analysis-verdict { font-size: 14px; margin: 0 0 6px; line-height: 1.4; }
+.analysis-fit { font-size: 13px; margin: 0; }
+.analysis-notes { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 3px; }
+
+/* --- Коллекция: сколько карт на каждом уровне --- */
+.lvl-rows { display: grid; gap: 6px; }
+.lvl-row { display: flex; align-items: center; gap: 8px; }
+.lvl-badge {
+  flex: none; min-width: 26px; text-align: center; font-size: 11px; font-weight: 800;
+  padding: 2px 5px; border-radius: 6px; background: rgba(255,255,255,0.08);
+}
+.lvl-badge-max { background: rgba(255,200,61,0.20); color: var(--gold, #ffc83d); }
+.lvl-track { flex: 1; min-width: 0; height: 8px; border-radius: 4px; background: rgba(255,255,255,0.07); overflow: hidden; }
+.lvl-fill { height: 100%; border-radius: 4px; background: var(--accent, #8774e1); }
+.lvl-count { flex: none; min-width: 24px; text-align: right; }
