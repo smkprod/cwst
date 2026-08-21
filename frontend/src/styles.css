@@ -1218,3 +1218,17 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 .adm-member-leader { font-weight: 600; }
 .adm-member-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .adm-member-tg { background: none; border: none; color: var(--accent, #8774e1); font-size: 13px; cursor: pointer; padding: 0; }
+
+/* --- Роль в клане: раньше была голой иконкой с подсказкой в title,
+       а на телефоне title не показывается вообще — теперь видимая подпись --- */
+.role-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 1px 6px; margin-right: 6px;
+  border-radius: 6px; font-size: 11px; font-weight: 700;
+  background: rgba(135,116,225,0.15); color: var(--accent, #8774e1);
+  white-space: nowrap; vertical-align: middle;
+}
+.role-leader { background: rgba(255,200,61,0.18); color: var(--gold, #ffc83d); }
+.role-coLeader { background: rgba(156,107,255,0.18); color: var(--purple, #9c6bff); }
+.role-elder { background: rgba(112,132,153,0.20); color: var(--muted, #708499); }
+.modal-title-wrap .role-badge { margin-top: 4px; align-self: flex-start; }

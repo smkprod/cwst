@@ -12,9 +12,9 @@ const STATUS_META: Record<PlayStatus, { icon: string; cls: string }> = {
 }
 
 const ROLE_ICON: Record<string, string> = {
-  'Лидер': '👑',
-  'Соруководитель': '⚜️',
-  'Старейшина': '⭐',
+  leader: '👑',
+  coLeader: '⚜️',
+  elder: '⭐',
 }
 
 interface Props {
@@ -49,13 +49,15 @@ export function PlayerList({ players, myPlayerTag }: Props) {
                 <div className="player-info">
                   <span className="player-name">
                     {isMe && <span className="me-badge">{t.leaderboard.you}</span>}
-                    {p.role && ROLE_ICON[p.role] && (
-                      <span className="role-icon" title={roleName}>{ROLE_ICON[p.role]}</span>
-                    )}
                     {p.name}
                     {!p.isLinked && <span className="unlinked" title={t.players.noTg}> · {t.players.noTg}</span>}
                   </span>
                   <span className="player-fame">
+                    {roleName && (
+                      <span className={`role-badge role-${p.role}`}>
+                        {ROLE_ICON[p.role!]} {roleName}
+                      </span>
+                    )}
                     #{p.rank} · {fmt(p.fame)} 🏅
                     {p.warDecksUsed > 0 && <span className="muted"> · {p.warDecksUsed} атак</span>}
                   </span>
