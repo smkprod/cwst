@@ -398,11 +398,18 @@ export interface PlayerProfile {
   royaleApiUrl: string
 }
 
-/** Разбор профиля под набор в клан (Pro). */
+export type ClanLeague = 'bronze' | 'silver' | 'gold' | 'legendary'
+
+/**
+ * Разбор профиля: в клан какой лиги идти. С сервера приходят только числа и код лиги —
+ * весь текст собирается здесь, чтобы он говорил на языке интерфейса.
+ */
 export interface PlayerAnalysis {
-  tier: 'top' | 'strong' | 'mid' | 'developing'
-  verdict: string
-  recommendedClanLevel: string
+  league: ClanLeague
+  nextLeague: ClanLeague | null      // null — уже легендарная
+  warLevel: number                   // средний уровень 32 лучших карт
+  nextLeagueWarLevel: number | null  // до какого боевого уровня тянуть
+  nextLeagueMaxedCards: number | null // сколько карт добить до потолка
   avgDeckLevel: number
   maxCardLevel: number
   maxedInDeck: number
@@ -411,10 +418,13 @@ export interface PlayerAnalysis {
   cardsTotal: number
   fullDecks: number             // сколько полных колод максимального уровня собирается
   decksNeeded: number           // нужно на полный военный день (4 боя = 4 колоды)
+  warCardsNeeded: number        // те же 4 колоды в картах (32)
   evoUnlocked: number
   evoAvailable: number
   winRate: number | null        // null — боёв мало, процент был бы случайностью
-  notes: string[]
+  warDayWins: number
+  weeksPlayed: number
+  avgFamePerAttack: number
 }
 
 /* --- Глобальный топ бота (все кланы, привязанные игроки) --- */

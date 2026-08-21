@@ -223,29 +223,65 @@ export function PlayerProfileCard({ profile }: { profile: PlayerProfile }) {
   )
 }
 
-/* ---------- Разбор игрока (Pro) ---------- */
+/* ---------- Разбор игрока: в клан какой лиги идти ---------- */
 
-const TIER_CLASS: Record<string, string> = {
-  top: 'tier-top', strong: 'tier-strong', mid: 'tier-mid', developing: 'tier-dev',
+const LEAGUE_CLASS: Record<string, string> = {
+  bronze: 'league-bronze', silver: 'league-silver', gold: 'league-gold', legendary: 'league-legend',
+}
+const LEAGUE_ICON: Record<string, string> = {
+  bronze: '🥉', silver: '🥈', gold: '🥇', legendary: '👑',
 }
 
+/**
+ * Главный ответ карточки — лига клана, в который человеку идти прямо сейчас.
+ * Раньше здесь первым делом стояло «0 из 4 полных колод», и для новичка это читалось
+ * как отказ. Полные колоды остались, но ниже: это цель, а не приговор.
+ */
 function AnalysisCard({ a, t }: { a: PlayerAnalysis; t: Translations }) {
+  const cls = LEAGUE_CLASS[a.league] ?? ''
+  const leagueName = t.search.leagues[a.league] ?? a.league
+
+  // Что делать дальше — одна конкретная задача, а не список претензий
+  const nextGoal = a.nextLeague === null
+    ? t.search.leagueTop
+    : a.nextLeagueMaxedCards != null
+      ? `${t.search.nextLeaguePrefix} ${t.search.leagues[a.nextLeague]} — ${t.search.needMaxedCards(a.nextLeagueMaxedCards, a.maxCardLevel)}`
+      : `${t.search.nextLeaguePrefix} ${t.search.leagues[a.nextLeague]} — ${t.search.needWarLevel(a.nextLeagueWarLevel ?? 0)}`
+
   return (
-    <section className={`card analysis-card ${TIER_CLASS[a.tier] ?? ''}`} style={{ marginTop: 10 }}>
+    <section className={`card analysis-card ${cls}`} style={{ marginTop: 10 }}>
       <div className="card-title-row">
         <div className="cards-section-title" style={{ margin: 0 }}>{t.search.analysisTitle}</div>
-        <span className={`tier-badge ${TIER_CLASS[a.tier] ?? ''}`}>
-          {t.search.analysisTiers[a.tier] ?? a.tier}
-        </span>
+        <span className={`tier-badge ${cls}`}>{LEAGUE_ICON[a.league]} {leagueName}</span>
       </div>
 
-      <div className="analysis-main">
-        <span className="analysis-level">{a.fullDecks}</span>
-        <span className="muted small">/ {a.decksNeeded}</span>
-        <span className="analysis-level-label">{t.search.fullDecks}</span>
+      <div className="league-hero">
+        <span className="league-hero-icon">{LEAGUE_ICON[a.league]}</span>
+        <div className="league-hero-text">
+          <span className="league-hero-name">{leagueName}</span>
+          <span className="muted small">{t.search.leagueHint}</span>
+        </div>
       </div>
 
-      {/* Четыре ячейки = четыре боя военного дня: сразу видно, на сколько его хватит */}
+      <p className="analysis-verdict">{t.search.leagueVerdict[a.league]}</p>
+      <p className="analysis-next">🎯 {nextGoal}</p>
+
+      <div className="analysis-metrics">
+        <div className="analysis-metric">
+          <span className="analysis-metric-value">{a.warLevel}</span>
+          <span className="analysis-metric-label">{t.search.warLevel}</span>
+        </div>
+        <div className="analysis-metric">
+          <span className="analysis-metric-value">{a.fullDecks}/{a.decksNeeded}</span>
+          <span className="analysis-metric-label">{t.search.fullDecks}</span>
+        </div>
+        <div className="analysis-metric">
+          <span className="analysis-metric-value">{a.maxedTotal}</span>
+          <span className="analysis-metric-label">{t.search.onMaxLevel} {a.maxCardLevel}</span>
+        </div>
+      </div>
+
+      {/* Четыре ячейки = четыре боя военного дня: видно, куда расти */}
       <div className="deck-slots">
         {Array.from({ length: a.decksNeeded }, (_, i) => (
           <div key={i} className={`deck-slot ${i < a.fullDecks ? 'deck-slot-on' : ''}`}>
@@ -254,22 +290,25 @@ function AnalysisCard({ a, t }: { a: PlayerAnalysis; t: Translations }) {
         ))}
       </div>
 
-      <p className="muted small analysis-maxed">
-        {a.maxedTotal} {t.search.maxedOf} {a.cardsTotal} {t.search.cardsOnLevel} {a.maxCardLevel}
-        {a.evoAvailable > 0 && ` · ⚡ ${a.evoUnlocked}/${a.evoAvailable}`}
-      </p>
-
-      <p className="analysis-verdict">{a.verdict}</p>
-
-      <p className="analysis-fit">
-        <span className="muted">{t.search.fitsClan}</span> <b>{a.recommendedClanLevel}</b>
-      </p>
-
-      {a.notes.length > 0 && (
-        <ul className="analysis-notes">
-          {a.notes.map((n, i) => <li key={i} className="muted small">• {n}</li>)}
-        </ul>
-      )}
+      <ul className="analysis-notes">
+        {a.evoAvailable > 0 && (
+          <li className="muted small">• {t.search.noteEvo(a.evoUnlocked, a.evoAvailable)}</li>
+        )}
+        {a.deckSize > 0 && (
+          <li className="muted small">• {t.search.noteDeck(a.avgDeckLevel, a.maxedInDeck, a.deckSize)}</li>
+        )}
+        {a.winRate !== null && (
+          <li className="muted small">
+            • {t.search.noteWinRate(a.winRate)}{a.winRate >= 55 ? ` — ${t.search.aboveAverage}` : ''}
+          </li>
+        )}
+        {a.warDayWins > 0 && <li className="muted small">• {t.search.noteWarWins(a.warDayWins)}</li>}
+        {a.weeksPlayed > 0 && a.avgFamePerAttack > 0 && (
+          <li className="muted small">
+            • {t.search.noteInOurClans(a.weeksPlayed, Math.round(a.avgFamePerAttack))}
+          </li>
+        )}
+      </ul>
     </section>
   )
 }
