@@ -44,4 +44,13 @@ public interface IClashRoyaleApi
 
     /// <summary>Военные бои из боевого лога игрока (только КВ-типы). Пустой список — нет/ошибка.</summary>
     Task<List<CrBattle>> GetPlayerBattlelogAsync(string playerTag, CancellationToken ct = default);
+
+    /// <summary>
+    /// Справочник всех карт игры: имя → карта. Нужен, чтобы показывать карты, которых
+    /// у игрока ещё нет (в его профиле API отдаёт только открытые). Пустой словарь — ошибка API.
+    /// </summary>
+    Task<IReadOnlyDictionary<string, CrCatalogCard>> GetAllCardsAsync(CancellationToken ct = default);
+
+    /// <summary>Численность клана прямо сейчас. null — клан не найден или API недоступен.</summary>
+    Task<int?> GetClanMemberCountAsync(string clanTag, CancellationToken ct = default);
 }
