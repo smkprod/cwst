@@ -458,7 +458,6 @@ const ru = {
     tournamentBtn: 'К турнирам',
 
     tabProfile: 'Профиль',
-    tabDecks: 'Колоды',
     tabClan: 'Клан',
     bannerPrefix: 'Твой клан',
     bannerSuffix: 'ещё не подключён к боту',
@@ -491,6 +490,9 @@ const ru = {
 
   decks: {
     title: '🃏 Колоды под твою коллекцию',
+    ctaTitle: 'Мои колоды',
+    ctaHint: 'Что можно собрать из твоих карт прямо сейчас',
+    ctaBtn: 'Подобрать',
     hint: 'Примеряем актуальные колоды на твои карты: что можно играть уже сейчас, а до чего не хватает пары карт.',
     decksWord: 'колод в базе',
     ready: 'Можно играть сейчас',
@@ -1173,7 +1175,6 @@ const uk: Translations = {
     tournamentBtn: 'До турнірів',
 
     tabProfile: 'Профіль',
-    tabDecks: 'Колоди',
     tabClan: 'Клан',
     bannerPrefix: 'Твій клан',
     bannerSuffix: 'ще не підключено до бота',
@@ -1206,6 +1207,9 @@ const uk: Translations = {
 
   decks: {
     title: '🃏 Колоди під твою колекцію',
+    ctaTitle: 'Мої колоди',
+    ctaHint: 'Що можна зібрати з твоїх карт просто зараз',
+    ctaBtn: 'Підібрати',
     hint: 'Приміряємо актуальні колоди на твої карти: що можна грати вже зараз, а до чого бракує пари карт.',
     decksWord: 'колод у базі',
     ready: 'Можна грати зараз',
@@ -1886,7 +1890,6 @@ const en: Translations = {
     tournamentBtn: 'To tournaments',
 
     tabProfile: 'Profile',
-    tabDecks: 'Decks',
     tabClan: 'Clan',
     bannerPrefix: 'Your clan',
     bannerSuffix: 'is not connected to the bot yet',
@@ -1919,6 +1922,9 @@ const en: Translations = {
 
   decks: {
     title: '🃏 Decks for your collection',
+    ctaTitle: 'My decks',
+    ctaHint: 'What you can build from your cards right now',
+    ctaBtn: 'Find decks',
     hint: 'We match current decks against your cards: what you can play right now, and what needs a card or two.',
     decksWord: 'decks in the base',
     ready: 'Ready to play',
