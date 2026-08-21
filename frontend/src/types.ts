@@ -358,6 +358,9 @@ export interface PlayerCard {
   level: number
   maxLevel: number
   iconUrl: string
+  evolutionLevel: number      // >0 — эволюция открыта игроком
+  maxEvolutionLevel: number   // >0 — у карты вообще есть эволюция
+  evoIconUrl: string | null
 }
 
 export interface PathOfLegend {
@@ -406,6 +409,10 @@ export interface PlayerAnalysis {
   deckSize: number
   maxedTotal: number
   cardsTotal: number
+  fullDecks: number             // сколько полных колод максимального уровня собирается
+  decksNeeded: number           // нужно на полный военный день (4 боя = 4 колоды)
+  evoUnlocked: number
+  evoAvailable: number
   winRate: number | null        // null — боёв мало, процент был бы случайностью
   notes: string[]
 }

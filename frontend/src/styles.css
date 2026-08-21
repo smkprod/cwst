@@ -1307,3 +1307,21 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 .lvl-track { flex: 1; min-width: 0; height: 8px; border-radius: 4px; background: rgba(255,255,255,0.07); overflow: hidden; }
 .lvl-fill { height: 100%; border-radius: 4px; background: var(--accent, #8774e1); }
 .lvl-count { flex: none; min-width: 24px; text-align: right; }
+
+/* --- Слоты колод: 4 боя военного дня, закрашены те, на которые хватает максов --- */
+.deck-slots { display: flex; gap: 6px; margin: 10px 0 8px; }
+.deck-slot {
+  flex: 1; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.06); color: var(--muted, #708499); font-size: 15px;
+}
+.deck-slot-on { background: rgba(49,181,69,0.20); color: var(--green, #31b545); }
+.analysis-card.tier-top .deck-slot-on { background: rgba(255,200,61,0.22); color: var(--gold, #ffc83d); }
+.analysis-maxed { margin: 0 0 8px; }
+
+/* --- Эволюционные карты: своя иконка + метка --- */
+.card-chip { position: relative; }
+.card-chip-evo img { border-radius: 6px; box-shadow: 0 0 0 2px rgba(156,107,255,0.75); }
+.card-evo-mark {
+  position: absolute; top: -3px; left: -3px; font-size: 10px; line-height: 1;
+  background: var(--purple, #9c6bff); color: #fff; border-radius: 5px; padding: 2px 3px;
+}

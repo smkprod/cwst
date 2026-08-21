@@ -143,7 +143,11 @@ public record PlayerProfileDto(
     string RoyaleApiUrl);
 
 /// <summary>Уровень уже переведён в игровую шкалу (см. CrDeckCard).</summary>
-public record PlayerCardDto(string Name, int Level, int MaxLevel, string IconUrl);
+public record PlayerCardDto(
+    string Name, int Level, int MaxLevel, string IconUrl,
+    int EvolutionLevel = 0,      // >0 — эволюция открыта игроком
+    int MaxEvolutionLevel = 0,   // >0 — у карты вообще есть эволюция
+    string? EvoIconUrl = null);
 
 /// <summary>Разбор профиля под набор в клан (Pro).</summary>
 public record PlayerAnalysisDto(
@@ -156,6 +160,10 @@ public record PlayerAnalysisDto(
     int DeckSize,
     int MaxedTotal,
     int CardsTotal,
+    int FullDecks,                // сколько полных колод максимального уровня собирается
+    int DecksNeeded,              // сколько нужно на полный военный день (4 боя = 4 колоды)
+    int EvoUnlocked,
+    int EvoAvailable,
     double? WinRate,              // null — боёв слишком мало, процент был бы случайностью
     List<string> Notes);
 

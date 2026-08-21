@@ -155,14 +155,7 @@ export function PlayerProfileCard({ profile }: { profile: PlayerProfile }) {
                 </span>
               </div>
               <div className="cards-grid">
-                {profile.currentDeck.map(card => (
-                  <div key={card.name} className="card-chip">
-                    <img src={card.iconUrl} alt={card.name} loading="lazy" title={card.name} />
-                    <div className={`card-chip-level ${card.level >= card.maxLevel ? 'card-chip-maxed' : ''}`}>
-                      {card.level} {t.search.lvl}
-                    </div>
-                  </div>
-                ))}
+                {profile.currentDeck.map(card => <CardChip key={card.name} card={card} />)}
               </div>
             </section>
           )}
@@ -237,9 +230,6 @@ const TIER_CLASS: Record<string, string> = {
 }
 
 function AnalysisCard({ a, t }: { a: PlayerAnalysis; t: Translations }) {
-  // Заполнение шкалы — насколько колода близка к потолку уровней
-  const pct = Math.min(100, Math.round((a.avgDeckLevel / a.maxCardLevel) * 100))
-
   return (
     <section className={`card analysis-card ${TIER_CLASS[a.tier] ?? ''}`} style={{ marginTop: 10 }}>
       <div className="card-title-row">
@@ -250,14 +240,24 @@ function AnalysisCard({ a, t }: { a: PlayerAnalysis; t: Translations }) {
       </div>
 
       <div className="analysis-main">
-        <span className="analysis-level">{a.avgDeckLevel}</span>
-        <span className="muted small">/ {a.maxCardLevel}</span>
-        <span className="analysis-level-label">{t.search.avgDeckLevel}</span>
+        <span className="analysis-level">{a.fullDecks}</span>
+        <span className="muted small">/ {a.decksNeeded}</span>
+        <span className="analysis-level-label">{t.search.fullDecks}</span>
       </div>
 
-      <div className="analysis-track">
-        <div className="analysis-fill" style={{ width: `${Math.max(4, pct)}%` }} />
+      {/* Четыре ячейки = четыре боя военного дня: сразу видно, на сколько его хватит */}
+      <div className="deck-slots">
+        {Array.from({ length: a.decksNeeded }, (_, i) => (
+          <div key={i} className={`deck-slot ${i < a.fullDecks ? 'deck-slot-on' : ''}`}>
+            {i < a.fullDecks ? '🃏' : '·'}
+          </div>
+        ))}
       </div>
+
+      <p className="muted small analysis-maxed">
+        {a.maxedTotal} {t.search.maxedOf} {a.cardsTotal} {t.search.cardsOnLevel} {a.maxCardLevel}
+        {a.evoAvailable > 0 && ` · ⚡ ${a.evoUnlocked}/${a.evoAvailable}`}
+      </p>
 
       <p className="analysis-verdict">{a.verdict}</p>
 
@@ -314,16 +314,28 @@ function CollectionCard({ cards, maxLevel, t }: {
 
       {open && (
         <div className="cards-grid" style={{ marginTop: 10 }}>
-          {cards.map(card => (
-            <div key={card.name} className="card-chip">
-              <img src={card.iconUrl} alt={card.name} loading="lazy" title={card.name} />
-              <div className={`card-chip-level ${card.level >= card.maxLevel ? 'card-chip-maxed' : ''}`}>
-                {card.level}
-              </div>
-            </div>
-          ))}
+          {cards.map(card => <CardChip key={card.name} card={card} />)}
         </div>
       )}
     </section>
+  )
+}
+
+/* ---------- Карточка карты ---------- */
+
+function CardChip({ card }: { card: PlayerCard }) {
+  // У эволюционной карты своя иконка — показываем её, чтобы эво было видно сразу,
+  // как в игре. Значок ⚡ остаётся на случай, если иконки эво в API не оказалось.
+  const unlockedEvo = card.evolutionLevel > 0
+  const icon = unlockedEvo && card.evoIconUrl ? card.evoIconUrl : card.iconUrl
+
+  return (
+    <div className={`card-chip ${unlockedEvo ? 'card-chip-evo' : ''}`}>
+      <img src={icon} alt={card.name} loading="lazy" title={card.name} />
+      {unlockedEvo && <span className="card-evo-mark">⚡</span>}
+      <div className={`card-chip-level ${card.level >= card.maxLevel ? 'card-chip-maxed' : ''}`}>
+        {card.level}
+      </div>
+    </div>
   )
 }

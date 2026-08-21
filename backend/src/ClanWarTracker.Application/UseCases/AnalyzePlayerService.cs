@@ -7,40 +7,60 @@ namespace ClanWarTracker.Application.UseCases;
 /// Разбор профиля игрока для набора в клан (Pro). Отвечает на вопрос, который лидер
 /// задаёт себе, глядя на кандидата: потянет ли он наш уровень?
 ///
-/// Главный показатель — средний уровень БОЕВОЙ колоды, а не коллекции: в войне человек
-/// играет восемью картами, и именно их уровень определяет, выиграет он бой или нет.
-/// Коллекция из 122 карт может быть большой, а колода при этом слабой.
+/// Считаем по числу карт НА МАКСИМУМЕ, а не по среднему уровню одной колоды. Причина
+/// в устройстве КВ: за день игрок проводит 4 боя, и карты между колодами не
+/// переиспользуются — значит на полный военный день нужно 4 разные колоды, то есть
+/// 32 прокачанные карты. Одна сильная колода при пустой остальной коллекции означает,
+/// что после первого боя человек играет чем попало.
 /// </summary>
 public static class AnalyzePlayerService
 {
-    /// <summary>Насколько колода близка к потолку — в этих долях от максимума.</summary>
-    private const double TopTierGap = 0.5;    // почти всё выкачано
-    private const double StrongGap = 2.0;
-    private const double MidGap = 3.5;
+    /// <summary>Карт в колоде. 4 боя за военный день → 4 колоды → 32 карты.</summary>
+    private const int DeckSize = 8;
+    private const int WarDecksPerDay = 4;
+
+    /// <summary>Сколько полных колод максимального уровня нужно для каждого уровня клана.</summary>
+    private const int TopDecks = 4;      // 32 карты — полный военный день на максимуме
+    private const int StrongDecks = 3;   // 24 карты
+    private const int MidDecks = 2;      // 16 карт
 
     public static PlayerAnalysisDto? Build(CrPlayerInfo info, int weeksPlayed, double avgFamePerAttack)
     {
-        var deck = info.CurrentDeck;
-        if (deck.Count == 0) return null;   // без колоды разбирать нечего
+        if (info.Cards.Count == 0) return null;   // без коллекции разбирать нечего
 
-        var max = info.MaxCardLevel > 0 ? info.MaxCardLevel : deck.Max(c => c.MaxLevel);
-        var avgDeckLevel = Math.Round(deck.Average(c => (double)c.Level), 1);
-        var maxedInDeck = deck.Count(c => c.Level >= max);
+        var max = info.MaxCardLevel > 0 ? info.MaxCardLevel : info.Cards.Max(c => c.MaxLevel);
+
+        // Главная метрика: карт на максимуме → сколько полных колод из них соберётся
         var maxedTotal = info.Cards.Count(c => c.Level >= max);
+        var fullDecks = maxedTotal / DeckSize;
 
-        // Отставание от потолка — единая шкала, не зависящая от того, 15 сейчас максимум или 16
-        var gap = max - avgDeckLevel;
+        var deck = info.CurrentDeck;
+        var avgDeckLevel = deck.Count > 0
+            ? Math.Round(deck.Average(c => (double)c.Level), 1)
+            : 0;
+        var maxedInDeck = deck.Count(c => c.Level >= max);
 
-        var (tier, verdict, fitsClanLevel) = gap switch
+        // Эволюции: в сильных кланах они уже обязательны, поэтому считаем отдельно
+        var evoUnlocked = info.Cards.Count(c => c.EvolutionLevel > 0);
+        var evoAvailable = info.Cards.Count(c => c.MaxEvolutionLevel > 0);
+
+        var (tier, verdict, fitsClanLevel) = fullDecks switch
         {
-            <= TopTierGap => ("top", "Колода выкачана почти полностью — потянет топ-клан.",
-                              "Топовые кланы"),
-            <= StrongGap => ("strong", "Крепкая колода, слабых карт почти нет.",
-                              "Сильные и средние кланы"),
-            <= MidGap => ("mid", "Средний уровень: в сильном клане будет отставать в боях.",
-                              "Средние кланы"),
-            _ => ("developing", "Карты заметно недокачаны — в войне будет проигрывать по уровням.",
-                  "Развивающиеся кланы"),
+            >= TopDecks => ("top",
+                $"Собирает {fullDecks} полных колод {max} уровня — хватает на весь военный день.",
+                "Топовые кланы"),
+            StrongDecks => ("strong",
+                $"Собирает 3 полные колоды {max} уровня. На четвёртый бой уже пойдут карты послабее.",
+                "Сильные кланы"),
+            MidDecks => ("mid",
+                $"Хватает на 2 полные колоды {max} уровня — половину военного дня.",
+                "Средние кланы"),
+            1 => ("developing",
+                $"Только одна колода {max} уровня. В остальных боях будет проигрывать по картам.",
+                "Развивающиеся кланы"),
+            _ => ("developing",
+                "Ни одной полной колоды максимального уровня.",
+                "Развивающиеся кланы"),
         };
 
         // Винрейт считаем только когда боёв достаточно, иначе процент — случайность
@@ -48,8 +68,13 @@ public static class AnalyzePlayerService
             ? Math.Round(info.Wins * 100.0 / (info.Wins + info.Losses), 1)
             : null;
 
-        var notes = new List<string>();
-        if (maxedInDeck > 0) notes.Add($"{maxedInDeck} из {deck.Count} карт колоды на максимуме");
+        var notes = new List<string>
+        {
+            $"{maxedTotal} карт на {max} уровне из {info.Cards.Count} — это {fullDecks} " +
+            $"полн{(fullDecks == 1 ? "ая колода" : "ых колод")} из {WarDecksPerDay} нужных",
+        };
+        if (evoAvailable > 0) notes.Add($"Эволюции: {evoUnlocked} из {evoAvailable} открыто");
+        if (deck.Count > 0) notes.Add($"Текущая колода: ⌀ {avgDeckLevel}, максов {maxedInDeck}/{deck.Count}");
         if (winRate is double wr)
             notes.Add(wr >= 55 ? $"Винрейт {wr}% — выше среднего" : $"Винрейт {wr}%");
         if (info.WarDayWins > 0) notes.Add($"{info.WarDayWins} побед в днях войны за карьеру");
@@ -66,6 +91,10 @@ public static class AnalyzePlayerService
             DeckSize: deck.Count,
             MaxedTotal: maxedTotal,
             CardsTotal: info.Cards.Count,
+            FullDecks: fullDecks,
+            DecksNeeded: WarDecksPerDay,
+            EvoUnlocked: evoUnlocked,
+            EvoAvailable: evoAvailable,
             WinRate: winRate,
             Notes: notes);
     }
