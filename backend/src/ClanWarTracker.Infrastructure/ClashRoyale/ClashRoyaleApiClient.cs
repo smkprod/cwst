@@ -499,6 +499,9 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
                         Level = ToGameLevel(c.Level, c.MaxLevel, maxCardLevel),
                         MaxLevel = maxCardLevel,
                         IconUrl = c.IconUrls!.Medium!,
+                        EvolutionLevel = c.EvolutionLevel,
+                        MaxEvolutionLevel = c.MaxEvolutionLevel,
+                        EvoIconUrl = c.IconUrls.EvolutionMedium,
                     })
                     .ToList(),
                 Cards = (data.Cards ?? [])
@@ -509,6 +512,9 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
                         Level = ToGameLevel(c.Level, c.MaxLevel, maxCardLevel),
                         MaxLevel = maxCardLevel,
                         IconUrl = c.IconUrls!.Medium!,
+                        EvolutionLevel = c.EvolutionLevel,
+                        MaxEvolutionLevel = c.MaxEvolutionLevel,
+                        EvoIconUrl = c.IconUrls.EvolutionMedium,
                     })
                     .OrderByDescending(c => c.Level)
                     .ThenBy(c => c.Name)
@@ -549,7 +555,11 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         [property: JsonPropertyName("name")] string Name,
         [property: JsonPropertyName("level")] int Level,
         [property: JsonPropertyName("maxLevel")] int MaxLevel,
-        [property: JsonPropertyName("iconUrls")] CardIconUrls? IconUrls);
+        [property: JsonPropertyName("iconUrls")] CardIconUrls? IconUrls,
+        // Эволюции: maxEvolutionLevel > 0 — у карты вообще есть эволюция,
+        // evolutionLevel > 0 — игрок её разблокировал. У старых карт полей нет.
+        [property: JsonPropertyName("evolutionLevel")] int EvolutionLevel = 0,
+        [property: JsonPropertyName("maxEvolutionLevel")] int MaxEvolutionLevel = 0);
 
     /// <summary>
     /// CR API отдаёт уровень карты в шкале её редкости: у легендарки потолок это 8,
@@ -560,7 +570,9 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
     private static int ToGameLevel(int level, int maxLevel, int maxCardLevel) =>
         maxLevel <= 0 ? level : level + (maxCardLevel - maxLevel);
 
-    private record CardIconUrls([property: JsonPropertyName("medium")] string? Medium);
+    private record CardIconUrls(
+        [property: JsonPropertyName("medium")] string? Medium,
+        [property: JsonPropertyName("evolutionMedium")] string? EvolutionMedium = null);
 
     public async Task<CrTournament?> GetTournamentAsync(string tournamentTag, CancellationToken ct = default)
     {
