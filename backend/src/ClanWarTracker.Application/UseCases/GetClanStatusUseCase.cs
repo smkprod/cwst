@@ -26,12 +26,20 @@ public class GetClanStatusUseCase(
         if (war is null) return null;
 
         var clan = await clans.GetByTagAsync(clanTag, ct);
-        var linked = clan is null
-            ? []
-            : (await players.GetByClanIdAsync(clan.Id, ct))
-                .Where(p => p.TelegramUserId is not null)
-                .GroupBy(p => p.PlayerTag, StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(g => g.Key, g => g.First().TelegramUserId, StringComparer.OrdinalIgnoreCase);
+        var clanPlayers = clan is null ? [] : await players.GetByClanIdAsync(clan.Id, ct);
+
+        var linked = clanPlayers
+            .Where(p => p.TelegramUserId is not null)
+            .GroupBy(p => p.PlayerTag, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First().TelegramUserId, StringComparer.OrdinalIgnoreCase);
+
+        // «Привязан» для интерфейса = бот сможет тегнуть в чате. Для этого хватает
+        // @username, поэтому привязанные лидером через /bind тоже считаются привязанными,
+        // хотя боту они не писали и личное сообщение им не уйдёт.
+        var taggable = clanPlayers
+            .Where(p => p.TelegramUserId is not null || !string.IsNullOrEmpty(p.TelegramUsername))
+            .Select(p => p.PlayerTag)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         var now = DateTime.UtcNow;
         var hoursLeft = Math.Max(0, (int)war.TimeLeft(now).TotalHours);
@@ -116,7 +124,7 @@ public class GetClanStatusUseCase(
                 ProjectedWeekFame: x.Projection.ProjectedWeekFame,
                 Rank: x.Rank,
                 Status: ToApiString(x.Participant.Status),
-                IsLinked: x.Participant.TelegramUserId is not null,
+                IsLinked: taggable.Contains(x.Participant.PlayerTag),
                 ConsecutiveWars: history.TryGetValue(x.Participant.PlayerTag, out var h) ? h.Streak : 0,
                 Role: RoleLabel(memberRoles.GetValueOrDefault(x.Participant.PlayerTag)),
                 Trophies: members.TryGetValue(x.Participant.PlayerTag, out var mi) ? mi.Trophies : 0,

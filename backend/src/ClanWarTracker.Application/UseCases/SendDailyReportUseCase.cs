@@ -141,7 +141,7 @@ public class SendDailyReportUseCase(
 
         // Привязанных к Telegram игроков клана — чтобы упомянуть лентяев напрямую в чате.
         var linked = (await players.GetByClanIdAsync(clan.Id, ct))
-            .Where(p => p.TelegramUserId is not null)
+            .Where(p => p.TelegramUserId is not null || !string.IsNullOrEmpty(p.TelegramUsername))
             .GroupBy(p => p.PlayerTag, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
