@@ -76,10 +76,6 @@ export function DeckSuggestionsView({ playerTag, embedded = false }: {
   )
 }
 
-const DIFF_CLASS: Record<string, string> = {
-  easy: 'diff-easy', medium: 'diff-mid', hard: 'diff-hard',
-}
-
 function DeckRow({ deck, t }: { deck: DeckSuggestion; t: Translations }) {
   const [open, setOpen] = useState(false)
   const complete = deck.missing.length === 0
@@ -91,10 +87,8 @@ function DeckRow({ deck, t }: { deck: DeckSuggestion; t: Translations }) {
           <div className="deck-name">{deck.name}</div>
           <div className="deck-chips">
             <span className="deck-chip">{deck.archetype}</span>
-            <span className={`deck-chip ${DIFF_CLASS[deck.difficulty] ?? ''}`}>
-              {t.decks.difficulty[deck.difficulty] ?? deck.difficulty}
-            </span>
             <span className="deck-chip">💧 {deck.avgElixir}</span>
+            <span className="deck-chip">🔄 {deck.cycleCost}</span>
           </div>
         </div>
         <div className="deck-readiness">
@@ -115,9 +109,34 @@ function DeckRow({ deck, t }: { deck: DeckSuggestion; t: Translations }) {
 
       <p className={`deck-verdict ${complete ? '' : 'deck-verdict-warn'}`}>{deck.verdict}</p>
 
+      {/* Только считаемые величины: средний эликсир и цикл — про саму колоду,
+          уровни и максы — про то, как она выглядит именно в твоей коллекции. */}
+      <div className="deck-stats">
+        <div className="deck-stat">
+          <span className="deck-stat-value">{deck.avgLevel > 0 ? deck.avgLevel : '—'}</span>
+          <span className="deck-stat-label">{t.decks.avgLevel}</span>
+        </div>
+        <div className="deck-stat">
+          <span className="deck-stat-value">{deck.maxedCount}/8</span>
+          <span className="deck-stat-label">{t.decks.maxed}</span>
+        </div>
+        <div className="deck-stat">
+          <span className="deck-stat-value">{deck.cycleCost}</span>
+          <span className="deck-stat-label">{t.decks.cycle}</span>
+        </div>
+        <div className="deck-stat">
+          <span className="deck-stat-value">{deck.levelsToMax > 0 ? deck.levelsToMax : '✓'}</span>
+          <span className="deck-stat-label">{t.decks.levelsToMax}</span>
+        </div>
+      </div>
+
       <div className="deck-meta muted small">
-        <span>{t.decks.avgLevel}: {deck.avgLevel > 0 ? deck.avgLevel : '—'} / {deck.cards[0]?.maxLevel ?? '—'}</span>
-        {deck.maxedCount > 0 && <span>· {t.decks.maxed}: {deck.maxedCount}/8</span>}
+        <span>{t.decks.rarityTitle}:</span>
+        {deck.rarity.map(r => (
+          <span key={r.rarity} className={`rarity-chip rarity-${r.rarity}`}>
+            {r.count} {t.decks.rarity[r.rarity] ?? r.rarity}
+          </span>
+        ))}
         {deck.evoAvailable > 0 && <span>· ⚡ {deck.evoUnlocked}/{deck.evoAvailable}</span>}
       </div>
 
