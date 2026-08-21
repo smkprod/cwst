@@ -150,10 +150,20 @@ main.with-tabbar { padding-bottom: 80px; }
 
 .status-icon { font-size: 16px; }
 
-.player-info { flex: 1; min-width: 0; display: grid; }
-.player-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.player-info { flex: 1; min-width: 0; display: grid; gap: 2px; }
+
+/* Имя усекается многоточием, а значки рядом — нет: раньше они лежали внутри
+   обрезаемого контейнера, и при длинном имени «ты» и «нет TG» просто пропадали. */
+.player-name { font-weight: 600; display: flex; align-items: center; gap: 6px; min-width: 0; }
+.player-name-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.player-name > *:not(.player-name-text) { flex: none; }
 .unlinked { color: var(--muted); font-weight: 400; font-size: 12px; }
-.player-fame { font-size: 12px; color: var(--muted); }
+
+/* Мета-строка переносится, а не вылезает за карточку на узких экранах */
+.player-fame {
+  font-size: 12px; color: var(--muted);
+  display: flex; align-items: center; flex-wrap: wrap; gap: 2px 6px; min-width: 0;
+}
 
 .me-badge {
   background: var(--purple); color: #fff; font-size: 10px; font-weight: 700;
@@ -337,10 +347,17 @@ details.collapse-card[open] > .collapse-summary::after { transform: rotate(180de
   background: var(--bg-card); border-radius: 10px; padding: 9px 12px;
 }
 .rating-me { outline: 1px solid rgba(156, 107, 255, 0.45); }
-.rating-rank { color: var(--muted); font-size: 13px; font-weight: 700; min-width: 30px; }
-.rating-name { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.rating-avg { font-size: 11px; }
-.rating-fame { font-size: 13px; font-weight: 600; white-space: nowrap; }
+.rating-rank { color: var(--muted); font-size: 13px; font-weight: 700; min-width: 30px; flex: none; }
+
+/* Две строки: имя со значками сверху, подпись (клан) снизу. Обрезается только имя. */
+.rating-name { flex: 1; min-width: 0; font-weight: 600; display: flex; flex-direction: column; gap: 1px; }
+.rating-name-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.rating-name-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.rating-name-row > *:not(.rating-name-text) { flex: none; }
+.rating-name-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.rating-avg { font-size: 11px; flex: none; text-align: right; }
+.rating-fame { font-size: 13px; font-weight: 600; white-space: nowrap; flex: none; }
 
 /* --- Моя статистика --- */
 .me-header { padding: 4px 4px 12px; }
@@ -1216,14 +1233,14 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 
 .adm-member { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 5px 0; font-size: 13px; }
 .adm-member-leader { font-weight: 600; }
-.adm-member-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adm-member-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .adm-member-tg { background: none; border: none; color: var(--accent, #8774e1); font-size: 13px; cursor: pointer; padding: 0; }
 
 /* --- Роль в клане: раньше была голой иконкой с подсказкой в title,
        а на телефоне title не показывается вообще — теперь видимая подпись --- */
 .role-badge {
   display: inline-flex; align-items: center; gap: 3px;
-  padding: 1px 6px; margin-right: 6px;
+  padding: 1px 6px; flex: none;
   border-radius: 6px; font-size: 11px; font-weight: 700;
   background: rgba(135,116,225,0.15); color: var(--accent, #8774e1);
   white-space: nowrap; vertical-align: middle;

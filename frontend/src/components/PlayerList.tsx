@@ -49,17 +49,20 @@ export function PlayerList({ players, myPlayerTag }: Props) {
                 <div className="player-info">
                   <span className="player-name">
                     {isMe && <span className="me-badge">{t.leaderboard.you}</span>}
-                    {p.name}
-                    {!p.isLinked && <span className="unlinked" title={t.players.noTg}> · {t.players.noTg}</span>}
+                    {/* Обрезается только само имя: значки рядом не должны съедаться многоточием */}
+                    <span className="player-name-text">{p.name}</span>
+                    {!p.isLinked && <span className="unlinked">{t.players.noTg}</span>}
                   </span>
+                  {/* Отдельными элементами, чтобы строка переносилась, а не вылезала за карточку */}
                   <span className="player-fame">
                     {roleName && (
                       <span className={`role-badge role-${p.role}`}>
                         {ROLE_ICON[p.role!]} {roleName}
                       </span>
                     )}
-                    #{p.rank} · {fmt(p.fame)} 🏅
-                    {p.warDecksUsed > 0 && <span className="muted"> · {p.warDecksUsed} атак</span>}
+                    <span>#{p.rank}</span>
+                    <span>{fmt(p.fame)} 🏅</span>
+                    {p.warDecksUsed > 0 && <span>{p.warDecksUsed} атак</span>}
                   </span>
                 </div>
                 <DeckDots used={p.decksUsedToday} label={t.players.decksDots} />
