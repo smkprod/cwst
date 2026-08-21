@@ -73,11 +73,13 @@ public class SendPerfectDayUseCase(
             {
                 if (memberRoles.Count > 0 && !memberRoles.ContainsKey(p.PlayerTag)) continue;
 
-                // Игрока не было во вчерашнем снимке (вступил среди недели) — его вчерашнюю
-                // славу мы не знаем, а ноль подставлять нельзя: см. комментарий выше.
-                // В первый военный день базы и не должно быть: недельная слава = дневная.
-                if (!isFirstWarDay && !prevFameByTag.TryGetValue(p.PlayerTag, out var prevFame)) continue;
+                // В первый военный день базы и не должно быть: накопленное за неделю = за день.
+                // В остальные дни игрока обязано быть во вчерашнем снимке — иначе он вступил
+                // среди недели, его вчерашняя слава неизвестна, и ноль подставлять нельзя
+                // (см. комментарий выше).
+                int prevFame;
                 if (isFirstWarDay) prevFame = 0;
+                else if (!prevFameByTag.TryGetValue(p.PlayerTag, out prevFame)) continue;
 
                 // Ровно максимум: меньше — не идеальный день, а больше за день физически
                 // не набрать, значит база врёт — и это не повод писать в чат.
