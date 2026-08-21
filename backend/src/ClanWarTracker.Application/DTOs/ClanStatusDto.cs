@@ -149,11 +149,17 @@ public record PlayerCardDto(
     int MaxEvolutionLevel = 0,   // >0 — у карты вообще есть эволюция
     string? EvoIconUrl = null);
 
-/// <summary>Разбор профиля под набор в клан (Pro).</summary>
+/// <summary>
+/// Разбор профиля: в клан какой лиги игроку идти. Только числа и коды — все
+/// формулировки собирает фронтенд, иначе разбор говорил бы по-русски в украинском
+/// и английском интерфейсе.
+/// </summary>
 public record PlayerAnalysisDto(
-    string Tier,                  // "top" | "strong" | "mid" | "developing"
-    string Verdict,
-    string RecommendedClanLevel,
+    string League,                // "bronze" | "silver" | "gold" | "legendary"
+    string? NextLeague,           // null — уже легендарная, выше некуда
+    double WarLevel,              // средний уровень 32 лучших карт — с чем идёт в военный день
+    double? NextLeagueWarLevel,   // до какого боевого уровня тянуть; null — цель в другом
+    int? NextLeagueMaxedCards,    // сколько карт добить до потолка; null — цель в другом
     double AvgDeckLevel,
     int MaxCardLevel,
     int MaxedInDeck,
@@ -162,10 +168,13 @@ public record PlayerAnalysisDto(
     int CardsTotal,
     int FullDecks,                // сколько полных колод максимального уровня собирается
     int DecksNeeded,              // сколько нужно на полный военный день (4 боя = 4 колоды)
+    int WarCardsNeeded,           // те же 4 колоды в картах (32)
     int EvoUnlocked,
     int EvoAvailable,
     double? WinRate,              // null — боёв слишком мало, процент был бы случайностью
-    List<string> Notes);
+    int WarDayWins,
+    int WeeksPlayed,
+    double AvgFamePerAttack);
 
 public record PathOfLegendDto(int Trophies, int LeagueNumber, int Rank);
 

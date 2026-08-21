@@ -1274,24 +1274,24 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 
 /* --- Разбор игрока (Pro): вердикт по силе колоды --- */
 .analysis-card { border: 1px solid rgba(255,255,255,0.10); }
-.analysis-card.tier-top { border-color: rgba(255,200,61,0.45); background: rgba(255,200,61,0.06); }
-.analysis-card.tier-strong { border-color: rgba(49,181,69,0.40); background: rgba(49,181,69,0.05); }
-.analysis-card.tier-mid { border-color: rgba(240,168,33,0.35); }
-.analysis-card.tier-dev { border-color: rgba(229,57,53,0.30); }
+.analysis-card.league-legend { border-color: rgba(156,107,255,0.45); background: rgba(156,107,255,0.07); }
+.analysis-card.league-gold { border-color: rgba(255,200,61,0.45); background: rgba(255,200,61,0.06); }
+.analysis-card.league-silver { border-color: rgba(176,190,197,0.40); background: rgba(176,190,197,0.05); }
+.analysis-card.league-bronze { border-color: rgba(205,127,50,0.40); background: rgba(205,127,50,0.05); }
 
 .tier-badge { font-size: 11px; font-weight: 800; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
-.tier-badge.tier-top { background: rgba(255,200,61,0.20); color: var(--gold, #ffc83d); }
-.tier-badge.tier-strong { background: rgba(49,181,69,0.20); color: var(--green, #31b545); }
-.tier-badge.tier-mid { background: rgba(240,168,33,0.20); color: var(--yellow, #f0a821); }
-.tier-badge.tier-dev { background: rgba(229,57,53,0.18); color: var(--red, #e53935); }
+.tier-badge.league-legend { background: rgba(156,107,255,0.22); color: var(--purple, #9c6bff); }
+.tier-badge.league-gold { background: rgba(255,200,61,0.20); color: var(--gold, #ffc83d); }
+.tier-badge.league-silver { background: rgba(176,190,197,0.20); color: #b0bec5; }
+.tier-badge.league-bronze { background: rgba(205,127,50,0.20); color: #d99050; }
 
 .analysis-main { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
 .analysis-level { font-size: 32px; font-weight: 800; line-height: 1.1; }
 .analysis-level-label { font-size: 12px; opacity: 0.75; margin-left: 4px; }
 .analysis-track { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.10); overflow: hidden; margin: 8px 0 10px; }
 .analysis-fill { height: 100%; border-radius: 3px; background: var(--accent, #8774e1); transition: width 0.4s ease; }
-.analysis-card.tier-top .analysis-fill { background: var(--gold, #ffc83d); }
-.analysis-card.tier-strong .analysis-fill { background: var(--green, #31b545); }
+.analysis-card.league-gold .analysis-fill { background: var(--gold, #ffc83d); }
+.analysis-card.league-legend .analysis-fill { background: var(--purple, #9c6bff); }
 .analysis-verdict { font-size: 14px; margin: 0 0 6px; line-height: 1.4; }
 .analysis-fit { font-size: 13px; margin: 0; }
 .analysis-notes { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 3px; }
@@ -1315,7 +1315,8 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
   background: rgba(255,255,255,0.06); color: var(--muted, #708499); font-size: 15px;
 }
 .deck-slot-on { background: rgba(49,181,69,0.20); color: var(--green, #31b545); }
-.analysis-card.tier-top .deck-slot-on { background: rgba(255,200,61,0.22); color: var(--gold, #ffc83d); }
+.analysis-card.league-gold .deck-slot-on { background: rgba(255,200,61,0.22); color: var(--gold, #ffc83d); }
+.analysis-card.league-legend .deck-slot-on { background: rgba(156,107,255,0.22); color: var(--purple, #9c6bff); }
 .analysis-maxed { margin: 0 0 8px; }
 
 /* --- Эволюционные карты: своя иконка + метка --- */
@@ -1402,3 +1403,22 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 .deck-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
 .deck-note-btn { width: 100%; margin-top: 8px; }
 .deck-note { margin: 8px 0 0; line-height: 1.4; }
+
+/* --- Разбор игрока: рекомендованная лига --- */
+
+.league-hero { display: flex; align-items: center; gap: 12px; margin: 4px 0 10px; }
+.league-hero-icon { font-size: 34px; line-height: 1; flex-shrink: 0; }
+.league-hero-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.league-hero-name { font-size: 20px; font-weight: 800; line-height: 1.15; }
+
+.analysis-next { font-size: 13px; margin: 0 0 10px; line-height: 1.4; }
+
+.analysis-metrics {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px;
+}
+.analysis-metric {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  padding: 7px 4px; border-radius: 8px; background: rgba(255,255,255,0.05); text-align: center;
+}
+.analysis-metric-value { font-size: 16px; font-weight: 700; line-height: 1.1; }
+.analysis-metric-label { font-size: 10px; color: var(--muted, #708499); line-height: 1.2; }
