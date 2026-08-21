@@ -136,9 +136,28 @@ public record PlayerProfileDto(
     PathOfLegendDto? BestPathOfLegend,
     string? CurrentFavouriteCard,
     List<PlayerCardDto> CurrentDeck,
+    int Wins,
+    int Losses,
+    int MaxCardLevel,               // текущий потолок уровня карт в игре
+    PlayerAnalysisDto? Analysis,    // разбор для набора в клан; null — Free или нет колоды
     string RoyaleApiUrl);
 
+/// <summary>Уровень уже переведён в игровую шкалу (см. CrDeckCard).</summary>
 public record PlayerCardDto(string Name, int Level, int MaxLevel, string IconUrl);
+
+/// <summary>Разбор профиля под набор в клан (Pro).</summary>
+public record PlayerAnalysisDto(
+    string Tier,                  // "top" | "strong" | "mid" | "developing"
+    string Verdict,
+    string RecommendedClanLevel,
+    double AvgDeckLevel,
+    int MaxCardLevel,
+    int MaxedInDeck,
+    int DeckSize,
+    int MaxedTotal,
+    int CardsTotal,
+    double? WinRate,              // null — боёв слишком мало, процент был бы случайностью
+    List<string> Notes);
 
 public record PathOfLegendDto(int Trophies, int LeagueNumber, int Rank);
 

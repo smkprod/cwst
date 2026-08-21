@@ -1,5 +1,6 @@
 using ClanWarTracker.Application.DTOs;
 using ClanWarTracker.Application.UseCases;
+using ClanWarTracker.Domain.Enums;
 using ClanWarTracker.Domain.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,6 +10,7 @@ namespace ClanWarTracker.Api.Controllers;
 [Route("api/players")]
 public class PlayerController(
     IPlayerRepository players,
+    IClanRepository clans,
     IWarSnapshotRepository snapshots,
     IClashRoyaleApi crApi,
     GetPlayerStatsUseCase getStats,
@@ -246,6 +248,17 @@ public class PlayerController(
         static PathOfLegendDto? Pol(Domain.Entities.CrPathOfLegend? p) =>
             p is null ? null : new PathOfLegendDto(p.Trophies, p.LeagueNumber, p.Rank);
 
+        // Разбор под набор — Pro-функция. Тариф смотрим у клана ТОГО, КТО СМОТРИТ:
+        // это его инструмент подбора, а не свойство просматриваемого игрока.
+        var viewerId = (long)HttpContext.Items["TelegramUserId"]!;
+        var viewer = await players.GetByTelegramIdAsync(viewerId, ct);
+        var viewerClan = viewer?.ClanId is int vc ? await clans.GetByIdAsync(vc, ct) : null;
+        var viewerIsPro = viewerClan?.EffectivePlan(DateTime.UtcNow) == PlanTier.Pro;
+
+        var analysis = viewerIsPro
+            ? AnalyzePlayerService.Build(info, weeksPlayed, avgFame)
+            : null;
+
         var profileDto = new PlayerProfileDto(
             PlayerTag: info.Tag,
             Name: info.Name,
@@ -268,6 +281,10 @@ public class PlayerController(
             BestPathOfLegend: Pol(info.BestPathOfLegend),
             CurrentFavouriteCard: info.CurrentFavouriteCard,
             CurrentDeck: info.CurrentDeck.Select(c => new PlayerCardDto(c.Name, c.Level, c.MaxLevel, c.IconUrl)).ToList(),
+            Wins: info.Wins,
+            Losses: info.Losses,
+            MaxCardLevel: info.MaxCardLevel,
+            Analysis: analysis,
             RoyaleApiUrl: $"https://royaleapi.com/player/{Uri.EscapeDataString(playerTag.TrimStart('#'))}");
 
         return Ok(profileDto);
