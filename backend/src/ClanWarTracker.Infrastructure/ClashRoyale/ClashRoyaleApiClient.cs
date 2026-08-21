@@ -464,11 +464,19 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
             static CrPathOfLegend? MapPol(PathOfLegendResponse? p) =>
                 p is null ? null : new CrPathOfLegend { Trophies = p.Trophies, LeagueNumber = p.LeagueNumber, Rank = p.Rank ?? 0 };
 
+            // Потолок игровых уровней = наибольший maxLevel в коллекции (он у обычных карт).
+            // Фолбэк на 15 нужен лишь если карт нет вовсе — тогда переводить всё равно нечего.
+            var maxCardLevel = (data.Cards ?? []).Count > 0
+                ? data.Cards!.Max(c => c.MaxLevel)
+                : 15;
+
             return new CrPlayerInfo
             {
                 Tag = data.Tag,
                 Name = data.Name,
                 ExpLevel = data.ExpLevel,
+                Wins = data.Wins,
+                Losses = data.Losses,
                 Trophies = data.Trophies,
                 BestTrophies = data.BestTrophies,
                 ClanWarTrophies = data.ClanWarTrophies,
@@ -482,13 +490,14 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
                 CurrentPathOfLegend = MapPol(data.CurrentPathOfLegend),
                 BestPathOfLegend = MapPol(data.BestPathOfLegend),
                 CurrentFavouriteCard = data.CurrentFavouriteCard?.Name,
+                MaxCardLevel = maxCardLevel,
                 CurrentDeck = (data.CurrentDeck ?? [])
                     .Where(c => c?.IconUrls?.Medium is not null)
                     .Select(c => new CrDeckCard
                     {
                         Name = c!.Name,
-                        Level = c.Level,
-                        MaxLevel = c.MaxLevel,
+                        Level = ToGameLevel(c.Level, c.MaxLevel, maxCardLevel),
+                        MaxLevel = maxCardLevel,
                         IconUrl = c.IconUrls!.Medium!,
                     })
                     .ToList(),
@@ -497,8 +506,8 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
                     .Select(c => new CrCard
                     {
                         Name = c!.Name,
-                        Level = c.Level,
-                        MaxLevel = c.MaxLevel,
+                        Level = ToGameLevel(c.Level, c.MaxLevel, maxCardLevel),
+                        MaxLevel = maxCardLevel,
                         IconUrl = c.IconUrls!.Medium!,
                     })
                     .OrderByDescending(c => c.Level)
@@ -517,6 +526,8 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         [property: JsonPropertyName("clanWarTrophies")] int ClanWarTrophies,
         [property: JsonPropertyName("warDayWins")] int WarDayWins,
         [property: JsonPropertyName("battleCount")] int BattleCount,
+        [property: JsonPropertyName("wins")] int Wins,
+        [property: JsonPropertyName("losses")] int Losses,
         [property: JsonPropertyName("threeCrownWins")] int ThreeCrownWins,
         [property: JsonPropertyName("currentWinLoseStreak")] int CurrentWinLoseStreak,
         [property: JsonPropertyName("currentPathOfLegendSeasonResult")] PathOfLegendResponse? CurrentPathOfLegend,
@@ -539,6 +550,15 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         [property: JsonPropertyName("level")] int Level,
         [property: JsonPropertyName("maxLevel")] int MaxLevel,
         [property: JsonPropertyName("iconUrls")] CardIconUrls? IconUrls);
+
+    /// <summary>
+    /// CR API отдаёт уровень карты в шкале её редкости: у легендарки потолок это 8,
+    /// у обычной — 16, хотя в игре обе показываются как 16. Переводим в игровую шкалу
+    /// сдвигом на разницу потолков. Потолок берём как максимум по коллекции игрока
+    /// (он равен потолку обычных карт), а не хардкодим — Supercell поднимает его каждый год.
+    /// </summary>
+    private static int ToGameLevel(int level, int maxLevel, int maxCardLevel) =>
+        maxLevel <= 0 ? level : level + (maxCardLevel - maxLevel);
 
     private record CardIconUrls([property: JsonPropertyName("medium")] string? Medium);
 
