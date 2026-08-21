@@ -47,7 +47,8 @@ public class GetClanStatusUseCase(
 
         // Получаем актуальный состав клана из API (кэш 5 мин), чтобы не показывать
         // ушедших участников — в CR API их может быть >50 в списке войны.
-        var memberRoles = await crApi.GetClanMemberRolesAsync(war.ClanTag, ct);
+        var members = await crApi.GetClanMembersAsync(war.ClanTag, ct);
+        var memberRoles = members.ToDictionary(kv => kv.Key, kv => kv.Value.Role, StringComparer.OrdinalIgnoreCase);
         HashSet<string> rosterTags;
         if (memberRoles.Count > 0)
         {
@@ -118,6 +119,7 @@ public class GetClanStatusUseCase(
                 IsLinked: x.Participant.TelegramUserId is not null,
                 ConsecutiveWars: history.TryGetValue(x.Participant.PlayerTag, out var h) ? h.Streak : 0,
                 Role: RoleLabel(memberRoles.GetValueOrDefault(x.Participant.PlayerTag)),
+                Trophies: members.TryGetValue(x.Participant.PlayerTag, out var mi) ? mi.Trophies : 0,
                 DnaLabel: history.TryGetValue(x.Participant.PlayerTag, out var h2) ? h2.DnaLabel : null,
                 ReliabilityScore: history.TryGetValue(x.Participant.PlayerTag, out var h3) ? h3.Reliability : 0))
             // в основном списке UI хочет видеть не сыгравших сверху

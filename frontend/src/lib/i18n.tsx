@@ -74,7 +74,19 @@ const ru = {
     howWeek: 'К концу недели: то же, но до конца всех 4 военных дней. «Диапазон» — это разброс ±1σ (как может лечь реальный результат). Чем больше сыграно дней и чем активнее клан — тем выше точность.',
   },
 
-  players: { empty: 'Нет участников войны — возможно, идёт тренировка.', noTg: 'нет TG', decksDots: 'из 4 колод' },
+  players: {
+    empty: 'Нет участников войны — возможно, идёт тренировка.',
+    emptyFiltered: 'Никто не подходит под фильтр.',
+    noTg: 'нет TG', decksDots: 'из 4 колод',
+    sortLabel: 'Сортировка', filterLabel: 'Фильтр',
+    sortStatus: '⚡ Сначала не отыгравшие',
+    sortFame: '🏅 По медалям',
+    sortTrophies: '🏆 По кубкам',
+    sortRole: '👑 По роли',
+    sortName: '🔤 По имени',
+    filterAll: 'Все', filterNotPlayed: '❌ Не отыграли',
+    filterPlayed: '✅ Отыграли', filterOfficers: '👑 Руководство',
+  },
 
   roles: { leader: 'Лидер', coleader: 'Соруководитель', elder: 'Старейшина' },
 
@@ -694,7 +706,19 @@ const uk: Translations = {
     howWeek: "До кінця тижня: те ж саме, але до кінця всіх 4 воєнних днів. «Діапазон» — це розкид ±1σ (як може лягти реальний результат). Чим більше зіграно днів і чим активніший клан — тим вища точність.",
   },
 
-  players: { empty: 'Немає учасників війни — можливо, йде тренування.', noTg: 'нема TG', decksDots: 'з 4 колод' },
+  players: {
+    empty: 'Немає учасників війни — можливо, йде тренування.',
+    emptyFiltered: 'Ніхто не підходить під фільтр.',
+    noTg: 'нема TG', decksDots: 'з 4 колод',
+    sortLabel: 'Сортування', filterLabel: 'Фільтр',
+    sortStatus: '⚡ Спершу ті, хто не зіграв',
+    sortFame: '🏅 За медалями',
+    sortTrophies: '🏆 За кубками',
+    sortRole: '👑 За роллю',
+    sortName: '🔤 За іменем',
+    filterAll: 'Усі', filterNotPlayed: '❌ Не зіграли',
+    filterPlayed: '✅ Зіграли', filterOfficers: '👑 Керівництво',
+  },
 
   roles: { leader: 'Лідер', coleader: 'Заступник', elder: 'Старійшина' },
 
@@ -1312,7 +1336,19 @@ const en: Translations = {
     howWeek: 'By end of week: same, but until the end of all 4 war days. "Range" is the ±1σ spread (how the actual result might land). The more days played and the more active the clan — the higher the accuracy.',
   },
 
-  players: { empty: 'No war participants — training may be in progress.', noTg: 'no TG', decksDots: 'of 4 decks' },
+  players: {
+    empty: 'No war participants — training may be in progress.',
+    emptyFiltered: 'Nobody matches this filter.',
+    noTg: 'no TG', decksDots: 'of 4 decks',
+    sortLabel: 'Sort', filterLabel: 'Filter',
+    sortStatus: '⚡ Not played first',
+    sortFame: '🏅 By medals',
+    sortTrophies: '🏆 By trophies',
+    sortRole: '👑 By role',
+    sortName: '🔤 By name',
+    filterAll: 'All', filterNotPlayed: '❌ Not played',
+    filterPlayed: '✅ Played', filterOfficers: '👑 Officers',
+  },
 
   roles: { leader: 'Leader', coleader: 'Co-leader', elder: 'Elder' },
 
