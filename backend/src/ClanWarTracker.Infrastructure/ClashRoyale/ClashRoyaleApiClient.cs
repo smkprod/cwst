@@ -17,7 +17,35 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
 {
     private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(2);
 
+    /// <summary>Сколько держим «последнее хорошее» состояние войны на случай падения CR API.</summary>
+    private static readonly TimeSpan StaleTtl = TimeSpan.FromMinutes(30);
+
     public async Task<WarStatus?> GetCurrentWarAsync(string clanTag, CancellationToken ct = default)
+    {
+        var staleKey = $"war-stale:{clanTag}";
+        try
+        {
+            var fresh = await FetchCurrentWarAsync(clanTag, ct);
+            // Держим копию отдельно от основного кэша: она переживает его истечение
+            // и выручает, когда CR API уходит на обслуживание.
+            cache.Set(staleKey, fresh, new MemoryCacheEntryOptions
+            {
+                Size = 1,
+                AbsoluteExpirationRelativeToNow = StaleTtl,
+            });
+            return fresh;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            // CR API прилёг. Лучше показать данные пятиминутной давности, чем пустой
+            // экран с ошибкой: за это время в войне всё равно почти ничего не меняется.
+            // Ошибку ключа (403) сюда не пускаем — её обязан увидеть владелец.
+            if (cache.TryGetValue(staleKey, out WarStatus? stale)) return stale;
+            throw;
+        }
+    }
+
+    private async Task<WarStatus?> FetchCurrentWarAsync(string clanTag, CancellationToken ct)
     {
         return await cache.GetOrCreateAsync($"war:{clanTag}", async entry =>
         {
@@ -285,14 +313,23 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         [property: JsonPropertyName("decksUsed")] int DecksUsed,
         [property: JsonPropertyName("decksUsedToday")] int DecksUsedToday);
 
-    public async Task<Dictionary<string, string>> GetClanMemberRolesAsync(string clanTag, CancellationToken ct = default)
+    public async Task<Dictionary<string, ClanMemberInfo>> GetClanMembersAsync(string clanTag, CancellationToken ct = default)
     {
         var members = await GetCachedMembersAsync(clanTag, ct);
         // GroupBy на случай дублей тегов в ответе API — ToDictionary иначе бросит исключение.
         return members?.Items?
                    .GroupBy(m => m.Tag, StringComparer.OrdinalIgnoreCase)
-                   .ToDictionary(g => g.Key, g => g.First().Role, StringComparer.OrdinalIgnoreCase)
-               ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                   .ToDictionary(
+                       g => g.Key,
+                       g => new ClanMemberInfo(g.Key, g.First().Role, g.First().Trophies),
+                       StringComparer.OrdinalIgnoreCase)
+               ?? new Dictionary<string, ClanMemberInfo>(StringComparer.OrdinalIgnoreCase);
+    }
+
+    public async Task<Dictionary<string, string>> GetClanMemberRolesAsync(string clanTag, CancellationToken ct = default)
+    {
+        var members = await GetClanMembersAsync(clanTag, ct);
+        return members.ToDictionary(kv => kv.Key, kv => kv.Value.Role, StringComparer.OrdinalIgnoreCase);
     }
 
     public async Task<string?> GetPlayerClanRoleAsync(string clanTag, string playerTag, CancellationToken ct = default)
@@ -745,5 +782,6 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
     private record ClanMembersResponse([property: JsonPropertyName("items")] List<ClanMember>? Items);
     private record ClanMember(
         [property: JsonPropertyName("tag")] string Tag,
-        [property: JsonPropertyName("role")] string Role);
+        [property: JsonPropertyName("role")] string Role,
+        [property: JsonPropertyName("trophies")] int Trophies = 0);
 }

@@ -1267,3 +1267,7 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 .role-coLeader { background: rgba(156,107,255,0.18); color: var(--purple, #9c6bff); }
 .role-elder { background: rgba(112,132,153,0.20); color: var(--muted, #708499); }
 .modal-title-wrap .role-badge { margin-top: 4px; align-self: flex-start; }
+
+/* --- Управление списком игроков: сортировка + фильтр в одну строку --- */
+.pl-controls { display: flex; gap: 6px; margin-bottom: 8px; }
+.pl-controls .rating-select { flex: 1; min-width: 0; }

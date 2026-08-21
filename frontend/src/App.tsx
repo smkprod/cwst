@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { api, ApiError } from './lib/api'
 import { haptic } from './lib/telegram'
 import { useT } from './lib/i18n'
@@ -41,6 +41,10 @@ type State =
   | { kind: 'ready'; data: ClanStatus }
   | { kind: 'guest'; data: ClanStatus; myPlayerTag: string }
 
+const POLL_INTERVAL_MS = 60_000
+const RETRY_INTERVAL_MS = 15_000
+const TRANSIENT_TOLERANCE = 3
+
 type Tab = 'war' | 'rating' | 'me' | 'search' | 'owner' | 'recruit' | 'tournament'
 
 export default function App() {
@@ -49,11 +53,34 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const { t } = useT()
 
+  // Сколько подряд неудачных обновлений терпим, прежде чем показать ошибку.
+  // Разовый сбой сети или икота CR API не должны стирать рабочий экран.
+  const failuresRef = useRef(0)
+
   const load = useCallback(async () => {
     try {
       const data = await api.getMyClanStatus()
+      failuresRef.current = 0
       setState({ kind: 'ready', data })
     } catch (e) {
+      // Смысловые ответы применяем сразу: игрок вышел из клана, отвязался и т.п.
+      // Всё остальное (сеть, 5xx, таймаут, лимит) — временное.
+      const semantic = e instanceof ApiError &&
+        ['player_not_linked', 'clan_not_found', 'no_init_data', 'bad_init_data'].includes(e.code)
+
+      if (!semantic) {
+        failuresRef.current += 1
+        // Пока есть что показывать и сбоев мало — оставляем экран как есть
+        if (failuresRef.current < TRANSIENT_TOLERANCE) {
+          let keep = false
+          setState(prev => {
+            keep = prev.kind === 'ready' || prev.kind === 'guest'
+            return prev
+          })
+          if (keep) return
+        }
+      }
+
       if (e instanceof ApiError && e.code === 'player_not_linked') {
         // Try restoring a guest session from localStorage
         const guestTag = localStorage.getItem('guestPlayerTag')
@@ -82,7 +109,14 @@ export default function App() {
 
   useEffect(() => {
     load()
-    const id = setInterval(load, 60_000)
+    // Пока всё хорошо — раз в минуту. После сбоя опрашиваем чаще, чтобы
+    // вернуться в строй быстрее, чем пользователь заметит устаревшие цифры.
+    let id: number = window.setInterval(function tick() {
+      load()
+      const next = failuresRef.current > 0 ? RETRY_INTERVAL_MS : POLL_INTERVAL_MS
+      clearInterval(id)
+      id = window.setInterval(tick, next)
+    }, POLL_INTERVAL_MS)
     return () => clearInterval(id)
   }, [load])
 

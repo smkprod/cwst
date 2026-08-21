@@ -7,18 +7,35 @@ const BASE = import.meta.env.DEV
   ? (import.meta.env.VITE_API_URL ?? 'http://localhost:5000') 
   : '';
 
+/**
+ * Без таймаута зависший запрос ждёт бесконечно: мобильная сеть умеет «принять»
+ * соединение и замолчать, и тогда экран остаётся ни живым ни мёртвым.
+ * Обрываем сами — вызывающий код воспримет это как обычный сбой и повторит.
+ */
+const REQUEST_TIMEOUT_MS = 15_000
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   // КРИТИЧЕСКИЙ ФИКС: Достаем свежайший initData из window прямо в секунду отправки запроса.
   // Теперь заголовок больше никогда не уйдет на сервер пустым.
   const liveInitData = window.Telegram?.WebApp?.initData ?? '';
 
-  const res = await fetch(`${BASE}${path}`, {
-    ...init,
-    headers: { 
-      'X-Telegram-Init-Data': liveInitData, 
-      ...init?.headers 
-    },
-  })
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS)
+
+  let res: Response
+  try {
+    res = await fetch(`${BASE}${path}`, {
+      ...init,
+      signal: ctrl.signal,
+      headers: {
+        'X-Telegram-Init-Data': liveInitData,
+        ...init?.headers
+      },
+    })
+  } finally {
+    clearTimeout(timer)
+  }
+
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
     throw new ApiError(res.status, body.error ?? 'unknown', body.message)

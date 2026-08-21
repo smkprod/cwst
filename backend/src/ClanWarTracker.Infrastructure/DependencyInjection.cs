@@ -47,12 +47,17 @@ public static class DependencyInjection
         if (string.IsNullOrEmpty(crBaseUrl)) crBaseUrl = "https://api.clashroyale.com/v1/";
         if (!crBaseUrl.EndsWith('/')) crBaseUrl += "/";
 
+        // Таймаут обязателен: по умолчанию HttpClient ждёт 100 секунд, и подвисший
+        // CR API держал бы наш запрос всё это время — Mini App успевал показать ошибку.
+        // 12 секунд с запасом хватает живому API и быстро отсекает мёртвый.
         services.AddHttpClient<IClashRoyaleApi, ClashRoyaleApiClient>(http =>
         {
             http.BaseAddress = new Uri(crBaseUrl);
+            http.Timeout = TimeSpan.FromSeconds(12);
             http.DefaultRequestHeaders.Authorization =
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", crToken);
-        });
+        })
+        .AddHttpMessageHandler(() => new TransientRetryHandler());
 
         services.AddSingleton<ITelegramBotClient>(new TelegramBotClient(botToken!));
 

@@ -16,7 +16,8 @@ export interface PlayerStatus {
   status: PlayStatus
   isLinked: boolean
   consecutiveWars: number    // Pro: недель подряд участвовал (0 = Free или не участвовал)
-  role?: string              // "Лидер" | "Соруководитель" | "Старейшина" | undefined (рядовой)
+  role?: string              // "leader" | "coLeader" | "elder" | undefined (рядовой)
+  trophies: number           // кубки игрока (0 — состав клана не отдался)
   dnaLabel?: string          // Pro: архетип ("Тащер 💪" и т.п.), undefined — мало данных/Free
   reliabilityScore: number   // Pro: надёжность 0..100 (0 — нет данных/Free)
 }
