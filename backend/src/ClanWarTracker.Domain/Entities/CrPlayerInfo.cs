@@ -53,6 +53,12 @@ public class CrDeckCard
     public int Level { get; set; }        // игровой уровень (как в игре)
     public int MaxLevel { get; set; }     // потолок для этой карты, тоже в игровой шкале
     public string IconUrl { get; set; } = "";
+
+    /// <summary>Эволюция разблокирована игроком (0 — нет).</summary>
+    public int EvolutionLevel { get; set; }
+    /// <summary>У карты вообще есть эволюция (0 — её не существует).</summary>
+    public int MaxEvolutionLevel { get; set; }
+    public string? EvoIconUrl { get; set; }
 }
 
 /// <inheritdoc cref="CrDeckCard"/>
@@ -62,4 +68,10 @@ public class CrCard
     public int Level { get; set; }        // игровой уровень (как в игре)
     public int MaxLevel { get; set; }     // потолок для этой карты, тоже в игровой шкале
     public string IconUrl { get; set; } = "";
+
+    /// <inheritdoc cref="CrDeckCard.EvolutionLevel"/>
+    public int EvolutionLevel { get; set; }
+    /// <inheritdoc cref="CrDeckCard.MaxEvolutionLevel"/>
+    public int MaxEvolutionLevel { get; set; }
+    public string? EvoIconUrl { get; set; }
 }
