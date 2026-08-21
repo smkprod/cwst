@@ -43,9 +43,15 @@ public class GetOwnerClanDetailUseCase(
                     IsLeader: role is "leader" or "coLeader",
                     LinkedAtUtc: p.CreatedAtUtc);
             })
-            // Главы первыми — это те, с кем имеет смысл связываться
-            .OrderByDescending(m => m.IsLeader)
-            .ThenByDescending(m => m.Role == "elder")
+            // Строго по старшинству: лидер (он один) → соруки → старейшины → рядовые.
+            // Раньше лидер и соруки шли одной группой, и настоящего главу было не найти.
+            .OrderBy(m => m.Role switch
+            {
+                "leader" => 0,
+                "coLeader" => 1,
+                "elder" => 2,
+                _ => 3,
+            })
             .ThenBy(m => m.Name)
             .ToList();
 

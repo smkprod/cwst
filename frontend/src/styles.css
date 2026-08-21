@@ -1231,10 +1231,28 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 .adm-dot-bad { background: #f87171; }
 .adm-card-body { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08); }
 
-.adm-member { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 5px 0; font-size: 13px; }
+.adm-member {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; padding: 5px 0; font-size: 13px; min-width: 0;
+}
 .adm-member-leader { font-weight: 600; }
-.adm-member-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.adm-member-tg { background: none; border: none; color: var(--accent, #8774e1); font-size: 13px; cursor: pointer; padding: 0; }
+
+/* Плашка роли не сжимается, обрезается только ник */
+.adm-member-name { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; }
+.adm-member-nick { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+
+/* Длинный @username не должен выталкивать ник за карточку */
+.adm-member-tg {
+  background: none; border: none; color: var(--accent, #8774e1);
+  font-size: 13px; cursor: pointer; padding: 0;
+  flex: 0 1 auto; min-width: 0; max-width: 55%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right;
+}
+.adm-member > .muted { flex: none; }
+
+/* Мета-строка клана: переносится целыми пунктами, а не «без @username:» / «3» */
+.adm-detail-meta { display: flex; flex-wrap: wrap; gap: 2px 8px; margin: 0 0 8px; }
+.adm-detail-meta > span { white-space: nowrap; }
 
 /* --- Роль в клане: раньше была голой иконкой с подсказкой в title,
        а на телефоне title не показывается вообще — теперь видимая подпись --- */
