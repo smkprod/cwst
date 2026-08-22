@@ -70,7 +70,7 @@ public class BotUpdateHandler(
     /// Для наших команд это безразлично: каждая самостоятельна, а ответ бот шлёт
     /// реплаем на свою команду, так что в чате всё остаётся на своих местах.
     /// </summary>
-    private Task HandleUpdateAsync(ITelegramBotClient _, Update update, CancellationToken ct)
+    private Task HandleUpdateAsync(ITelegramBotClient client, Update update, CancellationToken ct)
     {
         if (update.Message is not { Text: not null }) return Task.CompletedTask;
 
