@@ -31,6 +31,7 @@ import { TournamentView } from './components/TournamentView'
 import { InviteCard } from './components/InviteCard'
 import { LeaderCtaCard } from './components/LeaderCtaCard'
 import { MyActionBanner } from './components/MyActionBanner'
+import { SplashScreen } from './components/SplashScreen'
 
 type State =
   | { kind: 'loading' }
@@ -134,12 +135,7 @@ export default function App() {
 
   switch (state.kind) {
     case 'loading':
-      return (
-        <div className="center">
-          <div className="spinner" aria-label={t.loading} />
-          <p className="muted">{t.loadingWar}</p>
-        </div>
-      )
+      return <SplashScreen />
     case 'guestEntry':
       return (
         <GuestEntry

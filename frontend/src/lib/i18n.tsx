@@ -441,6 +441,16 @@ const ru = {
     topCountSuffix: 'игроков уже соревнуются в рейтинге',
   },
 
+  splash: {
+    phrases: [
+      'Считаем медали…',
+      'Смотрим, кто ещё не доиграл…',
+      'Строим прогноз недели…',
+      'Изучаем гонку кланов…',
+      'Раздаём колоды…',
+    ],
+  },
+
   clanless: {
     title: 'Ты без клана',
     hint: 'Аккаунт привязан, но бот не добавлен ни в одну группу клана. Попроси администратора клана добавить бота и выполнить /setup.',
@@ -1164,6 +1174,16 @@ const uk: Translations = {
     topCountSuffix: 'гравців уже змагаються в рейтингу',
   },
 
+  splash: {
+    phrases: [
+      'Рахуємо медалі…',
+      'Дивимось, хто ще не дограв…',
+      'Будуємо прогноз тижня…',
+      'Вивчаємо гонку кланів…',
+      'Роздаємо колоди…',
+    ],
+  },
+
   clanless: {
     title: 'Ти без клану',
     hint: 'Акаунт прив\'язаний, але бот не доданий до жодної групи клану. Попроси адміністратора клану додати бота і виконати /setup.',
@@ -1883,6 +1903,16 @@ const en: Translations = {
     b3: '🔔 Reminders — nobody forgets the war',
     topTitle: '🏆 Top players right now',
     topCountSuffix: 'players already competing',
+  },
+
+  splash: {
+    phrases: [
+      'Counting medals…',
+      'Checking who has decks left…',
+      'Building this week\'s forecast…',
+      'Watching the clan race…',
+      'Dealing the decks…',
+    ],
   },
 
   clanless: {
