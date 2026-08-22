@@ -1452,27 +1452,27 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 .adm-tag-only { margin-left: 4px; font-size: 10px; opacity: 0.8; }
 
 /* --- Заставка загрузки ---------------------------------------------------
-   Фон чёрный в любой теме: логотип нарисован на чёрном, и любой другой фон
-   дал бы вокруг него видимый квадрат. Тёмный экран загрузки — привычная
-   для игр вещь, так что это читается как решение, а не как сбой темы. */
+   Фон тёмный в любой теме, а не по палитре Telegram. Словесная часть логотипа
+   светло-серебристая, на светлом фоне она бы просто пропала. Экран загрузки
+   темнее приложения читается как решение — так делают в играх. */
 
 .splash {
   position: fixed; inset: 0; z-index: 100;
-  background: #000;
+  background: radial-gradient(circle at 50% 42%, #16203a, #05070c 68%);
   display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 18px;
   padding: 24px;
 }
 
-/* Свечение шире логотипа, поэтому вокруг него виден ореол: логотип непрозрачный
-   и сам по себе светиться не может. */
+/* Логотип прозрачный, поэтому свечение видно и вокруг силуэта, и в просветах
+   между щитом и буквами — получается, что светится он сам. */
 .splash-glow {
   position: absolute;
-  width: min(80vw, 330px); aspect-ratio: 1;
+  width: min(78vw, 320px); aspect-ratio: 1;
   border-radius: 50%;
   background: radial-gradient(circle,
-    rgba(90, 169, 255, 0.22),
-    rgba(156, 107, 255, 0.12) 45%,
+    rgba(90, 169, 255, 0.28),
+    rgba(156, 107, 255, 0.16) 45%,
     transparent 70%);
   animation: splashPulse 2.4s ease-in-out infinite;
 }
@@ -1483,7 +1483,8 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 
 .splash-logo {
   position: relative;
-  width: min(58vw, 230px); height: auto;
+  width: min(62vw, 240px); height: auto;
+  filter: drop-shadow(0 10px 26px rgba(0, 0, 0, 0.55));
   animation: splashRise 0.5s ease both;
 }
 @keyframes splashRise {
