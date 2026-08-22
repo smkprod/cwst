@@ -18,6 +18,13 @@ public interface IPlayerRepository
 {
     Task<Player?> GetByTelegramIdAsync(long telegramUserId, CancellationToken ct = default);
     Task<List<Player>> GetByClanIdAsync(int clanId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Запись по тегу, за которой ещё не стоит Telegram-аккаунт, — то есть заготовка,
+    /// созданная лидером через /bind. Нужна, чтобы игрок, привязавшийся сам, занял её,
+    /// а не завёл вторую строку на тот же тег.
+    /// </summary>
+    Task<Player?> GetUnclaimedByTagAsync(string playerTag, CancellationToken ct = default);
     /// <summary>Все игроки, привязавшие Telegram (/link), с загруженным кланом.</summary>
     Task<List<Player>> GetAllLinkedAsync(CancellationToken ct = default);
     Task AddAsync(Player player, CancellationToken ct = default);

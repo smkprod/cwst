@@ -36,11 +36,32 @@ public class LinkPlayerUseCase(
             return name;
         }
 
-        // Новый игрок: фиксируем пригласившего (реферал засчитывается только при ПЕРВОЙ привязке,
-        // и только если пригласивший — реальный игрок и это не он сам).
+        // Реферал засчитывается только при ПЕРВОЙ привязке, и только если пригласивший —
+        // реальный игрок и это не он сам.
         Player? referrer = null;
         if (referrerTelegramUserId is { } refId && refId != telegramUserId)
             referrer = await players.GetByTelegramIdAsync(refId, ct);
+
+        // Лидер мог привязать этот тег заранее через /bind — тогда в базе уже лежит
+        // запись с одним @username и без TelegramUserId. Это тот же самый человек,
+        // поэтому занимаем её. Иначе в клане появлялись две строки на один тег: одна
+        // «от лидера», другая «от игрока», и обе висели в панели.
+        var unclaimed = await players.GetUnclaimedByTagAsync(playerTag, ct);
+        if (unclaimed is not null)
+        {
+            unclaimed.TelegramUserId = telegramUserId;
+            unclaimed.Name = name;
+            if (!string.IsNullOrEmpty(telegramUsername)) unclaimed.TelegramUsername = telegramUsername;
+            if (clan is not null) unclaimed.ClanId = clan.Id;
+            // Привязку подтвердил сам игрок — это уже не «со слов лидера»
+            unclaimed.LinkedByLeader = false;
+            if (unclaimed.ReferrerTelegramUserId is null && referrer is not null)
+                unclaimed.ReferrerTelegramUserId = referrerTelegramUserId;
+            await players.SaveChangesAsync(ct);
+
+            await NotifyReferrerAsync(referrer, name, ct);
+            return name;
+        }
 
         await players.AddAsync(new Player
         {
@@ -54,18 +75,20 @@ public class LinkPlayerUseCase(
         }, ct);
         await players.SaveChangesAsync(ct);
 
-        // Награда виральной петли: сразу сообщаем пригласившему, что друг подключился.
-        if (referrer is not null)
-        {
-            try
-            {
-                await notifier.SendToUserAsync(referrer.TelegramUserId!.Value,
-                    $"🎉 По твоей ссылке в Clanify зашёл новый игрок: {name}. Спасибо, что зовёшь друзей!", ct);
-            }
-            catch { /* пригласивший мог заблокировать бота — не критично */ }
-        }
-
+        await NotifyReferrerAsync(referrer, name, ct);
         return name;
+    }
+
+    /// <summary>Награда виральной петли: сразу сообщаем пригласившему, что друг подключился.</summary>
+    private async Task NotifyReferrerAsync(Player? referrer, string name, CancellationToken ct)
+    {
+        if (referrer?.TelegramUserId is not long refId) return;
+        try
+        {
+            await notifier.SendToUserAsync(refId,
+                $"🎉 По твоей ссылке в Clanify зашёл новый игрок: {name}. Спасибо, что зовёшь друзей!", ct);
+        }
+        catch { /* пригласивший мог заблокировать бота — не критично */ }
     }
 
     public static string Normalize(string tag)

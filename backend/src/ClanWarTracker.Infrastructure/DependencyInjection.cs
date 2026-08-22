@@ -100,12 +100,70 @@ public static class DependencyInjection
                 {
                     await db.Database.MigrateAsync();
                 }
+
+                await MergeDuplicatePlayersAsync(db);
                 return;
             }
             catch when (attempt < 5)
             {
                 await Task.Delay(TimeSpan.FromSeconds(3 * attempt));
             }
+        }
+    }
+
+    /// <summary>
+    /// Схлопывает дубли игроков: один и тот же тег в одном клане мог получить две записи —
+    /// заготовку от лидера (/bind, только @username) и собственную привязку игрока (/link).
+    /// В панели такой человек висел дважды, и в общем счёте игроков тоже считался дважды.
+    ///
+    /// Причину устранили в LinkPlayerUseCase, но уже созданные пары надо свести. Правило
+    /// осторожное: сливаем, только когда Telegram-аккаунт стоит максимум за одной записью.
+    /// Если аккаунтов два — это разные люди на один тег, и решать за них мы не вправе.
+    /// </summary>
+    private static async Task MergeDuplicatePlayersAsync(AppDbContext db)
+    {
+        try
+        {
+            var groups = await db.Players
+                .GroupBy(p => new { p.ClanId, p.PlayerTag })
+                .Where(g => g.Count() > 1)
+                .Select(g => g.Key)
+                .ToListAsync();
+
+            if (groups.Count == 0) return;
+
+            var removed = 0;
+            foreach (var key in groups)
+            {
+                var rows = await db.Players
+                    .Where(p => p.ClanId == key.ClanId && p.PlayerTag == key.PlayerTag)
+                    .OrderBy(p => p.Id)
+                    .ToListAsync();
+
+                var claimed = rows.Where(r => r.TelegramUserId is not null).ToList();
+                if (claimed.Count > 1) continue;   // два разных аккаунта на тег — не наше дело
+
+                // Выживает подтверждённая привязка, а если её нет — самая ранняя запись
+                var keep = claimed.FirstOrDefault() ?? rows[0];
+
+                foreach (var dup in rows.Where(r => r.Id != keep.Id))
+                {
+                    // Юзернейм из заготовки лидера может оказаться единственным, что у нас есть
+                    if (string.IsNullOrEmpty(keep.TelegramUsername) && !string.IsNullOrEmpty(dup.TelegramUsername))
+                        keep.TelegramUsername = dup.TelegramUsername;
+                    keep.CreatedAtUtc ??= dup.CreatedAtUtc;
+
+                    db.Players.Remove(dup);
+                    removed++;
+                }
+            }
+
+            if (removed > 0) await db.SaveChangesAsync();
+        }
+        catch
+        {
+            // Чистка — вспомогательная работа. Уронить из-за неё запуск сервиса нельзя:
+            // дубль в списке неприятен, недоступный бот куда хуже.
         }
     }
 
