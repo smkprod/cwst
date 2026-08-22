@@ -227,11 +227,44 @@ public class BotUpdateHandler(
                         return;
                     }
 
-                    // Ответ на сообщение даёт и ID, и юзернейм: ID переживает смену ника
-                    var replyFrom = msg.ReplyToMessage?.From;
-                    var bindUsername = replyFrom?.Username
-                        ?? (parts.Length > 2 ? parts[2].TrimStart('@') : null);
-                    var bindUserId = replyFrom?.Id;
+                    // Ответ на сообщение даёт и ID, и юзернейм: ID переживает смену ника.
+                    // НО: в форум-теме Telegram кладёт в ReplyToMessage служебное сообщение
+                    // о создании темы — это корень треда, а не ответ человеку. Без этой
+                    // проверки все привязки уезжали на автора темы (обычно на самого лидера).
+                    var replyFrom = RealReplyAuthor(msg);
+
+                    var typedUsername = parts.Length > 2 ? parts[2].TrimStart('@').Trim() : null;
+                    if (string.IsNullOrWhiteSpace(typedUsername)) typedUsername = null;
+
+                    // «Максим» — это имя, а не юзернейм. Сохранив его, бот потом тегал бы
+                    // несуществующего @Максим, и лидер узнал бы об этом только в бою.
+                    if (typedUsername is not null && !IsTelegramUsername(typedUsername))
+                    {
+                        await Reply(msg,
+                            $"«{typedUsername}» не похоже на юзернейм Telegram.\n\n" +
+                            "Юзернейм начинается с @, состоит из латиницы, цифр и подчёркиваний " +
+                            "(например @qrt980). Посмотреть его можно в профиле человека.\n\n" +
+                            "Надёжнее: ответь на любое сообщение игрока командой /bind #ТЕГ — " +
+                            "тогда юзернейм подтянется сам.", ct);
+                        return;
+                    }
+
+                    string? bindUsername;
+                    long? bindUserId;
+                    if (typedUsername is not null)
+                    {
+                        // Лидер назвал человека прямо — это и есть его намерение.
+                        // ID из ответа берём, только если ответ про того же человека.
+                        bindUsername = typedUsername;
+                        bindUserId = string.Equals(replyFrom?.Username, typedUsername, StringComparison.OrdinalIgnoreCase)
+                            ? replyFrom?.Id
+                            : null;
+                    }
+                    else
+                    {
+                        bindUsername = replyFrom?.Username;
+                        bindUserId = replyFrom?.Id;
+                    }
 
                     if (string.IsNullOrWhiteSpace(bindUsername) && bindUserId is null)
                     {
@@ -250,6 +283,12 @@ public class BotUpdateHandler(
                         _ => $"✅ {bindResult.PlayerName} привязан к " +
                              (bindUsername is not null ? $"@{bindUsername}" : "аккаунту") + ".\n" +
                              "Теперь бот будет тегать его в чате при /nudge и напоминаниях." +
+                             // Один Telegram-аккаунт может быть привязан только к одному тегу,
+                             // поэтому перенос — это молчаливая потеря прошлой привязки. Говорим вслух.
+                             (bindResult.MovedFromTag is string old
+                                 ? $"\n\n⚠️ Этот аккаунт был привязан к {old} — привязка перенесена. " +
+                                   "Если это разные люди, привяжи их по отдельности."
+                                 : "") +
                              (bindResult.CanDm
                                  ? ""
                                  : "\n\n⚠️ В личные сообщения бот писать не сможет, пока игрок сам не нажмёт «Старт» у бота — Telegram запрещает писать первым. В чате тег работает.")
@@ -532,6 +571,33 @@ public class BotUpdateHandler(
         if (t.StartsWith('#')) t = t[1..];
         return t.Length is >= 3 and <= 12 && t.All(char.IsLetterOrDigit);
     }
+
+    /// <summary>
+    /// Автор сообщения, на которое реально ответили, или null.
+    ///
+    /// В форум-супергруппе Telegram заполняет ReplyToMessage у КАЖДОГО сообщения темы:
+    /// туда кладётся служебное сообщение о создании темы. Формально это ответ, по смыслу —
+    /// нет: человек ни на кого не отвечал. Отличаем корень темы двумя признаками —
+    /// служебное поле ForumTopicCreated и совпадение id с идентификатором треда.
+    /// </summary>
+    private static User? RealReplyAuthor(Message msg)
+    {
+        var replyTo = msg.ReplyToMessage;
+        if (replyTo is null) return null;
+
+        var isTopicRoot = replyTo.ForumTopicCreated is not null
+                          || (msg.MessageThreadId is int threadId && replyTo.MessageId == threadId);
+
+        return isTopicRoot ? null : replyTo.From;
+    }
+
+    /// <summary>
+    /// Похоже ли на юзернейм Telegram: латиница, цифры и подчёркивания, 5–32 символа.
+    /// Нужно, чтобы не сохранить в качестве юзернейма имя человека — тег @Максим
+    /// в чате просто не сработает, и лидер об этом не узнает.
+    /// </summary>
+    private static bool IsTelegramUsername(string s) =>
+        s.Length is >= 5 and <= 32 && s.All(c => c is '_' || (c < 128 && char.IsLetterOrDigit(c)));
 
     private static string Describe(Exception ex)
     {
