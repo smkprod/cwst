@@ -4,14 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <title>Clanify</title>
-    <link rel="icon" href="/clanify-logo.jpg" />
+    <link rel="icon" href="/clanify-logo.png" />
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
       /* Заставка ДО загрузки бандла: между открытием мини-аппа и первым кадром
          React иначе виден пустой экран. Стили инлайновые намеренно — внешний
          CSS к этому моменту ещё не приехал. Убирается в main.tsx. */
       #boot-splash {
-        position: fixed; inset: 0; z-index: 100; background: #000;
+        position: fixed; inset: 0; z-index: 100;
+        background: radial-gradient(circle at 50% 42%, #16203a, #05070c 68%);
         display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
       }
       #boot-splash img { width: min(58vw, 230px); height: auto; }
@@ -48,7 +49,7 @@
   </head>
   <body>
     <div id="boot-splash">
-      <img src="/clanify-logo.jpg" alt="Clanify" />
+      <img src="/clanify-logo.png" alt="Clanify" />
       <div class="boot-track"><div class="boot-fill"></div></div>
     </div>
     <div id="root"></div>
