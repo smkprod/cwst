@@ -38,10 +38,19 @@ public class PlayerRepository(AppDbContext db) : IPlayerRepository
     public Task<List<Player>> GetByClanIdAsync(int clanId, CancellationToken ct = default) =>
         db.Players.Where(p => p.ClanId == clanId).ToListAsync(ct);
 
+    /// <summary>
+    /// Все привязанные игроки. Привязка — это не только «человек сам нажал Старт»:
+    /// после /bind у игрока может быть один лишь @username, и такого человека бот
+    /// вполне тегает в чате. Раньше условие смотрело только на TelegramUserId, и все
+    /// привязанные лидером были невидимы для панели и рейтинга.
+    ///
+    /// Кому нужны именно личные сообщения (рассылка), тот дополнительно отсеивает
+    /// записи без TelegramUserId — писать первым Telegram боту не даёт.
+    /// </summary>
     public Task<List<Player>> GetAllLinkedAsync(CancellationToken ct = default) =>
         db.Players.AsNoTracking()
             .Include(p => p.Clan)
-            .Where(p => p.TelegramUserId != null)
+            .Where(p => p.TelegramUserId != null || p.TelegramUsername != null)
             .ToListAsync(ct);
 
     public async Task AddAsync(Player player, CancellationToken ct = default) =>

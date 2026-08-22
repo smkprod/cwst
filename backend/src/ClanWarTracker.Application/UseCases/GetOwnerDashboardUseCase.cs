@@ -50,6 +50,9 @@ public class GetOwnerDashboardUseCase(
             UsersWithClan: allPlayers.Count(p => p.ClanId.HasValue),
             UsersWithoutClan: allPlayers.Count(p => !p.ClanId.HasValue),
             UsersWithUsername: allPlayers.Count(p => !string.IsNullOrEmpty(p.TelegramUsername)),
+            // Привязанный лидером человек тегается в чате, но в ЛС ему не написать,
+            // пока он сам не нажмёт «Старт». Для рассылки это разные числа.
+            UsersReachableByDm: allPlayers.Count(p => p.TelegramUserId.HasValue),
             InvitedUsers: allPlayers.Count(p => p.ReferrerTelegramUserId.HasValue),
 
             NewClans7d: clansDated.Count(c => c.CreatedAtUtc >= week),

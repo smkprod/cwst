@@ -15,6 +15,7 @@ public record OwnerStatsDto(
     int UsersWithClan,
     int UsersWithoutClan,
     int UsersWithUsername,      // сколько можно тегнуть в чате
+    int UsersReachableByDm,     // сколько дойдёт до ЛС: остальным бот писать первым не может
     int InvitedUsers,           // пришли по реферальной ссылке
 
     // Рост (только по записям с известной датой — старые не считаем)
