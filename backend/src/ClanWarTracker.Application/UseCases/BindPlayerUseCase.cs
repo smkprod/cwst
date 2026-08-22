@@ -5,7 +5,16 @@ namespace ClanWarTracker.Application.UseCases;
 
 public enum BindOutcome { Ok, TagNotFound, NotInClan, NothingToUnbind }
 
-public record BindResult(BindOutcome Outcome, string? PlayerName = null, bool CanDm = false);
+/// <param name="MovedFromTag">
+/// Тег, у которого этот Telegram-аккаунт был привязан раньше. Один аккаунт может быть
+/// привязан только к одному тегу, поэтому перенос молча стирает прошлую привязку —
+/// лидер должен об этом узнать.
+/// </param>
+public record BindResult(
+    BindOutcome Outcome,
+    string? PlayerName = null,
+    bool CanDm = false,
+    string? MovedFromTag = null);
 
 /// <summary>
 /// Привязка игрока к Telegram-аккаунту руками лидера. Смысл в том, что заставить
@@ -51,13 +60,17 @@ public class BindPlayerUseCase(
             var byUser = await players.GetByTelegramIdAsync(uid, ct);
             if (byUser is not null && byUser.Id != existing?.Id)
             {
+                var previousTag = byUser.PlayerTag;
                 byUser.PlayerTag = playerTag;
                 byUser.Name = name;
                 byUser.ClanId = clanId;
                 if (!string.IsNullOrEmpty(username)) byUser.TelegramUsername = username;
                 byUser.LinkedByLeader = true;
                 await players.SaveChangesAsync(ct);
-                return new(BindOutcome.Ok, name, CanDm: true);
+
+                var moved = string.Equals(previousTag, playerTag, StringComparison.OrdinalIgnoreCase)
+                    ? null : previousTag;
+                return new(BindOutcome.Ok, name, CanDm: true, MovedFromTag: moved);
             }
         }
 
