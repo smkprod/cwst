@@ -366,6 +366,69 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         return members?.Items?.Count;
     }
 
+    /// <summary>Состав клана целиком — тот же кэшированный ответ, что и роли.</summary>
+    public async Task<List<CrClanMember>> GetClanRosterAsync(string clanTag, CancellationToken ct = default)
+    {
+        var members = await GetCachedMembersAsync(clanTag, ct);
+        return members?.Items?
+            .Select(m => new CrClanMember(m.Tag, m.Name, m.Role, m.Trophies, m.Donations))
+            .ToList() ?? [];
+    }
+
+    /// <summary>
+    /// Профиль клана. Кэш 10 минут: состав и донат меняются в течение дня, но не поминутно,
+    /// а карточку клана в поиске могут открывать подряд несколько человек.
+    /// </summary>
+    public async Task<CrClanInfo?> GetClanInfoAsync(string clanTag, CancellationToken ct = default)
+    {
+        return await cache.GetOrCreateAsync($"claninfo:{clanTag}", async entry =>
+        {
+            entry.Size = 1;
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
+
+            var resp = await http.GetAsync($"clans/{Encode(clanTag)}", ct);
+            if (resp.StatusCode == HttpStatusCode.NotFound) return null;
+            if (resp.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.Unauthorized)
+                throw new InvalidOperationException(
+                    "CR API отклонил ключ (403). Ключ привязан к IP — создай новый на developer.clashroyale.com.");
+            if (!resp.IsSuccessStatusCode)
+            {
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1);
+                return null;
+            }
+
+            var c = await resp.Content.ReadFromJsonAsync<ClanProfileDetailed>(cancellationToken: ct);
+            if (c is null) return null;
+
+            return new CrClanInfo
+            {
+                Tag = c.Tag,
+                Name = c.Name,
+                Description = c.Description,
+                Type = c.Type,
+                ClanScore = c.ClanScore,
+                ClanWarTrophies = c.ClanWarTrophies ?? 0,
+                RequiredTrophies = c.RequiredTrophies,
+                MemberCount = c.Members,
+                DonationsPerWeek = c.DonationsPerWeek,
+                LocationName = c.Location?.Name,
+                LocationIsCountry = c.Location?.IsCountry ?? false,
+            };
+        });
+    }
+
+    private record ClanProfileDetailed(
+        [property: JsonPropertyName("tag")] string Tag,
+        [property: JsonPropertyName("name")] string Name,
+        [property: JsonPropertyName("description")] string? Description,
+        [property: JsonPropertyName("type")] string? Type,
+        [property: JsonPropertyName("clanScore")] int ClanScore,
+        [property: JsonPropertyName("clanWarTrophies")] int? ClanWarTrophies,
+        [property: JsonPropertyName("requiredTrophies")] int RequiredTrophies,
+        [property: JsonPropertyName("members")] int Members,
+        [property: JsonPropertyName("donationsPerWeek")] int DonationsPerWeek,
+        [property: JsonPropertyName("location")] LocationResponse? Location);
+
     /// <summary>
     /// Справочник карт меняется раз в сезон, а весит прилично — держим сутки.
     /// Ключ словаря — имя карты: именно по имени карты приходят и в профиле игрока,
@@ -896,5 +959,7 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
     private record ClanMember(
         [property: JsonPropertyName("tag")] string Tag,
         [property: JsonPropertyName("role")] string Role,
-        [property: JsonPropertyName("trophies")] int Trophies = 0);
+        [property: JsonPropertyName("trophies")] int Trophies = 0,
+        [property: JsonPropertyName("name")] string Name = "",
+        [property: JsonPropertyName("donations")] int Donations = 0);
 }

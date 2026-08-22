@@ -180,34 +180,57 @@ public class ClanController(
         var clanTag = "#" + tag.TrimStart('#').ToUpperInvariant();
         var known = await clans.GetByTagAsync(clanTag, ct);
 
+        CrClanInfo? info;
         ClanWarRanking? rank = null;
-        string? name;
-        int? memberCount;
+        List<CrClanMember> roster;
         try
         {
-            rank = await crApi.GetClanWarRankingAsync(clanTag, ct);
-            name = await crApi.GetClanNameAsync(clanTag, ct);
-            memberCount = await crApi.GetClanMemberCountAsync(clanTag, ct);
+            info = await crApi.GetClanInfoAsync(clanTag, ct);
+            if (info is null && known is null) return NotFound(new { error = "clan_not_found" });
+
+            roster = await crApi.GetClanRosterAsync(clanTag, ct);
+            // Рейтинг — приятное дополнение, а не условие показа карточки: он тянет
+            // тяжёлые списки топ-1000 и может не ответить.
+            try { rank = await crApi.GetClanWarRankingAsync(clanTag, ct); }
+            catch { rank = null; }
         }
         catch (HttpRequestException ex) when ((int)(ex.StatusCode ?? 0) is >= 500 or 429)
             { return StatusCode(503, new { error = "cr_api_unavailable", message = ex.Message }); }
         catch (InvalidOperationException ex) when (ex.Message.Contains("CR API"))
             { return StatusCode(503, new { error = "cr_api_token_invalid", message = ex.Message }); }
 
-        if (rank is null && name is null) return NotFound(new { error = "clan_not_found" });
+        // Строго по старшинству, внутри ранга — по кубкам: так сразу видно, кто главный
+        // и кто тянет клан, а не алфавит.
+        var members = roster
+            .OrderBy(m => m.Role switch
+            {
+                "leader" => 0,
+                "coLeader" => 1,
+                "elder" => 2,
+                _ => 3,
+            })
+            .ThenByDescending(m => m.Trophies)
+            .Select(m => new ClanMemberDto(m.Tag, m.Name, m.Role, m.Trophies, m.Donations))
+            .ToList();
 
         return Ok(new ClanOverviewDto(
             ClanTag: clanTag,
-            ClanName: name ?? known?.Name,
+            ClanName: info?.Name ?? known?.Name,
             Connected: known is not null,
-            WarTrophies: rank?.ClanWarTrophies ?? 0,
-            MemberCount: memberCount,
-            CountryName: rank?.CountryName,
+            WarTrophies: info?.ClanWarTrophies ?? rank?.ClanWarTrophies ?? 0,
+            MemberCount: info?.MemberCount ?? (members.Count > 0 ? members.Count : null),
+            CountryName: info?.LocationName ?? rank?.CountryName,
             CountryRank: rank?.CountryRank,
             GlobalRank: rank?.GlobalRank,
             CountryTop: rank?.CountryTop.Select(c => new RankedClanDto(
                 c.Rank, c.PreviousRank, c.Name, c.WarTrophies, c.Members,
-                string.Equals(c.Tag, clanTag, StringComparison.OrdinalIgnoreCase))).ToList() ?? []));
+                string.Equals(c.Tag, clanTag, StringComparison.OrdinalIgnoreCase))).ToList() ?? [],
+            Description: info?.Description,
+            Type: info?.Type,
+            ClanScore: info?.ClanScore ?? 0,
+            RequiredTrophies: info?.RequiredTrophies ?? 0,
+            DonationsPerWeek: info?.DonationsPerWeek ?? 0,
+            Members: members));
     }
 
     /// <summary>
