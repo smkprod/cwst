@@ -16,6 +16,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<GameTournament> GameTournaments => Set<GameTournament>();
     public DbSet<WarBattle> WarBattles => Set<WarBattle>();
     public DbSet<Respect> Respects => Set<Respect>();
+    public DbSet<SentNotification> SentNotifications => Set<SentNotification>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -55,6 +56,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
              .WithMany(c => c.Players)
              .HasForeignKey(p => p.ClanId)
              .IsRequired(false);
+        });
+
+        mb.Entity<SentNotification>(e =>
+        {
+            // Уникальность — это и есть защита от повтора: вторая вставка того же
+            // события упадёт на индексе, а не уйдёт вторым сообщением в чат.
+            e.HasIndex(n => new { n.Kind, n.Key }).IsUnique();
+            e.HasIndex(n => n.SentAtUtc);   // по нему чистим старое
+            e.Property(n => n.Kind).HasMaxLength(32);
+            e.Property(n => n.Key).HasMaxLength(200);
         });
 
         mb.Entity<Respect>(e =>

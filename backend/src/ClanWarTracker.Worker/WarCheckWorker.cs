@@ -1,4 +1,5 @@
 using ClanWarTracker.Application.UseCases;
+using ClanWarTracker.Domain.Interfaces;
 
 namespace ClanWarTracker.Worker;
 
@@ -13,6 +14,12 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
     // Снапшоты снимаем чаще основного цикла: финальный снимок дня всегда свежий (в пределах
     // 10 минут до сброса в 10:00 UTC), поэтому «медали за день» по каждому игроку точнее.
     private static readonly TimeSpan SnapshotInterval = TimeSpan.FromMinutes(10);
+    /// <summary>
+    /// Наборы ключей «это уже отправлено». Живут в памяти ради скорости, но дублируются
+    /// в БД: рестарт воркера не должен приводить к повторной рассылке. Именно из-за
+    /// потери этих наборов при деплое бот заново поздравлял всех, кто уже набрал 900,
+    /// — условие «набрал 900» истинно до конца военного дня, так что срабатывало снова.
+    /// </summary>
     private readonly HashSet<string> _reportedDays = [];
     private readonly HashSet<string> _finalCallKeys = [];
     private readonly HashSet<string> _reminderChatKeys = [];
@@ -20,11 +27,100 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
     private readonly HashSet<string> _perfectDayKeys = [];
     private readonly HashSet<string> _respectDigestKeys = [];
 
-    protected override Task ExecuteAsync(CancellationToken stoppingToken) =>
-        Task.WhenAll(
+    private const string KindReport = "dailyreport";
+    private const string KindFinalCall = "finalcall";
+    private const string KindReminder = "reminder";
+    private const string KindBriefing = "briefing";
+    private const string KindPerfectDay = "perfectday";
+    private const string KindRespectDigest = "respectdigest";
+
+    /// <summary>
+    /// Как далеко в прошлое поднимаем отметки при старте. Все наши уведомления привязаны
+    /// к военной неделе, так что двух недель хватает с запасом; хранить больше незачем.
+    /// </summary>
+    private static readonly TimeSpan KeyHistory = TimeSpan.FromDays(14);
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        await RestoreSentKeysAsync(stoppingToken);
+
+        await Task.WhenAll(
             RunPeriodicChecksAsync(stoppingToken),
             RunSnapshotLoopAsync(stoppingToken),
             RunFinalCallLoopAsync(stoppingToken));
+    }
+
+    /// <summary>Поднимает отметки об уже отправленном из БД и подчищает совсем старые.</summary>
+    private async Task RestoreSentKeysAsync(CancellationToken ct)
+    {
+        try
+        {
+            using var scope = scopeFactory.CreateScope();
+            var log = scope.ServiceProvider.GetRequiredService<ISentNotificationRepository>();
+            var since = DateTime.UtcNow - KeyHistory;
+
+            foreach (var (kind, set) in Sets())
+            {
+                var stored = await log.GetKeysAsync(kind, since, ct);
+                set.UnionWith(stored);
+                // Помечаем поднятое как уже сохранённое, иначе первый же тик попробует
+                // записать всё заново и словит нарушение уникального индекса на каждом ключе.
+                _persisted[kind] = stored;
+            }
+
+            await log.PurgeOlderThanAsync(since, ct);
+
+            var total = Sets().Sum(x => x.Set.Count);
+            logger.LogInformation("Restored {Count} sent-notification keys", total);
+        }
+        catch (Exception ex)
+        {
+            // Не подняли отметки — худшее, что случится, это повтор одного сообщения.
+            // Останавливать из-за этого весь воркер куда хуже.
+            logger.LogError(ex, "Could not restore sent-notification keys");
+        }
+    }
+
+    private (string Kind, HashSet<string> Set)[] Sets() =>
+    [
+        (KindReport, _reportedDays),
+        (KindFinalCall, _finalCallKeys),
+        (KindReminder, _reminderChatKeys),
+        (KindBriefing, _briefingKeys),
+        (KindPerfectDay, _perfectDayKeys),
+        (KindRespectDigest, _respectDigestKeys),
+    ];
+
+    /// <summary>
+    /// Записывает в БД ключи, добавленные use case'ом за этот проход. Сравниваем с тем,
+    /// что уже сохранено, — так use case'ы остаются в неведении про хранилище.
+    /// </summary>
+    private async Task PersistKeysAsync(string kind, HashSet<string> set, CancellationToken ct)
+    {
+        if (!_persisted.TryGetValue(kind, out var known))
+            _persisted[kind] = known = [];
+
+        var fresh = set.Where(k => !known.Contains(k)).ToList();
+        if (fresh.Count == 0) return;
+
+        try
+        {
+            using var scope = scopeFactory.CreateScope();
+            var log = scope.ServiceProvider.GetRequiredService<ISentNotificationRepository>();
+            foreach (var key in fresh)
+            {
+                await log.AddAsync(kind, key, ct);
+                known.Add(key);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Could not persist sent-notification keys for {Kind}", kind);
+        }
+    }
+
+    /// <summary>Что уже лежит в БД — чтобы не переписывать одно и то же каждый тик.</summary>
+    private readonly Dictionary<string, HashSet<string>> _persisted = [];
 
     private async Task RunPeriodicChecksAsync(CancellationToken stoppingToken)
     {
@@ -36,6 +132,7 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
                 using var scope = scopeFactory.CreateScope();
                 var useCase = scope.ServiceProvider.GetRequiredService<SendRemindersUseCase>();
                 await useCase.ExecuteAsync(_reminderChatKeys, stoppingToken);
+                await PersistKeysAsync(KindReminder, _reminderChatKeys, stoppingToken);
                 logger.LogInformation("Reminder check completed at {Time}", DateTime.UtcNow);
             }
             catch (Exception ex)
@@ -48,6 +145,7 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
                 using var scope = scopeFactory.CreateScope();
                 var report = scope.ServiceProvider.GetRequiredService<SendDailyReportUseCase>();
                 var sent = await report.ExecuteAsync(_reportedDays, stoppingToken);
+                await PersistKeysAsync(KindReport, _reportedDays, stoppingToken);
                 if (sent > 0) logger.LogInformation("Sent {Count} daily war reports", sent);
             }
             catch (Exception ex)
@@ -108,6 +206,7 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
                 using var scope = scopeFactory.CreateScope();
                 var briefing = scope.ServiceProvider.GetRequiredService<SendLeaderBriefingUseCase>();
                 var sent = await briefing.ExecuteAsync(_briefingKeys, stoppingToken);
+                await PersistKeysAsync(KindBriefing, _briefingKeys, stoppingToken);
                 if (sent > 0) logger.LogInformation("Sent leader briefings to {Count} clans", sent);
             }
             catch (Exception ex)
@@ -121,6 +220,7 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
                 using var scope = scopeFactory.CreateScope();
                 var digest = scope.ServiceProvider.GetRequiredService<SendRespectDigestUseCase>();
                 var sent = await digest.ExecuteAsync(_respectDigestKeys, stoppingToken);
+                await PersistKeysAsync(KindRespectDigest, _respectDigestKeys, stoppingToken);
                 if (sent > 0) logger.LogInformation("Sent {Count} respect digests", sent);
             }
             catch (Exception ex)
@@ -162,6 +262,7 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
                 using var scope = scopeFactory.CreateScope();
                 var perfectDay = scope.ServiceProvider.GetRequiredService<SendPerfectDayUseCase>();
                 var sent = await perfectDay.ExecuteAsync(_perfectDayKeys, stoppingToken);
+                await PersistKeysAsync(KindPerfectDay, _perfectDayKeys, stoppingToken);
                 if (sent > 0) logger.LogInformation("Sent {Count} perfect-day congrats", sent);
             }
             catch (Exception ex)
@@ -188,6 +289,7 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
                 using var scope = scopeFactory.CreateScope();
                 var finalCall = scope.ServiceProvider.GetRequiredService<SendFinalCallUseCase>();
                 var sent = await finalCall.ExecuteAsync(_finalCallKeys, stoppingToken);
+                await PersistKeysAsync(KindFinalCall, _finalCallKeys, stoppingToken);
                 if (sent > 0) logger.LogInformation("Sent {Count} final-call alerts", sent);
             }
             catch (Exception ex)

@@ -70,6 +70,7 @@ public static class DependencyInjection
         services.AddScoped<IGameTournamentRepository, GameTournamentRepository>();
         services.AddScoped<IWarBattleRepository, WarBattleRepository>();
         services.AddScoped<IRespectRepository, RespectRepository>();
+        services.AddScoped<ISentNotificationRepository, SentNotificationRepository>();
 
         return services;
     }
@@ -130,6 +131,21 @@ public static class DependencyInjection
         // Дедуп анонса начала КВ (чтобы не повторялся при деплое/рестарте воркера).
         await db.Database.ExecuteSqlRawAsync(
             "ALTER TABLE \"Clans\" ADD COLUMN IF NOT EXISTS \"LastWarStartKey\" text;");
+
+        // Журнал отправленных уведомлений: дедуп пережил бы рестарт воркера.
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""SentNotifications"" (
+    ""Id"" serial PRIMARY KEY,
+    ""Kind"" varchar(32) NOT NULL,
+    ""Key"" varchar(200) NOT NULL,
+    ""SentAtUtc"" timestamptz NOT NULL
+);");
+
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_SentNotifications_Kind_Key\" ON \"SentNotifications\" (\"Kind\", \"Key\");");
+
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_SentNotifications_SentAtUtc\" ON \"SentNotifications\" (\"SentAtUtc\");");
 
         await db.Database.ExecuteSqlRawAsync(@"
 CREATE TABLE IF NOT EXISTS ""RecruitmentProfiles"" (
