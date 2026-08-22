@@ -24,6 +24,22 @@ public interface IPlayerRepository
     Task SaveChangesAsync(CancellationToken ct = default);
 }
 
+/// <summary>
+/// Журнал отправленных уведомлений — чтобы рестарт воркера не превращался в повторную
+/// рассылку. См. SentNotification.
+/// </summary>
+public interface ISentNotificationRepository
+{
+    /// <summary>Ключи этого вида, отправленные позже указанного момента.</summary>
+    Task<HashSet<string>> GetKeysAsync(string kind, DateTime sinceUtc, CancellationToken ct = default);
+
+    /// <summary>Записывает отметку. Повторная запись того же ключа игнорируется.</summary>
+    Task AddAsync(string kind, string key, CancellationToken ct = default);
+
+    /// <summary>Удаляет отметки старше указанной даты — таблица не должна расти вечно.</summary>
+    Task PurgeOlderThanAsync(DateTime cutoffUtc, CancellationToken ct = default);
+}
+
 public interface IWarSnapshotRepository
 {
     /// <summary>Вставка или обновление снимка по ключу (ClanId, SeasonId, SectionIndex, PeriodIndex).</summary>
