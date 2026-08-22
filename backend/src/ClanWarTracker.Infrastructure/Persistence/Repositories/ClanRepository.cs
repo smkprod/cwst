@@ -38,6 +38,12 @@ public class PlayerRepository(AppDbContext db) : IPlayerRepository
     public Task<List<Player>> GetByClanIdAsync(int clanId, CancellationToken ct = default) =>
         db.Players.Where(p => p.ClanId == clanId).ToListAsync(ct);
 
+    public Task<Player?> GetUnclaimedByTagAsync(string playerTag, CancellationToken ct = default) =>
+        db.Players
+            .Where(p => p.PlayerTag == playerTag && p.TelegramUserId == null)
+            .OrderBy(p => p.Id)
+            .FirstOrDefaultAsync(ct);
+
     /// <summary>
     /// Все привязанные игроки. Привязка — это не только «человек сам нажал Старт»:
     /// после /bind у игрока может быть один лишь @username, и такого человека бот
