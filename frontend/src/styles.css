@@ -1446,3 +1446,4 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 .rarity-epic { background: rgba(156,107,255,0.18); color: var(--purple, #9c6bff); }
 .rarity-legendary { background: rgba(0,200,255,0.16); color: #4fc3f7; }
 .rarity-champion { background: rgba(255,200,61,0.18); color: var(--gold, #ffc83d); }
+.adm-tag-only { margin-left: 4px; font-size: 10px; opacity: 0.8; }
