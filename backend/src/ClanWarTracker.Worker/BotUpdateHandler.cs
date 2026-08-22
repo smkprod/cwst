@@ -27,6 +27,18 @@ public class BotUpdateHandler(
     /// In-memory: при перезапуске воркера незавершённые рефералы теряются — это допустимо.</summary>
     private readonly ConcurrentDictionary<long, long> _pendingReferrals = new();
 
+    /// <summary>
+    /// Сколько сообщений обрабатываем одновременно. Telegram.Bot ждёт завершения
+    /// обработчика, прежде чем взять следующее обновление, поэтому одна медленная
+    /// команда задерживала ВСЕ сообщения во всех чатах — а серия /bind подряд
+    /// складывалась в заметное подвисание. Обрабатываем параллельно, но не
+    /// бесконтрольно: и CR API, и Bot API одинаково не любят внезапный шквал.
+    /// </summary>
+    private readonly SemaphoreSlim _handling = new(6);
+
+    /// <summary>Кто админ в чате: живой вызов Bot API, а команда проверяет это каждый раз.</summary>
+    private readonly ConcurrentDictionary<(long Chat, long User), (bool IsAdmin, DateTime Until)> _adminCache = new();
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         try
@@ -49,7 +61,35 @@ public class BotUpdateHandler(
         await Task.Delay(Timeout.Infinite, stoppingToken);
     }
 
-    private async Task HandleUpdateAsync(ITelegramBotClient _, Update update, CancellationToken ct)
+    /// <summary>
+    /// Точка входа long polling. Саму обработку уводим в отдельную задачу: пока
+    /// обработчик не вернётся, Telegram.Bot не заберёт следующее обновление, и
+    /// одно медленное сообщение тормозит очередь целиком.
+    ///
+    /// Побочный эффект — сообщения одного чата могут обработаться не по порядку.
+    /// Для наших команд это безразлично: каждая самостоятельна, а ответ бот шлёт
+    /// реплаем на свою команду, так что в чате всё остаётся на своих местах.
+    /// </summary>
+    private Task HandleUpdateAsync(ITelegramBotClient _, Update update, CancellationToken ct)
+    {
+        if (update.Message is not { Text: not null }) return Task.CompletedTask;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await _handling.WaitAsync(ct);
+                try { await ProcessMessageAsync(update, ct); }
+                finally { _handling.Release(); }
+            }
+            catch (OperationCanceledException) { /* воркер останавливается */ }
+            catch (Exception ex) { logger.LogError(ex, "Update processing failed"); }
+        });
+
+        return Task.CompletedTask;
+    }
+
+    private async Task ProcessMessageAsync(Update update, CancellationToken ct)
     {
         if (update.Message is not { Text: { } text } msg) return;
 
@@ -614,11 +654,23 @@ public class BotUpdateHandler(
         _ => "Тренировка"
     };
 
+    /// <summary>
+    /// Админ ли отправитель. GetChatMember — живой сетевой вызов, а проверка стоит
+    /// в начале каждой админской команды: серия /bind подряд означала серию запросов
+    /// к Bot API. Состав админов меняется редко, поэтому держим ответ 5 минут.
+    /// </summary>
     private async Task<bool> IsAdminAsync(Message msg, CancellationToken ct)
     {
         if (msg.Chat.Type == ChatType.Private) return true;
-        var member = await bot.GetChatMember(msg.Chat.Id, msg.From!.Id, ct);
-        return member.Status is ChatMemberStatus.Administrator or ChatMemberStatus.Creator;
+
+        var key = (msg.Chat.Id, msg.From!.Id);
+        if (_adminCache.TryGetValue(key, out var hit) && hit.Until > DateTime.UtcNow)
+            return hit.IsAdmin;
+
+        var member = await bot.GetChatMember(msg.Chat.Id, msg.From.Id, ct);
+        var isAdmin = member.Status is ChatMemberStatus.Administrator or ChatMemberStatus.Creator;
+        _adminCache[key] = (isAdmin, DateTime.UtcNow.AddMinutes(5));
+        return isAdmin;
     }
 
     private Task Reply(Message msg, string text, CancellationToken ct) =>

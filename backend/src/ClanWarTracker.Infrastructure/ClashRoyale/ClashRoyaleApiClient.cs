@@ -172,17 +172,39 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         return entries;
     }
 
+    /// <summary>
+    /// Имя игрока по тегу. Кэшируем на полчаса: имя меняется редко, а за ним стоит
+    /// /players/{tag} — самый тяжёлый ответ API (весь профиль со всей коллекцией).
+    /// Без кэша серия /bind подряд означала серию полных загрузок профиля, и бот
+    /// заметно подвисал.
+    /// </summary>
     public async Task<string?> GetPlayerNameAsync(string playerTag, CancellationToken ct = default)
     {
-        var resp = await http.GetAsync($"players/{Encode(playerTag)}", ct);
-        if (resp.StatusCode == HttpStatusCode.NotFound) return null;
-        if (resp.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.Unauthorized)
-            throw new InvalidOperationException(
-                "CR API отклонил ключ (403). Ключ привязан к IP — создай новый на developer.clashroyale.com " +
-                "с IP сервера (Render: Settings → Outbound IPs) и обнови CLASH_ROYALE_API_TOKEN.");
-        if (!resp.IsSuccessStatusCode) return null;
-        var player = await resp.Content.ReadFromJsonAsync<NamedEntity>(cancellationToken: ct);
-        return player?.Name;
+        return await cache.GetOrCreateAsync($"playername:{playerTag}", async entry =>
+        {
+            entry.Size = 1;
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30);
+
+            var resp = await http.GetAsync($"players/{Encode(playerTag)}", ct);
+
+            // 403 — это про ключ, а не про игрока: пробрасываем, чтобы админ увидел
+            // сообщение, и ничего не кэшируем (исключение из GetOrCreateAsync выходит наружу).
+            if (resp.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.Unauthorized)
+                throw new InvalidOperationException(
+                    "CR API отклонил ключ (403). Ключ привязан к IP — создай новый на developer.clashroyale.com " +
+                    "с IP сервера (Render: Settings → Outbound IPs) и обнови CLASH_ROYALE_API_TOKEN.");
+
+            if (!resp.IsSuccessStatusCode)
+            {
+                // «Не найден» держим минуту: опечатку в теге исправят и повторят сразу,
+                // а получасовой кэш промаха выглядел бы как поломка.
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1);
+                return (string?)null;
+            }
+
+            var player = await resp.Content.ReadFromJsonAsync<NamedEntity>(cancellationToken: ct);
+            return player?.Name;
+        });
     }
 
     public async Task<string?> GetClanNameAsync(string clanTag, CancellationToken ct = default)
