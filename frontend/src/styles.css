@@ -945,6 +945,9 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
   .progress-fill, .confidence-fill, .ring-fg, .chevron, .tab-icon { transition: none; }
   .fade-in { animation: none; }
   .spinner { animation-duration: 1.5s; }
+  /* Заставка остаётся, но перестаёт пульсировать и разъезжаться */
+  .splash-glow, .splash-logo, .splash-phrase { animation: none; }
+  .splash-fill { animation-duration: 2.5s; }
 }
 
 /* --- Language switcher --- */
@@ -1447,3 +1450,68 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 .rarity-legendary { background: rgba(0,200,255,0.16); color: #4fc3f7; }
 .rarity-champion { background: rgba(255,200,61,0.18); color: var(--gold, #ffc83d); }
 .adm-tag-only { margin-left: 4px; font-size: 10px; opacity: 0.8; }
+
+/* --- Заставка загрузки ---------------------------------------------------
+   Фон чёрный в любой теме: логотип нарисован на чёрном, и любой другой фон
+   дал бы вокруг него видимый квадрат. Тёмный экран загрузки — привычная
+   для игр вещь, так что это читается как решение, а не как сбой темы. */
+
+.splash {
+  position: fixed; inset: 0; z-index: 100;
+  background: #000;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 18px;
+  padding: 24px;
+}
+
+/* Свечение шире логотипа, поэтому вокруг него виден ореол: логотип непрозрачный
+   и сам по себе светиться не может. */
+.splash-glow {
+  position: absolute;
+  width: min(80vw, 330px); aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle,
+    rgba(90, 169, 255, 0.22),
+    rgba(156, 107, 255, 0.12) 45%,
+    transparent 70%);
+  animation: splashPulse 2.4s ease-in-out infinite;
+}
+@keyframes splashPulse {
+  0%, 100% { transform: scale(0.92); opacity: 0.7; }
+  50%      { transform: scale(1.06); opacity: 1; }
+}
+
+.splash-logo {
+  position: relative;
+  width: min(58vw, 230px); height: auto;
+  animation: splashRise 0.5s ease both;
+}
+@keyframes splashRise {
+  from { opacity: 0; transform: scale(0.94) translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.splash-track {
+  position: relative;
+  width: min(62vw, 220px); height: 3px;
+  border-radius: 999px; background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+.splash-fill {
+  position: absolute; inset: 0;
+  width: 40%; border-radius: 999px;
+  background: linear-gradient(90deg, transparent, #5aa9ff, #9c6bff, transparent);
+  animation: splashSweep 1.3s ease-in-out infinite;
+}
+@keyframes splashSweep {
+  from { transform: translateX(-120%); }
+  to   { transform: translateX(320%); }
+}
+
+.splash-phrase {
+  position: relative;
+  margin: 0; min-height: 18px;
+  font-size: 13px; text-align: center;
+  color: rgba(255, 255, 255, 0.55);
+  animation: fadeIn 0.4s ease;
+}

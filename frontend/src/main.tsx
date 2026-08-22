@@ -14,3 +14,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     </LangProvider>
   </React.StrictMode>,
 )
+
+// Заставку из index.html убираем только после того, как React отрисовал свою:
+// render() ставит работу в очередь, поэтому ждём два кадра — иначе между двумя
+// заставками мигнёт пустой экран.
+requestAnimationFrame(() =>
+  requestAnimationFrame(() => document.getElementById('boot-splash')?.remove()))
