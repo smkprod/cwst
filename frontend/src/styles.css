@@ -1516,3 +1516,52 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
   color: rgba(255, 255, 255, 0.55);
   animation: fadeIn 0.4s ease;
 }
+
+/* --- Поиск: переключатель вида, история, карточка клана --- */
+
+.search-kinds { display: flex; gap: 6px; margin-bottom: 10px; }
+.search-kind {
+  flex: 1; padding: 8px 10px; border-radius: 10px; cursor: pointer;
+  background: var(--bg-card); border: 1px solid transparent;
+  color: var(--muted); font-size: 13px; font-weight: 600;
+}
+.search-kind-on {
+  color: var(--accent); border-color: var(--accent);
+  background: linear-gradient(135deg, rgba(156, 107, 255, 0.14), transparent), var(--bg-card);
+}
+
+.search-history { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 4px; }
+.search-history-row {
+  width: 100%; display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border-radius: 8px; cursor: pointer;
+  background: rgba(255, 255, 255, 0.04); border: none; color: var(--text);
+  text-align: left; font-size: 13px;
+}
+.search-history-icon { flex-shrink: 0; }
+.search-history-name {
+  flex: 1; min-width: 0; font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.search-history-tag { flex-shrink: 0; }
+
+.clan-connected {
+  flex-shrink: 0; font-size: 11px; font-weight: 700; white-space: nowrap;
+  padding: 3px 8px; border-radius: 999px;
+  background: rgba(49, 181, 69, 0.18); color: var(--green, #31b545);
+}
+.clan-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.clan-description {
+  margin: 10px 0 0; font-size: 13px; line-height: 1.4;
+  color: var(--muted); white-space: pre-wrap; overflow-wrap: anywhere;
+}
+
+.clan-member-list { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 4px; }
+.clan-member-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px; border-radius: 8px; background: rgba(255, 255, 255, 0.04);
+}
+.clan-member-name {
+  flex: 1; min-width: 0; font-size: 13px; font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.clan-member-trophies { flex-shrink: 0; font-size: 12px; color: var(--muted); }
