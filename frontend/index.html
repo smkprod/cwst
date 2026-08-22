@@ -3,9 +3,32 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-    <title>Clan War Tracker</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚔️</text></svg>" />
+    <title>Clanify</title>
+    <link rel="icon" href="/clanify-logo.jpg" />
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+      /* Заставка ДО загрузки бандла: между открытием мини-аппа и первым кадром
+         React иначе виден пустой экран. Стили инлайновые намеренно — внешний
+         CSS к этому моменту ещё не приехал. Убирается в main.tsx. */
+      #boot-splash {
+        position: fixed; inset: 0; z-index: 100; background: #000;
+        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+      }
+      #boot-splash img { width: min(58vw, 230px); height: auto; }
+      #boot-splash .boot-track {
+        width: min(62vw, 220px); height: 3px; border-radius: 999px;
+        background: rgba(255, 255, 255, 0.1); overflow: hidden;
+      }
+      #boot-splash .boot-fill {
+        width: 40%; height: 100%; border-radius: 999px;
+        background: linear-gradient(90deg, transparent, #5aa9ff, #9c6bff, transparent);
+        animation: bootSweep 1.3s ease-in-out infinite;
+      }
+      @keyframes bootSweep {
+        from { transform: translateX(-120%); }
+        to { transform: translateX(320%); }
+      }
+    </style>
     <script>
       // Диагностика чёрного экрана: показываем JS-ошибки прямо на странице
       window.addEventListener('error', function (e) {
@@ -24,6 +47,10 @@
     </script>
   </head>
   <body>
+    <div id="boot-splash">
+      <img src="/clanify-logo.jpg" alt="Clanify" />
+      <div class="boot-track"><div class="boot-fill"></div></div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
