@@ -460,6 +460,7 @@ export interface OwnerStats {
   usersWithClan: number
   usersWithoutClan: number
   usersWithUsername: number
+  usersReachableByDm: number   // остальным бот не может написать первым
   invitedUsers: number
   // Рост (только по записям с известной датой)
   newClans7d: number

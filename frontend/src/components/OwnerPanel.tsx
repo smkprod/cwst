@@ -75,7 +75,7 @@ export function OwnerPanel() {
       {section === 'overview' && <Overview stats={stats} clans={clans} />}
       {section === 'clans' && <ClansSection clans={clans} onChanged={load} t={t} />}
       {section === 'broadcast' && (
-        <BroadcastBox dmCount={stats.totalLinkedUsers} chatCount={stats.chatsWithBot} t={t} />
+        <BroadcastBox dmCount={stats.usersReachableByDm} chatCount={stats.chatsWithBot} t={t} />
       )}
     </div>
   )
@@ -142,7 +142,18 @@ function Overview({ stats, clans }: { stats: OwnerStats; clans: OwnerClan[] }) {
           value={stats.usersWithUsername}
           accent={stats.usersWithUsername < stats.totalLinkedUsers ? 'warn' : 'good'}
         />
+        <Row
+          label="Дойдёт рассылка в ЛС"
+          value={stats.usersReachableByDm}
+          accent={stats.usersReachableByDm < stats.totalLinkedUsers ? 'warn' : 'good'}
+        />
         <Row label="Пришли по приглашению" value={stats.invitedUsers} />
+        {stats.usersReachableByDm < stats.totalLinkedUsers && (
+          <p className="muted small adm-note">
+            Привязанных лидером через /bind бот тегает в чате, но написать им в личные
+            сообщения не может, пока человек сам не нажмёт «Старт» — так устроен Telegram.
+          </p>
+        )}
       </Block>
 
       <Block title="📈 Рост">
@@ -335,6 +346,9 @@ function ClanCard({ clan: c, onChanged, t }: {
                 {detail.members.some(m => !m.telegramUsername) && (
                   <span>· без @username: {detail.members.filter(m => !m.telegramUsername).length}</span>
                 )}
+                {detail.members.some(m => m.telegramUsername && m.telegramUserId === null) && (
+                  <span>· 💬 только тег: {detail.members.filter(m => m.telegramUsername && m.telegramUserId === null).length}</span>
+                )}
               </p>
 
               {detail.members.length === 0 && (
@@ -355,6 +369,8 @@ function ClanCard({ clan: c, onChanged, t }: {
                       onClick={() => { haptic('light'); openExternalLink(`https://t.me/${m.telegramUsername}`) }}
                     >
                       @{m.telegramUsername}
+                      {/* Привязан лидером: тегнуть можно, написать в ЛС — нет */}
+                      {m.telegramUserId === null && <span className="adm-tag-only" title="только тег в чате">💬</span>}
                     </button>
                   ) : (
                     <span className="muted small">нет @username</span>
