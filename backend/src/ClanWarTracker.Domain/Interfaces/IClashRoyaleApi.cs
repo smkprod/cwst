@@ -53,4 +53,10 @@ public interface IClashRoyaleApi
 
     /// <summary>Численность клана прямо сейчас. null — клан не найден или API недоступен.</summary>
     Task<int?> GetClanMemberCountAsync(string clanTag, CancellationToken ct = default);
+
+    /// <summary>Профиль клана: название, описание, трофеи, требования. null — не найден.</summary>
+    Task<CrClanInfo?> GetClanInfoAsync(string clanTag, CancellationToken ct = default);
+
+    /// <summary>Состав клана с именами, ролями, кубками и донатом. Пустой список — ошибка API.</summary>
+    Task<List<CrClanMember>> GetClanRosterAsync(string clanTag, CancellationToken ct = default);
 }

@@ -14,4 +14,19 @@ public record ClanOverviewDto(
     string? CountryName,
     int? CountryRank,
     int? GlobalRank,
-    List<RankedClanDto> CountryTop);
+    List<RankedClanDto> CountryTop,
+    // Профиль клана из /clans/{tag} — то, ради чего клан ищут в поиске
+    string? Description = null,
+    string? Type = null,            // open | inviteOnly | closed
+    int ClanScore = 0,
+    int RequiredTrophies = 0,
+    int DonationsPerWeek = 0,
+    List<ClanMemberDto>? Members = null);
+
+/// <summary>Участник клана в витрине поиска.</summary>
+public record ClanMemberDto(
+    string PlayerTag,
+    string Name,
+    string Role,        // leader | coLeader | elder | member
+    int Trophies,
+    int Donations);

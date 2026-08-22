@@ -712,6 +712,14 @@ export interface DeckSuggestions {
 
 /* --- Витрина клана, который ещё не подключён к боту --- */
 
+export interface ClanMemberRow {
+  playerTag: string
+  name: string
+  role: string          // leader | coLeader | elder | member
+  trophies: number
+  donations: number
+}
+
 export interface ClanOverview {
   clanTag: string
   clanName: string | null
@@ -722,6 +730,20 @@ export interface ClanOverview {
   countryRank: number | null
   globalRank: number | null
   countryTop: RankedClanRow[]
+  description: string | null
+  type: string | null     // open | inviteOnly | closed
+  clanScore: number
+  requiredTrophies: number
+  donationsPerWeek: number
+  members: ClanMemberRow[] | null
+}
+
+/** Недавний поиск. Хранится только на устройстве, в localStorage. */
+export interface SearchHistoryItem {
+  kind: 'player' | 'clan'
+  tag: string
+  name: string
+  at: number            // отметка времени последнего открытия
 }
 
 export interface LinkedPlayer {
