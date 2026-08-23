@@ -50,6 +50,8 @@ export class ApiError extends Error {
 }
 
 export const api = {
+  /** Что фронту нужно знать о боте в рантайме (юзернейм для ссылок). */
+  getAppConfig: () => request<{ botUsername: string }>('/api/app/config'),
   getMyClanStatus: () => request<ClanStatus>('/api/clans/my/status'),
   getClanStatus: (tag: string) =>
     request<ClanStatus>(`/api/clans/${encodeURIComponent(tag.replace('#', ''))}/status`),
