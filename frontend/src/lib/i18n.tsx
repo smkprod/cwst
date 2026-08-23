@@ -12,7 +12,33 @@ const ru = {
   retry: 'Повторить',
   dateLocale: 'ru-RU',
 
-  tabs: { war: 'Война', rating: 'Рейтинг', me: 'Я', search: 'Поиск', owner: 'Панель', recruit: 'Биржа', tournament: 'Турнир' },
+  tabs: { war: 'Война', rating: 'Рейтинг', me: 'Я', search: 'Поиск', owner: 'Панель',
+          recruit: 'Биржа', tournament: 'Турнир', clan: 'Клан', more: 'Ещё' },
+
+  more: {
+    back: 'Назад',
+    settingsTitle: '⚙️ Настройки',
+    language: 'Язык',
+    notifications: 'Уведомления',
+    notificationsHint: 'Напоминания, отчёты, время конца дня',
+    sectionsTitle: 'Разделы',
+    tournaments: 'Турниры',
+    tournamentsHint: 'Свои турниры с сеткой',
+    recruitBoard: 'Биржа кандидатов',
+    recruitBoardHint: 'Кто ищет клан прямо сейчас',
+    recruitMe: 'Ищу клан',
+    recruitMeHint: 'Анкета для лидеров на Pro',
+    about: 'Как это работает',
+    aboutHint: 'Откуда цифры и что умеет бот',
+  },
+
+  menuNotice: {
+    title: 'Меню стало проще',
+    clan: '🏰 Клан — война и рейтинг в одном месте',
+    me: '👤 Я — твоя статистика, разбор и колоды',
+    more: '⚙️ Ещё — настройки, язык, турниры, биржа',
+    gotIt: 'Понятно',
+  },
 
   period: { training: 'Тренировочные дни', warDay: 'День войны', colosseum: 'Колизей' },
   header: { dayOf4: '· день', untilEnd: 'До конца дня:', h: 'ч', played: 'сыграли' },
@@ -761,7 +787,33 @@ const uk: Translations = {
   retry: 'Повторити',
   dateLocale: 'uk-UA',
 
-  tabs: { war: 'Війна', rating: 'Рейтинг', me: 'Я', search: 'Пошук', owner: 'Панель', recruit: 'Біржа', tournament: 'Турнір' },
+  tabs: { war: 'Війна', rating: 'Рейтинг', me: 'Я', search: 'Пошук', owner: 'Панель',
+          recruit: 'Біржа', tournament: 'Турнір', clan: 'Клан', more: 'Ще' },
+
+  more: {
+    back: 'Назад',
+    settingsTitle: '⚙️ Налаштування',
+    language: 'Мова',
+    notifications: 'Сповіщення',
+    notificationsHint: 'Нагадування, звіти, час кінця дня',
+    sectionsTitle: 'Розділи',
+    tournaments: 'Турніри',
+    tournamentsHint: 'Власні турніри із сіткою',
+    recruitBoard: 'Біржа кандидатів',
+    recruitBoardHint: 'Хто шукає клан просто зараз',
+    recruitMe: 'Шукаю клан',
+    recruitMeHint: 'Анкета для лідерів на Pro',
+    about: 'Як це працює',
+    aboutHint: 'Звідки цифри і що вміє бот',
+  },
+
+  menuNotice: {
+    title: 'Меню стало простішим',
+    clan: '🏰 Клан — війна і рейтинг в одному місці',
+    me: '👤 Я — твоя статистика, розбір і колоди',
+    more: '⚙️ Ще — налаштування, мова, турніри, біржа',
+    gotIt: 'Зрозуміло',
+  },
 
   period: { training: 'Тренувальні дні', warDay: 'День війни', colosseum: 'Колізей' },
   header: { dayOf4: '· день', untilEnd: 'До кінця дня:', h: 'год', played: 'зіграли' },
@@ -1508,7 +1560,33 @@ const en: Translations = {
   retry: 'Retry',
   dateLocale: 'en-US',
 
-  tabs: { war: 'War', rating: 'Rating', me: 'Me', search: 'Search', owner: 'Panel', recruit: 'Market', tournament: 'Tournament' },
+  tabs: { war: 'War', rating: 'Rating', me: 'Me', search: 'Search', owner: 'Panel',
+          recruit: 'Market', tournament: 'Tournament', clan: 'Clan', more: 'More' },
+
+  more: {
+    back: 'Back',
+    settingsTitle: '⚙️ Settings',
+    language: 'Language',
+    notifications: 'Notifications',
+    notificationsHint: 'Reminders, reports, end of day',
+    sectionsTitle: 'Sections',
+    tournaments: 'Tournaments',
+    tournamentsHint: 'Your own bracket tournaments',
+    recruitBoard: 'Candidates',
+    recruitBoardHint: 'Who is looking for a clan right now',
+    recruitMe: 'Looking for a clan',
+    recruitMeHint: 'Your listing for Pro leaders',
+    about: 'How it works',
+    aboutHint: 'Where the numbers come from',
+  },
+
+  menuNotice: {
+    title: 'The menu got simpler',
+    clan: '🏰 Clan — war and rating in one place',
+    me: '👤 Me — your stats, analysis and decks',
+    more: '⚙️ More — settings, language, tournaments, market',
+    gotIt: 'Got it',
+  },
 
   period: { training: 'Training Days', warDay: 'War Day', colosseum: 'Coliseum' },
   header: { dayOf4: '· day', untilEnd: 'Until end of day:', h: 'h', played: 'played' },

@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { api, ApiError } from './lib/api'
 import { haptic } from './lib/telegram'
-import { useT } from './lib/i18n'
+import { useT, type Translations } from './lib/i18n'
 import type { ClanStatus } from './types'
 import { WarHeader } from './components/WarHeader'
 import { ForecastCard } from './components/ForecastCard'
@@ -17,21 +17,17 @@ import { NudgeButton } from './components/NudgeButton'
 import { NotificationSettingsView } from './components/NotificationSettingsView'
 import { ClanWorldRankCard } from './components/ClanWorldRankCard'
 import { WarJournalCard } from './components/WarJournalCard'
-import { AboutCard } from './components/AboutCard'
 import { OwnerPanel } from './components/OwnerPanel'
 import { LinkPrompt } from './components/LinkPrompt'
 import { PlayerSearchView } from './components/PlayerSearchView'
-import { RecruitBoard } from './components/RecruitBoard'
-import { RecruitToggle } from './components/RecruitToggle'
 import { ClanlessView } from './components/ClanlessView'
-import { CommunityCard } from './components/CommunityCard'
 import { GuestEntry } from './components/GuestEntry'
 import { GuestMyStats } from './components/GuestMyStats'
-import { TournamentView } from './components/TournamentView'
-import { InviteCard } from './components/InviteCard'
 import { LeaderCtaCard } from './components/LeaderCtaCard'
 import { MyActionBanner } from './components/MyActionBanner'
 import { SplashScreen } from './components/SplashScreen'
+import { MoreView } from './components/MoreView'
+import { MenuChangedNotice } from './components/MenuChangedNotice'
 
 type State =
   | { kind: 'loading' }
@@ -46,11 +42,45 @@ const POLL_INTERVAL_MS = 60_000
 const RETRY_INTERVAL_MS = 15_000
 const TRANSIENT_TOLERANCE = 3
 
-type Tab = 'war' | 'rating' | 'me' | 'search' | 'owner' | 'recruit' | 'tournament'
+/**
+ * Вкладок было до семи: война, рейтинг, я, поиск, турнир, биржа, панель. Ежедневный
+ * экран стоял в одном ряду с тем, что открывают раз в месяц. Осталось четыре, а всё
+ * редкое собрано в «Ещё». Панель владельца — пятая и только у владельца: она невидима
+ * для остальных, так что места в баре ни у кого не занимает.
+ */
+type Tab = 'clan' | 'me' | 'search' | 'more' | 'owner'
+
+/** Внутри «Клана»: война и рейтинг — разные взгляды на один и тот же клан. */
+type ClanSection = 'war' | 'rating'
+
+/** Переключатель «Война / Рейтинг» внутри вкладки клана. */
+function ClanSectionTabs({ value, onChange, t }: {
+  value: ClanSection
+  onChange: (next: ClanSection) => void
+  t: Translations
+}) {
+  return (
+    <div className="clan-sections">
+      <button
+        className={`clan-section ${value === 'war' ? 'clan-section-on' : ''}`}
+        onClick={() => onChange('war')}
+      >
+        ⚔️ {t.tabs.war}
+      </button>
+      <button
+        className={`clan-section ${value === 'rating' ? 'clan-section-on' : ''}`}
+        onClick={() => onChange('rating')}
+      >
+        🏆 {t.tabs.rating}
+      </button>
+    </div>
+  )
+}
 
 export default function App() {
   const [state, setState] = useState<State>({ kind: 'loading' })
-  const [tab, setTab] = useState<Tab>('war')
+  const [tab, setTab] = useState<Tab>('clan')
+  const [clanSection, setClanSection] = useState<ClanSection>('war')
   const [settingsOpen, setSettingsOpen] = useState(false)
   const { t } = useT()
 
@@ -169,23 +199,29 @@ export default function App() {
     case 'ready': {
       const { data } = state
       const isPro = data.plan === 'pro'
-      const canManage = data.isAdmin || data.isClanLeader
+      const canManage = Boolean(data.isAdmin || data.isClanLeader)
       const notFinished = data.players.filter(p => p.status !== 'played').length
 
+      const isProLeader = Boolean(data.isClanLeader) && data.plan === 'pro'
+
       const tabs: { id: Tab; icon: string; label: string }[] = [
-        { id: 'war', icon: '⚔️', label: t.tabs.war },
-        { id: 'rating', icon: '🏆', label: t.tabs.rating },
+        { id: 'clan', icon: '🏰', label: t.tabs.clan },
         { id: 'me', icon: '👤', label: t.tabs.me },
         { id: 'search', icon: '🔍', label: t.tabs.search },
-        { id: 'tournament', icon: '🥇', label: t.tabs.tournament },
-        ...(data.isClanLeader && data.plan === 'pro' ? [{ id: 'recruit' as Tab, icon: '👥', label: t.tabs.recruit }] : []),
-        ...(data.isOwner ? [{ id: 'owner' as Tab, icon: '⚙️', label: t.tabs.owner }] : []),
+        { id: 'more', icon: '⚙️', label: t.tabs.more },
+        ...(data.isOwner ? [{ id: 'owner' as Tab, icon: '📊', label: t.tabs.owner }] : []),
       ]
 
       return (
         <>
           <main className="with-tabbar">
-            {tab === 'war' && (
+            {tab === 'clan' && (
+              <div className="fade-in">
+                <MenuChangedNotice />
+                <ClanSectionTabs value={clanSection} onChange={next => { haptic('light'); setClanSection(next) }} t={t} />
+              </div>
+            )}
+            {tab === 'clan' && clanSection === 'war' && (
               <div className="fade-in">
                 <WarHeader status={data} canManage={canManage} onOpenSettings={() => { haptic('light'); setSettingsOpen(true) }} />
                 {/* Личный призыв — первым делом: «ты не доиграл» цепляет сильнее общих цифр */}
@@ -207,7 +243,7 @@ export default function App() {
                 <WarJournalCard />
               </div>
             )}
-            {tab === 'rating' && (
+            {tab === 'clan' && clanSection === 'rating' && (
               <div className="fade-in">
                 <ClanWorldRankCard />
                 <Leaderboard players={data.players} myPlayerTag={data.myPlayerTag} plan={data.plan} />
@@ -216,14 +252,6 @@ export default function App() {
             {tab === 'me' && (
               <div className="fade-in">
                 <MyStatsView />
-                <div style={{ height: 12 }} />
-                <RecruitToggle />
-                <div style={{ height: 12 }} />
-                <InviteCard />
-                <div style={{ height: 12 }} />
-                <AboutCard plan={data.plan} />
-                <div style={{ height: 12 }} />
-                <CommunityCard />
               </div>
             )}
             {tab === 'search' && (
@@ -231,15 +259,13 @@ export default function App() {
                 <PlayerSearchView />
               </div>
             )}
-            {tab === 'tournament' && (
-              <div className="fade-in">
-                <TournamentView />
-              </div>
-            )}
-            {tab === 'recruit' && data.isClanLeader && data.plan === 'pro' && (
-              <div className="fade-in">
-                <RecruitBoard />
-              </div>
+            {tab === 'more' && (
+              <MoreView
+                plan={data.plan}
+                canManage={canManage}
+                isProLeader={isProLeader}
+                onOpenNotifications={() => { haptic('light'); setSettingsOpen(true) }}
+              />
             )}
             {tab === 'owner' && data.isOwner && (
               <div className="fade-in">
@@ -273,11 +299,10 @@ export default function App() {
       const { data, myPlayerTag } = state
 
       const tabs: { id: Tab; icon: string; label: string }[] = [
-        { id: 'war', icon: '⚔️', label: t.tabs.war },
-        { id: 'rating', icon: '🏆', label: t.tabs.rating },
+        { id: 'clan', icon: '🏰', label: t.tabs.clan },
         { id: 'me', icon: '👤', label: t.tabs.me },
         { id: 'search', icon: '🔍', label: t.tabs.search },
-        { id: 'tournament', icon: '🥇', label: t.tabs.tournament },
+        { id: 'more', icon: '⚙️', label: t.tabs.more },
       ]
 
       return (
@@ -288,7 +313,13 @@ export default function App() {
               <button className="btn-mini" onClick={exitGuest}>{t.guest.exit}</button>
             </div>
 
-            {tab === 'war' && (
+            {tab === 'clan' && (
+              <div className="fade-in">
+                <MenuChangedNotice />
+                <ClanSectionTabs value={clanSection} onChange={next => { haptic('light'); setClanSection(next) }} t={t} />
+              </div>
+            )}
+            {tab === 'clan' && clanSection === 'war' && (
               <div className="fade-in">
                 <WarHeader status={data} />
                 {/* Аналитика к аналитике: цифры → прогноз → инсайты, потом гонка и история */}
@@ -302,7 +333,7 @@ export default function App() {
                 <LeaderCtaCard />
               </div>
             )}
-            {tab === 'rating' && (
+            {tab === 'clan' && clanSection === 'rating' && (
               <div className="fade-in">
                 <Leaderboard players={data.players} myPlayerTag={myPlayerTag} plan={data.plan} />
               </div>
@@ -310,12 +341,6 @@ export default function App() {
             {tab === 'me' && (
               <div className="fade-in">
                 <GuestMyStats data={data} myPlayerTag={myPlayerTag} />
-                <div style={{ height: 12 }} />
-                <InviteCard />
-                <div style={{ height: 12 }} />
-                <AboutCard plan={data.plan} />
-                <div style={{ height: 12 }} />
-                <CommunityCard />
               </div>
             )}
             {tab === 'search' && (
@@ -323,10 +348,14 @@ export default function App() {
                 <PlayerSearchView />
               </div>
             )}
-            {tab === 'tournament' && (
-              <div className="fade-in">
-                <TournamentView />
-              </div>
+            {tab === 'more' && (
+              // Гость клан не настраивает: уведомления и биржа лидера ему недоступны
+              <MoreView
+                plan={data.plan}
+                canManage={false}
+                isProLeader={false}
+                onOpenNotifications={() => {}}
+              />
             )}
           </main>
 
