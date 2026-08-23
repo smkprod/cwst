@@ -1,11 +1,13 @@
 import { useT } from '../lib/i18n'
-import { haptic, shareToTelegram, botStartLink, BOT_USERNAME, tgUser } from '../lib/telegram'
+import { haptic, shareToTelegram, botStartLink, tgUser } from '../lib/telegram'
+import { useBotUsername } from '../lib/botUsername'
 
 /** Кнопка «Пригласить друга» — личная реф-ссылка в бота (ref_<telegramId>). */
 export function InviteCard() {
   const { t } = useT()
   // Нужны и username бота (для ссылки), и Telegram ID пользователя (реф-код).
-  if (!BOT_USERNAME || !tgUser) return null
+  const botUsername = useBotUsername()
+  if (!botUsername || !tgUser) return null
 
   const refLink = botStartLink(`ref_${tgUser.id}`)
   const invite = () => {

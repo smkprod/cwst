@@ -28,15 +28,22 @@ export function initTelegram() {
 export const initData = tg?.initData ?? ''
 export const tgUser = tg?.initDataUnsafe?.user
 
-/** Username бота (без @) — задаётся при сборке через VITE_BOT_USERNAME. Пусто — реф-ссылки скрыты. */
-export const BOT_USERNAME = (import.meta.env.VITE_BOT_USERNAME ?? '').trim()
+/**
+ * Username бота (без @). Значение из сборки — лишь стартовое: если переменную
+ * VITE_BOT_USERNAME забыли задать в CI, юзернейм подтягивается с сервера
+ * (см. lib/botUsername.ts). Поэтому не const — оно может уточниться позже.
+ */
+let botUsername = (import.meta.env.VITE_BOT_USERNAME ?? '').trim()
+
+export function getBotUsername(): string { return botUsername }
+export function setBotUsername(value: string) { botUsername = value.trim() }
 
 /** Глубокая ссылка в чат с ботом с payload для /start (например, реферал ref_123). */
 export function botStartLink(payload?: string): string {
-  if (!BOT_USERNAME) return 'https://t.me'
+  if (!botUsername) return 'https://t.me'
   return payload
-    ? `https://t.me/${BOT_USERNAME}?start=${encodeURIComponent(payload)}`
-    : `https://t.me/${BOT_USERNAME}`
+    ? `https://t.me/${botUsername}?start=${encodeURIComponent(payload)}`
+    : `https://t.me/${botUsername}`
 }
 
 /** Лёгкая вибрация при тапах (no-op вне Telegram). */

@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
 import type { ClanOverview, PlayerProfile } from '../types'
 import { useT } from '../lib/i18n'
-import { haptic, shareToTelegram, botStartLink, BOT_USERNAME } from '../lib/telegram'
+import { haptic, shareToTelegram, botStartLink } from '../lib/telegram'
+import { useBotUsername } from '../lib/botUsername'
 import { LangSwitcher } from './LangSwitcher'
 import { RecruitToggle } from './RecruitToggle'
 import { PlayerSearchView } from './PlayerSearchView'
@@ -23,6 +24,7 @@ type Tab = 'profile' | 'clan' | 'search' | 'tournament'
  */
 export function ClanlessView() {
   const { t } = useT()
+  const botUsername = useBotUsername()
   const [tab, setTab] = useState<Tab>('profile')
 
   const [profile, setProfile] = useState<PlayerProfile | null>(null)
@@ -113,7 +115,7 @@ export function ClanlessView() {
                 <li>{t.clanless.step2}</li>
                 <li>{t.clanless.step3}</li>
               </ol>
-              {BOT_USERNAME && (
+              {botUsername && (
                 <button className="btn btn-nudge" style={{ width: '100%', marginTop: 10 }} onClick={shareInstructions}>
                   {t.clanless.shareBtn}
                 </button>
@@ -164,6 +166,7 @@ function ConnectBanner({ profile, overview, onShare }: {
   profile: PlayerProfile | null; overview: ClanOverview | null; onShare: () => void
 }) {
   const { t } = useT()
+  const botUsername = useBotUsername()
 
   // Игрок вообще без клана в игре — просить его «подключить клан» бессмысленно.
   // Ему нужен клан, а не бот, поэтому и текст другой.
@@ -204,7 +207,7 @@ function ConnectBanner({ profile, overview, onShare }: {
         </div>
       )}
 
-      {BOT_USERNAME && (
+      {botUsername && (
         <button className="btn btn-nudge" style={{ width: '100%', marginTop: 10 }} onClick={onShare}>
           {t.clanless.askLeader}
         </button>
