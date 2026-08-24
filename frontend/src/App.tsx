@@ -28,6 +28,7 @@ import { MyActionBanner } from './components/MyActionBanner'
 import { SplashScreen } from './components/SplashScreen'
 import { MoreView } from './components/MoreView'
 import { MenuChangedNotice } from './components/MenuChangedNotice'
+import { DisciplineCard } from './components/DisciplineCard'
 
 type State =
   | { kind: 'loading' }
@@ -50,10 +51,17 @@ const TRANSIENT_TOLERANCE = 3
  */
 type Tab = 'clan' | 'me' | 'search' | 'more' | 'owner'
 
-/** Внутри «Клана»: война и рейтинг — разные взгляды на один и тот же клан. */
-type ClanSection = 'war' | 'rating'
+/**
+ * Внутри «Клана»: война, состав и рейтинг — разные взгляды на один и тот же клан.
+ *
+ * «Состав» выделен в отдельную секцию не ради симметрии. Список на 50 человек стоял
+ * в конце военного экрана и физически закрывал собой всё, что под ним: журнал боёв
+ * приходилось искать, пролистав полсотни карточек. Теперь аналитика войны помещается
+ * на один экран, а состав открывается, когда он действительно нужен.
+ */
+type ClanSection = 'war' | 'roster' | 'rating'
 
-/** Переключатель «Война / Рейтинг» внутри вкладки клана. */
+/** Переключатель «Война / Состав / Рейтинг» внутри вкладки клана. */
 function ClanSectionTabs({ value, onChange, t }: {
   value: ClanSection
   onChange: (next: ClanSection) => void
@@ -66,6 +74,12 @@ function ClanSectionTabs({ value, onChange, t }: {
         onClick={() => onChange('war')}
       >
         ⚔️ {t.tabs.war}
+      </button>
+      <button
+        className={`clan-section ${value === 'roster' ? 'clan-section-on' : ''}`}
+        onClick={() => onChange('roster')}
+      >
+        👥 {t.tabs.roster}
       </button>
       <button
         className={`clan-section ${value === 'rating' ? 'clan-section-on' : ''}`}
@@ -228,19 +242,27 @@ export default function App() {
                 <MyActionBanner status={data} />
                 {/* Что изменилось лично у тебя с прошлого захода (сама решает, показываться ли) */}
                 <WhatsNewCard />
-                {/* Аналитика к аналитике: цифры → прогноз → инсайты, потом гонка и история */}
                 <StatsStrip stats={data.stats} />
-                <ForecastCard forecast={data.forecast} stats={data.stats} periodType={data.periodType} />
-                <InsightsCard insights={data.insights} plan={data.plan} players={data.players} dayLogs={data.dayLogs ?? []} warLog={data.warLog ?? []} race={data.race ?? []} periodType={data.periodType} periodIndex={data.periodIndex} hoursLeft={data.hoursLeft} />
+                {/* Гонка — главный вопрос военного дня («мы выигрываем?»), поэтому сразу
+                    под цифрами. Раньше её закрывали собой прогноз и аналитика. */}
                 <RaceCard race={data.race} periodType={data.periodType} />
-                <WarLogCard log={data.warLog} />
                 {canManage && data.periodType !== 'training' && (
                   <NudgeButton notPlayedCount={notFinished} isPro={isPro} />
                 )}
+                {/* Оба журнала подняты из подвала: раньше их закрывал список на 50 человек */}
+                <WarLogCard log={data.warLog} />
+                <WarJournalCard />
+                {/* Аналитика — ниже: её смотрят вдумчиво и реже, чем счёт гонки */}
+                <ForecastCard forecast={data.forecast} stats={data.stats} periodType={data.periodType} />
+                <InsightsCard insights={data.insights} plan={data.plan} players={data.players} dayLogs={data.dayLogs ?? []} warLog={data.warLog ?? []} race={data.race ?? []} periodType={data.periodType} periodIndex={data.periodIndex} hoursLeft={data.hoursLeft} />
+                <DisciplineCard plan={data.plan} />
                 {/* Автонапоминания перенесены в ⚙️ «Уведомления» (шестерёнка в шапке) —
                     там же вкл/выкл, канал, часы и время окончания КВ. */}
+              </div>
+            )}
+            {tab === 'clan' && clanSection === 'roster' && (
+              <div className="fade-in">
                 <PlayerList players={data.players} myPlayerTag={data.myPlayerTag} />
-                <WarJournalCard />
               </div>
             )}
             {tab === 'clan' && clanSection === 'rating' && (
@@ -322,15 +344,19 @@ export default function App() {
             {tab === 'clan' && clanSection === 'war' && (
               <div className="fade-in">
                 <WarHeader status={data} />
-                {/* Аналитика к аналитике: цифры → прогноз → инсайты, потом гонка и история */}
+                {/* Тот же порядок, что и у своих: счёт гонки → журналы → аналитика */}
                 <StatsStrip stats={data.stats} />
-                <ForecastCard forecast={data.forecast} stats={data.stats} periodType={data.periodType} />
-                <InsightsCard insights={data.insights} plan={data.plan} players={data.players} dayLogs={data.dayLogs ?? []} warLog={data.warLog ?? []} race={data.race ?? []} periodType={data.periodType} periodIndex={data.periodIndex} hoursLeft={data.hoursLeft} />
                 <RaceCard race={data.race} periodType={data.periodType} />
                 <WarLogCard log={data.warLog} />
-                <PlayerList players={data.players} myPlayerTag={myPlayerTag} />
+                <ForecastCard forecast={data.forecast} stats={data.stats} periodType={data.periodType} />
+                <InsightsCard insights={data.insights} plan={data.plan} players={data.players} dayLogs={data.dayLogs ?? []} warLog={data.warLog ?? []} race={data.race ?? []} periodType={data.periodType} periodIndex={data.periodIndex} hoursLeft={data.hoursLeft} />
                 <div style={{ height: 12 }} />
                 <LeaderCtaCard />
+              </div>
+            )}
+            {tab === 'clan' && clanSection === 'roster' && (
+              <div className="fade-in">
+                <PlayerList players={data.players} myPlayerTag={myPlayerTag} />
               </div>
             )}
             {tab === 'clan' && clanSection === 'rating' && (

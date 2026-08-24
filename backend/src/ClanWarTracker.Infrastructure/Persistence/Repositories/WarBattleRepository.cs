@@ -20,6 +20,12 @@ public class WarBattleRepository(AppDbContext db) : IWarBattleRepository
             .OrderByDescending(b => b.BattleTimeUtc)
             .ToListAsync(ct);
 
+    public Task<List<WarBattle>> GetSinceAsync(int clanId, DateTime sinceUtc, CancellationToken ct) =>
+        db.WarBattles
+            .Where(b => b.ClanId == clanId && b.BattleTimeUtc >= sinceUtc)
+            .OrderByDescending(b => b.BattleTimeUtc)
+            .ToListAsync(ct);
+
     public async Task AddRangeAsync(IEnumerable<WarBattle> battles, CancellationToken ct) =>
         await db.WarBattles.AddRangeAsync(battles, ct);
 

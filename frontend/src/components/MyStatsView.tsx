@@ -8,11 +8,20 @@ import { useT, perfLabel, type Translations } from '../lib/i18n'
 import { TournamentHistoryCard } from './TournamentHistoryCard'
 import { PlayerProfileCard } from './PlayerProfileCard'
 import { DecksButton } from './DecksButton'
+import { AvatarPicker } from './AvatarPicker'
 
 type State =
   | { kind: 'loading' }
   | { kind: 'error'; message: string }
   | { kind: 'ready'; data: MyStats }
+
+/**
+ * Вкладка «Я» отвечала на два разных вопроса подряд, ничем их не разделяя:
+ * «как я отыграл войну» (медали, вклад, награды, сезон) и «что у меня в игре»
+ * (профиль, коллекция, подбор колод). Первое смотрят каждый военный день,
+ * второе — раз в пару недель, и внизу простыни его никто не находил.
+ */
+type Section = 'clan' | 'game'
 
 const PERF_META: Record<string, { emoji: string; cls: string }> = {
   'топ': { emoji: '🔥', cls: 'perf-top' },
@@ -26,6 +35,7 @@ export function MyStatsView() {
   const [history, setHistory] = useState<PlayerHistory | null>(null)
   const [profile, setProfile] = useState<PlayerProfile | null>(null)
   const [me, setMe] = useState<LinkedPlayer | null>(null)
+  const [section, setSection] = useState<Section>('clan')
   const { t } = useT()
 
   // Тег нужен и тогда, когда статистики войны нет: профиль, разбор и колоды
@@ -54,23 +64,50 @@ export function MyStatsView() {
     api.getPlayerProfile(playerTag).then(setProfile).catch(() => setProfile(null))
   }, [playerTag])
 
+  const switchTo = (next: Section) => { haptic('light'); setSection(next) }
+
+  const sectionTabs = (
+    <div className="me-sections">
+      <button
+        className={`me-section ${section === 'clan' ? 'me-section-on' : ''}`}
+        onClick={() => switchTo('clan')}
+      >{t.me.sectionClan}</button>
+      <button
+        className={`me-section ${section === 'game' ? 'me-section-on' : ''}`}
+        onClick={() => switchTo('game')}
+      >{t.me.sectionGame}</button>
+    </div>
+  )
+
   // Профиль, разбор и колоды не зависят от войны — показываем их всегда,
   // когда известен тег. Раньше отсутствие в составе войны делало вкладку тупиком.
-  const profileSection = profile && playerTag && (
-    <>
-      <DecksButton playerTag={playerTag} />
-      <PlayerProfileCard profile={profile} embedded />
-    </>
+  const gameSection = (
+    <div className="fade-in">
+      {profile && playerTag ? (
+        <>
+          <AvatarPicker current={me?.avatarEmoji} onChange={emoji =>
+            setMe(prev => prev && { ...prev, avatarEmoji: emoji ?? undefined })} />
+          <DecksButton playerTag={playerTag} />
+          <PlayerProfileCard profile={profile} embedded />
+        </>
+      ) : (
+        <p className="center muted small" style={{ marginTop: 16 }}>{t.me.gameEmpty}</p>
+      )}
+    </div>
   )
 
   if (state.kind === 'loading') {
     return <div className="center"><div className="spinner" /></div>
   }
+  // Нет в составе войны — клановой половины просто нет, но игровая работает,
+  // и запирать человека на экране с одной ошибкой незачем.
   if (state.kind === 'error') {
     return (
       <div>
-        <p className="center muted" style={{ margin: '24px 0 8px' }}>{state.message}</p>
-        {profileSection}
+        {sectionTabs}
+        {section === 'clan'
+          ? <p className="center muted" style={{ margin: '24px 0 8px' }}>{state.message}</p>
+          : gameSection}
       </div>
     )
   }
@@ -99,12 +136,16 @@ export function MyStatsView() {
     <div>
       <div className="me-header">
         <div className="me-title-row">
-          <h2 className="me-name">{s.name}</h2>
+          <h2 className="me-name">{me?.avatarEmoji ? `${me.avatarEmoji} ` : ''}{s.name}</h2>
           <span className={`perf-chip ${perf.cls}`}>{perf.emoji} {perfTranslated}</span>
         </div>
         <p className="muted small">{s.clanName} · {t.me.rankOf} #{s.rank} {t.me.of} {s.clanSize}</p>
       </div>
 
+      {sectionTabs}
+
+      {section === 'game' ? gameSection : (
+      <div className="fade-in">
       <div className="card me-ring-card">
         <ContributionRing percent={s.contributionPercent} label={t.me.contrib} ariaLabel={t.me.contribAria} />
         <div className="ring-side">
@@ -144,6 +185,10 @@ export function MyStatsView() {
         </div>
       </div>
 
+      {/* Награды сразу под цифрами: они и есть повод сюда заходить, а раньше
+          лежали под двумя графиками и сезонной таблицей. */}
+      <AchievementsCard />
+
       {history && history.weeks.length >= 2 && <WeeklyFameChart weeks={history.weeks} t={t} />}
       {history && history.weeks.length >= 2 && <VsClanChart weeks={history.weeks} t={t} />}
 
@@ -174,15 +219,13 @@ export function MyStatsView() {
         </div>
       )}
 
-      <AchievementsCard />
-
-      {profileSection}
-
       <TournamentHistoryCard playerTag={s.playerTag} />
 
       <button className="btn btn-share" onClick={share}>
         {t.me.share}
       </button>
+      </div>
+      )}
     </div>
   )
 }

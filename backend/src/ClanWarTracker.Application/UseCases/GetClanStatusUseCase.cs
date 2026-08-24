@@ -33,6 +33,13 @@ public class GetClanStatusUseCase(
             .GroupBy(p => p.PlayerTag, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.First().TelegramUserId, StringComparer.OrdinalIgnoreCase);
 
+        // Аватарки берём и у привязанных лидером (без Telegram-аккаунта): выбрать её
+        // такой игрок не мог, но если аккаунт потом отвяжут, картинка не должна исчезать.
+        var avatars = clanPlayers
+            .Where(p => !string.IsNullOrEmpty(p.AvatarEmoji))
+            .GroupBy(p => p.PlayerTag, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First().AvatarEmoji, StringComparer.OrdinalIgnoreCase);
+
         // «Привязан» для интерфейса = бот сможет тегнуть в чате. Для этого хватает
         // @username, поэтому привязанные лидером через /bind тоже считаются привязанными,
         // хотя боту они не писали и личное сообщение им не уйдёт.
@@ -129,7 +136,8 @@ public class GetClanStatusUseCase(
                 Role: RoleLabel(memberRoles.GetValueOrDefault(x.Participant.PlayerTag)),
                 Trophies: members.TryGetValue(x.Participant.PlayerTag, out var mi) ? mi.Trophies : 0,
                 DnaLabel: history.TryGetValue(x.Participant.PlayerTag, out var h2) ? h2.DnaLabel : null,
-                ReliabilityScore: history.TryGetValue(x.Participant.PlayerTag, out var h3) ? h3.Reliability : 0))
+                ReliabilityScore: history.TryGetValue(x.Participant.PlayerTag, out var h3) ? h3.Reliability : 0,
+                AvatarEmoji: avatars.GetValueOrDefault(x.Participant.PlayerTag)))
             // в основном списке UI хочет видеть не сыгравших сверху
             .OrderBy(p => p.Status == "played" ? 1 : p.Status == "timeLeft" ? 0 : -1)
             .ThenByDescending(p => p.Fame)

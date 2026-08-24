@@ -20,6 +20,28 @@ export interface PlayerStatus {
   trophies: number           // кубки игрока (0 — состав клана не отдался)
   dnaLabel?: string          // Pro: архетип ("Тащер 💪" и т.п.), undefined — мало данных/Free
   reliabilityScore: number   // Pro: надёжность 0..100 (0 — нет данных/Free)
+  avatarEmoji?: string       // эмодзи-аватарка, выбранная игроком
+}
+
+/* --- Дисциплина клана: кто подводит и кого приходится тянуть --- */
+export interface DisciplinePlayer {
+  playerTag: string
+  name: string
+  avatarEmoji?: string
+  missedDecks: number        // недоигранные военные колоды за учтённые недели
+  missedWeeks: number        // недель в составе без единой атаки
+  weeksTracked: number       // сколько недель игрок был в составе
+  nudgeCount: number         // сколько раз бот его пинал
+  lastMinuteBattles: number  // бои в последний час перед концом дня
+  totalBattles: number
+  avgHoursBeforeEnd: number  // в среднем за сколько часов до конца отыгрывает
+}
+
+export interface ClanDiscipline {
+  weeksAnalyzed: number
+  skippers: DisciplinePlayer[]
+  nudged: DisciplinePlayer[]
+  lastMinute: DisciplinePlayer[]
 }
 
 /** Pro-аналитика: шанс победы и здоровье клана. */
@@ -749,4 +771,5 @@ export interface SearchHistoryItem {
 export interface LinkedPlayer {
   playerTag: string
   name: string
+  avatarEmoji?: string
 }

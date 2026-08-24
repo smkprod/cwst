@@ -15,9 +15,12 @@ interface Props {
 }
 
 /**
- * «Аналитика недели» (Pro). Вместо прежнего «здоровья клана» (одна цифра из
- * данных за день) — живая история недели: шанс победы, медали по дням из
- * официального лога, темп против прошлой недели и герои недели.
+ * «Аналитика недели» (Pro): темп против прошлой недели, медали по дням из
+ * официального лога и герои недели.
+ *
+ * Отсюда убран «шанс победы». Он выглядел главной цифрой карточки, но был
+ * бесполезен: проценты скакали сами по себе от чужих атак, а сделать с ними
+ * было нечего. Разговор про конкретных людей теперь ведёт «Дисциплина клана».
  */
 export function InsightsCard({ insights, plan, players, dayLogs, warLog, race, periodType, periodIndex, hoursLeft }: Props) {
   const { t } = useT()
@@ -35,11 +38,6 @@ export function InsightsCard({ insights, plan, players, dayLogs, warLog, race, p
   }
 
   if (!insights) return null
-
-  const { winChance, winChanceIfSlackersOut, topRivalName } = insights
-  const drop = winChance !== null && winChanceIfSlackersOut !== null
-    ? winChance - winChanceIfSlackersOut
-    : 0
 
   // Официальный по-дневный лог: только военные дни (3..6 → Д1..Д4).
   // CR может отдавать в логе дни ПРОШЛЫХ недель — предпочитаем текущую (weekOffset 0);
@@ -87,31 +85,6 @@ export function InsightsCard({ insights, plan, players, dayLogs, warLog, race, p
         <div className="card-title">{t.insights.title}</div>
         <span className="pro-chip">PRO</span>
       </div>
-
-      {winChance !== null && (
-        <div className="win-block">
-          <div className="win-row">
-            <span className={`win-value ${winChance >= 60 ? 'win-good' : winChance >= 40 ? 'win-mid' : 'win-bad'}`}>
-              {winChance}%
-            </span>
-            <div className="win-info">
-              <span className="win-caption">{t.insights.winCaption}</span>
-              {topRivalName && <span className="muted small">{t.insights.topRival} {topRivalName}</span>}
-            </div>
-          </div>
-          <div className="win-track">
-            <div
-              className={`win-fill ${winChance >= 60 ? 'fill-good' : winChance >= 40 ? 'fill-mid' : 'fill-bad'}`}
-              style={{ width: `${winChance}%` }}
-            />
-          </div>
-          {drop >= 5 && winChanceIfSlackersOut !== null && (
-            <p className="win-warning">
-              ⚠️ {t.insights.slackersWarn1}<strong>{winChanceIfSlackersOut}%</strong>{t.insights.slackersWarn2}
-            </p>
-          )}
-        </div>
-      )}
 
       {/* На виду: прогноз финиша против прошлой недели (вперёд-смотрящее сравнение) */}
       {lastOurs && lastFame > 0 && (

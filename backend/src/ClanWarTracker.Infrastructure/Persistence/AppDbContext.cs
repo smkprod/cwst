@@ -52,6 +52,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasIndex(p => p.TelegramUserId).IsUnique();
             e.HasIndex(p => p.PlayerTag);
             e.Property(p => p.PlayerTag).HasMaxLength(16);
+            // 16 хватает на любой эмодзи: и с модификаторами тона, и ZWJ-последовательности
+            e.Property(p => p.AvatarEmoji).HasMaxLength(16);
             e.HasOne(p => p.Clan)
              .WithMany(c => c.Players)
              .HasForeignKey(p => p.ClanId)
