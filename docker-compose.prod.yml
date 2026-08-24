@@ -55,10 +55,12 @@ services:
       DATABASE_URL: postgres://clanwar:${POSTGRES_PASSWORD}@db:5432/clanwar
       CLASH_ROYALE_API_TOKEN: ${CLASH_ROYALE_API_TOKEN}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
-      # Адрес, по которому Telegram скачивает картинки inline-карточек. Должен быть
-      # тем же доменом, что и в Caddyfile, и открываться снаружи. Не задан — inline
-      # работает текстом, без картинок.
-      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-}
+      # Адрес, по которому Telegram скачивает картинки inline-карточек.
+      # По умолчанию — тот же домен, что и в Caddyfile: он не секрет, и держать его
+      # тут значением по умолчанию проще, чем требовать строку в .env на каждом сервере.
+      # ВАЖНО: меняете домен в Caddyfile — поменяйте и здесь, иначе картинки будут
+      # запрашиваться со старого адреса. Переопределяется через .env при необходимости.
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-https://165-245-222-154.sslip.io}
       DOTNET_gcServer: "0"
     depends_on:
       db:
