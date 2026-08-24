@@ -373,10 +373,18 @@ public class BotUpdateHandler(
     /// вызывающий отдаст текстовый вариант. Ссылка в никуда хуже отсутствия картинки —
     /// Telegram молча выбросит такой результат из выдачи, и это невозможно отладить.
     /// </summary>
-    private string? Img(string kind, string tag) =>
-        PublicBaseUrl is { } baseUrl
-            ? $"{baseUrl}/api/img/{kind}/{tag.TrimStart('#')}.jpg"
-            : null;
+    private string? Img(string kind, string tag)
+    {
+        if (PublicBaseUrl is not { } baseUrl) return null;
+
+        // Метка десятиминутного окна в адресе. Telegram кэширует скачанную картинку
+        // по URL и держит её заметно дольше, чем живут наши данные, — из-за этого
+        // в чате неделями показывалась бы одна и та же старая карточка. Меняющийся
+        // адрес заставляет его перекачать, но не чаще раза в десять минут: постоянно
+        // новый URL сводил бы кэш на нет и заставлял перерисовывать на каждый показ.
+        var bucket = DateTime.UtcNow.Ticks / TimeSpan.TicksPerMinute / 10;
+        return $"{baseUrl}/api/img/{kind}/{tag.TrimStart('#')}.jpg?v={bucket}";
+    }
 
     /// <summary>Карточка картинкой, а если картинки нет — та же карточка текстом.</summary>
     private InlineQueryResult Photo(
