@@ -51,7 +51,8 @@ public class ImageController(
             var ours = status.Race.FirstOrDefault(r => r.IsOurClan);
             return renderer.RenderWar(new WarCardModel(
                 me.Name, status.ClanName, me.Fame, me.Rank, status.Players.Count,
-                me.DecksUsedToday, ours?.Position ?? 0, status.Race.Count, await BotNameAsync(ct)));
+                me.DecksUsedToday, ours?.Position ?? 0, status.Race.Count,
+                await BotNameAsync(ct), await ArtAsync(playerTag, ct)));
         });
 
     /// <summary>GET /api/img/profile/{tag}.jpg — карточка игрока.</summary>
@@ -62,7 +63,8 @@ public class ImageController(
             var info = await Try(() => crApi.GetPlayerInfoAsync(Normalize(tag), ct));
             return info is null ? null : renderer.RenderProfile(new ProfileCardModel(
                 info.Name, info.ClanName, info.ExpLevel, info.Trophies, info.BestTrophies,
-                info.WarDayWins, info.ThreeCrownWins, await BotNameAsync(ct)));
+                info.WarDayWins, info.ThreeCrownWins,
+                await BotNameAsync(ct), await ArtAsync(info.Tag, ct)));
         });
 
     /// <summary>GET /api/img/clan/{tag}.jpg — карточка клана.</summary>
@@ -73,7 +75,7 @@ public class ImageController(
             var info = await Try(() => crApi.GetClanInfoAsync(Normalize(tag), ct));
             return info is null ? null : renderer.RenderClan(new ClanCardModel(
                 info.Name, info.Tag, info.MemberCount, info.ClanScore,
-                info.ClanWarTrophies, info.RequiredTrophies, await BotNameAsync(ct)));
+                info.ClanWarTrophies, info.RequiredTrophies, await BotNameAsync(ct), null));
         });
 
     /// <summary>GET /api/img/deck/{tag}.jpg — текущая колода игрока настоящими картами.</summary>
@@ -125,6 +127,25 @@ public class ImageController(
     }
 
     private static string Normalize(string tag) => "#" + tag.TrimStart('#').ToUpperInvariant();
+
+    /// <summary>
+    /// Арт для фона карточки — любимая карта игрока, а если её нет, первая из колоды.
+    /// Именно она делает карточку похожей на игру, а не на тёмный прямоугольник с цифрами.
+    /// null — рисуем без арта, композиция это переживает.
+    /// </summary>
+    private async Task<string?> ArtAsync(string playerTag, CancellationToken ct)
+    {
+        var info = await Try(() => crApi.GetPlayerInfoAsync(playerTag, ct));
+        if (info is null) return null;
+
+        if (info.CurrentFavouriteCard is { } fav)
+        {
+            var catalog = await Try(() => crApi.GetAllCardsAsync(ct));
+            if (catalog is not null && catalog.TryGetValue(fav, out var card))
+                return card.IconUrl;
+        }
+        return info.CurrentDeck.FirstOrDefault()?.IconUrl;
+    }
 
     private static async Task<T?> Try<T>(Func<Task<T?>> get) where T : class
     {
