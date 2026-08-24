@@ -24,6 +24,15 @@ public class TelegramAuthMiddleware(RequestDelegate next, IConfiguration config,
             return;
         }
 
+        // Картинки для inline-режима качает сам Telegram со своих серверов — initData
+        // у него взяться неоткуда. Отдаём там только то, что и так открыто в публичном
+        // профиле игрока Clash Royale, так что закрывать эту ручку нечего.
+        if (ctx.Request.Path.StartsWithSegments("/api/img"))
+        {
+            await next(ctx);
+            return;
+        }
+
         var botToken = ClanWarTracker.Infrastructure.DependencyInjection.CleanToken(
             Environment.GetEnvironmentVariable("TELEGRAM_BOT_TOKEN")
             ?? config["TELEGRAM_BOT_TOKEN"]

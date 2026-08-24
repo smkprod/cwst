@@ -24,6 +24,15 @@ public class BotUpdateHandler(
 {
     private string _botUsername = "bot";
 
+    /// <summary>
+    /// Публичный адрес сервиса — по нему Telegram скачивает картинки карточек.
+    /// Не задан — inline работает текстом: лучше карточка без картинки, чем ссылка
+    /// в никуда, по которой Telegram молча выбросит результат из выдачи.
+    /// </summary>
+    private string? PublicBaseUrl => config["PUBLIC_BASE_URL"]?.Trim().TrimEnd('/') is { Length: > 0 } url
+        ? url
+        : null;
+
     /// <summary>Ожидающие рефералы: TG ID нового пользователя → TG ID пригласившего.
     /// Заполняется при /start ref_&lt;id&gt; и расходуется при первой привязке тега.
     /// In-memory: при перезапуске воркера незавершённые рефералы теряются — это допустимо.</summary>
@@ -131,27 +140,65 @@ public class BotUpdateHandler(
             var players = sp.GetRequiredService<IPlayerRepository>();
             var player = await players.GetByTelegramIdAsync(inline.From.Id, ct);
 
-            if (player?.ClanId is int clanId)
+            // Набрали тег — значит спрашивают про конкретного игрока, а не про себя.
+            // Свои карточки в этом случае только мешали бы: человек ищет чужой профиль.
+            var query = inline.Query?.Trim() ?? "";
+            if (IsLikelyCrTag(query))
             {
-                var clans = sp.GetRequiredService<IClanRepository>();
-                var clan = await clans.GetByIdAsync(clanId, ct);
-                if (clan is not null)
-                {
-                    t = NotificationSettings.Parse(clan.NotificationSettingsJson).Text;
+                using var searchBudget = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                searchBudget.CancelAfter(InlineBudget);
 
-                    using var budget = CancellationTokenSource.CreateLinkedTokenSource(ct);
-                    budget.CancelAfter(InlineBudget);
-                    try
-                    {
-                        var status = await sp.GetRequiredService<GetClanStatusUseCase>()
-                            .ExecuteAsync(clan.ClanTag, budget.Token);
-                        if (status is not null) results.AddRange(BuildInlineCards(status, player.PlayerTag, t));
-                    }
-                    catch (OperationCanceledException) when (!ct.IsCancellationRequested)
-                    {
-                        // Не уложились в бюджет — ниже уйдёт карточка-приглашение
-                    }
+                var tag = LinkPlayerUseCase.Normalize(query);
+                var crSearch = sp.GetRequiredService<IClashRoyaleApi>();
+                var found = await Safe(() => crSearch.GetPlayerInfoAsync(tag, searchBudget.Token));
+                var searchCatalog = await Safe(() => crSearch.GetAllCardsAsync(searchBudget.Token));
+
+                if (found is not null)
+                {
+                    results.AddRange(BuildInlineCards(null, found, searchCatalog, tag, t, forSearch: true));
                 }
+                else
+                {
+                    results.Add(Card("notfound", t.InlineNotFoundTitle, t.InlineNotFoundDesc,
+                        string.Format(t.InlineNotFoundText, tag), t, null));
+                }
+
+                await bot.AnswerInlineQuery(inline.Id, results, cacheTime: 300, isPersonal: false,
+                    cancellationToken: ct);
+                return;
+            }
+
+            if (player is not null)
+            {
+                var clan = player.ClanId is int clanId
+                    ? await sp.GetRequiredService<IClanRepository>().GetByIdAsync(clanId, ct)
+                    : null;
+                if (clan is not null) t = NotificationSettings.Parse(clan.NotificationSettingsJson).Text;
+
+                using var budget = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                budget.CancelAfter(InlineBudget);
+
+                // Параллельно и под общим бюджетом: война и профиль — независимые запросы,
+                // а последовательно они вдвоём в отведённые секунды уже не помещались.
+                var crApi = sp.GetRequiredService<IClashRoyaleApi>();
+                var statusTask = clan is null
+                    ? Task.FromResult<ClanStatusDto?>(null)
+                    : Safe(() => sp.GetRequiredService<GetClanStatusUseCase>()
+                        .ExecuteAsync(clan.ClanTag, budget.Token));
+                var clanTask = clan is null
+                    ? Task.FromResult<CrClanInfo?>(null)
+                    : Safe(() => crApi.GetClanInfoAsync(clan.ClanTag, budget.Token));
+                var infoTask = Safe(() => crApi.GetPlayerInfoAsync(player.PlayerTag, budget.Token));
+                var catalogTask = Safe(() => crApi.GetAllCardsAsync(budget.Token));
+                var topTask = Safe(() => crApi.GetTopPlayerDecksAsync(20, budget.Token));
+
+                await Task.WhenAll(statusTask, clanTask, infoTask, catalogTask, topTask);
+
+                // Что успело прийти, из того и собираем: одна отвалившаяся ручка
+                // не должна уносить с собой остальные карточки.
+                results.AddRange(BuildInlineCards(
+                    statusTask.Result, infoTask.Result, catalogTask.Result, player.PlayerTag, t,
+                    clanInfo: clanTask.Result, topDecks: topTask.Result));
             }
         }
         catch (Exception ex)
@@ -178,36 +225,174 @@ public class BotUpdateHandler(
             button: button, cancellationToken: ct);
     }
 
-    private IEnumerable<InlineQueryResult> BuildInlineCards(ClanStatusDto status, string playerTag, BotText t)
+    /// <summary>Выполняет запрос, проглатывая любой сбой: подвела одна ручка — покажем остальное.</summary>
+    private static async Task<T?> Safe<T>(Func<Task<T?>> get) where T : class
     {
-        var me = status.Players.FirstOrDefault(p =>
+        try { return await get(); }
+        catch { return null; }
+    }
+
+    private IEnumerable<InlineQueryResult> BuildInlineCards(
+        ClanStatusDto? status, CrPlayerInfo? info,
+        IReadOnlyDictionary<string, CrCatalogCard>? catalog, string playerTag, BotText t,
+        CrClanInfo? clanInfo = null, List<CrTopDeck>? topDecks = null, bool forSearch = false)
+    {
+        var me = status?.Players.FirstOrDefault(p =>
             string.Equals(p.PlayerTag, playerTag, StringComparison.OrdinalIgnoreCase));
 
-        if (me is not null)
+        // Иконка любимой карты вместо безликой заглушки в списке результатов
+        string? favIcon = null;
+        if (info?.CurrentFavouriteCard is { } fav && catalog is not null
+            && catalog.TryGetValue(fav, out var favCard)) favIcon = favCard.IconUrl;
+
+        if (me is not null && status is not null)
         {
-            yield return new InlineQueryResultArticle(
-                "war", t.InlineWarTitle,
-                PlainText(string.Format(t.InlineWarText,
-                    me.Name, status.ClanName, me.Fame, me.Rank, me.DecksUsedToday) + t.InlineFooter))
+            // Картинкой — только если известен публичный адрес: ссылка в никуда
+            // заставит Telegram молча выбросить результат из выдачи, и человек
+            // решит, что бот сломался. Нет адреса — та же карточка текстом.
+            var img = PublicBaseUrl is { } baseUrl
+                ? $"{baseUrl}/api/img/war/{me.PlayerTag.TrimStart('#')}.jpg"
+                : null;
+
+            var warText = string.Format(t.InlineWarText,
+                me.Name, status.ClanName, me.Fame, me.Rank, me.DecksUsedToday);
+
+            yield return img is null
+                ? Card("war", t.InlineWarTitle, t.InlineWarDesc, warText, t, favIcon)
+                : new InlineQueryResultPhoto(id: "war", photoUrl: img, thumbnailUrl: img)
+                {
+                    Title = t.InlineWarTitle,
+                    Description = t.InlineWarDesc,
+                    Caption = warText + t.InlineFooter,
+                    // Размеры подсказывают Telegram, как показать превью, не дожидаясь загрузки
+                    PhotoWidth = 800,
+                    PhotoHeight = 420,
+                    ReplyMarkup = OpenBotKeyboard(t),
+                };
+        }
+
+        if (info is not null)
+        {
+            // При поиске по тегу это чужой профиль — и подписать его надо иначе,
+            // иначе человек решит, что бот показывает ему его собственный.
+            yield return Card("profile",
+                forSearch ? t.InlineFoundTitle : t.InlineProfileTitle,
+                forSearch ? t.InlineFoundDesc : t.InlineProfileDesc,
+                string.Format(t.InlineProfileText,
+                    info.Name, info.ExpLevel, info.Trophies, info.BestTrophies,
+                    info.WarDayWins, info.ThreeCrownWins),
+                t, favIcon);
+
+            if (info.CurrentDeck.Count > 0)
             {
-                Description = t.InlineWarDesc,
-                ReplyMarkup = OpenBotKeyboard(t),
+                var names = string.Join(" · ", info.CurrentDeck.Select(c => $"{c.Name} {c.Level}"));
+                var avg = Math.Round(info.CurrentDeck.Average(c => (double)c.Level), 1);
+                var link = DeckLink(info.CurrentDeck, catalog);
+
+                yield return new InlineQueryResultArticle(
+                    "deck", t.InlineDeckTitle,
+                    PlainText(string.Format(t.InlineDeckText, info.Name, names, avg) + t.InlineFooter))
+                {
+                    Description = t.InlineDeckDesc,
+                    ThumbnailUrl = info.CurrentDeck[0].IconUrl,
+                    // Кнопка «открыть в игре» только когда ссылка собралась целиком:
+                    // неполная открыла бы не ту колоду. Нет ссылки — обычная кнопка бота.
+                    ReplyMarkup = link is null
+                        ? OpenBotKeyboard(t)
+                        : new InlineKeyboardMarkup(InlineKeyboardButton.WithUrl(t.InlineDeckOpen, link)),
+                };
+            }
+        }
+
+        if (clanInfo is not null)
+        {
+            yield return Card("claninfo", t.InlineClanCardTitle, t.InlineClanCardDesc,
+                string.Format(t.InlineClanCardText,
+                    clanInfo.Name, clanInfo.Tag, clanInfo.MemberCount, clanInfo.ClanScore,
+                    clanInfo.ClanWarTrophies, clanInfo.RequiredTrophies),
+                t, favIcon);
+        }
+
+        if (topDecks is { Count: > 0 })
+        {
+            // Показываем три колоды поимённо: «так играет игрок №1 мира» весомее любой
+            // усреднённой меты, а восемь карт в строку читаются и без картинок.
+            var shown = topDecks.Take(3).ToList();
+            var rows = string.Join("\n\n", shown.Select(d =>
+                $"#{d.Rank} {d.PlayerName} · {d.Trophies} 🏆\n" +
+                string.Join(" · ", d.Cards.Select(c => c.Name))));
+
+            var firstLink = DeckLink(shown[0].Cards, catalog);
+            yield return new InlineQueryResultArticle(
+                "topdecks", t.InlineTopDecksTitle,
+                PlainText(string.Format(t.InlineTopDecksText, topDecks.Count, rows) + t.InlineFooter))
+            {
+                Description = t.InlineTopDecksDesc,
+                ThumbnailUrl = shown[0].Cards.FirstOrDefault()?.IconUrl,
+                ReplyMarkup = firstLink is null
+                    ? OpenBotKeyboard(t)
+                    : new InlineKeyboardMarkup(InlineKeyboardButton.WithUrl(t.InlineTopDeckOne, firstLink)),
             };
         }
+
+        if (status is null) yield break;
 
         var ours = status.Race.FirstOrDefault(r => r.IsOurClan);
         if (ours is not null)
         {
-            yield return new InlineQueryResultArticle(
-                "clan", t.InlineClanTitle,
-                PlainText(string.Format(t.InlineClanText,
+            yield return Card("clan", t.InlineClanTitle, t.InlineClanDesc,
+                string.Format(t.InlineClanText,
                     status.ClanName, ours.Position, status.Race.Count,
-                    ours.Fame, status.Stats.PlayersNotPlayed) + t.InlineFooter))
-            {
-                Description = t.InlineClanDesc,
-                ReplyMarkup = OpenBotKeyboard(t),
-            };
+                    ours.Fame, status.Stats.PlayersNotPlayed),
+                t, favIcon);
         }
+
+        var top = status.Players.Where(p => p.Fame > 0)
+            .OrderByDescending(p => p.Fame).Take(3).ToList();
+        if (top.Count > 0)
+        {
+            var medals = new[] { "🥇", "🥈", "🥉" };
+            var rows = string.Join("\n", top.Select((p, i) => $"{medals[i]} {p.Name} — {p.Fame} 🏅"));
+            yield return Card("top", t.InlineTopTitle, t.InlineTopDesc,
+                string.Format(t.InlineTopText, status.ClanName, rows), t, favIcon);
+        }
+
+        var last = status.WarLog.FirstOrDefault()?.Standings.FirstOrDefault(s => s.IsOurClan);
+        if (last is not null)
+        {
+            yield return Card("lastwar", t.InlineLastWarTitle, t.InlineLastWarDesc,
+                string.Format(t.InlineLastWarText,
+                    status.ClanName, last.Rank, last.Fame,
+                    last.TrophyChange > 0 ? $"+{last.TrophyChange}" : last.TrophyChange.ToString()),
+                t, favIcon);
+        }
+    }
+
+    private InlineQueryResultArticle Card(
+        string id, string title, string desc, string text, BotText t, string? thumb) =>
+        new(id, title, PlainText(text + t.InlineFooter))
+        {
+            Description = desc,
+            ThumbnailUrl = thumb,
+            ReplyMarkup = OpenBotKeyboard(t),
+        };
+
+    /// <summary>
+    /// Ссылка «открыть колоду в игре» для текущей колоды игрока. null, если хотя бы
+    /// одной карты нет в справочнике: неполная ссылка открыла бы не ту колоду.
+    /// </summary>
+    private static string? DeckLink(
+        List<CrDeckCard> deck, IReadOnlyDictionary<string, CrCatalogCard>? catalog)
+    {
+        if (catalog is null || deck.Count == 0) return null;
+
+        var ids = new List<int>(deck.Count);
+        foreach (var c in deck)
+        {
+            if (!catalog.TryGetValue(c.Name, out var card) || card.Id <= 0) return null;
+            ids.Add(card.Id);
+        }
+        return $"https://link.clashroyale.com/deck/en?deck={string.Join(';', ids)}";
     }
 
     /// <summary>

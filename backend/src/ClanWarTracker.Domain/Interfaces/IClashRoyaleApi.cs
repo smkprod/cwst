@@ -33,6 +33,13 @@ public interface IClashRoyaleApi
     /// <summary>Полный профиль игрока: уровень, трофеи, клан, карты. null — не найден.</summary>
     Task<CrPlayerInfo?> GetPlayerInfoAsync(string playerTag, CancellationToken ct = default);
 
+    /// <summary>
+    /// Колоды игроков из мирового топа — чем играют лучшие прямо сейчас.
+    /// Тяжёлый запрос (рейтинг + профиль на каждого), поэтому кэшируется надолго.
+    /// Пустой список — рейтинг недоступен, это не ошибка.
+    /// </summary>
+    Task<List<CrTopDeck>> GetTopPlayerDecksAsync(int limit = 20, CancellationToken ct = default);
+
     /// <summary>Живые данные игрового турнира по тегу (/tournaments/{tag}). null — не найден.</summary>
     Task<CrTournament?> GetTournamentAsync(string tournamentTag, CancellationToken ct = default);
 
