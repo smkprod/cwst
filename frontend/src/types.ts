@@ -755,6 +755,15 @@ export interface DeckSuggestion {
   copyLink: string | null
 }
 
+/** Колода игрока мирового топа, примеренная на твою коллекцию. */
+export interface TopDeck {
+  playerName: string
+  rank: number
+  trophies: number
+  clanName: string | null
+  deck: DeckSuggestion
+}
+
 export interface DeckSuggestions {
   playerTag: string
   maxCardLevel: number
@@ -764,6 +773,7 @@ export interface DeckSuggestions {
   baseSkipped: number    // отброшено из-за незнакомого имени карты
   ready: DeckSuggestion[]  // можно собрать прямо сейчас
   almost: DeckSuggestion[] // не хватает 1–2 карт
+  top: TopDeck[]           // что играют лучшие в мире прямо сейчас
 }
 
 /* --- Витрина клана, который ещё не подключён к боту --- */

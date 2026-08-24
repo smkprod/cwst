@@ -25,6 +25,10 @@ public class SuggestDecksUseCase(IClashRoyaleApi crApi)
     /// <summary>Сколько карт может не хватать, чтобы колода попала в «почти собрана».</summary>
     private const int AlmostGap = 2;
 
+    /// <summary>Скольких игроков мирового топа опрашиваем и сколько колод показываем.</summary>
+    private const int TopPlayers = 20;
+    private const int MaxTop = 10;
+
     public async Task<DeckSuggestionsDto?> ExecuteAsync(string playerTag, CancellationToken ct = default)
     {
         var info = await crApi.GetPlayerInfoAsync(playerTag, ct);
@@ -72,7 +76,51 @@ public class SuggestDecksUseCase(IClashRoyaleApi crApi)
             BaseSize: scored.Count,
             BaseSkipped: skipped,
             Ready: ready,
-            Almost: almost);
+            Almost: almost,
+            Top: await TopAsync(catalog, owned, maxLevel, ct));
+    }
+
+    /// <summary>
+    /// Колоды мирового топа, примеренные на коллекцию смотрящего.
+    ///
+    /// Это единственный источник колод, который не надо править руками: MetaDecks
+    /// устаревает каждый сезон и молча, а живой топ обновляет себя сам. Считаем той же
+    /// функцией, что и мету, — иначе «готовность» в двух списках значила бы разное.
+    /// </summary>
+    private async Task<List<TopDeckDto>> TopAsync(
+        IReadOnlyDictionary<string, CrCatalogCard> catalog,
+        IReadOnlyDictionary<string, CrCard> owned,
+        int maxLevel, CancellationToken ct)
+    {
+        List<CrTopDeck> top;
+        try { top = await crApi.GetTopPlayerDecksAsync(TopPlayers, ct); }
+        catch { return []; }   // рейтинг недоступен — остальная подборка от этого не страдает
+
+        var result = new List<TopDeckDto>();
+        foreach (var d in top)
+        {
+            var names = d.Cards.Select(c => c.Name).ToArray();
+            // Карта не из справочника — сезонное переименование. Такую колоду показывать
+            // нельзя: игрок увидит то, что не соберёт никогда.
+            if (names.Length != DeckSize || names.Any(n => !catalog.ContainsKey(n))) continue;
+
+            var deck = new MetaDecks.MetaDeck(
+                Id: $"top-{d.PlayerTag.TrimStart('#')}",
+                Name: d.PlayerName,
+                Archetype: $"#{d.Rank} в мире",
+                Note: string.Empty,
+                Cards: names);
+
+            result.Add(new TopDeckDto(
+                PlayerName: d.PlayerName,
+                Rank: d.Rank,
+                Trophies: d.Trophies,
+                ClanName: d.ClanName,
+                Deck: Score(deck, catalog, owned, maxLevel)));
+
+            if (result.Count >= MaxTop) break;
+        }
+        return result;
     }
 
     private static DeckSuggestionsDto Empty(string playerTag, int maxLevel) => new(
@@ -83,7 +131,8 @@ public class SuggestDecksUseCase(IClashRoyaleApi crApi)
         BaseSize: MetaDecks.All.Count,
         BaseSkipped: 0,
         Ready: [],
-        Almost: []);
+        Almost: [],
+        Top: []);
 
     private static DeckSuggestionDto Score(
         MetaDecks.MetaDeck deck,

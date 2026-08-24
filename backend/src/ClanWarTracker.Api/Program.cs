@@ -8,7 +8,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddSingleton<WarForecastService>();
 builder.Services.AddScoped<GetClanStatusUseCase>();
-builder.Services.AddSingleton<ClanWarTracker.Api.Rendering.WarCardRenderer>();
+// Рисовалка держит загруженные шрифты и кэш иконок — одна на приложение.
+// HttpClientFactory нужен ей, чтобы качать арты карт с CDN игры.
+builder.Services.AddHttpClient();
+builder.Services.AddSingleton<ClanWarTracker.Api.Rendering.CardRenderer>();
 builder.Services.AddScoped<GetClanDisciplineUseCase>();
 builder.Services.AddScoped<GetRaceScoutUseCase>();
 builder.Services.AddScoped<GetPlayerStatsUseCase>();

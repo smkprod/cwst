@@ -46,6 +46,20 @@ public record DeckSuggestionDto(
     // отсутствие кнопки, — человек тапнет и получит мусор вместо колоды.
     string? CopyLink);
 
+/// <summary>
+/// Колода игрока из мирового топа, примеренная на коллекцию того, кто смотрит.
+///
+/// Ценность в имени: «так играет игрок №1 мира» весомее любой усреднённой меты.
+/// И это единственный источник колод, который не надо править руками, — в отличие
+/// от MetaDecks, устаревающего каждый сезон.
+/// </summary>
+public record TopDeckDto(
+    string PlayerName,
+    int Rank,
+    int Trophies,
+    string? ClanName,
+    DeckSuggestionDto Deck);
+
 /// <summary>Подборка колод под игрока + честная подпись, откуда взята база.</summary>
 public record DeckSuggestionsDto(
     string PlayerTag,
@@ -55,4 +69,5 @@ public record DeckSuggestionsDto(
     int BaseSize,               // сколько колод базы прошло сверку со справочником карт
     int BaseSkipped,            // отброшено из-за незнакомого имени карты (сезонное переименование)
     List<DeckSuggestionDto> Ready,      // можно играть уже сейчас
-    List<DeckSuggestionDto> Almost);    // не хватает 1–2 карт
+    List<DeckSuggestionDto> Almost,     // не хватает 1–2 карт
+    List<TopDeckDto> Top);              // что играют лучшие в мире прямо сейчас
