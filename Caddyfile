@@ -1,3 +1,5 @@
+# Меняете домен — поменяйте и PUBLIC_BASE_URL в docker-compose.prod.yml:
+# по нему Telegram скачивает картинки inline-карточек.
 165-245-222-154.sslip.io {
 	reverse_proxy api:10000
 }
