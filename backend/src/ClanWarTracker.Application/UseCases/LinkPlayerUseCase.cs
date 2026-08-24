@@ -1,3 +1,4 @@
+using ClanWarTracker.Application.Notifications;
 using ClanWarTracker.Domain.Entities;
 using ClanWarTracker.Domain.Interfaces;
 
@@ -79,14 +80,22 @@ public class LinkPlayerUseCase(
         return name;
     }
 
-    /// <summary>Награда виральной петли: сразу сообщаем пригласившему, что друг подключился.</summary>
+    /// <summary>
+    /// Награда виральной петли: сразу сообщаем пригласившему, что друг подключился.
+    /// Язык берём у клана пригласившего — это его бот и его язык, а не приглашённого.
+    /// </summary>
     private async Task NotifyReferrerAsync(Player? referrer, string name, CancellationToken ct)
     {
         if (referrer?.TelegramUserId is not long refId) return;
+
+        var refClan = referrer.ClanId.HasValue
+            ? await clans.GetByIdAsync(referrer.ClanId.Value, ct)
+            : null;
+        var t = NotificationSettings.Parse(refClan?.NotificationSettingsJson).Text;
+
         try
         {
-            await notifier.SendToUserAsync(refId,
-                $"🎉 По твоей ссылке в Clanify зашёл новый игрок: {name}. Спасибо, что зовёшь друзей!", ct);
+            await notifier.SendToUserAsync(refId, string.Format(t.ReferralJoined, name), ct);
         }
         catch { /* пригласивший мог заблокировать бота — не критично */ }
     }

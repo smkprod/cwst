@@ -19,16 +19,6 @@ public class SendPerfectDayUseCase(
     /// <summary>4 атаки × 225 (все победы) — максимум и «идеальный день».</summary>
     private const int PerfectDayFame = 900;
 
-    private static readonly string[] Phrases =
-    [
-        "🏆 {0} набил 900 за день! Чемпион. Передай остальным, где брал читы 😎",
-        "👑 {0} — 900/900 за день! Противники уже пишут жалобу в Supercell 📝",
-        "🚀 {0} набрал 900 медалей за день. NASA интересуется его руками 🚀",
-        "💪 {0} сделал идеальный день: 900! Ни одной осечки — машина, а не игрок",
-        "⚡ 900 за день от {0}! Оставь немного медалей другим, жадина 😄",
-        "🔥 {0} закрыл день на 900! Скамейка запасных в шоке, тренер плачет от счастья",
-        "🎯 {0} — 900 из 900! Снайпер. В следующий раз пусть играет с закрытыми глазами",
-    ];
 
     /// <param name="congratulatedKeys">Дедуп между тиками: "clanId:season:section:period:tag".</param>
     /// <returns>Сколько поздравлений отправлено.</returns>
@@ -38,7 +28,8 @@ public class SendPerfectDayUseCase(
         foreach (var clan in await clans.GetAllAsync(ct))
         {
             if (clan.TelegramChatId == 0) continue;
-            if (!NotificationSettings.Parse(clan.NotificationSettingsJson).PerfectDay.Enabled) continue;
+            var settings = NotificationSettings.Parse(clan.NotificationSettingsJson);
+            if (!settings.PerfectDay.Enabled) continue;
 
             WarStatus? war;
             try { war = await crApi.GetCurrentWarAsync(clan.ClanTag, ct); }
@@ -88,7 +79,10 @@ public class SendPerfectDayUseCase(
                 var key = $"{clan.Id}:{war.SeasonId}:{war.SectionIndex}:{war.PeriodIndex}:{p.PlayerTag}";
                 if (congratulatedKeys.Contains(key)) continue;
 
-                var phrase = Phrases[StablePick(key)];
+                // Шутка выбирается по ключу дня, а не случайно: повторный тик того же
+                // дня не должен поздравлять тем же человеком, но другими словами.
+                var jokes = settings.Text.PerfectDayJokes;
+                var phrase = jokes[StablePick(key) % jokes.Length];
                 try
                 {
                     await notifier.SendToChatAsync(
@@ -103,11 +97,16 @@ public class SendPerfectDayUseCase(
         return sent;
     }
 
-    /// <summary>Стабильный выбор фразы: тот же игрок в тот же день всегда получает одну и ту же.</summary>
+    /// <summary>
+    /// Стабильный номер фразы: тот же игрок в тот же день всегда получает одну и ту же.
+    /// Возвращает неотрицательное число, а остаток по длине берёт вызывающий — наборов
+    /// шуток теперь три (по одному на язык), и они могут быть разной длины.
+    /// Маска вместо Math.Abs намеренно: Math.Abs(int.MinValue) бросает исключение.
+    /// </summary>
     private static int StablePick(string key)
     {
         var hash = 0;
         foreach (var c in key) hash = unchecked(hash * 31 + c);
-        return Math.Abs(hash % Phrases.Length);
+        return hash & 0x7FFFFFFF;
     }
 }

@@ -29,6 +29,7 @@ public class SendRemindersUseCase(
 
             var settings = NotificationSettings.Parse(clan.NotificationSettingsJson);
             if (!settings.Reminders.Enabled) continue;
+            var t = settings.Text;
 
             var now = DateTime.UtcNow;
             // Конец дня: время, заданное главой в настройках, иначе допущение (10:00 UTC).
@@ -77,9 +78,7 @@ public class SendRemindersUseCase(
                 var decksLeft = 4 - slacker.DecksUsedToday;
                 await notifier.SendToUserAsync(
                     player.TelegramUserId!.Value,
-                    $"⚔️ Ты ещё не сыграл Clan War!\n" +
-                    $"Осталось колод: {decksLeft}/4\n" +
-                    $"До конца дня войны: ~{(int)timeLeft.TotalHours} ч {timeLeft.Minutes} мин", ct);
+                    string.Format(t.ReminderDm, decksLeft, (int)timeLeft.TotalHours, timeLeft.Minutes), ct);
 
                 player.LastReminderSentAt = now;
                 nudgedTags.Add(slacker.PlayerTag);
@@ -97,18 +96,19 @@ public class SendRemindersUseCase(
                 var names = string.Join("\n", taggable.Select(s =>
                 {
                     var p = allLinked[s.PlayerTag];
-                    return $"• {TelegramMention.Mention(s.Name, p.TelegramUserId, p.TelegramUsername)} " +
-                           $"— осталось {4 - s.DecksUsedToday}/4 🃏";
+                    return string.Format(t.SlackerRow,
+                        TelegramMention.Mention(s.Name, p.TelegramUserId, p.TelegramUsername),
+                        4 - s.DecksUsedToday);
                 }));
                 var unlinked = slackers.Count - taggable.Count;
-                var note = unlinked > 0 ? $"\n\n👥 Ещё <b>{unlinked}</b> без Telegram — пусть привяжут аккаунт в боте." : "";
-                parts.Add($"⏰ <b>Ещё не доиграли войну:</b>\n\n{names}{note}");
+                var note = unlinked > 0 ? "\n\n" + string.Format(t.ReminderUnlinked, unlinked) : "";
+                parts.Add($"{t.ReminderChatTitle}\n\n{names}{note}");
             }
 
             // Up-sell — только ВМЕСТЕ со сводкой по лентяям. Отдельно не шлём: когда все
             // отыграли, голая реклама Pro в чате — это спам.
             if (!isPro && allLinked.Count > 0 && parts.Count > 0)
-                parts.Add("🔒 Личные напоминания в DM — функция Pro. Подключи Pro, чтобы никто не забывал про атаки.");
+                parts.Add(t.ProUpsell);
 
             // Сводка в чат — один раз за военный день (ключ дня), а не каждый тик окна.
             var chatKey = $"{clan.Id}:{war.SeasonId}:{war.SectionIndex}:{war.PeriodIndex}";

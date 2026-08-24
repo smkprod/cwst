@@ -45,15 +45,16 @@ public class SendWarStartUseCase(
             clan.LastWarStartKey = key;
             await clans.SaveChangesAsync(ct);
 
+            var t = settings.Text;
             var isColosseum = war.PeriodType == "colosseum";
-            var title = isColosseum ? "🏟 Колизей начался!" : "⚔️ Клановая война началась!";
+            var title = isColosseum ? t.ColosseumStartTitle : t.WarStartTitle;
 
             if (clan.TelegramChatId != 0 && settings.WarStart.Channel.WantsChat())
             {
                 try
                 {
                     await notifier.SendToChatWithAppButtonAsync(clan.TelegramChatId,
-                        $"{title}\nПора отыграть 4/4 колоды — не подведи клан! 💪",
+                        $"{title}\n{t.WarStartChat}",
                         clan.TelegramMessageThreadId, html: false, ct: ct);
                     sent++;
                 }
@@ -69,7 +70,7 @@ public class SendWarStartUseCase(
                 try
                 {
                     await notifier.SendToUserAsync(p.TelegramUserId!.Value,
-                        $"{title}\nЗайди и отыграй 4/4 колоды за клан {clan.Name}. Удачи! 🍀", ct);
+                        $"{title}\n{string.Format(t.WarStartDm, clan.Name)}", ct);
                 }
                 catch { /* заблокировал бота — пропускаем */ }
                 await Task.Delay(SendGap, ct);

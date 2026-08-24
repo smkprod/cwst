@@ -1,3 +1,4 @@
+using ClanWarTracker.Application.Notifications;
 using ClanWarTracker.Domain.Interfaces;
 
 namespace ClanWarTracker.Application.UseCases;
@@ -25,6 +26,8 @@ public class NudgePlayersUseCase(
 
         var war = await crApi.GetCurrentWarAsync(clan.ClanTag, ct);
         if (war is null || !war.IsWarDay) return null;
+
+        var t = NotificationSettings.Parse(clan.NotificationSettingsJson).Text;
 
         var now = DateTime.UtcNow;
         var timeLeft = war.TimeLeft(now);
@@ -65,9 +68,7 @@ public class NudgePlayersUseCase(
             var decksLeft = 4 - slacker.DecksUsedToday;
             await notifier.SendToUserAsync(
                 player.TelegramUserId!.Value,
-                $"👊 Пинок тебе под зад го кв\n" +
-                $"Осталось колод: {decksLeft}/4\n" +
-                $"До конца дня: ~{(int)timeLeft.TotalHours} ч {Math.Max(0, timeLeft.Minutes)} мин", ct);
+                string.Format(t.NudgeDm, decksLeft, (int)timeLeft.TotalHours, Math.Max(0, timeLeft.Minutes)), ct);
 
             player.LastReminderSentAt = now;
             nudgedTags.Add(slacker.PlayerTag);
@@ -89,17 +90,17 @@ public class NudgePlayersUseCase(
             var names = string.Join("\n", taggable.Take(30).Select(s =>
             {
                 var p = linkedPlayers[s.PlayerTag];
-                return $"• {TelegramMention.Mention(s.Name, p.TelegramUserId, p.TelegramUsername)} " +
-                       $"— осталось {4 - s.DecksUsedToday}/4 🃏";
+                return string.Format(t.SlackerRow,
+                    TelegramMention.Mention(s.Name, p.TelegramUserId, p.TelegramUsername),
+                    4 - s.DecksUsedToday);
             }));
             var unlinkedNote = unlinkedCount > 0
-                ? $"\n\n👥 Ещё <b>{unlinkedCount}</b> без Telegram — их тег не достанет. " +
-                  "Админ может привязать их сам: ответь на сообщение игрока командой /bind #ТЕГ"
+                ? "\n\n" + string.Format(t.NudgeUnlinked, unlinkedCount)
                 : "";
             try
             {
                 await notifier.SendToChatAsync(clan.TelegramChatId,
-                    $"👊 <b>Админ пнул лентяев!</b>\nНужно срочно отыграть Клановую войну:\n\n{names}{unlinkedNote}",
+                    $"{t.NudgeChatTitle}\n\n{names}{unlinkedNote}",
                     clan.TelegramMessageThreadId, html: true, ct: ct);
                 postedToChat = true;
             }

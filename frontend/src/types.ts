@@ -501,7 +501,11 @@ export interface OwnerStats {
 
 export type NotifyChannel = 'dm' | 'chat' | 'both'
 
+/** Язык, на котором бот пишет клану. Отдельно от языка интерфейса приложения. */
+export type BotLang = 'ru' | 'uk' | 'en'
+
 export interface NotificationSettings {
+  language: BotLang
   reminderHoursBeforeEnd: number
   remindersEnabled: boolean
   remindersChannel: NotifyChannel
