@@ -280,6 +280,25 @@ public sealed class BotText
     public required string InlineOpenBot { get; init; }
     public required string InlineFooter { get; init; }
 
+    /* --- Inline: дополнительные карточки --- */
+    public required string InlineProfileTitle { get; init; }
+    public required string InlineProfileDesc { get; init; }
+    /// <summary>{0} — имя, {1} — уровень, {2} — кубки, {3} — рекорд, {4} — победы в КВ, {5} — «три короны».</summary>
+    public required string InlineProfileText { get; init; }
+    public required string InlineDeckTitle { get; init; }
+    public required string InlineDeckDesc { get; init; }
+    /// <summary>{0} — имя, {1} — карты через точку, {2} — средний уровень.</summary>
+    public required string InlineDeckText { get; init; }
+    public required string InlineDeckOpen { get; init; }
+    public required string InlineTopTitle { get; init; }
+    public required string InlineTopDesc { get; init; }
+    /// <summary>{0} — клан, {1} — строки топ-3.</summary>
+    public required string InlineTopText { get; init; }
+    public required string InlineLastWarTitle { get; init; }
+    public required string InlineLastWarDesc { get; init; }
+    /// <summary>{0} — клан, {1} — место, {2} — медали, {3} — изменение трофеев со знаком.</summary>
+    public required string InlineLastWarText { get; init; }
+
     public static readonly BotText Ru = new()
     {
         WarStartTitle = "⚔️ Клановая война началась!",
@@ -490,6 +509,19 @@ public sealed class BotText
         InlineLinkButton = "Привязать аккаунт",
         InlineOpenBot = "⚔️ Открыть бота",
         InlineFooter = "\n\nСтатистика Клановой войны",
+        InlineProfileTitle = "👤 Мой профиль",
+        InlineProfileDesc = "Кубки, рекорд и победы в клановых войнах",
+        InlineProfileText = "👤 {0} · {1} уровень\n🏆 {2} кубков (рекорд {3})\n⚔️ побед в КВ: {4} · 👑 три короны: {5}",
+        InlineDeckTitle = "🃏 Моя колода",
+        InlineDeckDesc = "Текущая колода — открывается в игре одним тапом",
+        InlineDeckText = "🃏 Колода игрока {0}\n{1}\n\n📊 средний уровень: {2}",
+        InlineDeckOpen = "🎮 Открыть колоду в игре",
+        InlineTopTitle = "🔥 Топ клана за неделю",
+        InlineTopDesc = "Кто больше всех набил медалей",
+        InlineTopText = "🔥 Топ недели · {0}\n{1}",
+        InlineLastWarTitle = "📜 Прошлая война",
+        InlineLastWarDesc = "Чем закончилась предыдущая неделя",
+        InlineLastWarText = "📜 {0} · прошлая война\n🏁 {1} место · 🏅 {2} медалей\n⚔️ КВ-трофеи: {3}",
     };
 
     public static readonly BotText Uk = new()
@@ -702,6 +734,19 @@ public sealed class BotText
         InlineLinkButton = "Прив’язати акаунт",
         InlineOpenBot = "⚔️ Відкрити бота",
         InlineFooter = "\n\nСтатистика Кланової війни",
+        InlineProfileTitle = "👤 Мій профіль",
+        InlineProfileDesc = "Кубки, рекорд і перемоги в кланових війнах",
+        InlineProfileText = "👤 {0} · {1} рівень\n🏆 {2} кубків (рекорд {3})\n⚔️ перемог у КВ: {4} · 👑 три корони: {5}",
+        InlineDeckTitle = "🃏 Моя колода",
+        InlineDeckDesc = "Поточна колода — відкривається в грі одним тапом",
+        InlineDeckText = "🃏 Колода гравця {0}\n{1}\n\n📊 середній рівень: {2}",
+        InlineDeckOpen = "🎮 Відкрити колоду в грі",
+        InlineTopTitle = "🔥 Топ клану за тиждень",
+        InlineTopDesc = "Хто найбільше набив медалей",
+        InlineTopText = "🔥 Топ тижня · {0}\n{1}",
+        InlineLastWarTitle = "📜 Минула війна",
+        InlineLastWarDesc = "Чим завершився попередній тиждень",
+        InlineLastWarText = "📜 {0} · минула війна\n🏁 {1} місце · 🏅 {2} медалей\n⚔️ КВ-трофеї: {3}",
     };
 
     public static readonly BotText En = new()
@@ -914,5 +959,18 @@ public sealed class BotText
         InlineLinkButton = "Link account",
         InlineOpenBot = "⚔️ Open the bot",
         InlineFooter = "\n\nClan War stats",
+        InlineProfileTitle = "👤 My profile",
+        InlineProfileDesc = "Trophies, personal best and Clan War wins",
+        InlineProfileText = "👤 {0} · level {1}\n🏆 {2} trophies (best {3})\n⚔️ Clan War wins: {4} · 👑 three-crown: {5}",
+        InlineDeckTitle = "🃏 My deck",
+        InlineDeckDesc = "Current deck — opens in the game with one tap",
+        InlineDeckText = "🃏 {0}'s deck\n{1}\n\n📊 average level: {2}",
+        InlineDeckOpen = "🎮 Open deck in the game",
+        InlineTopTitle = "🔥 Clan top of the week",
+        InlineTopDesc = "Who scored the most medals",
+        InlineTopText = "🔥 Top of the week · {0}\n{1}",
+        InlineLastWarTitle = "📜 Last war",
+        InlineLastWarDesc = "How the previous week ended",
+        InlineLastWarText = "📜 {0} · last war\n🏁 place {1} · 🏅 {2} medals\n⚔️ war trophies: {3}",
     };
 }
