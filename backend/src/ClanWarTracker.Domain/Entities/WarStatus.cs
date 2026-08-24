@@ -64,6 +64,14 @@ public class RaceClanStanding
     public int DecksUsedToday { get; set; }              // сумма по участникам
     public int DecksUsed { get; set; }                   // сумма за неделю (включая тренировку)
     public bool IsFinished { get; set; }                 // клан уже доплыл до финиша
+
+    /// <summary>
+    /// Очки этого клана по завершённым военным дням ТЕКУЩЕЙ недели, от первого дня к
+    /// последнему. CR отдаёт periodLogs сразу по всем кланам гонки — раньше мы читали
+    /// оттуда только свои строки и выбрасывали чужие. Именно по ним видно, кто из
+    /// соперников выдыхается к третьему дню, а кто наоборот дожимает в конце.
+    /// </summary>
+    public List<int> DayPoints { get; set; } = [];
 }
 
 public class WarParticipant

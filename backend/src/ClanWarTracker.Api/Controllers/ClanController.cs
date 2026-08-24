@@ -16,6 +16,7 @@ namespace ClanWarTracker.Api.Controllers;
 public class ClanController(
     GetClanStatusUseCase getStatus,
     GetClanDisciplineUseCase getDiscipline,
+    GetRaceScoutUseCase getScout,
     GetClanHistoryUseCase getHistory,
     GetSeasonStatsUseCase getSeason,
     GetSeasonBreakdownUseCase getSeasonBreakdown,
@@ -372,6 +373,28 @@ public class ClanController(
             { return StatusCode(503, new { error = "cr_api_unavailable", message = ex.Message }); }
         catch (InvalidOperationException ex) when (ex.Message.Contains("CR API"))
             { return StatusCode(503, new { error = "cr_api_token_invalid", message = ex.Message }); }
+    }
+
+    /// <summary>
+    /// GET /api/clans/my/scout — «Разведка гонки»: досье на каждый клан недели.
+    /// На Free возвращаются только имена и места (то же, что видно в таблице гонки)
+    /// плюс код дразнилки: цифры разведки режутся здесь, а не в интерфейсе.
+    /// </summary>
+    [HttpGet("my/scout")]
+    public async Task<IActionResult> GetScout(CancellationToken ct)
+    {
+        var (_, clan, error) = await ResolvePlayerClanAsync(ct);
+        if (error is not null) return error;
+
+        var isPro = clan!.EffectivePlan(DateTime.UtcNow) == PlanTier.Pro;
+        RaceScoutDto? scout;
+        try { scout = await getScout.ExecuteAsync(clan.ClanTag, isPro, ct); }
+        catch (HttpRequestException ex) when ((int)(ex.StatusCode ?? 0) is >= 500 or 429)
+            { return StatusCode(503, new { error = "cr_api_unavailable", message = ex.Message }); }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("CR API"))
+            { return StatusCode(503, new { error = "cr_api_token_invalid", message = ex.Message }); }
+
+        return scout is null ? NotFound(new { error = "war_not_found" }) : Ok(scout);
     }
 
     /// <summary>
