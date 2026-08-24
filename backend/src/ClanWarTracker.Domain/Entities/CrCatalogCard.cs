@@ -8,6 +8,13 @@ namespace ClanWarTracker.Domain.Entities;
 /// </summary>
 public class CrCatalogCard
 {
+    /// <summary>
+    /// Числовой id карты из игры. Нужен ровно для одного: собрать ссылку вида
+    /// link.clashroyale.com/deck — по ней колода открывается прямо в Clash Royale.
+    /// Совет, который нельзя собрать в один тап, — это половина совета.
+    /// </summary>
+    public int Id { get; set; }
+
     public required string Name { get; set; }
     public int ElixirCost { get; set; }
     public string Rarity { get; set; } = "";

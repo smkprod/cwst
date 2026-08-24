@@ -264,6 +264,22 @@ public sealed class BotText
     public required string QuickShareText { get; init; }
     public required string QuickShareButton { get; init; }
 
+    /* --- Inline-режим: карточка в любом чате Telegram --- */
+    public required string InlineWarTitle { get; init; }
+    public required string InlineWarDesc { get; init; }
+    /// <summary>{0} — имя, {1} — клан, {2} — медали, {3} — место, {4} — колод сегодня.</summary>
+    public required string InlineWarText { get; init; }
+    public required string InlineClanTitle { get; init; }
+    public required string InlineClanDesc { get; init; }
+    /// <summary>{0} — клан, {1} — место в гонке, {2} — всего кланов, {3} — медали, {4} — не отыграли.</summary>
+    public required string InlineClanText { get; init; }
+    public required string InlineNoLinkTitle { get; init; }
+    public required string InlineNoLinkDesc { get; init; }
+    public required string InlineNoLinkText { get; init; }
+    public required string InlineLinkButton { get; init; }
+    public required string InlineOpenBot { get; init; }
+    public required string InlineFooter { get; init; }
+
     public static readonly BotText Ru = new()
     {
         WarStartTitle = "⚔️ Клановая война началась!",
@@ -462,6 +478,18 @@ public sealed class BotText
         QuickFooter = "Полная статистика — в Mini App: история, прогнозы, рейтинг 👇",
         QuickShareText = "⚔️ Слежу за Clan War через этот бот — отправь свой тег CR и сразу увидишь статистику войны своего клана",
         QuickShareButton = "📤 Поделиться с кланом",
+        InlineWarTitle = "⚔️ Моя война",
+        InlineWarDesc = "Медали, место в клане и колоды за сегодня",
+        InlineWarText = "⚔️ {0} · {1}\n🏅 {2} медалей · {3} место в клане\n🃏 {4}/4 колод сегодня",
+        InlineClanTitle = "🏰 Мой клан",
+        InlineClanDesc = "Место в гонке недели и кто ещё не отыграл",
+        InlineClanText = "🏰 {0}\n🏁 {1} место из {2} в гонке недели\n🏅 {3} медалей за неделю\n😴 не доиграли: {4}",
+        InlineNoLinkTitle = "Аккаунт не привязан",
+        InlineNoLinkDesc = "Открой бота и отправь свой тег — появится карточка",
+        InlineNoLinkText = "⚔️ Слежу за Клановой войной через этого бота — кто не отыграл, сколько осталось времени и место клана в гонке.",
+        InlineLinkButton = "Привязать аккаунт",
+        InlineOpenBot = "⚔️ Открыть бота",
+        InlineFooter = "\n\nСтатистика Клановой войны",
     };
 
     public static readonly BotText Uk = new()
@@ -662,6 +690,18 @@ public sealed class BotText
         QuickFooter = "Повна статистика — у Mini App: історія, прогнози, рейтинг 👇",
         QuickShareText = "⚔️ Стежу за Clan War через цього бота — надішли свій тег CR і одразу побачиш статистику війни свого клану",
         QuickShareButton = "📤 Поділитися з кланом",
+        InlineWarTitle = "⚔️ Моя війна",
+        InlineWarDesc = "Медалі, місце в клані та колоди за сьогодні",
+        InlineWarText = "⚔️ {0} · {1}\n🏅 {2} медалей · {3} місце в клані\n🃏 {4}/4 колод сьогодні",
+        InlineClanTitle = "🏰 Мій клан",
+        InlineClanDesc = "Місце в гонці тижня і хто ще не відіграв",
+        InlineClanText = "🏰 {0}\n🏁 {1} місце з {2} у гонці тижня\n🏅 {3} медалей за тиждень\n😴 не дограли: {4}",
+        InlineNoLinkTitle = "Акаунт не прив’язано",
+        InlineNoLinkDesc = "Відкрий бота та надішли свій тег — з’явиться картка",
+        InlineNoLinkText = "⚔️ Стежу за Клановою війною через цього бота — хто не відіграв, скільки лишилось часу та місце клану в гонці.",
+        InlineLinkButton = "Прив’язати акаунт",
+        InlineOpenBot = "⚔️ Відкрити бота",
+        InlineFooter = "\n\nСтатистика Кланової війни",
     };
 
     public static readonly BotText En = new()
@@ -862,5 +902,17 @@ public sealed class BotText
         QuickFooter = "Full stats — in the Mini App: history, forecasts, rating 👇",
         QuickShareText = "⚔️ I track Clan War with this bot — send your CR tag and you'll see your clan's war stats right away",
         QuickShareButton = "📤 Share with the clan",
+        InlineWarTitle = "⚔️ My war",
+        InlineWarDesc = "Medals, place in the clan and decks today",
+        InlineWarText = "⚔️ {0} · {1}\n🏅 {2} medals · #{3} in the clan\n🃏 {4}/4 decks today",
+        InlineClanTitle = "🏰 My clan",
+        InlineClanDesc = "Place in the week's race and who hasn't played",
+        InlineClanText = "🏰 {0}\n🏁 place {1} of {2} in this week's race\n🏅 {3} medals this week\n😴 unfinished: {4}",
+        InlineNoLinkTitle = "Account not linked",
+        InlineNoLinkDesc = "Open the bot and send your tag — the card will appear",
+        InlineNoLinkText = "⚔️ I track Clan War with this bot — who hasn't played, how much time is left and the clan's place in the race.",
+        InlineLinkButton = "Link account",
+        InlineOpenBot = "⚔️ Open the bot",
+        InlineFooter = "\n\nClan War stats",
     };
 }

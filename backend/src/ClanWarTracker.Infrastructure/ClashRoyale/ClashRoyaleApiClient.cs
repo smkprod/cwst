@@ -474,6 +474,7 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
                     g => g.Key,
                     g => new CrCatalogCard
                     {
+                        Id = g.First().Id,
                         Name = g.First().Name,
                         ElixirCost = g.First().ElixirCost ?? 0,
                         Rarity = g.First().Rarity ?? "",
@@ -495,6 +496,7 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         [property: JsonPropertyName("elixirCost")] int? ElixirCost,
         [property: JsonPropertyName("rarity")] string? Rarity,
         [property: JsonPropertyName("iconUrls")] CardIconUrls? IconUrls,
+        [property: JsonPropertyName("id")] int Id = 0,
         [property: JsonPropertyName("maxEvolutionLevel")] int MaxEvolutionLevel = 0);
 
     public async Task<int?> GetClanWarTrophiesAsync(string clanTag, CancellationToken ct = default)
