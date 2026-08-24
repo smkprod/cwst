@@ -46,6 +46,7 @@ jobs:
           # Для worker-образа ARG не объявлен — лишний build-arg просто игнорируется.
           build-args: |
             VITE_BOT_USERNAME=${{ vars.BOT_USERNAME }}
+            GIT_SHA=${{ github.sha }}
           # :latest обновляется ТОЛЬКО с main — пуш в дев-ветку не перезаписывает
           # продакшн-образ (deploy.sh тянет :latest). С дев-ветки собирается только :sha.
           tags: |

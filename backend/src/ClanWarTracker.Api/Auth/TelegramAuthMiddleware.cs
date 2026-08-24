@@ -33,6 +33,15 @@ public class TelegramAuthMiddleware(RequestDelegate next, IConfiguration config,
             return;
         }
 
+        // Версия сборки: нужна ровно тогда, когда что-то пошло не так и надо понять,
+        // какой код крутится на сервере. Требовать для этого Telegram — значит лишить
+        // себя диагностики в тот момент, когда она нужнее всего.
+        if (ctx.Request.Path.StartsWithSegments("/api/version"))
+        {
+            await next(ctx);
+            return;
+        }
+
         var botToken = ClanWarTracker.Infrastructure.DependencyInjection.CleanToken(
             Environment.GetEnvironmentVariable("TELEGRAM_BOT_TOKEN")
             ?? config["TELEGRAM_BOT_TOKEN"]
