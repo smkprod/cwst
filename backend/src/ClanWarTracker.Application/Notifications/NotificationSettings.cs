@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace ClanWarTracker.Application.Notifications;
 
@@ -57,10 +58,16 @@ public class NotificationSettings
     /// </summary>
     public string? Language { get; set; }
 
+    // JsonIgnore обязателен: Serialize() пишет все публичные свойства, и без него
+    // в NotificationSettingsJson каждого клана уезжала бы вся таблица переводов —
+    // сотня строк на язык вместо одного поля "language".
+
     /// <summary>Разобранный язык сообщений — с запасным вариантом на случай пустого значения.</summary>
+    [JsonIgnore]
     public BotLang Lang => BotText.ParseLang(Language);
 
     /// <summary>Готовые тексты на языке клана.</summary>
+    [JsonIgnore]
     public BotText Text => BotText.For(Lang);
 
     /// <summary>
