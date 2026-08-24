@@ -29,6 +29,7 @@ import { SplashScreen } from './components/SplashScreen'
 import { MoreView } from './components/MoreView'
 import { MenuChangedNotice } from './components/MenuChangedNotice'
 import { DisciplineCard } from './components/DisciplineCard'
+import { ScoutCard } from './components/ScoutCard'
 import { weekKing } from './lib/king'
 
 type State =
@@ -255,6 +256,9 @@ export default function App() {
                 )}
                 <ForecastCard forecast={data.forecast} stats={data.stats} periodType={data.periodType} />
                 <RaceCard race={data.race} periodType={data.periodType} />
+                {/* Разведка стоит вплотную к таблице гонки: таблица говорит, кто впереди
+                    сейчас, разведка — чего эти кланы стоят вообще. Порознь они не работают. */}
+                <ScoutCard plan={data.plan} />
                 <DisciplineCard plan={data.plan} />
                 <WarLogCard log={data.warLog} />
                 <WarJournalCard />

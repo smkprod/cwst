@@ -35,6 +35,35 @@ export interface DisciplinePlayer {
   avgHoursBeforeEnd: number  // в среднем за сколько часов до конца отыгрывает
 }
 
+/* --- Разведка гонки (Pro): досье на кланы недели --- */
+export interface ScoutClan {
+  tag: string
+  name: string
+  position: number
+  isOurClan: boolean
+  currentFame: number
+  dayPoints: number[]        // очки по завершённым дням этой недели
+  weeksTracked: number       // 0 — истории нет или урезано на Free
+  avgWeekFame: number
+  bestWeekFame: number
+  avgRank: number
+  volatility: number         // 0..100, больше — непредсказуемее
+  avgDecksPerPlayer: number  // из 16
+  avgParticipants: number
+  paceVsUsualPercent: number // +12 = на 12% выше своего обычного
+  fadesLate: boolean
+}
+
+export interface RaceScout {
+  isPro: boolean
+  weeksAnalyzed: number
+  clans: ScoutClan[]
+  /** Код дразнилки для Free; null — дразнить нечем. */
+  freeTeaser: string | null
+  /** С кем реально идёт борьба (по обычной силе, а не по сегодняшнему месту). */
+  realRivalTag: string | null
+}
+
 export interface ClanDiscipline {
   weeksAnalyzed: number
   skippers: DisciplinePlayer[]

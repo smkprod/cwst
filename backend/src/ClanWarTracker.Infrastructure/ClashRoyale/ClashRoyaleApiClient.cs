@@ -114,6 +114,7 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
                         DecksUsedToday = c.Participants?.Sum(p => p.DecksUsedToday) ?? 0,
                         DecksUsed = c.Participants?.Sum(p => p.DecksUsed) ?? 0,
                         IsFinished = !string.IsNullOrEmpty(c.FinishTime),
+                        DayPoints = BuildCurrentWeekPoints(race, c.Tag),
                     }).ToList(),
                 // Официальный по-дневный лог для нашего клана (periodLogs[].items[] где clan.tag == наш).
                 // ВАЖНО: periodIndex в логе сквозной за сезон и может включать ПРОШЛЫЕ недели.
@@ -125,13 +126,27 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         });
     }
 
-    private static List<WarPeriodLog> BuildDayLogs(RiverRaceResponse race)
+    private static List<WarPeriodLog> BuildDayLogs(RiverRaceResponse race) =>
+        BuildDayLogsFor(race, race.Clan!.Tag);
+
+    /// <summary>
+    /// Очки по завершённым военным дням текущей недели для произвольного клана гонки.
+    /// Первый день недели идёт первым. Пусто, если лога по этому клану нет.
+    /// </summary>
+    private static List<int> BuildCurrentWeekPoints(RiverRaceResponse race, string clanTag) =>
+        BuildDayLogsFor(race, clanTag)
+            .Where(d => d.WeekOffset == 0 && d.DayIndex >= 3)
+            .OrderBy(d => d.DayIndex)
+            .Select(d => d.PointsEarned)
+            .ToList();
+
+    private static List<WarPeriodLog> BuildDayLogsFor(RiverRaceResponse race, string clanTag)
     {
         var entries = (race.PeriodLogs ?? [])
             .Select(pl =>
             {
                 var mine = pl.Items?.FirstOrDefault(i =>
-                    string.Equals(i.Clan?.Tag, race.Clan!.Tag, StringComparison.OrdinalIgnoreCase));
+                    string.Equals(i.Clan?.Tag, clanTag, StringComparison.OrdinalIgnoreCase));
                 return mine is null ? null : new WarPeriodLog
                 {
                     PeriodIndex = pl.PeriodIndex,
