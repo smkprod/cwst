@@ -161,7 +161,28 @@ public class SuggestDecksUseCase(IClashRoyaleApi crApi)
             EvoUnlocked: evoUnlocked,
             EvoAvailable: evoAvailable,
             Readiness: readiness,
-            Verdict: Verdict(ownedCount, missing, avgLevel, maxLevel));
+            Verdict: Verdict(ownedCount, missing, avgLevel, maxLevel),
+            CopyLink: BuildCopyLink(deck.Cards, catalog));
+    }
+
+    /// <summary>
+    /// Ссылка «открыть колоду в игре». Собирается из числовых id карт в том же
+    /// порядке, в каком они перечислены в базе колод.
+    ///
+    /// Возвращает null, если хотя бы одной карты нет в справочнике или у неё нулевой id:
+    /// неполная ссылка открыла бы в игре не ту колоду, а это хуже, чем её отсутствие —
+    /// кнопка обещает результат, которого не будет.
+    /// </summary>
+    private static string? BuildCopyLink(
+        IReadOnlyList<string> cardNames, IReadOnlyDictionary<string, CrCatalogCard> catalog)
+    {
+        var ids = new List<int>(cardNames.Count);
+        foreach (var name in cardNames)
+        {
+            if (!catalog.TryGetValue(name, out var card) || card.Id <= 0) return null;
+            ids.Add(card.Id);
+        }
+        return ids.Count == 0 ? null : $"https://link.clashroyale.com/deck/en?deck={string.Join(';', ids)}";
     }
 
     /// <summary>От обычных к чемпионам — тот же порядок, что в игре.</summary>

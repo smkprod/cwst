@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
 import type { DeckCard, DeckSuggestion, DeckSuggestions } from '../types'
 import { useT, type Translations } from '../lib/i18n'
+import { haptic } from '../lib/telegram'
 
 /**
  * Колоды, подобранные под коллекцию игрока. Разделены честно: «можно играть сейчас» —
@@ -139,6 +140,21 @@ function DeckRow({ deck, t }: { deck: DeckSuggestion; t: Translations }) {
         ))}
         {deck.evoAvailable > 0 && <span>· ⚡ {deck.evoUnlocked}/{deck.evoAvailable}</span>}
       </div>
+
+      {/* Совет, который нельзя собрать в один тап, — половина совета.
+          Ссылка открывает колоду прямо в Clash Royale. Кнопки нет, если у какой-то
+          карты не нашлось id: неполная ссылка открыла бы не ту колоду. */}
+      {deck.copyLink && (
+        <a
+          className="btn btn-nudge deck-open-btn"
+          href={deck.copyLink}
+          target="_blank"
+          rel="noreferrer"
+          onClick={() => haptic('medium')}
+        >
+          {t.decks.openInGame}
+        </a>
+      )}
 
       <button className="btn-mini deck-note-btn" onClick={() => setOpen(o => !o)}>
         {open ? t.decks.hideNote : t.decks.showNote}
