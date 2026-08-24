@@ -13,7 +13,7 @@ const ru = {
   dateLocale: 'ru-RU',
 
   tabs: { war: 'Война', rating: 'Рейтинг', me: 'Я', search: 'Поиск', owner: 'Панель',
-          recruit: 'Биржа', tournament: 'Турнир', clan: 'Клан', more: 'Ещё' },
+          recruit: 'Биржа', tournament: 'Турнир', clan: 'Клан', more: 'Ещё', roster: 'Состав' },
 
   more: {
     back: 'Назад',
@@ -33,10 +33,10 @@ const ru = {
   },
 
   menuNotice: {
-    title: 'Меню стало проще',
-    clan: '🏰 Клан — война и рейтинг в одном месте',
-    me: '👤 Я — твоя статистика, разбор и колоды',
-    more: '⚙️ Ещё — настройки, язык, турниры, биржа',
+    title: 'Клан стало удобнее смотреть',
+    clan: '⚔️ Война — гонка и журналы сразу под цифрами',
+    me: '👥 Состав — список игроков переехал в свою вкладку',
+    more: '🧭 Дисциплина — кто пропускает войну и кого пинать',
     gotIt: 'Понятно',
   },
 
@@ -112,17 +112,15 @@ const ru = {
     sortName: '🔤 По имени',
     filterAll: 'Все', filterNotPlayed: '❌ Не отыграли',
     filterPlayed: '✅ Отыграли', filterOfficers: '👑 Руководство',
+    searchPlaceholder: '🔍 Имя игрока',
+    countSuffix: 'из',
   },
 
   roles: { leader: 'Лидер', coleader: 'Соруководитель', elder: 'Старейшина' },
 
   insights: {
     title: '🧠 Аналитика недели',
-    lockedNote: 'Шанс победы в реальном времени, медали по дням, темп против прошлой недели и герои недели — на тарифе Pro. 🔒',
-    winCaption: 'шанс победы в гонке',
-    topRival: 'главный соперник:',
-    slackersWarn1: 'Если не доигравшие так и не сыграют — шанс упадёт до ',
-    slackersWarn2: '%',
+    lockedNote: 'Медали по дням, темп против прошлой недели и герои недели — на тарифе Pro. 🔒',
     dayByDay: '📅 Медали по дням',
     dayByDayLastWeek: '📅 Прошлая неделя по дням',
     dayShort: 'Д',
@@ -145,6 +143,39 @@ const ru = {
     finishAbove: 'это выше прошлой на',
     finishBelow: 'это ниже прошлой на',
     finishEven: 'финиш примерно вровень с прошлой',
+  },
+
+  discipline: {
+    title: '🧭 Дисциплина клана',
+    weeksPrefix: 'за',
+    weeksSuffix: 'нед.',
+    lockedNote: 'Кто недоигрывает войну, кого приходится пинать и кто тянет до последнего часа — на тарифе Pro. 🔒',
+    tabSkippers: '😴 Прогулы',
+    tabNudged: '👊 Пинки',
+    tabLate: '⏰ Дедлайн',
+    skippersHint: 'Сколько атак человек не отыграл за учтённые недели. Верх списка — с кем пора поговорить.',
+    nudgedHint: 'Сколько раз бот напоминал про войну. Верх списка — те, кто без пинка не играет.',
+    lateHint: 'Кто отыгрывает в последний час перед концом дня. Один занятый вечер — и атаки сгорели.',
+    missedDecks: 'атак пропущено',
+    missedWeeks: 'нед. вообще без атак',
+    ofWeeks: 'из',
+    weeksShort: 'нед. в составе',
+    nudges: 'напоминаний',
+    lateBattles: 'боёв у дедлайна',
+    avgLeftPrefix: 'в среднем за',
+    avgLeftSuffix: 'ч до конца',
+    emptySkippers: 'Все отыгрывают войну целиком — редкий клан! 🏆',
+    emptyNudged: 'Никого не пришлось пинать 👏',
+    emptyLate: 'Никто не тянет до последнего часа ⏱',
+    noData: 'Данных пока мало — карточка наполнится за пару военных недель.',
+    error: 'Не удалось загрузить дисциплину.',
+  },
+
+  avatar: {
+    title: '🎭 Аватарка',
+    hint: 'Появится рядом с твоим именем в списке клана.',
+    none: 'Без аватарки',
+    error: 'Не удалось сохранить аватарку',
   },
 
   warlog: {
@@ -323,6 +354,11 @@ const ru = {
     vsClanTitle: '📊 Я vs средний по клану',
     vsClanMineLegend: 'Я',
     vsClanClanLegend: 'Клан',
+    sectionClan: '🏰 Клановая статистика',
+    sectionGame: '🎮 Игровая статистика',
+    sectionClanHint: 'Война, вклад, награды и сезон',
+    sectionGameHint: 'Профиль, коллекция и подбор колод',
+    gameEmpty: 'Профиль из игры не загрузился — попробуй позже.',
   },
 
   leaderboard: {
@@ -787,7 +823,7 @@ const uk: Translations = {
   retry: 'Повторити',
   dateLocale: 'uk-UA',
 
-  tabs: { war: 'Війна', rating: 'Рейтинг', me: 'Я', search: 'Пошук', owner: 'Панель',
+  tabs: { roster: 'Склад', war: 'Війна', rating: 'Рейтинг', me: 'Я', search: 'Пошук', owner: 'Панель',
           recruit: 'Біржа', tournament: 'Турнір', clan: 'Клан', more: 'Ще' },
 
   more: {
@@ -808,10 +844,10 @@ const uk: Translations = {
   },
 
   menuNotice: {
-    title: 'Меню стало простішим',
-    clan: '🏰 Клан — війна і рейтинг в одному місці',
-    me: '👤 Я — твоя статистика, розбір і колоди',
-    more: '⚙️ Ще — налаштування, мова, турніри, біржа',
+    title: 'Клан стало зручніше дивитися',
+    clan: '⚔️ Війна — гонка і журнали одразу під цифрами',
+    me: '👥 Склад — список гравців переїхав у свою вкладку',
+    more: '🧭 Дисципліна — хто пропускає війну і кого нагадувати',
     gotIt: 'Зрозуміло',
   },
 
@@ -887,17 +923,15 @@ const uk: Translations = {
     sortName: '🔤 За іменем',
     filterAll: 'Усі', filterNotPlayed: '❌ Не зіграли',
     filterPlayed: '✅ Зіграли', filterOfficers: '👑 Керівництво',
+    searchPlaceholder: '🔍 Ім’я гравця',
+    countSuffix: 'з',
   },
 
   roles: { leader: 'Лідер', coleader: 'Заступник', elder: 'Старійшина' },
 
   insights: {
     title: '🧠 Аналітика тижня',
-    lockedNote: 'Шанс перемоги в реальному часі, медалі по днях, темп проти минулого тижня та герої тижня — на тарифі Pro. 🔒',
-    winCaption: 'шанс перемоги в гонці',
-    topRival: 'головний суперник:',
-    slackersWarn1: 'Якщо ті, хто не дограв, так і не зіграють — шанс впаде до ',
-    slackersWarn2: '%',
+    lockedNote: 'Медалі по днях, темп проти минулого тижня та герої тижня — на тарифі Pro. 🔒',
     dayByDay: '📅 Медалі по днях',
     dayByDayLastWeek: '📅 Минулий тиждень по днях',
     dayShort: 'Д',
@@ -920,6 +954,39 @@ const uk: Translations = {
     finishAbove: 'це вище за минулий на',
     finishBelow: 'це нижче за минулий на',
     finishEven: 'фініш приблизно нарівні з минулим',
+  },
+
+  discipline: {
+    title: '🧭 Дисципліна клану',
+    weeksPrefix: 'за',
+    weeksSuffix: 'тижн.',
+    lockedNote: 'Хто недограє війну, кого доводиться штовхати і хто тягне до останньої години — на тарифі Pro. 🔒',
+    tabSkippers: '😴 Прогули',
+    tabNudged: '👊 Нагадування',
+    tabLate: '⏰ Дедлайн',
+    skippersHint: 'Скільки атак людина не зіграла за враховані тижні. Верх списку — з ким час поговорити.',
+    nudgedHint: 'Скільки разів бот нагадував про війну. Верх списку — ті, хто без нагадування не грає.',
+    lateHint: 'Хто відіграє в останню годину перед кінцем дня. Один зайнятий вечір — і атаки згоріли.',
+    missedDecks: 'атак пропущено',
+    missedWeeks: 'тижн. зовсім без атак',
+    ofWeeks: 'з',
+    weeksShort: 'тижн. у складі',
+    nudges: 'нагадувань',
+    lateBattles: 'боїв біля дедлайну',
+    avgLeftPrefix: 'у середньому за',
+    avgLeftSuffix: 'год до кінця',
+    emptySkippers: 'Усі відіграють війну повністю — рідкісний клан! 🏆',
+    emptyNudged: 'Нікого не довелося штовхати 👏',
+    emptyLate: 'Ніхто не тягне до останньої години ⏱',
+    noData: 'Даних поки мало — картка наповниться за пару воєнних тижнів.',
+    error: 'Не вдалося завантажити дисципліну.',
+  },
+
+  avatar: {
+    title: '🎭 Аватарка',
+    hint: 'З’явиться поряд з твоїм іменем у списку клану.',
+    none: 'Без аватарки',
+    error: 'Не вдалося зберегти аватарку',
   },
 
   warlog: {
@@ -1098,6 +1165,11 @@ const uk: Translations = {
     vsClanTitle: '📊 Я vs середній по клану',
     vsClanMineLegend: 'Я',
     vsClanClanLegend: 'Клан',
+    sectionClan: '🏰 Кланова статистика',
+    sectionGame: '🎮 Ігрова статистика',
+    sectionClanHint: 'Війна, вклад, нагороди та сезон',
+    sectionGameHint: 'Профіль, колекція та підбір колод',
+    gameEmpty: 'Профіль із гри не завантажився — спробуй пізніше.',
   },
 
   leaderboard: {
@@ -1560,7 +1632,7 @@ const en: Translations = {
   retry: 'Retry',
   dateLocale: 'en-US',
 
-  tabs: { war: 'War', rating: 'Rating', me: 'Me', search: 'Search', owner: 'Panel',
+  tabs: { roster: 'Roster', war: 'War', rating: 'Rating', me: 'Me', search: 'Search', owner: 'Panel',
           recruit: 'Market', tournament: 'Tournament', clan: 'Clan', more: 'More' },
 
   more: {
@@ -1581,10 +1653,10 @@ const en: Translations = {
   },
 
   menuNotice: {
-    title: 'The menu got simpler',
-    clan: '🏰 Clan — war and rating in one place',
-    me: '👤 Me — your stats, analysis and decks',
-    more: '⚙️ More — settings, language, tournaments, market',
+    title: 'The clan tab is easier to read',
+    clan: '⚔️ War — race and logs right under the numbers',
+    me: '👥 Roster — the player list moved to its own section',
+    more: '🧭 Discipline — who skips the war and who needs nudging',
     gotIt: 'Got it',
   },
 
@@ -1660,17 +1732,15 @@ const en: Translations = {
     sortName: '🔤 By name',
     filterAll: 'All', filterNotPlayed: '❌ Not played',
     filterPlayed: '✅ Played', filterOfficers: '👑 Officers',
+    searchPlaceholder: '🔍 Player name',
+    countSuffix: 'of',
   },
 
   roles: { leader: 'Leader', coleader: 'Co-leader', elder: 'Elder' },
 
   insights: {
     title: '🧠 Week Analytics',
-    lockedNote: 'Real-time win chance, medals day by day, pace vs last week and heroes of the week — on the Pro plan. 🔒',
-    winCaption: 'win chance in race',
-    topRival: 'top rival:',
-    slackersWarn1: "If those who haven't finished don't play — the chance will drop to ",
-    slackersWarn2: '%',
+    lockedNote: 'Medals day by day, pace vs last week and heroes of the week — on the Pro plan. 🔒',
     dayByDay: '📅 Medals by day',
     dayByDayLastWeek: '📅 Last week by day',
     dayShort: 'D',
@@ -1693,6 +1763,39 @@ const en: Translations = {
     finishAbove: 'that’s above last week by',
     finishBelow: 'that’s below last week by',
     finishEven: 'finishing about level with last week',
+  },
+
+  discipline: {
+    title: '🧭 Clan Discipline',
+    weeksPrefix: 'over',
+    weeksSuffix: 'wks',
+    lockedNote: 'Who skips war attacks, who has to be nudged and who plays at the deadline — on the Pro plan. 🔒',
+    tabSkippers: '😴 Skipped',
+    tabNudged: '👊 Nudged',
+    tabLate: '⏰ Deadline',
+    skippersHint: 'Attacks left unplayed over the counted weeks. Top of the list — time for a talk.',
+    nudgedHint: "How often the bot had to remind them. Top of the list — they don't play without a nudge.",
+    lateHint: 'Who plays in the last hour before the day ends. One busy evening and the attacks are gone.',
+    missedDecks: 'attacks skipped',
+    missedWeeks: 'wks with no attacks at all',
+    ofWeeks: 'of',
+    weeksShort: 'wks in the clan',
+    nudges: 'reminders',
+    lateBattles: 'battles at the deadline',
+    avgLeftPrefix: 'on average',
+    avgLeftSuffix: 'h before the end',
+    emptySkippers: 'Everyone plays the war in full — a rare clan! 🏆',
+    emptyNudged: 'Nobody had to be nudged 👏',
+    emptyLate: 'Nobody waits for the last hour ⏱',
+    noData: 'Not enough data yet — this fills up after a couple of war weeks.',
+    error: 'Could not load discipline data.',
+  },
+
+  avatar: {
+    title: '🎭 Avatar',
+    hint: 'Shows up next to your name in the clan roster.',
+    none: 'No avatar',
+    error: 'Could not save the avatar',
   },
 
   warlog: {
@@ -1871,6 +1974,11 @@ const en: Translations = {
     vsClanTitle: '📊 Me vs clan average',
     vsClanMineLegend: 'Me',
     vsClanClanLegend: 'Clan',
+    sectionClan: '🏰 Clan stats',
+    sectionGame: '🎮 Game stats',
+    sectionClanHint: 'War, contribution, badges and season',
+    sectionGameHint: 'Profile, collection and deck picker',
+    gameEmpty: 'Could not load the in-game profile — try again later.',
   },
 
   leaderboard: {

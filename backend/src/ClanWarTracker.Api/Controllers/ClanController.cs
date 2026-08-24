@@ -15,6 +15,7 @@ namespace ClanWarTracker.Api.Controllers;
 [Route("api/clans")]
 public class ClanController(
     GetClanStatusUseCase getStatus,
+    GetClanDisciplineUseCase getDiscipline,
     GetClanHistoryUseCase getHistory,
     GetSeasonStatsUseCase getSeason,
     GetSeasonBreakdownUseCase getSeasonBreakdown,
@@ -348,6 +349,24 @@ public class ClanController(
             Battles: battles
                 .Select(b => new WarBattleDto(b.PlayerName, b.PlayerTag, b.BattleTimeUtc, b.Won, b.CrownsFor, b.CrownsAgainst))
                 .ToList()));
+    }
+
+    /// <summary>
+    /// GET /api/clans/my/discipline — кто недоигрывает войну, кого приходится пинать
+    /// и кто тянет до последнего часа. Заменила «шанс победы»: тем числом глава ничего
+    /// сделать не мог, а здесь каждая строка — конкретный человек и конкретный разговор.
+    /// </summary>
+    [HttpGet("my/discipline")]
+    public async Task<IActionResult> GetDiscipline(CancellationToken ct)
+    {
+        var (_, clan, error) = await ResolvePlayerClanAsync(ct);
+        if (error is not null) return error;
+
+        try { return Ok(await getDiscipline.ExecuteAsync(clan!, ct)); }
+        catch (HttpRequestException ex) when ((int)(ex.StatusCode ?? 0) is >= 500 or 429)
+            { return StatusCode(503, new { error = "cr_api_unavailable", message = ex.Message }); }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("CR API"))
+            { return StatusCode(503, new { error = "cr_api_token_invalid", message = ex.Message }); }
     }
 
     /// <summary>

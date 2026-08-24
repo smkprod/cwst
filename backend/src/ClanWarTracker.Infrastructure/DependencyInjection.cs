@@ -364,6 +364,12 @@ CREATE TABLE IF NOT EXISTS ""WarBattles"" (
         await db.Database.ExecuteSqlRawAsync(
             "ALTER TABLE \"Players\" ADD COLUMN IF NOT EXISTS \"LastVisitRank\" integer;");
 
+        // Эмодзи-аватарка игрока + счётчик полученных «пинков» (карточка дисциплины).
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Players\" ADD COLUMN IF NOT EXISTS \"AvatarEmoji\" varchar(16);");
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Players\" ADD COLUMN IF NOT EXISTS \"NudgeCount\" integer NOT NULL DEFAULT 0;");
+
         // Респекты 👏 — социальная награда между согильдийцами (1 в сутки).
         await db.Database.ExecuteSqlRawAsync(@"
 CREATE TABLE IF NOT EXISTS ""Respects"" (

@@ -33,6 +33,7 @@ export function PlayerList({ players, myPlayerTag }: Props) {
   const [selected, setSelected] = useState<PlayerStatus | null>(null)
   const [sort, setSort] = useState<SortKey>('status')
   const [filter, setFilter] = useState<FilterKey>('all')
+  const [query, setQuery] = useState('')
   const { t } = useT()
 
   if (players.length === 0) {
@@ -48,12 +49,17 @@ export function PlayerList({ players, myPlayerTag }: Props) {
   // тогда сортировать по ним нечего и вариант прячем, чтобы не обманывать.
   const hasTrophies = players.some(p => p.trophies > 0)
 
+  // Ищем без учёта регистра: в CR имена пишут как угодно, и «Vasya» не должен
+  // прятаться от запроса «vasya».
+  const needle = query.trim().toLowerCase()
+
   const shown = players
     .filter(p =>
       filter === 'all' ? true
         : filter === 'notPlayed' ? p.status !== 'played'
         : filter === 'played' ? p.status === 'played'
         : roleRank(p.role) < 3)   // officers: лидер, соруки, старейшины
+    .filter(p => needle === '' || p.name.toLowerCase().includes(needle))
     .slice()
     .sort((a, b) => {
       switch (sort) {
@@ -70,6 +76,24 @@ export function PlayerList({ players, myPlayerTag }: Props) {
 
   return (
     <>
+      {/* Поиск по имени: в клане до 50 человек, и найти одного пролистыванием —
+          отдельное занятие. Поле стоит выше фильтров: чаще всего ищут конкретного. */}
+      <div className="pl-search">
+        <input
+          className="pl-search-input"
+          type="search"
+          value={query}
+          placeholder={t.players.searchPlaceholder}
+          onChange={e => setQuery(e.target.value)}
+          aria-label={t.players.searchPlaceholder}
+        />
+        {needle !== '' && (
+          <span className="muted small pl-search-count">
+            {shown.length} {t.players.countSuffix} {players.length}
+          </span>
+        )}
+      </div>
+
       <div className="pl-controls">
         <select
           className="rating-select"
@@ -108,6 +132,7 @@ export function PlayerList({ players, myPlayerTag }: Props) {
             <li key={p.playerTag} className={`player-card ${meta.cls} ${isMe ? 'player-me' : ''}`}>
               <button className="player-row" onClick={() => open(p)}>
                 <span className="status-icon" aria-label={p.status}>{meta.icon}</span>
+                {p.avatarEmoji && <span className="player-avatar">{p.avatarEmoji}</span>}
                 <div className="player-info">
                   <span className="player-name">
                     {isMe && <span className="me-badge">{t.leaderboard.you}</span>}

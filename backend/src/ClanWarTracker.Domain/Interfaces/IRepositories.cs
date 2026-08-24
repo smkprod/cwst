@@ -97,6 +97,12 @@ public interface IWarBattleRepository
     /// <summary>Бои клана за конкретную неделю (сезон+секция), новые первыми.</summary>
     Task<List<WarBattle>> GetByWeekAsync(int clanId, int seasonId, int sectionIndex, CancellationToken ct = default);
 
+    /// <summary>
+    /// Бои клана начиная с указанного момента, новые первыми. Нужны карточке дисциплины:
+    /// она смотрит на привычки за несколько недель, а не за одну.
+    /// </summary>
+    Task<List<WarBattle>> GetSinceAsync(int clanId, DateTime sinceUtc, CancellationToken ct = default);
+
     Task AddRangeAsync(IEnumerable<WarBattle> battles, CancellationToken ct = default);
     Task SaveChangesAsync(CancellationToken ct = default);
 }

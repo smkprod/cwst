@@ -1,5 +1,5 @@
 import { initData } from './telegram'
-import type { BroadcastResult, BroadcastTarget, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, Tournament, TournamentSummary, WarJournal } from '../types'
+import type { BroadcastResult, BroadcastTarget, ClanDiscipline, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, Tournament, TournamentSummary, WarJournal } from '../types'
 
 // Если мы на Render (production), BASE должен быть пустой строкой '', чтобы запросы шли на тот же домен.
 // Для локальной разработки (Development) оставляем localhost:5000.
@@ -75,6 +75,15 @@ export const api = {
       body: JSON.stringify({ hoursBeforeEnd }),
     }),
   getClanRanking: () => request<ClanRanking>('/api/clans/my/ranking'),
+  getClanDiscipline: () => request<ClanDiscipline>('/api/clans/my/discipline'),
+  getAvatars: () => request<{ avatars: string[] }>('/api/players/avatars'),
+  /** Пустая строка снимает аватарку. */
+  setMyAvatar: (emoji: string) =>
+    request<{ ok: boolean; avatarEmoji: string | null }>('/api/players/me/avatar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ emoji }),
+    }),
   getWarJournal: () => request<WarJournal>('/api/clans/my/war-journal'),
   getNotificationSettings: () =>
     request<NotificationSettings>('/api/clans/my/notification-settings'),

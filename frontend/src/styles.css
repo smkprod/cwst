@@ -238,25 +238,14 @@ details.collapse-card[open] > .collapse-summary::after { transform: rotate(180de
 .my-action-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 .my-action-cta { margin: 6px 0 0; }
 
-/* --- Pro-аналитика: шанс победы + здоровье клана --- */
+/* --- Pro-аналитика недели --- */
 .insights-card { display: grid; gap: 14px; }
-.win-block { display: grid; gap: 8px; }
-.win-row { display: flex; align-items: center; gap: 12px; }
-.win-value { font-size: 34px; font-weight: 800; line-height: 1; }
 .win-good { color: var(--green); }
 .win-mid { color: #e6a23c; }
 .win-bad { color: #e05c5c; }
-.win-info { display: grid; gap: 2px; }
-.win-caption { font-size: 13px; font-weight: 600; }
-.win-track { height: 8px; border-radius: 999px; background: rgba(255,255,255,0.08); overflow: hidden; }
-.win-fill { height: 100%; border-radius: 999px; transition: width 0.5s ease; }
 .fill-good { background: var(--green); }
 .fill-mid { background: #e6a23c; }
 .fill-bad { background: #e05c5c; }
-.win-warning {
-  margin: 0; font-size: 12px; color: #e6a23c;
-  background: rgba(230,162,60,0.1); border-radius: 8px; padding: 6px 10px;
-}
 .health-block { display: grid; gap: 8px; }
 .health-head { display: flex; align-items: baseline; justify-content: space-between; }
 .health-score { font-size: 18px; font-weight: 700; }
@@ -1566,17 +1555,102 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 }
 .clan-member-trophies { flex-shrink: 0; font-size: 12px; color: var(--muted); }
 
-/* --- Переключатель «Война / Рейтинг» внутри вкладки клана --- */
+/* --- Переключатель «Война / Состав / Рейтинг» внутри вкладки клана --- */
 .clan-sections { display: flex; gap: 6px; margin-bottom: 10px; }
 .clan-section {
-  flex: 1; padding: 9px 10px; border-radius: 10px; cursor: pointer;
+  flex: 1; min-width: 0; padding: 9px 6px; border-radius: 10px; cursor: pointer;
   background: var(--bg-card); border: 1px solid transparent;
   color: var(--muted); font-size: 13px; font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .clan-section-on {
   color: var(--accent); border-color: var(--accent);
   background: linear-gradient(135deg, rgba(156, 107, 255, 0.14), transparent), var(--bg-card);
 }
+
+/* Переключатель «Клановая / Игровая статистика» во вкладке «Я».
+   Подписи длиннее, чем у клановых секций, поэтому шрифт мельче и перенос разрешён. */
+.me-sections { display: flex; gap: 6px; margin-bottom: 10px; }
+.me-section {
+  flex: 1; min-width: 0; padding: 9px 8px; border-radius: 10px; cursor: pointer;
+  background: var(--bg-card); border: 1px solid transparent;
+  color: var(--muted); font-size: 12px; font-weight: 600; line-height: 1.25;
+}
+.me-section-on {
+  color: var(--accent); border-color: var(--accent);
+  background: linear-gradient(135deg, rgba(156, 107, 255, 0.14), transparent), var(--bg-card);
+}
+
+/* --- Дисциплина клана --- */
+.discipline-card { display: grid; gap: 10px; }
+.disc-tabs { display: flex; gap: 6px; }
+.disc-tab {
+  flex: 1; min-width: 0; padding: 7px 4px; border-radius: 9px; cursor: pointer;
+  background: rgba(255, 255, 255, 0.05); border: 1px solid transparent;
+  color: var(--muted); font-size: 12px; font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.disc-tab-on {
+  color: var(--accent); border-color: var(--accent);
+  background: rgba(156, 107, 255, 0.12);
+}
+.disc-hint { margin: 0; }
+.disc-empty { margin: 0; padding: 8px 0; text-align: center; }
+
+.disc-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.disc-row {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 10px; border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+}
+.disc-place {
+  flex: none; width: 18px; text-align: center;
+  font-size: 12px; font-weight: 700; color: var(--muted);
+}
+.disc-avatar { flex: none; font-size: 18px; }
+.disc-info { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.disc-name {
+  font-size: 14px; font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* Число и подпись столбиком у правого края: так глаз сравнивает значения по вертикали */
+.disc-value {
+  flex: none; display: grid; justify-items: end; gap: 1px;
+  text-align: right; max-width: 40%;
+}
+.disc-value b { font-size: 17px; line-height: 1; }
+
+/* --- Выбор эмодзи-аватарки --- */
+.avatar-grid {
+  display: grid; gap: 6px;
+  grid-template-columns: repeat(auto-fill, minmax(42px, 1fr));
+}
+.avatar-opt {
+  aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  font-size: 22px; line-height: 1; cursor: pointer;
+  background: rgba(255, 255, 255, 0.05); border: 1px solid transparent; border-radius: 10px;
+}
+.avatar-opt-on {
+  border-color: var(--accent);
+  background: rgba(156, 107, 255, 0.16);
+}
+.avatar-opt-none { font-size: 16px; opacity: 0.7; }
+
+/* Аватарка рядом с именем в списках */
+.player-avatar { flex: none; font-size: 18px; }
+.rating-avatar { flex: none; font-size: 15px; }
+
+/* --- Поиск по имени в составе клана --- */
+.pl-search { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.pl-search-input {
+  flex: 1; min-width: 0;
+  background: var(--bg-card); color: var(--text);
+  font: inherit; font-size: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 10px;
+  padding: 9px 12px;
+}
+.pl-search-input:focus { outline: none; border-color: var(--accent); }
+.pl-search-count { flex: none; white-space: nowrap; }
 
 /* --- Вкладка «Ещё» --- */
 .more-back { margin-bottom: 10px; }
