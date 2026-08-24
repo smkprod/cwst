@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text;
 using ClanWarTracker.Application.DTOs;
+using ClanWarTracker.Application.Notifications;
 using ClanWarTracker.Application.UseCases;
 using ClanWarTracker.Domain.Entities;
 using ClanWarTracker.Domain.Enums;
@@ -112,6 +113,7 @@ public class BotUpdateHandler(
             var parts = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             var command = parts[0].Split('@')[0]; // "/link@MyBot" -> "/link"
             var arg = parts.Length > 1 ? parts[1] : null;
+            var t = await TextForAsync(msg, sp, ct);
 
             switch (command)
             {
@@ -126,17 +128,7 @@ public class BotUpdateHandler(
                             _pendingReferrals[msg.From!.Id] = refUserId;
                         }
 
-                        await bot.SendMessage(msg.Chat.Id,
-                            "⚔️ Clanify — статистика войны Clash Royale\n\n" +
-                            "Отправь свой тег аккаунта CR прямо сюда — например:\n" +
-                            "#2VUPLPU0R\n\n" +
-                            "Я сразу покажу:\n" +
-                            "• кто не атакует в войне твоего клана\n" +
-                            "• твой личный счёт и место в рейтинге\n" +
-                            "• сколько часов осталось до конца дня\n\n" +
-                            "Работает для всех участников — не только лидеров.\n\n" +
-                            "Или открой Mini App кнопкой в меню ниже 👇",
-                            cancellationToken: ct);
+                        await bot.SendMessage(msg.Chat.Id, t.StartPrivate, cancellationToken: ct);
                     }
                     else
                     {
@@ -144,18 +136,8 @@ public class BotUpdateHandler(
                         var groupClan = await groupClanRepo.GetByChatIdAsync(msg.Chat.Id, ct);
                         await bot.SendMessage(msg.Chat.Id,
                             groupClan is null
-                                ? "⚔️ Clanify — статистика войны Clash Royale\n\n" +
-                                  "Чтобы подключить клан к этой группе, лидер или администратор выполняет:\n" +
-                                  "/setup #ТЕГ_КЛАНА\n\n" +
-                                  "После этого каждый участник может написать боту /start в ЛС и отправить свой тег — и сразу увидит статистику."
-                                : $"⚔️ Клан «{groupClan.Name}» подключён!\n" +
-                                  "/status — статус текущей войны\n" +
-                                  "/remind N — напоминания за N часов до конца дня\n" +
-                                  "/nudge — пнуть тех, кто не отыграл (тег по @username)\n" +
-                                  "/bind #ТЕГ — привязать игрока к Telegram (ответом на его сообщение)\n" +
-                                  "/unlinked — кого ещё не привязали\n" +
-                                  "/settopic — слать уведомления в эту тему (запусти внутри темы)\n\n" +
-                                  "Участники: напишите боту /start в личку и отправьте свой тег CR.",
+                                ? t.StartGroupNew
+                                : string.Format(t.StartGroupReady, groupClan.Name),
                             messageThreadId: msg.MessageThreadId,
                             cancellationToken: ct);
                     }
@@ -164,106 +146,89 @@ public class BotUpdateHandler(
                 case "/setup":
                     if (msg.Chat.Type == ChatType.Private)
                     {
-                        await Reply(msg, "⚠️ /setup используется только в групповом чате клана, а не в ЛС.", ct);
+                        await Reply(msg, t.OnlyInGroup, ct);
                         return;
                     }
-                    if (arg is null) { await Reply(msg, "Формат: /setup #ТЕГ_КЛАНА", ct); return; }
-                    if (!await IsAdminAsync(msg, ct)) { await Reply(msg, "Только админ группы может привязать клан.", ct); return; }
+                    if (arg is null) { await Reply(msg, t.SetupFormat, ct); return; }
+                    if (!await IsAdminAsync(msg, ct)) { await Reply(msg, t.SetupOnlyAdmin, ct); return; }
                     var clanName = await sp.GetRequiredService<SetupClanUseCase>()
                         .ExecuteAsync(msg.Chat.Id, arg, msg.MessageThreadId, ct);
-                    var topicNote = msg.MessageThreadId is not null
-                        ? "\n\n📌 Напоминания и отчёты будут приходить в эту тему."
-                        : "";
+                    var topicNote = msg.MessageThreadId is not null ? t.SetupTopicNote : "";
                     await Reply(msg, clanName is null
-                        ? "❌ Клан не найден. Проверь тег."
-                        : $"✅ Клан «{clanName}» привязан к этой группе!\n\n" +
-                          "Участники: напишите боту /start в личку и отправьте свой тег CR — сразу увидите статистику." +
-                          topicNote, ct);
+                        ? t.SetupClanNotFound
+                        : string.Format(t.SetupOk, clanName) + topicNote, ct);
                     break;
 
                 case "/link":
-                    if (arg is null) { await Reply(msg, "Формат: /link #ТВОЙ_ТЕГ", ct); return; }
+                    if (arg is null) { await Reply(msg, t.LinkFormat, ct); return; }
                     var isPrivate = msg.Chat.Type == ChatType.Private;
                     var linkChatId = isPrivate ? (long?)null : msg.Chat.Id;
                     var linkReferrer = _pendingReferrals.TryRemove(msg.From!.Id, out var lr) ? lr : (long?)null;
                     var playerName = await sp.GetRequiredService<LinkPlayerUseCase>()
                         .ExecuteAsync(msg.From!.Id, arg, linkChatId, linkReferrer, msg.From!.Username, ct);
                     await Reply(msg, playerName is null
-                        ? "❌ Игрок не найден. Проверь тег (профиль → значок тега)."
-                        : isPrivate
-                            ? $"✅ Привязан игрок «{playerName}»! Открой Mini App через кнопку меню."
-                            : $"✅ Привязан игрок «{playerName}». Напишите боту /start в личку — буду присылать напоминания.", ct);
+                        ? t.LinkNotFound
+                        : string.Format(isPrivate ? t.LinkOkPrivate : t.LinkOkGroup, playerName), ct);
                     break;
 
                 case "/remind":
-                    if (!await IsAdminAsync(msg, ct)) { await Reply(msg, "Только админ группы может менять время напоминаний.", ct); return; }
+                    if (!await IsAdminAsync(msg, ct)) { await Reply(msg, t.RemindOnlyAdmin, ct); return; }
                     if (!int.TryParse(arg, out var hours) || hours is < 1 or > 12)
                     {
-                        await Reply(msg, "Формат: /remind N — за сколько часов до конца военного дня напоминать (от 1 до 12).\nНапример: /remind 3", ct);
+                        await Reply(msg, t.RemindFormat, ct);
                         return;
                     }
                     var clanRepo = sp.GetRequiredService<IClanRepository>();
                     var remindClan = await clanRepo.GetByChatIdAsync(msg.Chat.Id, ct);
-                    if (remindClan is null) { await Reply(msg, "Клан не привязан. Сначала /setup #ТЕГ.", ct); return; }
+                    if (remindClan is null) { await Reply(msg, t.ClanNotLinked, ct); return; }
                     remindClan.ReminderHoursBeforeEnd = hours;
                     await clanRepo.SaveChangesAsync(ct);
-                    await Reply(msg,
-                        $"✅ Автонапоминания будут приходить за {hours} ч до конца военного дня (день войны заканчивается в 10:00 UTC).\n" +
-                        $"Напомню только тем, кто к этому времени не отыграл все 4/4 колоды.", ct);
+                    await Reply(msg, string.Format(t.RemindOk, hours), ct);
                     break;
 
                 case "/settopic":
                 case "/topic":
-                    if (msg.Chat.Type == ChatType.Private) { await Reply(msg, "⚠️ Команда работает только в групповом чате клана.", ct); return; }
-                    if (!await IsAdminAsync(msg, ct)) { await Reply(msg, "Менять тему для уведомлений может только админ группы.", ct); return; }
+                    if (msg.Chat.Type == ChatType.Private) { await Reply(msg, t.OnlyInGroup, ct); return; }
+                    if (!await IsAdminAsync(msg, ct)) { await Reply(msg, t.TopicOnlyAdmin, ct); return; }
                     var topicRepo = sp.GetRequiredService<IClanRepository>();
                     var topicClan = await topicRepo.GetByChatIdAsync(msg.Chat.Id, ct);
-                    if (topicClan is null) { await Reply(msg, "Клан не привязан. Сначала /setup #ТЕГ.", ct); return; }
+                    if (topicClan is null) { await Reply(msg, t.ClanNotLinked, ct); return; }
                     topicClan.TelegramMessageThreadId = msg.MessageThreadId;
                     await topicRepo.SaveChangesAsync(ct);
-                    await Reply(msg, msg.MessageThreadId is not null
-                        ? "📌 Готово! Теперь напоминания, теги и отчёты бот будет слать в эту тему."
-                        : "📌 Готово! Уведомления будут приходить в общий чат (не в тему). Запусти /settopic внутри нужной темы, чтобы привязать её.", ct);
+                    await Reply(msg, msg.MessageThreadId is not null ? t.TopicSetToThread : t.TopicSetToChat, ct);
                     break;
 
                 case "/nudge":
                 case "/пни":
-                    if (msg.Chat.Type == ChatType.Private) { await Reply(msg, "⚠️ Команда работает в групповом чате клана.", ct); return; }
-                    if (!await IsAdminAsync(msg, ct)) { await Reply(msg, "Пинать игроков может только админ группы.", ct); return; }
+                    if (msg.Chat.Type == ChatType.Private) { await Reply(msg, t.OnlyInGroup, ct); return; }
+                    if (!await IsAdminAsync(msg, ct)) { await Reply(msg, t.NudgeOnlyAdmin, ct); return; }
                     var nudgeRepo = sp.GetRequiredService<IClanRepository>();
                     var nudgeClan = await nudgeRepo.GetByChatIdAsync(msg.Chat.Id, ct);
-                    if (nudgeClan is null) { await Reply(msg, "Клан не привязан. Сначала /setup #ТЕГ.", ct); return; }
+                    if (nudgeClan is null) { await Reply(msg, t.ClanNotLinked, ct); return; }
                     var isProNudge = nudgeClan.EffectivePlan(DateTime.UtcNow) == PlanTier.Pro;
                     var nudgeResult = await sp.GetRequiredService<NudgePlayersUseCase>()
                         .ExecuteAsync(nudgeClan.Id, isProNudge, ct);
-                    if (nudgeResult is null) { await Reply(msg, "Сейчас не день войны — пинать некого.", ct); return; }
+                    if (nudgeResult is null) { await Reply(msg, t.NudgeNoWarDay, ct); return; }
                     if (nudgeResult.TaggableCount == 0 && nudgeResult.UnlinkedCount == 0)
-                        await Reply(msg, "Все уже отыграли 4/4 — пинать некого 🎉", ct);
+                        await Reply(msg, t.NudgeAllPlayed, ct);
                     else if (nudgeResult.TaggableCount == 0)
-                        await Reply(msg, $"{nudgeResult.UnlinkedCount} не доиграли, но никто из них не привязан — тегнуть некого.\n\nПривяжи их сам: ответь на сообщение игрока командой /bind #ТЕГ. Список: /unlinked", ct);
+                        await Reply(msg, string.Format(t.NudgeNobodyTaggable, nudgeResult.UnlinkedCount), ct);
                     break;
 
                 case "/bind":
                 case "/привязать":
                 case "/прив'язати":
                 {
-                    if (msg.Chat.Type == ChatType.Private) { await Reply(msg, "⚠️ Команда работает в групповом чате клана.", ct); return; }
-                    if (!await IsAdminAsync(msg, ct)) { await Reply(msg, "Привязывать игроков может только админ группы.", ct); return; }
+                    if (msg.Chat.Type == ChatType.Private) { await Reply(msg, t.OnlyInGroup, ct); return; }
+                    if (!await IsAdminAsync(msg, ct)) { await Reply(msg, t.BindOnlyAdmin, ct); return; }
 
                     var bindRepo = sp.GetRequiredService<IClanRepository>();
                     var bindClan = await bindRepo.GetByChatIdAsync(msg.Chat.Id, ct);
-                    if (bindClan is null) { await Reply(msg, "Клан не привязан. Сначала /setup #ТЕГ.", ct); return; }
+                    if (bindClan is null) { await Reply(msg, t.ClanNotLinked, ct); return; }
 
                     if (arg is null)
                     {
-                        await Reply(msg,
-                            "Как привязать игрока:\n\n" +
-                            "1) Ответь на любое сообщение человека командой:\n" +
-                            "   /bind #ТЕГИГРОКА\n" +
-                            "   Так подтянется и юзернейм, и аккаунт — это надёжнее.\n\n" +
-                            "2) Или укажи юзернейм вручную:\n" +
-                            "   /bind #ТЕГИГРОКА @username\n\n" +
-                            "Посмотреть, кого ещё не привязали: /unlinked", ct);
+                        await Reply(msg, t.BindHelp, ct);
                         return;
                     }
 
@@ -280,12 +245,7 @@ public class BotUpdateHandler(
                     // несуществующего @Максим, и лидер узнал бы об этом только в бою.
                     if (typedUsername is not null && !IsTelegramUsername(typedUsername))
                     {
-                        await Reply(msg,
-                            $"«{typedUsername}» не похоже на юзернейм Telegram.\n\n" +
-                            "Юзернейм начинается с @, состоит из латиницы, цифр и подчёркиваний " +
-                            "(например @qrt980). Посмотреть его можно в профиле человека.\n\n" +
-                            "Надёжнее: ответь на любое сообщение игрока командой /bind #ТЕГ — " +
-                            "тогда юзернейм подтянется сам.", ct);
+                        await Reply(msg, string.Format(t.BindBadUsername, typedUsername), ct);
                         return;
                     }
 
@@ -308,8 +268,7 @@ public class BotUpdateHandler(
 
                     if (string.IsNullOrWhiteSpace(bindUsername) && bindUserId is null)
                     {
-                        await Reply(msg, "Не понял, кого привязывать. Ответь этой командой на сообщение игрока " +
-                                         "или укажи юзернейм: /bind #ТЕГ @username", ct);
+                        await Reply(msg, t.BindWho, ct);
                         return;
                     }
 
@@ -318,20 +277,14 @@ public class BotUpdateHandler(
 
                     await Reply(msg, bindResult.Outcome switch
                     {
-                        BindOutcome.TagNotFound => "Игрок с таким тегом не найден. Проверь тег.",
-                        BindOutcome.NotInClan => "Этого тега нет в текущем составе клана.",
-                        _ => $"✅ {bindResult.PlayerName} привязан к " +
-                             (bindUsername is not null ? $"@{bindUsername}" : "аккаунту") + ".\n" +
-                             "Теперь бот будет тегать его в чате при /nudge и напоминаниях." +
+                        BindOutcome.TagNotFound => t.BindTagNotFound,
+                        BindOutcome.NotInClan => t.BindNotInClan,
+                        _ => string.Format(t.BindOk, bindResult.PlayerName,
+                                 bindUsername is not null ? $"@{bindUsername}" : t.BindOkAccount) +
                              // Один Telegram-аккаунт может быть привязан только к одному тегу,
                              // поэтому перенос — это молчаливая потеря прошлой привязки. Говорим вслух.
-                             (bindResult.MovedFromTag is string old
-                                 ? $"\n\n⚠️ Этот аккаунт был привязан к {old} — привязка перенесена. " +
-                                   "Если это разные люди, привяжи их по отдельности."
-                                 : "") +
-                             (bindResult.CanDm
-                                 ? ""
-                                 : "\n\n⚠️ В личные сообщения бот писать не сможет, пока игрок сам не нажмёт «Старт» у бота — Telegram запрещает писать первым. В чате тег работает.")
+                             (bindResult.MovedFromTag is string old ? string.Format(t.BindMoved, old) : "") +
+                             (bindResult.CanDm ? "" : t.BindNoDm)
                     }, ct);
                     break;
                 }
@@ -340,20 +293,20 @@ public class BotUpdateHandler(
                 case "/отвязать":
                 case "/відв'язати":
                 {
-                    if (msg.Chat.Type == ChatType.Private) { await Reply(msg, "⚠️ Команда работает в групповом чате клана.", ct); return; }
-                    if (!await IsAdminAsync(msg, ct)) { await Reply(msg, "Отвязывать игроков может только админ группы.", ct); return; }
-                    if (arg is null) { await Reply(msg, "Укажи тег: /unbind #ТЕГИГРОКА", ct); return; }
+                    if (msg.Chat.Type == ChatType.Private) { await Reply(msg, t.OnlyInGroup, ct); return; }
+                    if (!await IsAdminAsync(msg, ct)) { await Reply(msg, t.UnbindOnlyAdmin, ct); return; }
+                    if (arg is null) { await Reply(msg, t.UnbindNeedTag, ct); return; }
 
                     var unbindRepo = sp.GetRequiredService<IClanRepository>();
                     var unbindClan = await unbindRepo.GetByChatIdAsync(msg.Chat.Id, ct);
-                    if (unbindClan is null) { await Reply(msg, "Клан не привязан. Сначала /setup #ТЕГ.", ct); return; }
+                    if (unbindClan is null) { await Reply(msg, t.ClanNotLinked, ct); return; }
 
                     var unbindResult = await sp.GetRequiredService<BindPlayerUseCase>()
                         .UnbindAsync(unbindClan.Id, arg, ct);
 
                     await Reply(msg, unbindResult.Outcome == BindOutcome.Ok
-                        ? $"✅ Привязка {unbindResult.PlayerName} снята."
-                        : "Нечего снимать: либо тег не привязан, либо игрок привязался сам — такую привязку может убрать только он.", ct);
+                        ? string.Format(t.UnbindOk, unbindResult.PlayerName)
+                        : t.UnbindNothing, ct);
                     break;
                 }
 
@@ -361,15 +314,15 @@ public class BotUpdateHandler(
                 case "/непривязанные":
                 case "/неприв'язані":
                 {
-                    if (msg.Chat.Type == ChatType.Private) { await Reply(msg, "⚠️ Команда работает в групповом чате клана.", ct); return; }
+                    if (msg.Chat.Type == ChatType.Private) { await Reply(msg, t.OnlyInGroup, ct); return; }
 
                     var ulRepo = sp.GetRequiredService<IClanRepository>();
                     var ulClan = await ulRepo.GetByChatIdAsync(msg.Chat.Id, ct);
-                    if (ulClan is null) { await Reply(msg, "Клан не привязан. Сначала /setup #ТЕГ.", ct); return; }
+                    if (ulClan is null) { await Reply(msg, t.ClanNotLinked, ct); return; }
 
                     var ulApi = sp.GetRequiredService<IClashRoyaleApi>();
                     var ulWar = await ulApi.GetCurrentWarAsync(ulClan.ClanTag, ct);
-                    if (ulWar is null) { await Reply(msg, "Не удалось получить состав клана.", ct); return; }
+                    if (ulWar is null) { await Reply(msg, t.UnlinkedRosterFail, ct); return; }
 
                     var ulRoles = await ulApi.GetClanMemberRolesAsync(ulClan.ClanTag, ct);
                     var ulLinked = (await sp.GetRequiredService<IPlayerRepository>().GetByClanIdAsync(ulClan.Id, ct))
@@ -382,12 +335,10 @@ public class BotUpdateHandler(
                         .OrderBy(p => p.Name)
                         .ToList();
 
-                    if (ulMissing.Count == 0) { await Reply(msg, "Все привязаны 🎉 Бот сможет тегнуть каждого.", ct); return; }
+                    if (ulMissing.Count == 0) { await Reply(msg, t.UnlinkedAllLinked, ct); return; }
 
                     var ulList = string.Join("\n", ulMissing.Take(40).Select(p => $"• {p.Name} — {p.PlayerTag}"));
-                    await Reply(msg,
-                        $"👥 Ещё не привязаны ({ulMissing.Count}):\n\n{ulList}\n\n" +
-                        "Привяжи ответом на сообщение человека: /bind #ТЕГ", ct);
+                    await Reply(msg, string.Format(t.UnlinkedList, ulMissing.Count, ulList), ct);
                     break;
                 }
 
@@ -395,10 +346,10 @@ public class BotUpdateHandler(
                     var statusUseCase = sp.GetRequiredService<GetClanStatusUseCase>();
                     var clans = sp.GetRequiredService<IClanRepository>();
                     var clan = await clans.GetByChatIdAsync(msg.Chat.Id, ct);
-                    if (clan is null) { await Reply(msg, "Клан не привязан. Сначала /setup #ТЕГ.", ct); return; }
+                    if (clan is null) { await Reply(msg, t.ClanNotLinked, ct); return; }
 
                     var status = await statusUseCase.ExecuteAsync(clan.ClanTag, ct);
-                    if (status is null) { await Reply(msg, "Не удалось получить данные войны.", ct); return; }
+                    if (status is null) { await Reply(msg, t.StatusNoWarData, ct); return; }
 
                     var played = status.Players.Count(p => p.Status == "played");
                     var lines = status.Players.Take(15).Select(p => p.Status switch
@@ -409,29 +360,32 @@ public class BotUpdateHandler(
                     });
                     var forecastLine = status.Forecast is null || status.PeriodType == "training"
                         ? ""
-                        : $"🔮 Прогноз: {status.Forecast.ProjectedDayFame:N0} к концу дня, {status.Forecast.ProjectedWeekFame:N0} за неделю\n";
+                        : string.Format(t.StatusForecast,
+                              status.Forecast.ProjectedDayFame.ToString("N0"),
+                              status.Forecast.ProjectedWeekFame.ToString("N0")) + "\n";
                     await Reply(msg,
-                        $"⚔️ {status.ClanName} — {Period(status.PeriodType)}\n" +
-                        $"Сыграли полностью: {played}/{status.Players.Count}\n" +
-                        $"До конца дня: ~{status.HoursLeft} ч\n" +
+                        string.Format(t.StatusHeader, status.ClanName, Period(status.PeriodType, t)) + "\n" +
+                        string.Format(t.StatusPlayed, played, status.Players.Count) + "\n" +
+                        string.Format(t.StatusHoursLeft, status.HoursLeft) + "\n" +
                         forecastLine + "\n" +
                         string.Join('\n', lines) +
-                        (status.Players.Count > 15 ? $"\n… и ещё {status.Players.Count - 15}. Полный список — в Mini App." : ""), ct);
+                        (status.Players.Count > 15 ? string.Format(t.StatusMore, status.Players.Count - 15) : ""), ct);
                     break;
             }
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Command handling failed: {Text}", text);
+            // Язык здесь резолвим заново: до места, где считается t, выполнение могло
+            // и не дойти — например, упало ещё в RefreshUsernameAsync.
+            var errText = await TextForAsync(msg, sp, ct);
             var hint = ex switch
             {
-                InvalidOperationException ioe when ioe.Message.Contains("CR API") =>
-                    "⚠️ Clash Royale API отклонил запрос — ключ привязан к другому IP. Админ, проверь CLASH_ROYALE_API_TOKEN.",
-                HttpRequestException =>
-                    "⚠️ Clash Royale API недоступен. Попробуй через пару минут.",
+                InvalidOperationException ioe when ioe.Message.Contains("CR API") => errText.ErrCrApiToken,
+                HttpRequestException => errText.ErrCrApiDown,
                 Microsoft.EntityFrameworkCore.DbUpdateException or System.Data.Common.DbException =>
-                    $"⚠️ Ошибка базы данных: {Describe(ex)}",
-                _ => $"⚠️ Ошибка: {Describe(ex)}"
+                    string.Format(errText.ErrDb, Describe(ex)),
+                _ => string.Format(errText.ErrGeneric, Describe(ex))
             };
             await Reply(msg, hint, ct);
         }
@@ -444,6 +398,7 @@ public class BotUpdateHandler(
     private async Task HandleQuickLookupAsync(Message msg, string rawTag, IServiceProvider sp, CancellationToken ct)
     {
         var tag = LinkPlayerUseCase.Normalize(rawTag);
+        var t = await TextForAsync(msg, sp, ct);
 
         // Привязываем игрока (без клана — из ЛС)
         var quickReferrer = _pendingReferrals.TryRemove(msg.From!.Id, out var qr) ? qr : (long?)null;
@@ -452,10 +407,7 @@ public class BotUpdateHandler(
 
         if (playerName is null)
         {
-            await Reply(msg,
-                $"❌ Игрок {tag} не найден в Clash Royale.\n\n" +
-                "Проверь тег — он виден в профиле под именем (выглядит как #ABC123).\n" +
-                "Или отправь /start чтобы узнать подробнее.", ct);
+            await Reply(msg, string.Format(t.QuickNotFound, tag), ct);
             return;
         }
 
@@ -466,10 +418,7 @@ public class BotUpdateHandler(
 
         if (clanTag is null)
         {
-            await Reply(msg,
-                $"✅ Привязан: {playerName}\n\n" +
-                "Ты сейчас не в клане — война недоступна.\n" +
-                "Открой Mini App через кнопку меню бота 🎮", ct);
+            await Reply(msg, string.Format(t.QuickNoClan, playerName), ct);
             return;
         }
 
@@ -508,10 +457,7 @@ public class BotUpdateHandler(
 
         if (status is null)
         {
-            await Reply(msg,
-                $"✅ Привязан: {playerName}\n" +
-                $"Клан: {clanTag}\n\n" +
-                "Данные войны сейчас недоступны. Открой Mini App через кнопку меню 🎮", ct);
+            await Reply(msg, string.Format(t.QuickNoWarData, playerName, clanTag), ct);
             return;
         }
 
@@ -519,23 +465,23 @@ public class BotUpdateHandler(
             string.Equals(p.PlayerTag, tag, StringComparison.OrdinalIgnoreCase));
 
         var sb = new StringBuilder();
-        sb.AppendLine($"✅ {playerName}  •  {status.ClanName}");
+        sb.AppendLine(string.Format(t.QuickHeader, playerName, status.ClanName));
         sb.AppendLine();
 
         if (status.PeriodType is "warDay" or "colosseum")
         {
-            var kind = status.PeriodType == "colosseum" ? "Колизей" : "Война";
-            sb.AppendLine($"⚔️ {kind} — до конца дня: ~{status.HoursLeft} ч");
-            sb.AppendLine($"Отыграли сегодня: {status.Stats.PlayersPlayed}/{status.Players.Count}");
+            var kind = status.PeriodType == "colosseum" ? t.BriefColosseum : t.BriefWar;
+            sb.AppendLine(string.Format(t.QuickWarLine, kind, status.HoursLeft));
+            sb.AppendLine(string.Format(t.QuickPlayed, status.Stats.PlayersPlayed, status.Players.Count));
 
             if (me is not null)
             {
                 sb.AppendLine();
                 sb.AppendLine(me.DecksUsedToday switch
                 {
-                    4 => $"Ты: ✅ все 4 колоды — молодец! Слава: {me.Fame} 🏆 (#{me.Rank})",
-                    0 => $"Ты: ❌ ещё не атаковал сегодня! Слава: {me.Fame} 🏆 (#{me.Rank})",
-                    _ => $"Ты: ⏳ {me.DecksUsedToday}/4 колоды. Слава: {me.Fame} 🏆 (#{me.Rank})"
+                    4 => string.Format(t.QuickMeAll, me.Fame, me.Rank),
+                    0 => string.Format(t.QuickMeNone, me.Fame, me.Rank),
+                    _ => string.Format(t.QuickMeSome, me.DecksUsedToday, me.Fame, me.Rank)
                 });
 
                 // Кто ещё не атаковал — короткий список
@@ -546,35 +492,34 @@ public class BotUpdateHandler(
                 if (laggards.Count > 0)
                 {
                     sb.AppendLine();
-                    sb.AppendLine("Не отыграли сегодня:");
+                    sb.AppendLine(t.QuickLaggardsTitle);
                     foreach (var p in laggards)
-                        sb.AppendLine($"  ❌ {p.Name} ({p.DecksUsedToday}/4)");
+                        sb.AppendLine(string.Format(t.QuickLaggardRow, p.Name, p.DecksUsedToday));
                     var totalLaggards = status.Players.Count(p => p.Status == "notPlayed");
                     if (totalLaggards > 5)
-                        sb.AppendLine($"  … и ещё {totalLaggards - 5}");
+                        sb.AppendLine(string.Format(t.QuickAndMore, totalLaggards - 5));
                 }
             }
             else
             {
-                sb.AppendLine("\nТебя нет в составе этой войны.");
+                sb.AppendLine(t.QuickNotInWar);
             }
         }
         else
         {
-            sb.AppendLine("📋 Сейчас тренировочная неделя.");
-            sb.AppendLine($"Участников в клане: {status.Players.Count}");
+            sb.AppendLine(t.QuickTraining);
+            sb.AppendLine(string.Format(t.QuickMembers, status.Players.Count));
         }
 
         sb.AppendLine();
-        sb.AppendLine("Полная статистика — в Mini App: история, прогнозы, рейтинг 👇");
+        sb.AppendLine(t.QuickFooter);
 
         // Кнопка "Поделиться с кланом" — открывает нативный Telegram share-диалог.
         // Пользователь сам выбирает чат; никакого спама.
-        var shareText = Uri.EscapeDataString(
-            "⚔️ Слежу за Clan War через этот бот — отправь свой тег CR и сразу увидишь статистику войны своего клана");
+        var shareText = Uri.EscapeDataString(t.QuickShareText);
         var shareUrl = $"https://t.me/share/url?url=https://t.me/{_botUsername}&text={shareText}";
         var keyboard = new InlineKeyboardMarkup(
-            InlineKeyboardButton.WithUrl("📤 Поделиться с кланом", shareUrl));
+            InlineKeyboardButton.WithUrl(t.QuickShareButton, shareUrl));
 
         await bot.SendMessage(msg.Chat.Id, sb.ToString(),
             replyParameters: msg.MessageId,
@@ -647,11 +592,11 @@ public class BotUpdateHandler(
         return $"{root.GetType().Name}: {msg}";
     }
 
-    private static string Period(string p) => p switch
+    private static string Period(string p, BotText t) => p switch
     {
-        "warDay" => "День войны",
-        "colosseum" => "Колизей",
-        _ => "Тренировка"
+        "warDay" => t.PeriodWarDay,
+        "colosseum" => t.PeriodColosseum,
+        _ => t.PeriodTraining
     };
 
     /// <summary>
@@ -671,6 +616,42 @@ public class BotUpdateHandler(
         var isAdmin = member.Status is ChatMemberStatus.Administrator or ChatMemberStatus.Creator;
         _adminCache[key] = (isAdmin, DateTime.UtcNow.AddMinutes(5));
         return isAdmin;
+    }
+
+    /// <summary>
+    /// На каком языке отвечать.
+    ///
+    /// В группе это язык клана, привязанного к чату: сообщение видят все, и выбирать
+    /// его должен клан, а не тот, кто последним нажал команду. В личке — язык клана
+    /// игрока, а пока он не привязан, язык интерфейса Telegram у самого человека:
+    /// другого сигнала о том, на каком языке с ним говорить, в этот момент просто нет.
+    ///
+    /// Ошибку глотаем намеренно: не смогли определить язык — ответим по-русски,
+    /// но ответим. Промолчать в ответ на команду хуже, чем ответить не на том языке.
+    /// </summary>
+    private static async Task<BotText> TextForAsync(Message msg, IServiceProvider sp, CancellationToken ct)
+    {
+        try
+        {
+            var clans = sp.GetRequiredService<IClanRepository>();
+            Clan? clan;
+
+            if (msg.Chat.Type == ChatType.Private)
+            {
+                var players = sp.GetRequiredService<IPlayerRepository>();
+                var player = msg.From is null ? null : await players.GetByTelegramIdAsync(msg.From.Id, ct);
+                clan = player?.ClanId is int clanId ? await clans.GetByIdAsync(clanId, ct) : null;
+            }
+            else
+            {
+                clan = await clans.GetByChatIdAsync(msg.Chat.Id, ct);
+            }
+
+            if (clan is not null) return NotificationSettings.Parse(clan.NotificationSettingsJson).Text;
+        }
+        catch { /* язык — не повод не ответить на команду */ }
+
+        return BotText.For(msg.From?.LanguageCode);
     }
 
     private Task Reply(Message msg, string text, CancellationToken ct) =>

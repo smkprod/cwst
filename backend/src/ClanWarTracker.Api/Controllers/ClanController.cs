@@ -91,7 +91,8 @@ public class ClanController(
         bool FinalCallEnabled,
         bool DailyReportEnabled,
         int? WarEndMinuteUtc = null,    // во сколько заканчивается КВ (минуты от 00:00 UTC), null = 10:00 по умолчанию
-        bool PerfectDayEnabled = true); // поздравление «900 за день» в чат
+        bool PerfectDayEnabled = true,  // поздравление «900 за день» в чат
+        string Language = "ru");        // язык сообщений бота: ru | uk | en
 
     /// <summary>GET /api/clans/my/notification-settings — гибкие настройки уведомлений (админ/лидер).</summary>
     [HttpGet("my/notification-settings")]
@@ -129,6 +130,9 @@ public class ClanController(
             DailyReport = new Toggle { Enabled = dto.DailyReportEnabled },
             PerfectDay = new Toggle { Enabled = dto.PerfectDayEnabled },
             WarEndMinuteUtc = dto.WarEndMinuteUtc,
+            // Нормализуем через разбор: незнакомый код языка станет русским, а не осядет
+            // в базе мусором, который потом придётся чистить.
+            Language = BotText.ToWire(BotText.ParseLang(dto.Language)),
         }.Serialize();
         await clans.SaveChangesAsync(ct);
 
@@ -142,7 +146,8 @@ public class ClanController(
         s.FinalCall.Enabled,
         s.DailyReport.Enabled,
         s.WarEndMinuteUtc,
-        s.PerfectDay.Enabled);
+        s.PerfectDay.Enabled,
+        BotText.ToWire(s.Lang));
 
     /// <summary>Управлять настройками может админ группы или лидер/со-лидер клана.</summary>
     private async Task<bool> CanManageAsync(Clan clan, Player player, CancellationToken ct)

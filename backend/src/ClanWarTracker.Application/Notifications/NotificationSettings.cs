@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace ClanWarTracker.Application.Notifications;
 
@@ -49,6 +50,25 @@ public class NotificationSettings
 
     /// <summary>Поздравление в чат, когда игрок набирает 900 медалей за день (идеальный день).</summary>
     public Toggle PerfectDay { get; set; } = new();
+
+    /// <summary>
+    /// Язык, на котором бот пишет клану: "ru" | "uk" | "en". null/мусор — русский,
+    /// то есть поведение кланов, заведённых до появления настройки, не меняется.
+    /// Живёт здесь, а не отдельной колонкой, именно поэтому: JSON расширяется без миграции.
+    /// </summary>
+    public string? Language { get; set; }
+
+    // JsonIgnore обязателен: Serialize() пишет все публичные свойства, и без него
+    // в NotificationSettingsJson каждого клана уезжала бы вся таблица переводов —
+    // сотня строк на язык вместо одного поля "language".
+
+    /// <summary>Разобранный язык сообщений — с запасным вариантом на случай пустого значения.</summary>
+    [JsonIgnore]
+    public BotLang Lang => BotText.ParseLang(Language);
+
+    /// <summary>Готовые тексты на языке клана.</summary>
+    [JsonIgnore]
+    public BotText Text => BotText.For(Lang);
 
     /// <summary>
     /// Во сколько заканчивается военный день у клана — минуты от полуночи UTC (0..1439).

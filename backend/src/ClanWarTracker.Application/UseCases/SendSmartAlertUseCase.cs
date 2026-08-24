@@ -1,3 +1,4 @@
+using ClanWarTracker.Application.Notifications;
 using ClanWarTracker.Application.DTOs;
 using ClanWarTracker.Domain.Enums;
 using ClanWarTracker.Domain.Interfaces;
@@ -42,6 +43,7 @@ public class SendSmartAlertUseCase(
             var sigma = GetClanStatusUseCase.ComputeSigma(ours.ProjectedFame, ours.Fame, rivalProj, bestRival.Fame);
             var winChance = status.Insights.WinChance.Value;
             var now = DateTime.UtcNow;
+            var t = NotificationSettings.Parse(clan.NotificationSettingsJson).Text;
 
             var linked = (await players.GetByClanIdAsync(clan.Id, ct))
                 .Where(p => p.TelegramUserId is not null)
@@ -63,8 +65,7 @@ public class SendSmartAlertUseCase(
                 var decksLeft = 4 - p.DecksUsedToday;
                 await notifier.SendToUserAsync(
                     player.TelegramUserId!.Value,
-                    $"📉 Без твоих атак шанс клана на победу упадёт с {winChance}% до {winChanceWithoutMe}%!\n" +
-                    $"Осталось колод: {decksLeft}/4 — успей сыграть.", ct);
+                    string.Format(t.SmartAlert, winChance, winChanceWithoutMe, decksLeft), ct);
 
                 player.LastSmartAlertSentAt = now;
             }

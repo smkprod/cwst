@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
-import type { NotificationSettings, NotifyChannel } from '../types'
+import type { BotLang, NotificationSettings, NotifyChannel } from '../types'
 import { haptic, hapticNotify } from '../lib/telegram'
 import { useT, type Translations } from '../lib/i18n'
+
+/** Подписи те же, что у переключателя интерфейса: коротко и без флагов. */
+const BOT_LANGS: BotLang[] = ['ru', 'uk', 'en']
+const BOT_LANG_LABELS: Record<BotLang, string> = { ru: 'RU', uk: 'UA', en: 'EN' }
 
 type State =
   | { kind: 'loading' }
@@ -72,6 +76,30 @@ export function NotificationSettingsView({ onClose }: { onClose: () => void }) {
         {state.kind === 'ready' && (
           <>
             <p className="muted small notif-intro">{t.notif.intro}</p>
+
+            {/* Язык сообщений — первым блоком: он влияет на все уведомления ниже.
+                Это язык бота для всего клана, а не интерфейса: приложение каждый
+                читает на своём (⚙️ Ещё → Язык), а в общий чат сообщение уходит одно. */}
+            <div className="card notif-block">
+              <div className="notif-row">
+                <div className="notif-row-text">
+                  <span className="notif-row-label">{t.notif.langTitle}</span>
+                  <span className="muted small">{t.notif.langDesc}</span>
+                </div>
+              </div>
+              <div className="notif-hours-btns" style={{ marginTop: 8 }}>
+                {BOT_LANGS.map(code => (
+                  <button
+                    key={code}
+                    className={`btn-mini ${state.s.language === code ? 'notif-on' : ''}`}
+                    onClick={() => { haptic('light'); patch({ language: code }) }}
+                    aria-pressed={state.s.language === code}
+                  >
+                    {BOT_LANG_LABELS[code]}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             {/* Напоминания не отыгравшим */}
             <div className="card notif-block">
