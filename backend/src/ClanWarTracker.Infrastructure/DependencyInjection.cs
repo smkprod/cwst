@@ -364,11 +364,14 @@ CREATE TABLE IF NOT EXISTS ""WarBattles"" (
         await db.Database.ExecuteSqlRawAsync(
             "ALTER TABLE \"Players\" ADD COLUMN IF NOT EXISTS \"LastVisitRank\" integer;");
 
-        // Эмодзи-аватарка игрока + счётчик полученных «пинков» (карточка дисциплины).
-        await db.Database.ExecuteSqlRawAsync(
-            "ALTER TABLE \"Players\" ADD COLUMN IF NOT EXISTS \"AvatarEmoji\" varchar(16);");
+        // Счётчик полученных «пинков» (карточка дисциплины).
         await db.Database.ExecuteSqlRawAsync(
             "ALTER TABLE \"Players\" ADD COLUMN IF NOT EXISTS \"NudgeCount\" integer NOT NULL DEFAULT 0;");
+
+        // Эмодзи-аватарки отменены: вместо них состав клана красят градиенты по заслугам.
+        // Колонка успела уехать на прод, поэтому убираем её явно, а не молча оставляем.
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Players\" DROP COLUMN IF EXISTS \"AvatarEmoji\";");
 
         // Респекты 👏 — социальная награда между согильдийцами (1 в сутки).
         await db.Database.ExecuteSqlRawAsync(@"

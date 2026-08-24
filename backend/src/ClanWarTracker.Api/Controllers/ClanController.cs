@@ -256,7 +256,7 @@ public class ClanController(
                 IsOurClan: string.Equals(s.ClanTag, clanTag, StringComparison.OrdinalIgnoreCase),
                 Players: s.Participants
                     .OrderByDescending(p => p.Fame)
-                    .Select(p => new WarLogPlayerDto(p.Name, p.Fame, p.DecksUsed))
+                    .Select(p => new WarLogPlayerDto(p.PlayerTag, p.Name, p.Fame, p.DecksUsed))
                     .ToList()))
                 .ToList()))
             .ToList();

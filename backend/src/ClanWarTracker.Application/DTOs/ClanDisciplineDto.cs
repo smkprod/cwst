@@ -21,7 +21,6 @@ public record ClanDisciplineDto(
 public record DisciplinePlayerDto(
     string PlayerTag,
     string Name,
-    string? AvatarEmoji,
     int MissedDecks,          // недоигранные военные колоды за учтённые недели
     int MissedWeeks,          // недель в составе, где не сыграл ни одной атаки
     int WeeksTracked,         // сколько недель игрок вообще был в составе

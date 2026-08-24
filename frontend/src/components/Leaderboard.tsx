@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
-import type { GlobalTop, Plan, PlayerStatus, SeasonArchive, SeasonBreakdown, SeasonPlayer } from '../types'
+import type { ClanStatus, GlobalTop, Plan, PlayerStatus, SeasonArchive, SeasonBreakdown, SeasonPlayer, WarLogWeek } from '../types'
+import { weekKing } from '../lib/king'
 import { fmt } from '../lib/format'
 import { haptic } from '../lib/telegram'
 import { useT } from '../lib/i18n'
@@ -11,6 +12,10 @@ interface Props {
   players: PlayerStatus[]
   myPlayerTag?: string
   plan: Plan
+  /** Тренировочные дни = война недели доиграна, первое место уже окончательное. */
+  periodType: ClanStatus['periodType']
+  /** Нужен, чтобы назвать короля, когда медали текущей недели уже обнулились. */
+  warLog: WarLogWeek[]
 }
 
 type Selection = 'current' | 'season' | 'archive' | 'global'
@@ -33,7 +38,7 @@ type ArchiveState =
 
 const MEDALS = ['🥇', '🥈', '🥉']
 
-export function Leaderboard({ players, myPlayerTag, plan }: Props) {
+export function Leaderboard({ players, myPlayerTag, plan, periodType, warLog }: Props) {
   const [sel, setSel] = useState<Selection>('current')
   const [breakdown, setBreakdown] = useState<BreakdownState>({ kind: 'idle' })
   const [global, setGlobal] = useState<GlobalState>({ kind: 'idle' })
@@ -96,7 +101,7 @@ export function Leaderboard({ players, myPlayerTag, plan }: Props) {
       </div>
 
       {sel === 'current' && (
-        <WeekBoard players={players} myPlayerTag={myPlayerTag} onOpen={openByTag} plan={plan} />
+        <WeekBoard players={players} myPlayerTag={myPlayerTag} onOpen={openByTag} plan={plan} periodType={periodType} warLog={warLog} />
       )}
       {sel === 'season' && <SeasonBoard state={breakdown} myPlayerTag={myPlayerTag} rosterTags={new Set(players.map(p => p.playerTag))} onOpen={openByTag} />}
       {sel === 'archive' && <ArchiveBoard state={archive} myPlayerTag={myPlayerTag} />}
@@ -120,14 +125,19 @@ export function Leaderboard({ players, myPlayerTag, plan }: Props) {
   )
 }
 
-function WeekBoard({ players, myPlayerTag, onOpen, plan }: {
+function WeekBoard({ players, myPlayerTag, onOpen, plan, periodType, warLog }: {
   players: PlayerStatus[]; myPlayerTag?: string; onOpen: (tag: string) => void; plan: Plan
+  periodType: ClanStatus['periodType']; warLog: WarLogWeek[]
 }) {
   const { t } = useT()
   const sorted = [...players].sort((a, b) => a.rank - b.rank)
   const podium = sorted.slice(0, 3)
   const rest = sorted.slice(3)
-  const mvp = podium[0]
+
+  // Пока идут военные дни, первое место ещё может смениться — это «MVP на сейчас».
+  // Когда война доиграна, тот же человек становится королём недели окончательно:
+  // другая формулировка и парадный фон, чтобы разницу было видно.
+  const king = weekKing(players, warLog, periodType)
 
   if (sorted.length === 0) {
     return <p className="center muted">{t.leaderboard.noDataCurrent}</p>
@@ -135,9 +145,10 @@ function WeekBoard({ players, myPlayerTag, onOpen, plan }: {
 
   return (
     <>
-      {mvp && mvp.fame > 0 && (
-        <div className="mvp-banner">
-          {t.leaderboard.mvpWeek} <strong>{mvp.name}</strong> — {fmt(mvp.fame)} {t.leaderboard.medals}
+      {king && (
+        <div className={`mvp-banner ${king.final ? 'mvp-banner-king' : ''}`}>
+          {king.final ? t.leaderboard.kingOfWeek : t.leaderboard.mvpWeek}{' '}
+          <strong>{king.name}</strong> — {fmt(king.fame)} {t.leaderboard.medals}
         </div>
       )}
 
@@ -150,7 +161,7 @@ function WeekBoard({ players, myPlayerTag, onOpen, plan }: {
               className={`podium-spot podium-${i === 1 ? 1 : i === 0 ? 2 : 3} ${p.playerTag === myPlayerTag ? 'podium-me' : ''}`}
             >
               <span className="podium-medal">{MEDALS[p.rank - 1] ?? ''}</span>
-              <span className="podium-name">{p.avatarEmoji ? `${p.avatarEmoji} ` : ''}{p.name}</span>
+              <span className="podium-name">{p.name}</span>
               <span className="podium-fame">{fmt(p.fame)}</span>
               <div className="podium-bar" />
             </button>
@@ -170,7 +181,6 @@ function WeekBoard({ players, myPlayerTag, onOpen, plan }: {
               <span className="rating-rank">#{p.rank}</span>
               <span className="rating-name">
                 <span className="rating-name-row">
-                  {p.avatarEmoji && <span className="rating-avatar">{p.avatarEmoji}</span>}
                   <span className="rating-name-text">{p.name}</span>
                   {p.playerTag === myPlayerTag && <span className="me-badge">{t.leaderboard.you}</span>}
                   {plan === 'pro' && p.consecutiveWars >= 3 && (

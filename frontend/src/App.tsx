@@ -29,6 +29,7 @@ import { SplashScreen } from './components/SplashScreen'
 import { MoreView } from './components/MoreView'
 import { MenuChangedNotice } from './components/MenuChangedNotice'
 import { DisciplineCard } from './components/DisciplineCard'
+import { weekKing } from './lib/king'
 
 type State =
   | { kind: 'loading' }
@@ -218,6 +219,10 @@ export default function App() {
 
       const isProLeader = Boolean(data.isClanLeader) && data.plan === 'pro'
 
+      // Король недели считается один раз на оба экрана — иначе состав и рейтинг
+      // однажды разойдутся в том, кого короновать.
+      const king = weekKing(data.players, data.warLog, data.periodType)
+
       const tabs: { id: Tab; icon: string; label: string }[] = [
         { id: 'clan', icon: '🏰', label: t.tabs.clan },
         { id: 'me', icon: '👤', label: t.tabs.me },
@@ -260,13 +265,13 @@ export default function App() {
             )}
             {tab === 'clan' && clanSection === 'roster' && (
               <div className="fade-in">
-                <PlayerList players={data.players} myPlayerTag={data.myPlayerTag} />
+                <PlayerList players={data.players} myPlayerTag={data.myPlayerTag} kingTag={king?.playerTag} />
               </div>
             )}
             {tab === 'clan' && clanSection === 'rating' && (
               <div className="fade-in">
                 <ClanWorldRankCard />
-                <Leaderboard players={data.players} myPlayerTag={data.myPlayerTag} plan={data.plan} />
+                <Leaderboard players={data.players} myPlayerTag={data.myPlayerTag} plan={data.plan} periodType={data.periodType} warLog={data.warLog ?? []} />
               </div>
             )}
             {tab === 'me' && (
@@ -317,6 +322,7 @@ export default function App() {
     }
     case 'guest': {
       const { data, myPlayerTag } = state
+      const king = weekKing(data.players, data.warLog, data.periodType)
 
       const tabs: { id: Tab; icon: string; label: string }[] = [
         { id: 'clan', icon: '🏰', label: t.tabs.clan },
@@ -355,12 +361,12 @@ export default function App() {
             )}
             {tab === 'clan' && clanSection === 'roster' && (
               <div className="fade-in">
-                <PlayerList players={data.players} myPlayerTag={myPlayerTag} />
+                <PlayerList players={data.players} myPlayerTag={myPlayerTag} kingTag={king?.playerTag} />
               </div>
             )}
             {tab === 'clan' && clanSection === 'rating' && (
               <div className="fade-in">
-                <Leaderboard players={data.players} myPlayerTag={myPlayerTag} plan={data.plan} />
+                <Leaderboard players={data.players} myPlayerTag={myPlayerTag} plan={data.plan} periodType={data.periodType} warLog={data.warLog ?? []} />
               </div>
             )}
             {tab === 'me' && (

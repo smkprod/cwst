@@ -156,7 +156,6 @@ function DisciplineRow({ player, place, section, t }: {
   return (
     <li className="disc-row">
       <span className="disc-place">{place}</span>
-      <span className="disc-avatar">{player.avatarEmoji ?? '👤'}</span>
       <span className="disc-info">
         <span className="disc-name">{player.name}</span>
         <span className="muted small">{detail}</span>
