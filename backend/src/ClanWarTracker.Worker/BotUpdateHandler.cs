@@ -296,8 +296,8 @@ public class BotUpdateHandler(
                           Title = t.InlineDeckTitle,
                           Description = t.InlineDeckDesc,
                           Caption = deckText + t.InlineFooter,
-                          PhotoWidth = 800,
-                          PhotoHeight = 420,
+                          PhotoWidth = CardWidth,
+                          PhotoHeight = DeckCardHeight,
                           ReplyMarkup = deckKeys,
                       };
             }
@@ -402,9 +402,14 @@ public class BotUpdateHandler(
                 ReplyMarkup = OpenBotKeyboard(t),
             };
 
-    /// <summary>Размеры карточек — те же, что рисует API (см. CardRenderer).</summary>
+    /// <summary>
+    /// Размеры карточек — те же, что рисует API (см. CardRenderer.StatHeight/DeckHeight).
+    /// Разойдутся — Telegram отведёт под превью коробку не того размера, и картинка
+    /// либо обрежется, либо повиснет в серой рамке.
+    /// </summary>
     private const int CardWidth = 800;
-    private const int CardHeight = 420;
+    private const int CardHeight = 360;
+    private const int DeckCardHeight = 540;
 
     private InlineQueryResultArticle Card(
         string id, string title, string desc, string text, BotText t, string? thumb) =>
