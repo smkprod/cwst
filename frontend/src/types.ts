@@ -20,14 +20,12 @@ export interface PlayerStatus {
   trophies: number           // кубки игрока (0 — состав клана не отдался)
   dnaLabel?: string          // Pro: архетип ("Тащер 💪" и т.п.), undefined — мало данных/Free
   reliabilityScore: number   // Pro: надёжность 0..100 (0 — нет данных/Free)
-  avatarEmoji?: string       // эмодзи-аватарка, выбранная игроком
 }
 
 /* --- Дисциплина клана: кто подводит и кого приходится тянуть --- */
 export interface DisciplinePlayer {
   playerTag: string
   name: string
-  avatarEmoji?: string
   missedDecks: number        // недоигранные военные колоды за учтённые недели
   missedWeeks: number        // недель в составе без единой атаки
   weeksTracked: number       // сколько недель игрок был в составе
@@ -124,6 +122,7 @@ export interface PlayerHistory {
 }
 
 export interface WarLogPlayer {
+  playerTag: string
   name: string
   fame: number
   decksUsed: number
@@ -771,5 +770,4 @@ export interface SearchHistoryItem {
 export interface LinkedPlayer {
   playerTag: string
   name: string
-  avatarEmoji?: string
 }

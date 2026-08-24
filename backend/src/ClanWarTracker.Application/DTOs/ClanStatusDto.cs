@@ -39,7 +39,11 @@ public record WarLogClanDto(
     bool IsOurClan,
     List<WarLogPlayerDto>? Players = null);
 
-public record WarLogPlayerDto(string Name, int Fame, int DecksUsed);
+/// <summary>
+/// Тег нужен, чтобы сопоставить победителя прошедшей недели с текущим составом:
+/// имена в CR не уникальны и меняются, а «король недели» подсвечивается именно в списке.
+/// </summary>
+public record WarLogPlayerDto(string PlayerTag, string Name, int Fame, int DecksUsed);
 
 /// <summary>Один фактор здоровья клана (0..100).</summary>
 public record HealthFactorDto(string Name, int Score);
@@ -90,8 +94,7 @@ public record PlayerStatusDto(
     string? Role,             // "leader" | "coLeader" | "elder" | null (рядовой); перевод — на фронте
     int Trophies,             // кубки игрока (0 — состав клана не отдался)
     string? DnaLabel,         // Pro: архетип игрока ("Тащер 💪", "Надёжный 🛡" ...), null — мало данных/Free
-    int ReliabilityScore,     // Pro: надёжность 0..100 (0 — нет данных/Free)
-    string? AvatarEmoji);     // эмодзи-аватарка, выбранная игроком; null — не выбирал
+    int ReliabilityScore);    // Pro: надёжность 0..100 (0 — нет данных/Free)
 
 public record ClanStatsDto(
     int TotalFame,
