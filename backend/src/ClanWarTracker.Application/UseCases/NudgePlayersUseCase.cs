@@ -50,6 +50,9 @@ public class NudgePlayersUseCase(
         var slackers = isPro ? allSlackers : allSlackers.Take(5).ToList();
 
         int dm = 0, skipped = 0;
+        // Кого в этом запуске реально «пнули» (ЛС или тег в чате) — каждому +1 к счётчику
+        // пинков, но не больше одного за запуск, даже если достали и туда и туда.
+        var nudgedTags = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var slacker in slackers)
         {
             if (!linkedPlayers.TryGetValue(slacker.PlayerTag, out var player)) continue;
@@ -67,9 +70,9 @@ public class NudgePlayersUseCase(
                 $"До конца дня: ~{(int)timeLeft.TotalHours} ч {Math.Max(0, timeLeft.Minutes)} мин", ct);
 
             player.LastReminderSentAt = now;
+            nudgedTags.Add(slacker.PlayerTag);
             dm++;
         }
-        await players.SaveChangesAsync(ct);
 
         // Публично в чат клана — тегаем ТОЛЬКО тех, кого реально можно тегнуть (привязан
         // Telegram). Непривязанных не пишем: их имя из CR — просто текст, он никого не
@@ -107,6 +110,13 @@ public class NudgePlayersUseCase(
                 postedToChat = false;
             }
         }
+
+        // Счётчик пинков: ЛС + тегнутые в чате (если сводка реально ушла), без двойного счёта
+        if (postedToChat)
+            foreach (var s in taggable.Take(30)) nudgedTags.Add(s.PlayerTag);
+        foreach (var tag in nudgedTags)
+            if (linkedPlayers.TryGetValue(tag, out var p)) p.NudgeCount++;
+        await players.SaveChangesAsync(ct);
 
         return new NudgeResult(dm, skipped, taggable.Count, unlinkedCount, postedToChat);
     }

@@ -65,6 +65,10 @@ public class SendRemindersUseCase(
                 .Where(p => p.DecksUsedToday < 4 && roster.Contains(p.PlayerTag))
                 .ToList();
 
+            // Кого в этот тик реально напомнили (ЛС или тег в чате) — +1 к счётчику пинков,
+            // не больше одного на игрока за тик, даже если достали и туда и туда.
+            var nudgedTags = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
             foreach (var slacker in slackers)
             {
                 if (!allowedForDm.TryGetValue(slacker.PlayerTag, out var player)) continue;
@@ -78,9 +82,8 @@ public class SendRemindersUseCase(
                     $"До конца дня войны: ~{(int)timeLeft.TotalHours} ч {timeLeft.Minutes} мин", ct);
 
                 player.LastReminderSentAt = now;
+                nudgedTags.Add(slacker.PlayerTag);
             }
-
-            await players.SaveChangesAsync(ct);
 
             // Сводка в групповой чат: все лентяи, привязанные — кликабельным упоминанием
             // (уведомляет их напрямую, даже без username), плюс up-sell DM для Free.
@@ -116,12 +119,18 @@ public class SendRemindersUseCase(
                 {
                     await notifier.SendToChatAsync(clan.TelegramChatId, string.Join("\n\n", parts),
                         clan.TelegramMessageThreadId, html: true, ct: ct);
+                    // Сводка ушла — тегнутым тоже засчитываем «пинок» (один раз за военный день)
+                    foreach (var s in taggable) nudgedTags.Add(s.PlayerTag);
                 }
                 catch
                 {
                     chatPostedKeys.Remove(chatKey); // не отправилось — попробуем в следующий тик
                 }
             }
+
+            foreach (var tag in nudgedTags)
+                if (allLinked.TryGetValue(tag, out var p)) p.NudgeCount++;
+            await players.SaveChangesAsync(ct);
         }
     }
 }

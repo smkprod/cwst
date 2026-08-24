@@ -1,4 +1,5 @@
 using ClanWarTracker.Application.DTOs;
+using ClanWarTracker.Application.Meta;
 using ClanWarTracker.Application.UseCases;
 using ClanWarTracker.Domain.Enums;
 using ClanWarTracker.Domain.Interfaces;
@@ -62,8 +63,34 @@ public class PlayerController(
         var player = await players.GetByTelegramIdAsync(userId, ct);
         return player is null
             ? NotFound(new { error = "player_not_linked" })
-            : Ok(new { player.PlayerTag, player.Name });
+            : Ok(new { player.PlayerTag, player.Name, player.AvatarEmoji });
     }
+
+    public record AvatarRequest(string? Emoji);
+
+    /// <summary>
+    /// POST /api/players/me/avatar — поставить или снять эмодзи-аватарку.
+    /// Пустое значение снимает её. Набор закрытый (см. PlayerAvatars): аватарка едет
+    /// рядом с именем в общие списки, поэтому произвольный текст сюда не пускаем.
+    /// </summary>
+    [HttpPost("me/avatar")]
+    public async Task<IActionResult> SetAvatar([FromBody] AvatarRequest req, CancellationToken ct)
+    {
+        var userId = (long)HttpContext.Items["TelegramUserId"]!;
+        var player = await players.GetByTelegramIdAsync(userId, ct);
+        if (player is null) return NotFound(new { error = "player_not_linked" });
+
+        if (!PlayerAvatars.TryNormalize(req.Emoji, out var emoji))
+            return BadRequest(new { error = "bad_avatar", message = "Такой аватарки нет в списке" });
+
+        player.AvatarEmoji = emoji;
+        await players.SaveChangesAsync(ct);
+        return Ok(new { ok = true, avatarEmoji = player.AvatarEmoji });
+    }
+
+    /// <summary>GET /api/players/avatars — какие аватарки вообще можно выбрать.</summary>
+    [HttpGet("avatars")]
+    public IActionResult Avatars() => Ok(new { avatars = PlayerAvatars.Allowed.ToList() });
 
     /// <summary>GET /api/players/me/stats — детальная статистика по текущему игроку.</summary>
     [HttpGet("me/stats")]

@@ -150,7 +150,7 @@ function WeekBoard({ players, myPlayerTag, onOpen, plan }: {
               className={`podium-spot podium-${i === 1 ? 1 : i === 0 ? 2 : 3} ${p.playerTag === myPlayerTag ? 'podium-me' : ''}`}
             >
               <span className="podium-medal">{MEDALS[p.rank - 1] ?? ''}</span>
-              <span className="podium-name">{p.name}</span>
+              <span className="podium-name">{p.avatarEmoji ? `${p.avatarEmoji} ` : ''}{p.name}</span>
               <span className="podium-fame">{fmt(p.fame)}</span>
               <div className="podium-bar" />
             </button>
@@ -170,6 +170,7 @@ function WeekBoard({ players, myPlayerTag, onOpen, plan }: {
               <span className="rating-rank">#{p.rank}</span>
               <span className="rating-name">
                 <span className="rating-name-row">
+                  {p.avatarEmoji && <span className="rating-avatar">{p.avatarEmoji}</span>}
                   <span className="rating-name-text">{p.name}</span>
                   {p.playerTag === myPlayerTag && <span className="me-badge">{t.leaderboard.you}</span>}
                   {plan === 'pro' && p.consecutiveWars >= 3 && (

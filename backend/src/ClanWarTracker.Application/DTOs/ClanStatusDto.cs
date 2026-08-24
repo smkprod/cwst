@@ -90,7 +90,8 @@ public record PlayerStatusDto(
     string? Role,             // "leader" | "coLeader" | "elder" | null (рядовой); перевод — на фронте
     int Trophies,             // кубки игрока (0 — состав клана не отдался)
     string? DnaLabel,         // Pro: архетип игрока ("Тащер 💪", "Надёжный 🛡" ...), null — мало данных/Free
-    int ReliabilityScore);    // Pro: надёжность 0..100 (0 — нет данных/Free)
+    int ReliabilityScore,     // Pro: надёжность 0..100 (0 — нет данных/Free)
+    string? AvatarEmoji);     // эмодзи-аватарка, выбранная игроком; null — не выбирал
 
 public record ClanStatsDto(
     int TotalFame,
