@@ -10,6 +10,7 @@ using Telegram.Bot;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
+using Telegram.Bot.Types.InlineQueryResults;
 using Telegram.Bot.Types.ReplyMarkups;
 
 namespace ClanWarTracker.Worker;
@@ -55,7 +56,7 @@ public class BotUpdateHandler(
         bot.StartReceiving(
             HandleUpdateAsync,
             (_, ex, _) => { logger.LogError(ex, "Bot polling error"); return Task.CompletedTask; },
-            new ReceiverOptions { AllowedUpdates = [UpdateType.Message] },
+            new ReceiverOptions { AllowedUpdates = [UpdateType.Message, UpdateType.InlineQuery] },
             stoppingToken);
 
         logger.LogInformation("Bot polling started as @{Username}", _botUsername);
@@ -73,6 +74,19 @@ public class BotUpdateHandler(
     /// </summary>
     private Task HandleUpdateAsync(ITelegramBotClient client, Update update, CancellationToken ct)
     {
+        // Inline-запрос идёт мимо общей очереди: Telegram ждёт ответа считанные секунды,
+        // и вставать за медленной командой из чужого чата ему нельзя.
+        if (update.InlineQuery is { } inline)
+        {
+            _ = Task.Run(async () =>
+            {
+                try { await ProcessInlineQueryAsync(inline, ct); }
+                catch (OperationCanceledException) { /* воркер останавливается */ }
+                catch (Exception ex) { logger.LogError(ex, "Inline query failed"); }
+            });
+            return Task.CompletedTask;
+        }
+
         if (update.Message is not { Text: not null }) return Task.CompletedTask;
 
         _ = Task.Run(async () =>
@@ -89,6 +103,122 @@ public class BotUpdateHandler(
 
         return Task.CompletedTask;
     }
+
+    /// <summary>Сколько ждём данные войны, прежде чем ответить тем, что есть.</summary>
+    private static readonly TimeSpan InlineBudget = TimeSpan.FromSeconds(4);
+
+    /// <summary>
+    /// Inline-режим: `@бот` в ЛЮБОМ чате Telegram отдаёт карточку со своей войной
+    /// или с кланом. Смысл не только в удобстве — карточка уезжает туда, где про клан
+    /// никто не знает, и каждая такая отправка показывает бота новым людям. До сих пор
+    /// он рос только через реф-ссылки внутри клана.
+    ///
+    /// Telegram ждёт ответа несколько секунд, поэтому на сбор данных стоит бюджет:
+    /// не успели — отдаём карточку-приглашение вместо молчания. Пустой ответ выглядит
+    /// как сломанный бот, а это худшая реклама из возможных.
+    /// </summary>
+    private async Task ProcessInlineQueryAsync(InlineQuery inline, CancellationToken ct)
+    {
+        using var scope = scopeFactory.CreateScope();
+        var sp = scope.ServiceProvider;
+
+        var t = BotText.For(inline.From.LanguageCode);
+        var results = new List<InlineQueryResult>();
+        InlineQueryResultsButton? button = null;
+
+        try
+        {
+            var players = sp.GetRequiredService<IPlayerRepository>();
+            var player = await players.GetByTelegramIdAsync(inline.From.Id, ct);
+
+            if (player?.ClanId is int clanId)
+            {
+                var clans = sp.GetRequiredService<IClanRepository>();
+                var clan = await clans.GetByIdAsync(clanId, ct);
+                if (clan is not null)
+                {
+                    t = NotificationSettings.Parse(clan.NotificationSettingsJson).Text;
+
+                    using var budget = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                    budget.CancelAfter(InlineBudget);
+                    try
+                    {
+                        var status = await sp.GetRequiredService<GetClanStatusUseCase>()
+                            .ExecuteAsync(clan.ClanTag, budget.Token);
+                        if (status is not null) results.AddRange(BuildInlineCards(status, player.PlayerTag, t));
+                    }
+                    catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+                    {
+                        // Не уложились в бюджет — ниже уйдёт карточка-приглашение
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Inline data lookup failed");
+        }
+
+        // Нечего показать (не привязан, нет войны, не успели) — зовём к себе,
+        // и кнопкой «привязать», которая открывает бота в личке.
+        if (results.Count == 0)
+        {
+            results.Add(new InlineQueryResultArticle(
+                "nolink", t.InlineNoLinkTitle, PlainText(t.InlineNoLinkText + t.InlineFooter))
+            {
+                Description = t.InlineNoLinkDesc,
+                ReplyMarkup = OpenBotKeyboard(t),
+            });
+            button = new InlineQueryResultsButton(t.InlineLinkButton) { StartParameter = "inline" };
+        }
+
+        // isPersonal обязателен: карточка своя у каждого, и Telegram не должен
+        // показать чужую статистику следующему, кто наберёт то же самое.
+        await bot.AnswerInlineQuery(inline.Id, results, cacheTime: 30, isPersonal: true,
+            button: button, cancellationToken: ct);
+    }
+
+    private IEnumerable<InlineQueryResult> BuildInlineCards(ClanStatusDto status, string playerTag, BotText t)
+    {
+        var me = status.Players.FirstOrDefault(p =>
+            string.Equals(p.PlayerTag, playerTag, StringComparison.OrdinalIgnoreCase));
+
+        if (me is not null)
+        {
+            yield return new InlineQueryResultArticle(
+                "war", t.InlineWarTitle,
+                PlainText(string.Format(t.InlineWarText,
+                    me.Name, status.ClanName, me.Fame, me.Rank, me.DecksUsedToday) + t.InlineFooter))
+            {
+                Description = t.InlineWarDesc,
+                ReplyMarkup = OpenBotKeyboard(t),
+            };
+        }
+
+        var ours = status.Race.FirstOrDefault(r => r.IsOurClan);
+        if (ours is not null)
+        {
+            yield return new InlineQueryResultArticle(
+                "clan", t.InlineClanTitle,
+                PlainText(string.Format(t.InlineClanText,
+                    status.ClanName, ours.Position, status.Race.Count,
+                    ours.Fame, status.Stats.PlayersNotPlayed) + t.InlineFooter))
+            {
+                Description = t.InlineClanDesc,
+                ReplyMarkup = OpenBotKeyboard(t),
+            };
+        }
+    }
+
+    /// <summary>
+    /// Текст без предпросмотра ссылок: карточка должна выглядеть карточкой,
+    /// а не постом с развёрнутой плашкой на пол-экрана.
+    /// </summary>
+    private static InputTextMessageContent PlainText(string text) =>
+        new(text) { LinkPreviewOptions = new LinkPreviewOptions { IsDisabled = true } };
+
+    private InlineKeyboardMarkup OpenBotKeyboard(BotText t) =>
+        new(InlineKeyboardButton.WithUrl(t.InlineOpenBot, $"https://t.me/{_botUsername}"));
 
     private async Task ProcessMessageAsync(Update update, CancellationToken ct)
     {

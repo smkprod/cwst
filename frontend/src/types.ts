@@ -751,6 +751,8 @@ export interface DeckSuggestion {
   evoAvailable: number
   readiness: number        // 0..100
   verdict: string
+  /** Ссылка «открыть колоду в игре»; null — у какой-то карты нет id в справочнике. */
+  copyLink: string | null
 }
 
 export interface DeckSuggestions {

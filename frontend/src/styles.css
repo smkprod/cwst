@@ -1620,6 +1620,12 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
   background: linear-gradient(135deg, rgba(156, 107, 255, 0.14), transparent), var(--bg-card);
 }
 
+/* Кнопка «открыть колоду в игре» — ссылка, но выглядит и ведёт себя как кнопка */
+.deck-open-btn {
+  display: block; width: 100%; margin-top: 10px;
+  text-align: center; text-decoration: none;
+}
+
 /* --- Разведка гонки (Pro) --- */
 .scout-card { display: grid; gap: 10px; }
 .scout-hint { margin: 0; }
