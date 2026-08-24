@@ -41,6 +41,11 @@ COPY --from=dotnet-build /app/publish .
 # 2. Собранный HTML/JS фронтенд из второго этапа в папку wwwroot
 COPY --from=frontend-build /frontend-src/dist ./wwwroot
 
+# Версия сборки — чтобы на сервере можно было спросить, что именно там крутится,
+# а не гадать по внешнему виду. Заполняется в CI из github.sha.
+ARG GIT_SHA=unknown
+ENV GIT_SHA=$GIT_SHA
+
 ENV ASPNETCORE_URLS=http://0.0.0.0:10000
 EXPOSE 10000
 

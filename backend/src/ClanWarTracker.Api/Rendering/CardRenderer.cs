@@ -166,24 +166,11 @@ public class CardRenderer(IWebHostEnvironment env, IHttpClientFactory http, IMem
         {
             glow.Shader = SKShader.CreateRadialGradient(
                 new SKPoint(120, 40), 520,
-                [Glow.WithAlpha(120), Glow.WithAlpha(0)], [0f, 1f], SKShaderTileMode.Clamp);
+                [Glow.WithAlpha(110), Glow.WithAlpha(0)], [0f, 1f], SKShaderTileMode.Clamp);
             canvas.DrawRect(new SKRect(0, 0, Width, Height), glow);
         }
 
-        var art = artUrl is null ? null : Icon(artUrl);
-        if (art is not null)
-        {
-            // Арт крупно у правого края, с выходом за границы — так он читается как фон,
-            // а не как приклеенная сбоку картинка
-            const float size = 460;
-            canvas.DrawImage(art, new SKRect(Width - size + 60, -40, Width + 60, size - 40 + 40));
-
-            using var veil = new SKPaint { IsAntialias = true };
-            veil.Shader = SKShader.CreateLinearGradient(
-                new SKPoint(Width - size, 0), new SKPoint(Width - 40, 0),
-                [Deep, Deep.WithAlpha(120)], [0f, 1f], SKShaderTileMode.Clamp);
-            canvas.DrawRect(new SKRect(Width - size, 0, Width, Height), veil);
-        }
+        if (artUrl is not null) ArtPanel(canvas, Icon(artUrl));
 
         body(canvas);
 
@@ -197,31 +184,75 @@ public class CardRenderer(IWebHostEnvironment env, IHttpClientFactory http, IMem
         }
 
         // JPEG, а не PNG: Telegram для inline-фото принимает только его.
-        // Прозрачности тут нет (фон закрашен целиком), так что терять нечего.
         using var image = surface.Snapshot();
         using var data = image.Encode(SKEncodedImageFormat.Jpeg, 90);
         return data.ToArray();
     }
 
+    /// <summary>
+    /// Арт карты отдельной панелью у правого края.
+    ///
+    /// Сначала он растягивался фоном во всю правую половину — и получалось плохо сразу
+    /// по трём причинам: на границе с фоном оставался хард-стык, лица кричали громче
+    /// цифр, а плитки со статистикой ложились поверх картинки и переставали читаться.
+    /// Панель решает всё это разом: у арта есть своя рамка, он не наезжает на текст,
+    /// и вписан целиком, поэтому никого не обрезает.
+    /// </summary>
+    private static void ArtPanel(SKCanvas canvas, SKImage? art)
+    {
+        var panel = new SKRect(552, 52, 748, 276);
+
+        using var p = new SKPaint { IsAntialias = true };
+        p.Color = Panel.WithAlpha(16);
+        canvas.DrawRoundRect(panel, 18, 18, p);
+
+        if (art is not null)
+        {
+            // Вписываем целиком (contain), а не заполняем: обрезка съела бы половину
+            // персонажа, а панель маленькая — потеря была бы заметной.
+            const float inset = 12;
+            var box = new SKRect(panel.Left + inset, panel.Top + inset,
+                panel.Right - inset, panel.Bottom - inset);
+            var scale = Math.Min(box.Width / art.Width, box.Height / art.Height);
+            var w = art.Width * scale;
+            var h = art.Height * scale;
+            canvas.DrawImage(art, new SKRect(
+                box.MidX - w / 2, box.MidY - h / 2, box.MidX + w / 2, box.MidY + h / 2));
+        }
+
+        p.Color = Panel.WithAlpha(38);
+        p.Style = SKPaintStyle.Stroke;
+        p.StrokeWidth = 2;
+        canvas.DrawRoundRect(panel, 18, 18, p);
+    }
+
+    /// <summary>Ширина левой колонки: до панели с артом, с зазором.</summary>
+    private const float ContentWidth = 552 - Pad - 28;
+
     private void Header(SKCanvas canvas, SKPaint p, string title, string subtitle, string bot)
     {
         p.Color = Text;
-        var titleFont = new SKFont(_bold, 42);
-        canvas.DrawText(Fit(Clean(title), titleFont, 470), Pad, 92, titleFont, p);
+        var titleFont = new SKFont(_bold, 40);
+        canvas.DrawText(Fit(Clean(title), titleFont, ContentWidth), Pad, 96, titleFont, p);
 
         p.Color = Muted;
         var subFont = new SKFont(_regular, 22);
-        canvas.DrawText(Fit(Clean(subtitle), subFont, 470), Pad, 126, subFont, p);
-        canvas.DrawText($"@{bot}", Width - Pad, 62, SKTextAlign.Right, new SKFont(_regular, 18), p);
+        canvas.DrawText(Fit(Clean(subtitle), subFont, ContentWidth), Pad, 130, subFont, p);
+
+        // Подпись бота внизу: сверху справа она ложилась на панель с артом
+        canvas.DrawText($"@{bot}", Width - Pad, Height - 22,
+            SKTextAlign.Right, new SKFont(_regular, 17), p);
     }
 
     /// <summary>Главное число карточки с подписью под ним.</summary>
     private void Hero(SKCanvas canvas, SKPaint p, string value, string label)
     {
+        var font = new SKFont(_bold, 80);
         p.Color = Gold;
-        canvas.DrawText(value, Pad, 252, new SKFont(_bold, 86), p);
+        canvas.DrawText(Fit(value, font, ContentWidth), Pad, 232, font, p);
         p.Color = Muted;
-        canvas.DrawText(label, Pad, 286, new SKFont(_regular, 20), p);
+        canvas.DrawText(Fit(label, new SKFont(_regular, 20), ContentWidth), Pad, 264,
+            new SKFont(_regular, 20), p);
     }
 
     /// <summary>
@@ -231,7 +262,9 @@ public class CardRenderer(IWebHostEnvironment env, IHttpClientFactory http, IMem
     /// </summary>
     private void Tiles(SKCanvas canvas, SKPaint p, params (string Value, string Label)[] tiles)
     {
-        const float gap = 16, top = 312, h = 78;
+        // Ряд стоит ПОД панелью с артом (она заканчивается на 276), поэтому плитки
+        // всегда на чистом фоне и читаются независимо от того, что нарисовано справа.
+        const float gap = 16, top = 300, h = 76;
         var w = (Width - 2 * Pad - gap * (tiles.Length - 1)) / tiles.Length;
 
         for (var i = 0; i < tiles.Length; i++)
@@ -239,13 +272,15 @@ public class CardRenderer(IWebHostEnvironment env, IHttpClientFactory http, IMem
             var x = Pad + i * (w + gap);
             var rect = new SKRect(x, top, x + w, top + h);
 
-            p.Color = Panel.WithAlpha(20);
+            p.Color = Deep.WithAlpha(170);
             canvas.DrawRoundRect(rect, 16, 16, p);
 
             p.Color = Text;
-            canvas.DrawText(tiles[i].Value, x + 18, top + 40, new SKFont(_bold, 32), p);
+            var vf = new SKFont(_bold, 30);
+            canvas.DrawText(Fit(tiles[i].Value, vf, w - 32), x + 18, top + 40, vf, p);
             p.Color = Muted;
-            canvas.DrawText(tiles[i].Label, x + 18, top + 65, new SKFont(_regular, 17), p);
+            var lf = new SKFont(_regular, 16);
+            canvas.DrawText(Fit(tiles[i].Label, lf, w - 32), x + 18, top + 63, lf, p);
         }
     }
 
