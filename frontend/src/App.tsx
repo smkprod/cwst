@@ -243,19 +243,17 @@ export default function App() {
                 {/* Что изменилось лично у тебя с прошлого захода (сама решает, показываться ли) */}
                 <WhatsNewCard />
                 <StatsStrip stats={data.stats} />
-                {/* Гонка — главный вопрос военного дня («мы выигрываем?»), поэтому сразу
-                    под цифрами. Раньше её закрывали собой прогноз и аналитика. */}
-                <RaceCard race={data.race} periodType={data.periodType} />
+                {/* Действие вперёд наблюдения: пока глава читает цифры, лентяи не отыграют.
+                    Кнопка первой, чтобы пнуть можно было не пролистывая экран. */}
                 {canManage && data.periodType !== 'training' && (
                   <NudgeButton notPlayedCount={notFinished} isPro={isPro} />
                 )}
-                {/* Оба журнала подняты из подвала: раньше их закрывал список на 50 человек */}
+                <ForecastCard forecast={data.forecast} stats={data.stats} periodType={data.periodType} />
+                <RaceCard race={data.race} periodType={data.periodType} />
+                <DisciplineCard plan={data.plan} />
                 <WarLogCard log={data.warLog} />
                 <WarJournalCard />
-                {/* Аналитика — ниже: её смотрят вдумчиво и реже, чем счёт гонки */}
-                <ForecastCard forecast={data.forecast} stats={data.stats} periodType={data.periodType} />
                 <InsightsCard insights={data.insights} plan={data.plan} players={data.players} dayLogs={data.dayLogs ?? []} warLog={data.warLog ?? []} race={data.race ?? []} periodType={data.periodType} periodIndex={data.periodIndex} hoursLeft={data.hoursLeft} />
-                <DisciplineCard plan={data.plan} />
                 {/* Автонапоминания перенесены в ⚙️ «Уведомления» (шестерёнка в шапке) —
                     там же вкл/выкл, канал, часы и время окончания КВ. */}
               </div>
@@ -344,11 +342,12 @@ export default function App() {
             {tab === 'clan' && clanSection === 'war' && (
               <div className="fade-in">
                 <WarHeader status={data} />
-                {/* Тот же порядок, что и у своих: счёт гонки → журналы → аналитика */}
+                {/* Тот же порядок, что и у своих, за вычетом того, чего гостю не положено:
+                    кнопки пинка (он не управляет кланом) и дисциплины (это Pro-ручка клана). */}
                 <StatsStrip stats={data.stats} />
+                <ForecastCard forecast={data.forecast} stats={data.stats} periodType={data.periodType} />
                 <RaceCard race={data.race} periodType={data.periodType} />
                 <WarLogCard log={data.warLog} />
-                <ForecastCard forecast={data.forecast} stats={data.stats} periodType={data.periodType} />
                 <InsightsCard insights={data.insights} plan={data.plan} players={data.players} dayLogs={data.dayLogs ?? []} warLog={data.warLog ?? []} race={data.race ?? []} periodType={data.periodType} periodIndex={data.periodIndex} hoursLeft={data.hoursLeft} />
                 <div style={{ height: 12 }} />
                 <LeaderCtaCard />
