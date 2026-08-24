@@ -868,6 +868,65 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         });
     }
 
+    /// <summary>
+    /// Колоды мирового топа. Один запрос за рейтингом и по одному за профилем каждого
+    /// игрока, поэтому кэш на 12 часов: колоды лучших меняются не ежечасно, а платить
+    /// два десятка запросов за каждый показ карточки нельзя.
+    ///
+    /// Профили тянем последовательно и молча пропускаем неудачные: половина списка
+    /// полезнее, чем пустота из-за одного игрока, у которого профиль закрыт.
+    /// </summary>
+    public async Task<List<CrTopDeck>> GetTopPlayerDecksAsync(int limit = 20, CancellationToken ct = default)
+    {
+        var capped = Math.Clamp(limit, 1, 50);
+        var result = await cache.GetOrCreateAsync($"topdecks:{capped}", async entry =>
+        {
+            entry.Size = 1;
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(12);
+
+            var resp = await http.GetAsync($"locations/global/rankings/players?limit={capped}", ct);
+            if (!resp.IsSuccessStatusCode)
+            {
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
+                return new List<CrTopDeck>();
+            }
+
+            var data = await resp.Content.ReadFromJsonAsync<PlayerRankingsResponse>(cancellationToken: ct);
+            var decks = new List<CrTopDeck>();
+            foreach (var p in data?.Items ?? [])
+            {
+                if (ct.IsCancellationRequested) break;
+                CrPlayerInfo? info;
+                try { info = await GetPlayerInfoAsync(p.Tag, ct); }
+                catch { continue; }   // закрытый или пропавший профиль — просто пропускаем
+                if (info is null || info.CurrentDeck.Count == 0) continue;
+
+                decks.Add(new CrTopDeck
+                {
+                    PlayerName = p.Name,
+                    PlayerTag = p.Tag,
+                    Rank = p.Rank,
+                    Trophies = p.Trophies,
+                    ClanName = p.Clan?.Name,
+                    Cards = info.CurrentDeck,
+                });
+            }
+            return decks;
+        });
+
+        return result ?? [];
+    }
+
+    private record PlayerRankingsResponse(
+        [property: JsonPropertyName("items")] List<PlayerRankingItem>? Items);
+
+    private record PlayerRankingItem(
+        [property: JsonPropertyName("tag")] string Tag,
+        [property: JsonPropertyName("name")] string Name,
+        [property: JsonPropertyName("rank")] int Rank,
+        [property: JsonPropertyName("trophies")] int Trophies = 0,
+        [property: JsonPropertyName("clan")] ClanRef? Clan = null);
+
     /// <summary>Топ-1000 кланов по КВ-трофеям для страны (id) или "global". Кэш 6 часов.</summary>
     private async Task<List<RankingItem>?> GetWarRankingsAsync(string locationId, CancellationToken ct)
     {

@@ -299,6 +299,23 @@ public sealed class BotText
     /// <summary>{0} — клан, {1} — место, {2} — медали, {3} — изменение трофеев со знаком.</summary>
     public required string InlineLastWarText { get; init; }
 
+    /* --- Inline: поиск по тегу, клан, колоды топа --- */
+    public required string InlineFoundTitle { get; init; }
+    public required string InlineFoundDesc { get; init; }
+    public required string InlineNotFoundTitle { get; init; }
+    public required string InlineNotFoundDesc { get; init; }
+    /// <summary>{0} — введённый тег.</summary>
+    public required string InlineNotFoundText { get; init; }
+    public required string InlineClanCardTitle { get; init; }
+    public required string InlineClanCardDesc { get; init; }
+    /// <summary>{0} — клан, {1} — тег, {2} — участников, {3} — очки, {4} — КВ-трофеи, {5} — порог кубков.</summary>
+    public required string InlineClanCardText { get; init; }
+    public required string InlineTopDecksTitle { get; init; }
+    public required string InlineTopDecksDesc { get; init; }
+    /// <summary>{0} — сколько игроков в выборке, {1} — строки с картами.</summary>
+    public required string InlineTopDecksText { get; init; }
+    public required string InlineTopDeckOne { get; init; }
+
     public static readonly BotText Ru = new()
     {
         WarStartTitle = "⚔️ Клановая война началась!",
@@ -522,6 +539,18 @@ public sealed class BotText
         InlineLastWarTitle = "📜 Прошлая война",
         InlineLastWarDesc = "Чем закончилась предыдущая неделя",
         InlineLastWarText = "📜 {0} · прошлая война\n🏁 {1} место · 🏅 {2} медалей\n⚔️ КВ-трофеи: {3}",
+        InlineFoundTitle = "🔍 Найденный игрок",
+        InlineFoundDesc = "Профиль по введённому тегу",
+        InlineNotFoundTitle = "Игрок не найден",
+        InlineNotFoundDesc = "Проверь тег — он виден в профиле под именем",
+        InlineNotFoundText = "❌ Игрок {0} не найден в Clash Royale.",
+        InlineClanCardTitle = "🛡 Профиль клана",
+        InlineClanCardDesc = "Очки, трофеи КВ, состав и порог входа",
+        InlineClanCardText = "🛡 {0} · {1}\n👥 {2}/50 · 🏆 {3} очков клана\n⚔️ КВ-трофеи: {4} · вход от {5} кубков",
+        InlineTopDecksTitle = "🌍 Колоды топ-игроков",
+        InlineTopDecksDesc = "Чем играют лучшие в мире прямо сейчас",
+        InlineTopDecksText = "🌍 Что играет мировой топ ({0} игроков)\n\n{1}",
+        InlineTopDeckOne = "🎮 Открыть первую колоду",
     };
 
     public static readonly BotText Uk = new()
@@ -747,6 +776,18 @@ public sealed class BotText
         InlineLastWarTitle = "📜 Минула війна",
         InlineLastWarDesc = "Чим завершився попередній тиждень",
         InlineLastWarText = "📜 {0} · минула війна\n🏁 {1} місце · 🏅 {2} медалей\n⚔️ КВ-трофеї: {3}",
+        InlineFoundTitle = "🔍 Знайдений гравець",
+        InlineFoundDesc = "Профіль за введеним тегом",
+        InlineNotFoundTitle = "Гравця не знайдено",
+        InlineNotFoundDesc = "Перевір тег — він видно в профілі під іменем",
+        InlineNotFoundText = "❌ Гравця {0} не знайдено в Clash Royale.",
+        InlineClanCardTitle = "🛡 Профіль клану",
+        InlineClanCardDesc = "Очки, трофеї КВ, склад і поріг входу",
+        InlineClanCardText = "🛡 {0} · {1}\n👥 {2}/50 · 🏆 {3} очок клану\n⚔️ КВ-трофеї: {4} · вхід від {5} кубків",
+        InlineTopDecksTitle = "🌍 Колоди топ-гравців",
+        InlineTopDecksDesc = "Чим грають найкращі у світі просто зараз",
+        InlineTopDecksText = "🌍 Що грає світовий топ ({0} гравців)\n\n{1}",
+        InlineTopDeckOne = "🎮 Відкрити першу колоду",
     };
 
     public static readonly BotText En = new()
@@ -972,5 +1013,17 @@ public sealed class BotText
         InlineLastWarTitle = "📜 Last war",
         InlineLastWarDesc = "How the previous week ended",
         InlineLastWarText = "📜 {0} · last war\n🏁 place {1} · 🏅 {2} medals\n⚔️ war trophies: {3}",
+        InlineFoundTitle = "🔍 Player found",
+        InlineFoundDesc = "Profile for the tag you typed",
+        InlineNotFoundTitle = "Player not found",
+        InlineNotFoundDesc = "Check the tag — it's shown in the profile under the name",
+        InlineNotFoundText = "❌ Player {0} not found in Clash Royale.",
+        InlineClanCardTitle = "🛡 Clan profile",
+        InlineClanCardDesc = "Score, war trophies, roster and entry requirement",
+        InlineClanCardText = "🛡 {0} · {1}\n👥 {2}/50 · 🏆 {3} clan score\n⚔️ war trophies: {4} · entry from {5} trophies",
+        InlineTopDecksTitle = "🌍 Top players' decks",
+        InlineTopDecksDesc = "What the best in the world play right now",
+        InlineTopDecksText = "🌍 What the world's top plays ({0} players)\n\n{1}",
+        InlineTopDeckOne = "🎮 Open the first deck",
     };
 }

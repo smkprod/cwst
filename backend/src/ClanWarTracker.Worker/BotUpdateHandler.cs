@@ -131,6 +131,34 @@ public class BotUpdateHandler(
             var players = sp.GetRequiredService<IPlayerRepository>();
             var player = await players.GetByTelegramIdAsync(inline.From.Id, ct);
 
+            // Набрали тег — значит спрашивают про конкретного игрока, а не про себя.
+            // Свои карточки в этом случае только мешали бы: человек ищет чужой профиль.
+            var query = inline.Query?.Trim() ?? "";
+            if (IsLikelyCrTag(query))
+            {
+                using var searchBudget = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                searchBudget.CancelAfter(InlineBudget);
+
+                var tag = LinkPlayerUseCase.Normalize(query);
+                var crSearch = sp.GetRequiredService<IClashRoyaleApi>();
+                var found = await Safe(() => crSearch.GetPlayerInfoAsync(tag, searchBudget.Token));
+                var searchCatalog = await Safe(() => crSearch.GetAllCardsAsync(searchBudget.Token));
+
+                if (found is not null)
+                {
+                    results.AddRange(BuildInlineCards(null, found, searchCatalog, tag, t, forSearch: true));
+                }
+                else
+                {
+                    results.Add(Card("notfound", t.InlineNotFoundTitle, t.InlineNotFoundDesc,
+                        string.Format(t.InlineNotFoundText, tag), t, null));
+                }
+
+                await bot.AnswerInlineQuery(inline.Id, results, cacheTime: 300, isPersonal: false,
+                    cancellationToken: ct);
+                return;
+            }
+
             if (player is not null)
             {
                 var clan = player.ClanId is int clanId
@@ -148,15 +176,20 @@ public class BotUpdateHandler(
                     ? Task.FromResult<ClanStatusDto?>(null)
                     : Safe(() => sp.GetRequiredService<GetClanStatusUseCase>()
                         .ExecuteAsync(clan.ClanTag, budget.Token));
+                var clanTask = clan is null
+                    ? Task.FromResult<CrClanInfo?>(null)
+                    : Safe(() => crApi.GetClanInfoAsync(clan.ClanTag, budget.Token));
                 var infoTask = Safe(() => crApi.GetPlayerInfoAsync(player.PlayerTag, budget.Token));
                 var catalogTask = Safe(() => crApi.GetAllCardsAsync(budget.Token));
+                var topTask = Safe(() => crApi.GetTopPlayerDecksAsync(20, budget.Token));
 
-                await Task.WhenAll(statusTask, infoTask, catalogTask);
+                await Task.WhenAll(statusTask, clanTask, infoTask, catalogTask, topTask);
 
                 // Что успело прийти, из того и собираем: одна отвалившаяся ручка
                 // не должна уносить с собой остальные карточки.
                 results.AddRange(BuildInlineCards(
-                    statusTask.Result, infoTask.Result, catalogTask.Result, player.PlayerTag, t));
+                    statusTask.Result, infoTask.Result, catalogTask.Result, player.PlayerTag, t,
+                    clanInfo: clanTask.Result, topDecks: topTask.Result));
             }
         }
         catch (Exception ex)
@@ -192,7 +225,8 @@ public class BotUpdateHandler(
 
     private IEnumerable<InlineQueryResult> BuildInlineCards(
         ClanStatusDto? status, CrPlayerInfo? info,
-        IReadOnlyDictionary<string, CrCatalogCard>? catalog, string playerTag, BotText t)
+        IReadOnlyDictionary<string, CrCatalogCard>? catalog, string playerTag, BotText t,
+        CrClanInfo? clanInfo = null, List<CrTopDeck>? topDecks = null, bool forSearch = false)
     {
         var me = status?.Players.FirstOrDefault(p =>
             string.Equals(p.PlayerTag, playerTag, StringComparison.OrdinalIgnoreCase));
@@ -212,7 +246,11 @@ public class BotUpdateHandler(
 
         if (info is not null)
         {
-            yield return Card("profile", t.InlineProfileTitle, t.InlineProfileDesc,
+            // При поиске по тегу это чужой профиль — и подписать его надо иначе,
+            // иначе человек решит, что бот показывает ему его собственный.
+            yield return Card("profile",
+                forSearch ? t.InlineFoundTitle : t.InlineProfileTitle,
+                forSearch ? t.InlineFoundDesc : t.InlineProfileDesc,
                 string.Format(t.InlineProfileText,
                     info.Name, info.ExpLevel, info.Trophies, info.BestTrophies,
                     info.WarDayWins, info.ThreeCrownWins),
@@ -237,6 +275,37 @@ public class BotUpdateHandler(
                         : new InlineKeyboardMarkup(InlineKeyboardButton.WithUrl(t.InlineDeckOpen, link)),
                 };
             }
+        }
+
+        if (clanInfo is not null)
+        {
+            yield return Card("claninfo", t.InlineClanCardTitle, t.InlineClanCardDesc,
+                string.Format(t.InlineClanCardText,
+                    clanInfo.Name, clanInfo.Tag, clanInfo.MemberCount, clanInfo.ClanScore,
+                    clanInfo.ClanWarTrophies, clanInfo.RequiredTrophies),
+                t, favIcon);
+        }
+
+        if (topDecks is { Count: > 0 })
+        {
+            // Показываем три колоды поимённо: «так играет игрок №1 мира» весомее любой
+            // усреднённой меты, а восемь карт в строку читаются и без картинок.
+            var shown = topDecks.Take(3).ToList();
+            var rows = string.Join("\n\n", shown.Select(d =>
+                $"#{d.Rank} {d.PlayerName} · {d.Trophies} 🏆\n" +
+                string.Join(" · ", d.Cards.Select(c => c.Name))));
+
+            var firstLink = DeckLink(shown[0].Cards, catalog);
+            yield return new InlineQueryResultArticle(
+                "topdecks", t.InlineTopDecksTitle,
+                PlainText(string.Format(t.InlineTopDecksText, topDecks.Count, rows) + t.InlineFooter))
+            {
+                Description = t.InlineTopDecksDesc,
+                ThumbnailUrl = shown[0].Cards.FirstOrDefault()?.IconUrl,
+                ReplyMarkup = firstLink is null
+                    ? OpenBotKeyboard(t)
+                    : new InlineKeyboardMarkup(InlineKeyboardButton.WithUrl(t.InlineTopDeckOne, firstLink)),
+            };
         }
 
         if (status is null) yield break;
