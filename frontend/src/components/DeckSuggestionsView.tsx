@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
-import type { DeckCard, DeckSuggestion, DeckSuggestions } from '../types'
+import type { DeckCard, DeckSuggestion, DeckSuggestions, TopDeck } from '../types'
 import { useT, type Translations } from '../lib/i18n'
 import { haptic } from '../lib/telegram'
 
@@ -73,6 +73,34 @@ export function DeckSuggestionsView({ playerTag, embedded = false }: {
           {data.almost.map(d => <DeckRow key={d.id} deck={d} t={t} />)}
         </>
       )}
+
+      {/* Колоды мирового топа — единственный источник, который не надо править руками:
+          база меты устаревает каждый сезон молча, а живой топ обновляет себя сам. */}
+      {data.top.length > 0 && (
+        <>
+          <div className="decks-group-title">🌍 {t.decks.topTitle}</div>
+          <p className="muted small" style={{ margin: '0 0 8px' }}>{t.decks.topHint}</p>
+          {data.top.map(d => <TopDeckRow key={d.deck.id} top={d} t={t} />)}
+        </>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Колода из мирового топа. Над обычной карточкой — строка с именем игрока и его местом:
+ * «так играет игрок №1 мира» весомее любой усреднённой меты, и без этой подписи
+ * колода ничем не отличалась бы от остальных.
+ */
+function TopDeckRow({ top, t }: { top: TopDeck; t: Translations }) {
+  return (
+    <div className="top-deck">
+      <div className="top-deck-head">
+        <span className="top-deck-rank">#{top.rank}</span>
+        <span className="top-deck-name">{top.playerName}</span>
+        <span className="muted small">{top.trophies} 🏆{top.clanName ? ` · ${top.clanName}` : ''}</span>
+      </div>
+      <DeckRow deck={top.deck} t={t} />
     </div>
   )
 }

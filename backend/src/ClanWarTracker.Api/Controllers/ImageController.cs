@@ -10,10 +10,9 @@ namespace ClanWarTracker.Api.Controllers;
 /// <summary>
 /// Картинки для inline-режима.
 ///
-/// Ручка намеренно БЕЗ авторизации (см. исключение в TelegramAuthMiddleware): картинку
+/// Ручки намеренно БЕЗ авторизации (см. исключение в TelegramAuthMiddleware): картинку
 /// скачивает сам Telegram со своих серверов, и никакого initData у него нет. Отдаём мы
-/// при этом только то, что и так открыто в публичном профиле игрока Clash Royale —
-/// имя, клан и медали за неделю.
+/// при этом только то, что и так открыто в публичном профиле игрока Clash Royale.
 ///
 /// Готовая картинка кэшируется: без этого один пересланный в большой чат результат
 /// заставил бы рисовать её на каждый показ превью.
@@ -23,52 +22,119 @@ namespace ClanWarTracker.Api.Controllers;
 public class ImageController(
     IClashRoyaleApi crApi,
     GetClanStatusUseCase getStatus,
-    WarCardRenderer renderer,
+    CardRenderer renderer,
     ITelegramBotClient bot,
     IMemoryCache cache) : ControllerBase
 {
     /// <summary>Столько живёт нарисованная карточка. Война меняется медленнее.</summary>
     private static readonly TimeSpan CardTtl = TimeSpan.FromMinutes(10);
 
-    /// <summary>
-    /// GET /api/img/war/{tag}.jpg — карточка «моя война» для пересылки в чат.
-    /// Именно JPEG: для inline-фото Telegram принимает только его.
-    /// </summary>
-    [HttpGet("war/{tag}.jpg")]
-    public async Task<IActionResult> WarCard(string tag, CancellationToken ct)
-    {
-        var playerTag = "#" + tag.TrimStart('#').ToUpperInvariant();
+    /// <summary>Профиль и клан меняются ещё медленнее войны.</summary>
+    private static readonly TimeSpan SlowTtl = TimeSpan.FromMinutes(30);
 
-        var jpeg = await cache.GetOrCreateAsync($"warcard:{playerTag}", async entry =>
+    /// <summary>GET /api/img/war/{tag}.jpg — карточка «моя война».</summary>
+    [HttpGet("war/{tag}.jpg")]
+    public Task<IActionResult> WarCard(string tag, CancellationToken ct) =>
+        Serve($"war:{tag}", CardTtl, async () =>
+        {
+            var playerTag = Normalize(tag);
+            string? clanTag;
+            try { clanTag = await crApi.GetPlayerClanTagAsync(playerTag, ct); }
+            catch { return null; }
+            if (clanTag is null) return null;
+
+            var status = await getStatus.ExecuteAsync(clanTag, ct);
+            var me = status?.Players.FirstOrDefault(p =>
+                string.Equals(p.PlayerTag, playerTag, StringComparison.OrdinalIgnoreCase));
+            if (status is null || me is null) return null;
+
+            var ours = status.Race.FirstOrDefault(r => r.IsOurClan);
+            return renderer.RenderWar(new WarCardModel(
+                me.Name, status.ClanName, me.Fame, me.Rank, status.Players.Count,
+                me.DecksUsedToday, ours?.Position ?? 0, status.Race.Count, await BotNameAsync(ct)));
+        });
+
+    /// <summary>GET /api/img/profile/{tag}.jpg — карточка игрока.</summary>
+    [HttpGet("profile/{tag}.jpg")]
+    public Task<IActionResult> ProfileCard(string tag, CancellationToken ct) =>
+        Serve($"profile:{tag}", SlowTtl, async () =>
+        {
+            var info = await Try(() => crApi.GetPlayerInfoAsync(Normalize(tag), ct));
+            return info is null ? null : renderer.RenderProfile(new ProfileCardModel(
+                info.Name, info.ClanName, info.ExpLevel, info.Trophies, info.BestTrophies,
+                info.WarDayWins, info.ThreeCrownWins, await BotNameAsync(ct)));
+        });
+
+    /// <summary>GET /api/img/clan/{tag}.jpg — карточка клана.</summary>
+    [HttpGet("clan/{tag}.jpg")]
+    public Task<IActionResult> ClanCard(string tag, CancellationToken ct) =>
+        Serve($"clan:{tag}", SlowTtl, async () =>
+        {
+            var info = await Try(() => crApi.GetClanInfoAsync(Normalize(tag), ct));
+            return info is null ? null : renderer.RenderClan(new ClanCardModel(
+                info.Name, info.Tag, info.MemberCount, info.ClanScore,
+                info.ClanWarTrophies, info.RequiredTrophies, await BotNameAsync(ct)));
+        });
+
+    /// <summary>GET /api/img/deck/{tag}.jpg — текущая колода игрока настоящими картами.</summary>
+    [HttpGet("deck/{tag}.jpg")]
+    public Task<IActionResult> DeckCard(string tag, CancellationToken ct) =>
+        Serve($"deck:{tag}", SlowTtl, async () =>
+        {
+            var info = await Try(() => crApi.GetPlayerInfoAsync(Normalize(tag), ct));
+            if (info is null || info.CurrentDeck.Count == 0) return null;
+
+            var cards = info.CurrentDeck
+                .Select(c => new DeckCardEntry(
+                    c.Name,
+                    // Открыл эволюцию — показываем её арт, как в игре
+                    c.EvolutionLevel > 0 && c.EvoIconUrl is not null ? c.EvoIconUrl : c.IconUrl,
+                    c.Level,
+                    c.Level >= c.MaxLevel))
+                .ToList();
+
+            return renderer.RenderDeck(new DeckCardModel(
+                $"Колода {info.Name}", info.ClanName ?? "без клана", cards,
+                Math.Round(info.CurrentDeck.Average(c => (double)c.Level), 1),
+                await BotNameAsync(ct)));
+        });
+
+    /// <summary>
+    /// Общая обвязка: кэш готовой картинки, заголовки и честный 404, когда рисовать нечего.
+    /// </summary>
+    private async Task<IActionResult> Serve(string key, TimeSpan ttl, Func<Task<byte[]?>> build)
+    {
+        var jpeg = await cache.GetOrCreateAsync($"card:{key}", async entry =>
         {
             entry.Size = 1;
-            entry.AbsoluteExpirationRelativeToNow = CardTtl;
-            return await BuildAsync(playerTag, ct);
+            entry.AbsoluteExpirationRelativeToNow = ttl;
+            try { return await build(); }
+            catch
+            {
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1);
+                return null;
+            }
         });
 
         if (jpeg is null) return NotFound();
 
         // Telegram перекачивает картинку сам и уважает Cache-Control — пусть не дёргает
         // нас на каждый показ превью в чате.
-        Response.Headers.CacheControl = $"public, max-age={(int)CardTtl.TotalSeconds}";
+        Response.Headers.CacheControl = $"public, max-age={(int)ttl.TotalSeconds}";
         return File(jpeg, "image/jpeg");
     }
 
-    private async Task<byte[]?> BuildAsync(string playerTag, CancellationToken ct)
+    private static string Normalize(string tag) => "#" + tag.TrimStart('#').ToUpperInvariant();
+
+    private static async Task<T?> Try<T>(Func<Task<T?>> get) where T : class
     {
-        string? clanTag;
-        try { clanTag = await crApi.GetPlayerClanTagAsync(playerTag, ct); }
+        try { return await get(); }
         catch { return null; }
-        if (clanTag is null) return null;
+    }
 
-        var status = await getStatus.ExecuteAsync(clanTag, ct);
-        var me = status?.Players.FirstOrDefault(p =>
-            string.Equals(p.PlayerTag, playerTag, StringComparison.OrdinalIgnoreCase));
-        if (status is null || me is null) return null;
-
-        var ours = status.Race.FirstOrDefault(r => r.IsOurClan);
-
-        var botName = await cache.GetOrCreateAsync("botusername", async e =>
+    private async Task<string> BotNameAsync(CancellationToken ct)
+    {
+        var name = await cache.GetOrCreateAsync("botusername", async e =>
         {
             e.Size = 1;
             e.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(24);
@@ -79,16 +145,6 @@ public class ImageController(
                 return null;
             }
         });
-
-        return renderer.Render(new WarCardModel(
-            PlayerName: me.Name,
-            ClanName: status.ClanName,
-            Fame: me.Fame,
-            Rank: me.Rank,
-            ClanSize: status.Players.Count,
-            DecksToday: me.DecksUsedToday,
-            RacePosition: ours?.Position ?? 0,
-            RaceClans: status.Race.Count,
-            BotName: botName ?? "bot"));
+        return name ?? "bot";
     }
 }

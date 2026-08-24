@@ -1620,6 +1620,19 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
   background: linear-gradient(135deg, rgba(156, 107, 255, 0.14), transparent), var(--bg-card);
 }
 
+/* Колода мирового топа: подпись с именем игрока прижата к своей карточке */
+.top-deck { margin-bottom: 4px; }
+.top-deck-head {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 0 4px 4px; min-width: 0;
+}
+.top-deck-rank { font-size: 13px; font-weight: 800; color: var(--gold, #ffc83d); flex: none; }
+.top-deck-name {
+  font-size: 14px; font-weight: 700; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.top-deck-head .small { flex: none; }
+
 /* Кнопка «открыть колоду в игре» — ссылка, но выглядит и ведёт себя как кнопка */
 .deck-open-btn {
   display: block; width: 100%; margin-top: 10px;

@@ -250,38 +250,24 @@ public class BotUpdateHandler(
             // Картинкой — только если известен публичный адрес: ссылка в никуда
             // заставит Telegram молча выбросить результат из выдачи, и человек
             // решит, что бот сломался. Нет адреса — та же карточка текстом.
-            var img = PublicBaseUrl is { } baseUrl
-                ? $"{baseUrl}/api/img/war/{me.PlayerTag.TrimStart('#')}.jpg"
-                : null;
-
-            var warText = string.Format(t.InlineWarText,
-                me.Name, status.ClanName, me.Fame, me.Rank, me.DecksUsedToday);
-
-            yield return img is null
-                ? Card("war", t.InlineWarTitle, t.InlineWarDesc, warText, t, favIcon)
-                : new InlineQueryResultPhoto(id: "war", photoUrl: img, thumbnailUrl: img)
-                {
-                    Title = t.InlineWarTitle,
-                    Description = t.InlineWarDesc,
-                    Caption = warText + t.InlineFooter,
-                    // Размеры подсказывают Telegram, как показать превью, не дожидаясь загрузки
-                    PhotoWidth = 800,
-                    PhotoHeight = 420,
-                    ReplyMarkup = OpenBotKeyboard(t),
-                };
+            yield return Photo("war", Img("war", me.PlayerTag),
+                t.InlineWarTitle, t.InlineWarDesc,
+                string.Format(t.InlineWarText,
+                    me.Name, status.ClanName, me.Fame, me.Rank, me.DecksUsedToday),
+                t, favIcon);
         }
 
         if (info is not null)
         {
             // При поиске по тегу это чужой профиль — и подписать его надо иначе,
             // иначе человек решит, что бот показывает ему его собственный.
-            yield return Card("profile",
+            var profileText = string.Format(t.InlineProfileText,
+                info.Name, info.ExpLevel, info.Trophies, info.BestTrophies,
+                info.WarDayWins, info.ThreeCrownWins);
+            yield return Photo("profile", Img("profile", info.Tag),
                 forSearch ? t.InlineFoundTitle : t.InlineProfileTitle,
                 forSearch ? t.InlineFoundDesc : t.InlineProfileDesc,
-                string.Format(t.InlineProfileText,
-                    info.Name, info.ExpLevel, info.Trophies, info.BestTrophies,
-                    info.WarDayWins, info.ThreeCrownWins),
-                t, favIcon);
+                profileText, t, favIcon);
 
             if (info.CurrentDeck.Count > 0)
             {
@@ -289,24 +275,38 @@ public class BotUpdateHandler(
                 var avg = Math.Round(info.CurrentDeck.Average(c => (double)c.Level), 1);
                 var link = DeckLink(info.CurrentDeck, catalog);
 
-                yield return new InlineQueryResultArticle(
-                    "deck", t.InlineDeckTitle,
-                    PlainText(string.Format(t.InlineDeckText, info.Name, names, avg) + t.InlineFooter))
-                {
-                    Description = t.InlineDeckDesc,
-                    ThumbnailUrl = info.CurrentDeck[0].IconUrl,
-                    // Кнопка «открыть в игре» только когда ссылка собралась целиком:
-                    // неполная открыла бы не ту колоду. Нет ссылки — обычная кнопка бота.
-                    ReplyMarkup = link is null
-                        ? OpenBotKeyboard(t)
-                        : new InlineKeyboardMarkup(InlineKeyboardButton.WithUrl(t.InlineDeckOpen, link)),
-                };
+                var deckText = string.Format(t.InlineDeckText, info.Name, names, avg);
+                // Кнопка «открыть в игре» только когда ссылка собралась целиком:
+                // неполная открыла бы не ту колоду. Нет ссылки — обычная кнопка бота.
+                var deckKeys = link is null
+                    ? OpenBotKeyboard(t)
+                    : new InlineKeyboardMarkup(InlineKeyboardButton.WithUrl(t.InlineDeckOpen, link));
+                var deckImg = Img("deck", info.Tag);
+
+                yield return deckImg is null
+                    ? new InlineQueryResultArticle("deck", t.InlineDeckTitle,
+                          PlainText(deckText + t.InlineFooter))
+                      {
+                          Description = t.InlineDeckDesc,
+                          ThumbnailUrl = info.CurrentDeck[0].IconUrl,
+                          ReplyMarkup = deckKeys,
+                      }
+                    : new InlineQueryResultPhoto("deck", deckImg, deckImg)
+                      {
+                          Title = t.InlineDeckTitle,
+                          Description = t.InlineDeckDesc,
+                          Caption = deckText + t.InlineFooter,
+                          PhotoWidth = 800,
+                          PhotoHeight = 420,
+                          ReplyMarkup = deckKeys,
+                      };
             }
         }
 
         if (clanInfo is not null)
         {
-            yield return Card("claninfo", t.InlineClanCardTitle, t.InlineClanCardDesc,
+            yield return Photo("claninfo", Img("clan", clanInfo.Tag),
+                t.InlineClanCardTitle, t.InlineClanCardDesc,
                 string.Format(t.InlineClanCardText,
                     clanInfo.Name, clanInfo.Tag, clanInfo.MemberCount, clanInfo.ClanScore,
                     clanInfo.ClanWarTrophies, clanInfo.RequiredTrophies),
@@ -367,6 +367,36 @@ public class BotUpdateHandler(
                 t, favIcon);
         }
     }
+
+    /// <summary>
+    /// Адрес картинки для карточки. null, если публичный адрес не настроен: тогда
+    /// вызывающий отдаст текстовый вариант. Ссылка в никуда хуже отсутствия картинки —
+    /// Telegram молча выбросит такой результат из выдачи, и это невозможно отладить.
+    /// </summary>
+    private string? Img(string kind, string tag) =>
+        PublicBaseUrl is { } baseUrl
+            ? $"{baseUrl}/api/img/{kind}/{tag.TrimStart('#')}.jpg"
+            : null;
+
+    /// <summary>Карточка картинкой, а если картинки нет — та же карточка текстом.</summary>
+    private InlineQueryResult Photo(
+        string id, string? img, string title, string desc, string text, BotText t, string? thumb) =>
+        img is null
+            ? Card(id, title, desc, text, t, thumb)
+            : new InlineQueryResultPhoto(id, img, img)
+            {
+                Title = title,
+                Description = desc,
+                Caption = text + t.InlineFooter,
+                // Размеры подсказывают Telegram, как показать превью, не дожидаясь загрузки
+                PhotoWidth = CardWidth,
+                PhotoHeight = CardHeight,
+                ReplyMarkup = OpenBotKeyboard(t),
+            };
+
+    /// <summary>Размеры карточек — те же, что рисует API (см. CardRenderer).</summary>
+    private const int CardWidth = 800;
+    private const int CardHeight = 420;
 
     private InlineQueryResultArticle Card(
         string id, string title, string desc, string text, BotText t, string? thumb) =>
