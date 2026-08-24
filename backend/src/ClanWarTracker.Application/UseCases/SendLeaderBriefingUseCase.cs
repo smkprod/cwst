@@ -1,3 +1,4 @@
+using ClanWarTracker.Application.Notifications;
 using System.Globalization;
 using ClanWarTracker.Domain.Entities;
 using ClanWarTracker.Domain.Enums;
@@ -69,7 +70,8 @@ public class SendLeaderBriefingUseCase(
             try { log = await crApi.GetRiverRaceLogAsync(clan.ClanTag, ct); }
             catch { log = []; }
 
-            var text = BuildBriefing(war, roles, log, now);
+            var t = NotificationSettings.Parse(clan.NotificationSettingsJson).Text;
+            var text = BuildBriefing(war, roles, log, now, t);
             sentKeys.Add(key);
             foreach (var r in recipients)
             {
@@ -84,7 +86,8 @@ public class SendLeaderBriefingUseCase(
     }
 
     private static string BuildBriefing(
-        WarStatus war, IReadOnlyDictionary<string, string> roles, List<RiverRaceLogWeek> log, DateTime now)
+        WarStatus war, IReadOnlyDictionary<string, string> roles, List<RiverRaceLogWeek> log, DateTime now,
+        BotText t)
     {
         var dayNumber = Math.Clamp(war.PeriodIndex - 2, 1, 4);
         var isColosseum = war.PeriodType == "colosseum";
@@ -99,7 +102,7 @@ public class SendLeaderBriefingUseCase(
 
         var lines = new List<string>
         {
-            $"🌅 Брифинг лидера · {(isColosseum ? "Колизей" : "Война")} · день {dayNumber}/4",
+            string.Format(t.BriefTitle, isColosseum ? t.BriefColosseum : t.BriefWar, dayNumber),
         };
 
         // Вчерашний день — только текущей недели (WeekOffset 0), иначе покажем прошлую войну.
@@ -108,18 +111,18 @@ public class SendLeaderBriefingUseCase(
             .OrderByDescending(d => d.DayIndex)
             .FirstOrDefault();
         if (yesterday is not null)
-            lines.Add($"Вчера: {Fmt(yesterday.PointsEarned)} 🏅 ({yesterday.EndOfDayRank}-е место дня)");
+            lines.Add(string.Format(t.BriefYesterday, Fmt(yesterday.PointsEarned), yesterday.EndOfDayRank));
 
         // 1) Гонка сейчас + отрыв (кого догонять / от кого отрываться).
         if (ours is not null)
         {
             lines.Add("");
-            lines.Add($"📊 Гонка: {place}-е из {standings.Count} · {Fmt(currentFame)} 🏅");
+            lines.Add(string.Format(t.BriefRace, place, standings.Count, Fmt(currentFame)));
             var leader = standings.FirstOrDefault();
             if (place > 1 && leader is not null)
-                lines.Add($"🔴 До 1-го ({leader.Name}): {Fmt(leader.Fame - currentFame)} 🏅");
+                lines.Add(string.Format(t.BriefBehindLeader, leader.Name, Fmt(leader.Fame - currentFame)));
             else if (place == 1 && standings.Count > 1)
-                lines.Add($"🟢 Отрыв от 2-го ({standings[1].Name}): {Fmt(currentFame - standings[1].Fame)} 🏅");
+                lines.Add(string.Format(t.BriefAheadSecond, standings[1].Name, Fmt(currentFame - standings[1].Fame)));
         }
 
         // 2) Темп против прошлой недели + практичная цель «нужно N/день».
@@ -136,18 +139,18 @@ public class SendLeaderBriefingUseCase(
             var currentPerDay = (int)Math.Round(currentFame / elapsed);
 
             lines.Add("");
-            lines.Add($"⚖️ Против прошлой недели (итог {Fmt(lastOurs.Fame)} 🏅 · {lastOurs.Rank}-е):");
+            lines.Add(string.Format(t.BriefVsLastWeek, Fmt(lastOurs.Fame), lastOurs.Rank));
             lines.Add($"{Bar(pct)} {Math.Round(pct * 100)}%");
             lines.Add(delta >= 0
-                ? $"📈 Опережаете график на {Fmt(delta)} 🏅"
-                : $"📉 Отстаёте от графика на {Fmt(-delta)} 🏅");
+                ? string.Format(t.BriefAheadOfPace, Fmt(delta))
+                : string.Format(t.BriefBehindPace, Fmt(-delta)));
 
             if (currentFame >= lastOurs.Fame)
-                lines.Add("🎉 Прошлая неделя уже побита!");
+                lines.Add(t.BriefAlreadyBeaten);
             else
             {
                 var needPerDay = (int)Math.Ceiling((lastOurs.Fame - currentFame) / daysRemaining);
-                lines.Add($"🎯 Чтобы побить: {Fmt(needPerDay)} 🏅/день (сейчас темп ~{Fmt(currentPerDay)})");
+                lines.Add(string.Format(t.BriefNeedPerDay, Fmt(needPerDay), Fmt(currentPerDay)));
             }
         }
 
@@ -162,10 +165,10 @@ public class SendLeaderBriefingUseCase(
         if (recentWeeks.Count >= 3)
         {
             lines.Add("");
-            var trend = recentWeeks[^1] > recentWeeks[0] ? "растёте 📈"
-                : recentWeeks[^1] < recentWeeks[0] ? "проседаете 📉" : "стабильно ➡️";
-            lines.Add($"📊 Форма ({recentWeeks.Count} нед.): {Spark(recentWeeks)} {trend}");
-            lines.Add($"{K(recentWeeks[0])} → {K(recentWeeks[^1])} за неделю");
+            var trend = recentWeeks[^1] > recentWeeks[0] ? t.BriefTrendUp
+                : recentWeeks[^1] < recentWeeks[0] ? t.BriefTrendDown : t.BriefTrendFlat;
+            lines.Add(string.Format(t.BriefForm, recentWeeks.Count, Spark(recentWeeks), trend));
+            lines.Add(string.Format(t.BriefFormRange, K(recentWeeks[0]), K(recentWeeks[^1])));
         }
 
         // 4) Кто ещё не доиграл сегодня — поимённо (кого пнуть). Только текущий состав клана.
@@ -179,17 +182,17 @@ public class SendLeaderBriefingUseCase(
         lines.Add("");
         if (slackers.Count == 0)
         {
-            lines.Add("✅ Все уже отыграли 4/4 — отличный старт дня!");
+            lines.Add(t.BriefAllPlayed);
         }
         else
         {
-            lines.Add($"🎯 Не доиграли: {slackers.Count} из {rosterSize} — пни их:");
+            lines.Add(string.Format(t.BriefSlackers, slackers.Count, rosterSize));
             foreach (var s in slackers.Take(6))
-                lines.Add($"• {s.Name} — {s.DecksUsedToday}/4");
+                lines.Add(string.Format(t.BriefSlackerRow, s.Name, s.DecksUsedToday));
             if (slackers.Count > 6)
-                lines.Add($"…и ещё {slackers.Count - 6}");
+                lines.Add(string.Format(t.AndMore, slackers.Count - 6));
             lines.Add("");
-            lines.Add("👉 Открой Mini App → кнопка «Пнуть» разошлёт им напоминание.");
+            lines.Add(t.BriefNudgeHint);
         }
 
         return string.Join("\n", lines);

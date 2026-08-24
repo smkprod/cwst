@@ -45,8 +45,9 @@ public class SendRespectDigestUseCase(
 
             var medals = new[] { "🥇", "🥈", "🥉" };
             var lines = top.Select((x, i) => $"{medals[i]} {x.Name} — {x.Count} 👏");
-            var text = $"👏 <b>Респекты дня</b>\n{string.Join("\n", lines)}\n\n" +
-                       $"<i>Всего за сегодня: {today.Count}. Респект можно дать раз в день — загляни в приложение.</i>";
+            var t = NotificationSettings.Parse(clan.NotificationSettingsJson).Text;
+            var text = $"{t.RespectTitle}\n{string.Join("\n", lines)}\n\n"
+                     + string.Format(t.RespectFooter, today.Count);
 
             try
             {

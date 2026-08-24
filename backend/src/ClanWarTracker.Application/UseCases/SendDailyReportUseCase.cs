@@ -39,7 +39,8 @@ public class SendDailyReportUseCase(
 
             if (war is null) continue;
 
-            if (!NotificationSettings.Parse(clan.NotificationSettingsJson).DailyReport.Enabled) continue;
+            var settings = NotificationSettings.Parse(clan.NotificationSettingsJson);
+            if (!settings.DailyReport.Enabled) continue;
 
             // Последняя неделя с данными; финальный снимок последнего военного дня
             var lastWeek = await snapshots.GetByClanAsync(clan.Id, weeks: 1, ct);
@@ -65,7 +66,7 @@ public class SendDailyReportUseCase(
 
             try
             {
-                var text = await BuildReportAsync(clan, final, ct);
+                var text = await BuildReportAsync(clan, final, settings.Text, ct);
                 if (text is null) continue;   // нечем посчитать день — молчим
                 await notifier.SendToChatWithAppButtonAsync(
                     clan.TelegramChatId, text, clan.TelegramMessageThreadId, html: true, ct: ct);
@@ -80,14 +81,14 @@ public class SendDailyReportUseCase(
     }
 
     /// <returns>Текст отчёта или null, если день посчитать нечем (нет вчерашнего снимка).</returns>
-    private async Task<string?> BuildReportAsync(Clan clan, WarSnapshot final, CancellationToken ct)
+    private async Task<string?> BuildReportAsync(Clan clan, WarSnapshot final, BotText t, CancellationToken ct)
     {
         var dayNumber = final.PeriodIndex - 2;          // 3..6 -> 1..4
         var isWeekFinal = final.PeriodIndex >= 6;
         var isColosseum = final.PeriodType == "colosseum";
 
         // Финал недели — отдельный праздничный итог с MVP (по накопленной за неделю славе).
-        if (isWeekFinal) return BuildWeeklyRecap(final, isColosseum);
+        if (isWeekFinal) return BuildWeeklyRecap(final, isColosseum, t);
 
         // Слава и колоды за день считаем дельтой накопительных полей относительно
         // снимка предыдущего дня — а не берём DecksUsedToday "как есть". У CR API
@@ -148,14 +149,14 @@ public class SendDailyReportUseCase(
         var medals = new[] { "🥇", "🥈", "🥉" };
         var lines = new List<string>
         {
-            $"🌙 День {dayNumber} войны завершён!",
-            $"🏅 Медали за день: {dayFame:N0}",
+            string.Format(t.DayDone, dayNumber),
+            string.Format(t.DayMedals, dayFame.ToString("N0")),
         };
 
         if (top.Count > 0)
         {
             lines.Add("");
-            lines.Add("Лучшие за день:");
+            lines.Add(t.TopOfDay);
             lines.AddRange(top.Select((r, i) =>
                 $"{medals[i]} {TelegramMention.Escape(r.Name)} — {r.DayFame:N0}"));
         }
@@ -163,29 +164,30 @@ public class SendDailyReportUseCase(
         if (slackers.Count > 0)
         {
             lines.Add("");
-            lines.Add("😴 <b>Не доиграли:</b>");
+            lines.Add(t.NotFinishedTitle);
             lines.AddRange(slackers.Take(15).Select(s =>
             {
                 var p = linked.GetValueOrDefault(s.PlayerTag);
-                return $"• {TelegramMention.Mention(s.Name, p?.TelegramUserId, p?.TelegramUsername)} — {s.DecksToday}/4 🃏";
+                return string.Format(t.DaySlackerRow,
+                    TelegramMention.Mention(s.Name, p?.TelegramUserId, p?.TelegramUsername), s.DecksToday);
             }));
-            if (slackers.Count > 15) lines.Add($"…и ещё {slackers.Count - 15}");
+            if (slackers.Count > 15) lines.Add(string.Format(t.AndMore, slackers.Count - 15));
         }
         else
         {
             lines.Add("");
-            lines.Add("💪 Все отыграли 4/4 — идеальный день!");
+            lines.Add(t.PerfectDayAll);
         }
 
         lines.Add("");
-        lines.Add("Полная статистика и прогноз — в Mini App 👇");
+        lines.Add(t.FooterDay);
 
         return string.Join("\n", lines);
     }
 
     /// <summary>Итог недели: MVP и топ-3 по накопленной за неделю славе (final.Players.Fame —
     /// уже суммарная слава игрока за неделю).</summary>
-    private static string BuildWeeklyRecap(WarSnapshot final, bool isColosseum)
+    private static string BuildWeeklyRecap(WarSnapshot final, bool isColosseum, BotText t)
     {
         var ranked = final.Players
             .Where(p => p.Fame > 0)
@@ -196,27 +198,28 @@ public class SendDailyReportUseCase(
 
         var lines = new List<string>
         {
-            $"🏁 {(isColosseum ? "Колизей" : "Война недели")} завершён{(isColosseum ? "" : "а")}!",
-            $"🏅 Медалей за неделю: {totalFame:N0} · участвовали {played}",
+            isColosseum ? t.WeekDoneColosseum : t.WeekDoneWar,
+            string.Format(t.WeekMedals, totalFame.ToString("N0"), played),
         };
 
         if (ranked.Count > 0)
         {
             lines.Add("");
-            lines.Add($"👑 MVP недели — {TelegramMention.Escape(ranked[0].Name)} ({ranked[0].Fame:N0} медалей)!");
+            lines.Add(string.Format(t.WeekMvp,
+                TelegramMention.Escape(ranked[0].Name), ranked[0].Fame.ToString("N0")));
 
             if (ranked.Count > 1)
             {
                 var medals = new[] { "🥇", "🥈", "🥉" };
                 lines.Add("");
-                lines.Add("Топ недели:");
+                lines.Add(t.TopOfWeek);
                 lines.AddRange(ranked.Take(3).Select((p, i) =>
                     $"{medals[i]} {TelegramMention.Escape(p.Name)} — {p.Fame:N0}"));
             }
         }
 
         lines.Add("");
-        lines.Add("История войн, рейтинг и турниры — в Mini App 👇");
+        lines.Add(t.FooterWeek);
 
         return string.Join("\n", lines);
     }

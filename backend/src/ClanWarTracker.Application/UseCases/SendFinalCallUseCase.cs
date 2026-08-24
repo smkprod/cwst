@@ -65,19 +65,21 @@ public class SendFinalCallUseCase(
             var taggable = slackers.Where(s => linked.ContainsKey(s.PlayerTag)).ToList();
             if (taggable.Count == 0) continue;
 
+            var t = settings.Text;
             var names = string.Join("\n", taggable.Take(30).Select(s =>
             {
                 var p = linked[s.PlayerTag];
-                return $"• {TelegramMention.Mention(s.Name, p.TelegramUserId, p.TelegramUsername)} " +
-                       $"— осталось {4 - s.DecksUsedToday}/4 🃏";
+                return string.Format(t.SlackerRow,
+                    TelegramMention.Mention(s.Name, p.TelegramUserId, p.TelegramUsername),
+                    4 - s.DecksUsedToday);
             }));
             var unlinked = slackers.Count - taggable.Count;
-            var more = unlinked > 0 ? $"\n\n👥 Ещё <b>{unlinked}</b> без Telegram — админ может привязать через /bind." : "";
+            var more = unlinked > 0 ? "\n\n" + string.Format(t.FinalCallUnlinked, unlinked) : "";
 
             try
             {
                 await notifier.SendToChatAsync(clan.TelegramChatId,
-                    $"🚨 <b>Война закрывается через ~30 минут!</b>\nПоследний шанс доиграть КВ:\n\n{names}{more}",
+                    $"{t.FinalCallTitle}\n\n{names}{more}",
                     clan.TelegramMessageThreadId, html: true, ct: ct);
                 sent++;
             }

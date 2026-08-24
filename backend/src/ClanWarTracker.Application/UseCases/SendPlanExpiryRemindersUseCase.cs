@@ -1,3 +1,4 @@
+using ClanWarTracker.Application.Notifications;
 using ClanWarTracker.Domain.Enums;
 using ClanWarTracker.Domain.Interfaces;
 
@@ -23,6 +24,7 @@ public class SendPlanExpiryRemindersUseCase(
             if (clan.TelegramChatId == 0) continue;
 
             var daysLeft = (clan.PlanExpiresAtUtc.Value - now).TotalDays;
+            var t = NotificationSettings.Parse(clan.NotificationSettingsJson).Text;
 
             string? text = null;
             PlanReminderStage stage;
@@ -30,29 +32,17 @@ public class SendPlanExpiryRemindersUseCase(
             if (daysLeft is > 3 and <= 7 && clan.PlanReminderStageSent < PlanReminderStage.SevenDays)
             {
                 stage = PlanReminderStage.SevenDays;
-                text = $"⏳ Pro-тариф клана заканчивается примерно через 7 дней " +
-                       $"({clan.PlanExpiresAtUtc.Value:dd.MM.yyyy} UTC).\n\n" +
-                       "Без Pro будут недоступны:\n" +
-                       "• Безлимитные личные напоминания (Free — только 5 игроков)\n" +
-                       "• Прогноз клана и игроков\n" +
-                       "• История войн и DNA-профили\n" +
-                       "• Кнопка «Пнуть всех» без ограничений\n\n" +
-                       "Свяжитесь с администратором сервиса для продления.";
+                text = string.Format(t.PlanSevenDays, clan.PlanExpiresAtUtc.Value.ToString("dd.MM.yyyy"));
             }
             else if (daysLeft is > 0 and <= 3 && clan.PlanReminderStageSent < PlanReminderStage.ThreeDays)
             {
                 stage = PlanReminderStage.ThreeDays;
-                text = $"⚠️ Pro-тариф клана заканчивается через ~3 дня " +
-                       $"({clan.PlanExpiresAtUtc.Value:dd.MM.yyyy} UTC).\n\n" +
-                       "Поспешите продлить, чтобы не потерять прогнозы, историю и безлимитные напоминания!";
+                text = string.Format(t.PlanThreeDays, clan.PlanExpiresAtUtc.Value.ToString("dd.MM.yyyy"));
             }
             else if (daysLeft <= 0 && clan.PlanReminderStageSent < PlanReminderStage.Expired)
             {
                 stage = PlanReminderStage.Expired;
-                text = "🔒 Pro-тариф клана истёк — клан переведён на Free.\n\n" +
-                       "Напоминания теперь ограничены 5 привязанными игроками; " +
-                       "прогнозы, история и DNA-профили недоступны.\n\n" +
-                       "Для продления обратитесь к администратору сервиса.";
+                text = t.PlanExpired;
             }
             else continue;
 
