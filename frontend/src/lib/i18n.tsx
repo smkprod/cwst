@@ -113,6 +113,7 @@ const ru = {
     filterAll: 'Все', filterNotPlayed: '❌ Не отыграли',
     filterPlayed: '✅ Отыграли', filterOfficers: '👑 Руководство',
     searchPlaceholder: '🔍 Имя игрока',
+    kingOfWeek: '🔥 Король недели',
     countSuffix: 'из',
   },
 
@@ -171,12 +172,6 @@ const ru = {
     error: 'Не удалось загрузить дисциплину.',
   },
 
-  avatar: {
-    title: '🎭 Аватарка',
-    hint: 'Появится рядом с твоим именем в списке клана.',
-    none: 'Без аватарки',
-    error: 'Не удалось сохранить аватарку',
-  },
 
   warlog: {
     title: '📜 Журнал войн',
@@ -372,6 +367,7 @@ const ru = {
     archiveEmpty: 'Архив появится, когда накопятся данные сезона.',
     archiveWeeks: 'нед.',
     mvpWeek: '👑 MVP недели:',
+    kingOfWeek: '🏁 КВ завершена · 👑 Король недели:',
     mvpSeason: '👑 MVP сезона:',
     mvpBot: '👑 Чемпион бота:',
     medals: 'медалей',
@@ -924,6 +920,7 @@ const uk: Translations = {
     filterAll: 'Усі', filterNotPlayed: '❌ Не зіграли',
     filterPlayed: '✅ Зіграли', filterOfficers: '👑 Керівництво',
     searchPlaceholder: '🔍 Ім’я гравця',
+    kingOfWeek: '🔥 Король тижня',
     countSuffix: 'з',
   },
 
@@ -982,12 +979,6 @@ const uk: Translations = {
     error: 'Не вдалося завантажити дисципліну.',
   },
 
-  avatar: {
-    title: '🎭 Аватарка',
-    hint: 'З’явиться поряд з твоїм іменем у списку клану.',
-    none: 'Без аватарки',
-    error: 'Не вдалося зберегти аватарку',
-  },
 
   warlog: {
     title: '📜 Журнал воєн',
@@ -1183,6 +1174,7 @@ const uk: Translations = {
     archiveEmpty: 'Архів з’явиться, коли накопичаться дані сезону.',
     archiveWeeks: 'тиж.',
     mvpWeek: '👑 MVP тижня:',
+    kingOfWeek: '🏁 КВ завершена · 👑 Король тижня:',
     mvpSeason: '👑 MVP сезону:',
     mvpBot: '👑 Чемпіон бота:',
     medals: 'медалей',
@@ -1733,6 +1725,7 @@ const en: Translations = {
     filterAll: 'All', filterNotPlayed: '❌ Not played',
     filterPlayed: '✅ Played', filterOfficers: '👑 Officers',
     searchPlaceholder: '🔍 Player name',
+    kingOfWeek: '🔥 King of the week',
     countSuffix: 'of',
   },
 
@@ -1791,12 +1784,6 @@ const en: Translations = {
     error: 'Could not load discipline data.',
   },
 
-  avatar: {
-    title: '🎭 Avatar',
-    hint: 'Shows up next to your name in the clan roster.',
-    none: 'No avatar',
-    error: 'Could not save the avatar',
-  },
 
   warlog: {
     title: '📜 War Log',
@@ -1992,6 +1979,7 @@ const en: Translations = {
     archiveEmpty: 'The archive appears once season data accumulates.',
     archiveWeeks: 'wk',
     mvpWeek: '👑 Week MVP:',
+    kingOfWeek: '🏁 War is over · 👑 King of the week:',
     mvpSeason: '👑 Season MVP:',
     mvpBot: '👑 Bot Champion:',
     medals: 'medals',

@@ -30,9 +30,6 @@ public class Player
     public int? LastVisitFame { get; set; }
     public int? LastVisitRank { get; set; }
 
-    /// <summary>Эмодзи-аватарка, выбранная игроком в Mini App. null — не выбрана.</summary>
-    public string? AvatarEmoji { get; set; }
-
     /// <summary>
     /// Сколько раз игрока пнули напоминанием (ручной «пинок» админа или авто-напоминание
     /// перед концом дня). Копится за всё время — для карточки «кого чаще всех пинают».

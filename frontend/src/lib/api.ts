@@ -76,14 +76,6 @@ export const api = {
     }),
   getClanRanking: () => request<ClanRanking>('/api/clans/my/ranking'),
   getClanDiscipline: () => request<ClanDiscipline>('/api/clans/my/discipline'),
-  getAvatars: () => request<{ avatars: string[] }>('/api/players/avatars'),
-  /** Пустая строка снимает аватарку. */
-  setMyAvatar: (emoji: string) =>
-    request<{ ok: boolean; avatarEmoji: string | null }>('/api/players/me/avatar', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ emoji }),
-    }),
   getWarJournal: () => request<WarJournal>('/api/clans/my/war-journal'),
   getNotificationSettings: () =>
     request<NotificationSettings>('/api/clans/my/notification-settings'),

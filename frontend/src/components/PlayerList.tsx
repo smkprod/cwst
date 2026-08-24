@@ -24,12 +24,31 @@ type FilterKey = 'all' | 'notPlayed' | 'played' | 'officers'
 const ROLE_RANK: Record<string, number> = { leader: 0, coLeader: 1, elder: 2 }
 const roleRank = (r?: string) => (r ? ROLE_RANK[r] ?? 3 : 3)
 
+/**
+ * Градиент на карточке — за заслугу, а не для красоты.
+ *
+ * Если подсветить всех, подсветка перестаёт что-либо значить: пятьдесят цветных
+ * строк читаются как одна серая. Поэтому фон достаётся только трём случаям, а
+ * рядовой состав остаётся на обычном фоне — тогда выделенных видно с первого взгляда.
+ *
+ * Король недели идёт первым по приоритету: лидера и так подписывает значок роли,
+ * а первое место по медалям иначе не увидеть — оно меняется от недели к неделе.
+ */
+function tierClass(p: PlayerStatus, kingTag?: string): string {
+  if (kingTag !== undefined && p.playerTag === kingTag) return 'pc-king'
+  if (p.role === 'leader') return 'pc-gold'
+  if (p.role === 'coLeader') return 'pc-silver'
+  return ''
+}
+
 interface Props {
   players: PlayerStatus[]
   myPlayerTag?: string
+  /** Первый по медалям недели — единственный, кто получает королевский фон. */
+  kingTag?: string
 }
 
-export function PlayerList({ players, myPlayerTag }: Props) {
+export function PlayerList({ players, myPlayerTag, kingTag }: Props) {
   const [selected, setSelected] = useState<PlayerStatus | null>(null)
   const [sort, setSort] = useState<SortKey>('status')
   const [filter, setFilter] = useState<FilterKey>('all')
@@ -128,11 +147,11 @@ export function PlayerList({ players, myPlayerTag }: Props) {
           const meta = STATUS_META[p.status]
           const isMe = p.playerTag === myPlayerTag
           const roleName = roleLabel(p.role, t)
+          const tier = tierClass(p, kingTag)
           return (
-            <li key={p.playerTag} className={`player-card ${meta.cls} ${isMe ? 'player-me' : ''}`}>
+            <li key={p.playerTag} className={`player-card ${meta.cls} ${tier} ${isMe ? 'player-me' : ''}`}>
               <button className="player-row" onClick={() => open(p)}>
                 <span className="status-icon" aria-label={p.status}>{meta.icon}</span>
-                {p.avatarEmoji && <span className="player-avatar">{p.avatarEmoji}</span>}
                 <div className="player-info">
                   <span className="player-name">
                     {isMe && <span className="me-badge">{t.leaderboard.you}</span>}
@@ -142,6 +161,9 @@ export function PlayerList({ players, myPlayerTag }: Props) {
                   </span>
                   {/* Отдельными элементами, чтобы строка переносилась, а не вылезала за карточку */}
                   <span className="player-fame">
+                    {/* Подпись к градиенту короля: иначе цвет читается как украшение,
+                        а не как «этот человек первый по медалям» */}
+                    {tier === 'pc-king' && <span className="king-badge">{t.players.kingOfWeek}</span>}
                     {roleName && (
                       <span className={`role-badge role-${p.role}`}>
                         {ROLE_ICON[p.role!]} {roleName}

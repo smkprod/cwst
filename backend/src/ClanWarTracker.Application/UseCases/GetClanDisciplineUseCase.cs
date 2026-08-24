@@ -92,7 +92,6 @@ public class GetClanDisciplineUseCase(
             rows.Add(new DisciplinePlayerDto(
                 PlayerTag: tag,
                 Name: hasName ? historicName! : player?.Name ?? tag,
-                AvatarEmoji: player?.AvatarEmoji,
                 MissedDecks: missedDecks,
                 MissedWeeks: missedWeeks,
                 WeeksTracked: weeksTracked,

@@ -8,7 +8,6 @@ import { useT, perfLabel, type Translations } from '../lib/i18n'
 import { TournamentHistoryCard } from './TournamentHistoryCard'
 import { PlayerProfileCard } from './PlayerProfileCard'
 import { DecksButton } from './DecksButton'
-import { AvatarPicker } from './AvatarPicker'
 
 type State =
   | { kind: 'loading' }
@@ -85,8 +84,6 @@ export function MyStatsView() {
     <div className="fade-in">
       {profile && playerTag ? (
         <>
-          <AvatarPicker current={me?.avatarEmoji} onChange={emoji =>
-            setMe(prev => prev && { ...prev, avatarEmoji: emoji ?? undefined })} />
           <DecksButton playerTag={playerTag} />
           <PlayerProfileCard profile={profile} embedded />
         </>
@@ -136,7 +133,7 @@ export function MyStatsView() {
     <div>
       <div className="me-header">
         <div className="me-title-row">
-          <h2 className="me-name">{me?.avatarEmoji ? `${me.avatarEmoji} ` : ''}{s.name}</h2>
+          <h2 className="me-name">{s.name}</h2>
           <span className={`perf-chip ${perf.cls}`}>{perf.emoji} {perfTranslated}</span>
         </div>
         <p className="muted small">{s.clanName} · {t.me.rankOf} #{s.rank} {t.me.of} {s.clanSize}</p>
