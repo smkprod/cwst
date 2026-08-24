@@ -24,6 +24,15 @@ public class BotUpdateHandler(
 {
     private string _botUsername = "bot";
 
+    /// <summary>
+    /// Публичный адрес сервиса — по нему Telegram скачивает картинки карточек.
+    /// Не задан — inline работает текстом: лучше карточка без картинки, чем ссылка
+    /// в никуда, по которой Telegram молча выбросит результат из выдачи.
+    /// </summary>
+    private string? PublicBaseUrl => config["PUBLIC_BASE_URL"]?.Trim().TrimEnd('/') is { Length: > 0 } url
+        ? url
+        : null;
+
     /// <summary>Ожидающие рефералы: TG ID нового пользователя → TG ID пригласившего.
     /// Заполняется при /start ref_&lt;id&gt; и расходуется при первой привязке тега.
     /// In-memory: при перезапуске воркера незавершённые рефералы теряются — это допустимо.</summary>
@@ -238,10 +247,28 @@ public class BotUpdateHandler(
 
         if (me is not null && status is not null)
         {
-            yield return Card("war", t.InlineWarTitle, t.InlineWarDesc,
-                string.Format(t.InlineWarText,
-                    me.Name, status.ClanName, me.Fame, me.Rank, me.DecksUsedToday),
-                t, favIcon);
+            // Картинкой — только если известен публичный адрес: ссылка в никуда
+            // заставит Telegram молча выбросить результат из выдачи, и человек
+            // решит, что бот сломался. Нет адреса — та же карточка текстом.
+            var img = PublicBaseUrl is { } baseUrl
+                ? $"{baseUrl}/api/img/war/{me.PlayerTag.TrimStart('#')}.jpg"
+                : null;
+
+            var warText = string.Format(t.InlineWarText,
+                me.Name, status.ClanName, me.Fame, me.Rank, me.DecksUsedToday);
+
+            yield return img is null
+                ? Card("war", t.InlineWarTitle, t.InlineWarDesc, warText, t, favIcon)
+                : new InlineQueryResultPhoto(id: "war", photoUrl: img, thumbnailUrl: img)
+                {
+                    Title = t.InlineWarTitle,
+                    Description = t.InlineWarDesc,
+                    Caption = warText + t.InlineFooter,
+                    // Размеры подсказывают Telegram, как показать превью, не дожидаясь загрузки
+                    PhotoWidth = 800,
+                    PhotoHeight = 420,
+                    ReplyMarkup = OpenBotKeyboard(t),
+                };
         }
 
         if (info is not null)

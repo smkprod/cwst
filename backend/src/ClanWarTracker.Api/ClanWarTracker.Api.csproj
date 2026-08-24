@@ -8,6 +8,17 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.4">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <!-- Рисование карточек для inline-режима. NoDependencies-вариант несёт нативную
+         библиотеку с собой: в образ .NET не нужно доставлять apt-пакеты. -->
+    <PackageReference Include="SkiaSharp" Version="4.151.1" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.151.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Шрифты едут в образ: в базовом образе .NET их нет вообще, и без своего файла
+         кириллица в карточках превратилась бы в квадраты. -->
+    <Content Include="Assets\DejaVuSans.ttf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\DejaVuSans-Bold.ttf" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ClanWarTracker.Application\ClanWarTracker.Application.csproj" />

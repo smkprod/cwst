@@ -8,6 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddSingleton<WarForecastService>();
 builder.Services.AddScoped<GetClanStatusUseCase>();
+builder.Services.AddSingleton<ClanWarTracker.Api.Rendering.WarCardRenderer>();
 builder.Services.AddScoped<GetClanDisciplineUseCase>();
 builder.Services.AddScoped<GetRaceScoutUseCase>();
 builder.Services.AddScoped<GetPlayerStatsUseCase>();
