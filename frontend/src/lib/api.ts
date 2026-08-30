@@ -101,6 +101,11 @@ export const api = {
     return res.json().catch(() => null)
   },
   getRespectStatus: () => request<RespectStatus>('/api/players/me/respect-status'),
+  /** Ссылка-приглашение для непривязанного игрока (лидер/админ). */
+  getClaimLink: (tag: string) =>
+    request<{ link: string; playerTag: string; expiresUtc: string }>(
+      `/api/clans/my/claim-link?tag=${encodeURIComponent(tag)}`),
+
   giveRespect: (tag: string) =>
     request<{ ok: boolean; total: number }>(
       `/api/players/${encodeURIComponent(tag.replace('#', ''))}/respect`, { method: 'POST' }),
