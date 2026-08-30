@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { PlayerHistory, PlayerStatus, PlayStatus } from '../types'
 import { api } from '../lib/api'
 import { fmt } from '../lib/format'
-import { haptic, openExternalLink } from '../lib/telegram'
+import { copyText, haptic, hapticNotify, openExternalLink } from '../lib/telegram'
 import { useT, roleLabel } from '../lib/i18n'
 
 const ROLE_ICON: Record<string, string> = {
@@ -22,6 +22,8 @@ export function PlayerInfoModal({ player: p, isMe, onClose }: Props) {
   const [historyState, setHistoryState] = useState<'loading' | 'ready' | 'error'>('loading')
   // Респект 👏: 'idle' — можно дать, 'sent' — только что дал, 'used' — лимит на сегодня исчерпан
   const [respect, setRespect] = useState<'loading' | 'idle' | 'sent' | 'used'>('loading')
+  // Тег скопирован: короткая подсветка вместо тоста — иначе непонятно, сработало ли
+  const [tagCopied, setTagCopied] = useState<'idle' | 'done' | 'fail'>('idle')
   const { t } = useT()
 
   const STATUS_META: Record<PlayStatus, { icon: string; label: string; cls: string }> = {
@@ -66,6 +68,16 @@ export function PlayerInfoModal({ player: p, isMe, onClose }: Props) {
     onClose()
   }
 
+  // Тег нужен постоянно: вбить в игре, отправить лидеру, привязать командой /bind.
+  // Раньше его переписывали с экрана руками — а в теге легко перепутать O и 0.
+  const copyTag = async () => {
+    haptic('light')
+    const ok = await copyText(p.playerTag)
+    hapticNotify(ok ? 'success' : 'error')
+    setTagCopied(ok ? 'done' : 'fail')
+    setTimeout(() => setTagCopied('idle'), 1600)
+  }
+
   const royaleApiUrl = history?.royaleApiUrl
     ?? `https://royaleapi.com/player/${encodeURIComponent(p.playerTag.replace('#', ''))}`
 
@@ -83,9 +95,26 @@ export function PlayerInfoModal({ player: p, isMe, onClose }: Props) {
               {p.name}
             </h3>
             <span className="muted small">
-              {p.playerTag} · #{p.rank} {t.playerModal.rankInClan}
+              <button
+                type="button"
+                className={`tag-copy ${tagCopied !== 'idle' ? 'tag-copy-done' : ''}`}
+                onClick={copyTag}
+                title={t.playerModal.copyTag}
+                aria-label={t.playerModal.copyTag}
+              >
+                {p.playerTag}
+                <span className="tag-copy-icon">
+                  {tagCopied === 'idle' ? '⧉' : tagCopied === 'done' ? '✓' : '✕'}
+                </span>
+              </button>
+              {' · '}#{p.rank} {t.playerModal.rankInClan}
               {!p.isLinked && ` · ${t.playerModal.noTg}`}
             </span>
+            {tagCopied !== 'idle' && (
+              <span className="tag-copy-hint">
+                {tagCopied === 'done' ? t.playerModal.tagCopied : t.playerModal.tagCopyFailed}
+              </span>
+            )}
             {roleName && (
               <span className={`role-badge role-${p.role}`}>
                 {ROLE_ICON[p.role!]} {roleName}
