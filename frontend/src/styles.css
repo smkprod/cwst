@@ -815,6 +815,41 @@ button.race-row {
   background: var(--bg-card); border: none; color: var(--muted);
   width: 30px; height: 30px; border-radius: 50%; font-size: 13px; cursor: pointer; flex-shrink: 0;
 }
+
+/* Тег игрока копируется по тапу: его переписывали с экрана руками, а спутать в нём
+   O и 0 проще простого. Оформлен кнопкой, но выглядит как текст — строка под именем
+   не должна превратиться в панель управления. */
+.tag-copy {
+  background: none; border: none; padding: 0; cursor: pointer;
+  color: inherit; font: inherit; letter-spacing: inherit;
+  display: inline-flex; align-items: center; gap: 4px;
+  /* Палец толще строки в 12px — расширяем зону нажатия, не раздвигая вёрстку */
+  margin: -6px 0; padding: 6px 0;
+}
+.tag-copy-icon { opacity: 0.5; font-size: 0.9em; }
+.tag-copy-done { color: #5fd573; }
+.tag-copy-done .tag-copy-icon { opacity: 1; }
+.tag-copy-hint { font-size: 11px; color: var(--muted); }
+
+/* Приглашение непривязанного игрока: единственный путь для тех, у кого нет @username */
+.invite-box {
+  background: rgba(110, 143, 255, 0.10); border: 1px solid rgba(110, 143, 255, 0.22);
+  border-radius: 12px; padding: 10px; margin-bottom: 12px; display: grid; gap: 8px;
+}
+.btn-invite {
+  background: var(--tg-theme-button-color, #6e8fff); color: var(--tg-theme-button-text-color, #fff);
+  border: none; border-radius: 10px; padding: 10px 12px;
+  font-size: 14px; font-weight: 700; cursor: pointer; width: 100%;
+}
+.btn-invite:disabled { opacity: 0.6; cursor: default; }
+.btn-invite-ghost { background: rgba(255, 255, 255, 0.10); color: var(--text); }
+.invite-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+/* Ссылка длинная и без пробелов: без принудительного переноса она распирает модалку */
+.invite-link {
+  font-size: 11px; color: var(--muted); background: rgba(0, 0, 0, 0.25);
+  border-radius: 8px; padding: 8px; word-break: break-all; line-height: 1.4;
+}
+.invite-note { font-size: 11px; color: var(--muted); margin: 0; line-height: 1.4; }
 .modal-status {
   border-radius: 10px; padding: 9px 12px; font-size: 13px; margin-bottom: 12px;
 }

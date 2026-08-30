@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { PlayerHistory, PlayerStatus, PlayStatus } from '../types'
 import { api } from '../lib/api'
 import { fmt } from '../lib/format'
-import { haptic, openExternalLink } from '../lib/telegram'
+import { copyText, haptic, hapticNotify, openExternalLink, shareToTelegram } from '../lib/telegram'
 import { useT, roleLabel } from '../lib/i18n'
 
 const ROLE_ICON: Record<string, string> = {
@@ -14,14 +14,21 @@ const ROLE_ICON: Record<string, string> = {
 interface Props {
   player: PlayerStatus
   isMe: boolean
+  /** Лидер или админ группы: только им есть смысл показывать приглашение. */
+  canManage?: boolean
   onClose: () => void
 }
 
-export function PlayerInfoModal({ player: p, isMe, onClose }: Props) {
+export function PlayerInfoModal({ player: p, isMe, canManage = false, onClose }: Props) {
   const [history, setHistory] = useState<PlayerHistory | null>(null)
   const [historyState, setHistoryState] = useState<'loading' | 'ready' | 'error'>('loading')
   // Респект 👏: 'idle' — можно дать, 'sent' — только что дал, 'used' — лимит на сегодня исчерпан
   const [respect, setRespect] = useState<'loading' | 'idle' | 'sent' | 'used'>('loading')
+  // Тег скопирован: короткая подсветка вместо тоста — иначе непонятно, сработало ли
+  const [tagCopied, setTagCopied] = useState<'idle' | 'done' | 'fail'>('idle')
+  // Приглашение: 'idle' — кнопка, 'loading' — просим ссылку, дальше сама ссылка или ошибка
+  const [invite, setInvite] = useState<'idle' | 'loading' | 'error'>('idle')
+  const [inviteLink, setInviteLink] = useState<string | null>(null)
   const { t } = useT()
 
   const STATUS_META: Record<PlayStatus, { icon: string; label: string; cls: string }> = {
@@ -66,6 +73,43 @@ export function PlayerInfoModal({ player: p, isMe, onClose }: Props) {
     onClose()
   }
 
+  // Тег нужен постоянно: вбить в игре, отправить лидеру, привязать командой /bind.
+  // Раньше его переписывали с экрана руками — а в теге легко перепутать O и 0.
+  const copyTag = async () => {
+    haptic('light')
+    const ok = await copyText(p.playerTag)
+    hapticNotify(ok ? 'success' : 'error')
+    setTagCopied(ok ? 'done' : 'fail')
+    setTimeout(() => setTagCopied('idle'), 1600)
+  }
+
+  // Приглашение по ссылке — единственный способ привязать человека без @username:
+  // командой его не назвать, а ответить на сообщение можно только если он пишет в чат.
+  const makeInvite = async () => {
+    haptic('medium')
+    setInvite('loading')
+    try {
+      const { link } = await api.getClaimLink(p.playerTag)
+      setInviteLink(link)
+      setInvite('idle')
+    } catch {
+      setInvite('error')
+    }
+  }
+
+  const shareInvite = () => {
+    if (inviteLink === null) return
+    haptic('light')
+    shareToTelegram(t.playerModal.inviteShareText, inviteLink)
+  }
+
+  const copyInvite = async () => {
+    if (inviteLink === null) return
+    haptic('light')
+    const ok = await copyText(inviteLink)
+    hapticNotify(ok ? 'success' : 'error')
+  }
+
   const royaleApiUrl = history?.royaleApiUrl
     ?? `https://royaleapi.com/player/${encodeURIComponent(p.playerTag.replace('#', ''))}`
 
@@ -83,9 +127,26 @@ export function PlayerInfoModal({ player: p, isMe, onClose }: Props) {
               {p.name}
             </h3>
             <span className="muted small">
-              {p.playerTag} · #{p.rank} {t.playerModal.rankInClan}
+              <button
+                type="button"
+                className={`tag-copy ${tagCopied !== 'idle' ? 'tag-copy-done' : ''}`}
+                onClick={copyTag}
+                title={t.playerModal.copyTag}
+                aria-label={t.playerModal.copyTag}
+              >
+                {p.playerTag}
+                <span className="tag-copy-icon">
+                  {tagCopied === 'idle' ? '⧉' : tagCopied === 'done' ? '✓' : '✕'}
+                </span>
+              </button>
+              {' · '}#{p.rank} {t.playerModal.rankInClan}
               {!p.isLinked && ` · ${t.playerModal.noTg}`}
             </span>
+            {tagCopied !== 'idle' && (
+              <span className="tag-copy-hint">
+                {tagCopied === 'done' ? t.playerModal.tagCopied : t.playerModal.tagCopyFailed}
+              </span>
+            )}
             {roleName && (
               <span className={`role-badge role-${p.role}`}>
                 {ROLE_ICON[p.role!]} {roleName}
@@ -98,6 +159,34 @@ export function PlayerInfoModal({ player: p, isMe, onClose }: Props) {
         <div className={`modal-status ${meta.cls}`}>
           {meta.icon} {meta.label} · {t.playerModal.decksToday} <strong>{p.decksUsedToday}/4</strong>
         </div>
+
+        {canManage && !isMe && !p.isLinked && (
+          <div className="invite-box">
+            {inviteLink === null ? (
+              <>
+                <button className="btn-invite" onClick={makeInvite} disabled={invite === 'loading'}>
+                  🔗 {invite === 'loading' ? t.playerModal.inviteLoading : t.playerModal.invite}
+                </button>
+                <p className="invite-note">
+                  {invite === 'error' ? t.playerModal.inviteError : t.playerModal.inviteHint}
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="invite-link">{inviteLink}</div>
+                <div className="invite-actions">
+                  <button className="btn-invite" onClick={shareInvite}>
+                    ➤ {t.playerModal.inviteSend}
+                  </button>
+                  <button className="btn-invite btn-invite-ghost" onClick={copyInvite}>
+                    ⧉ {t.playerModal.inviteCopy}
+                  </button>
+                </div>
+                <p className="invite-note">{t.playerModal.inviteReady}</p>
+              </>
+            )}
+          </div>
+        )}
 
         {!isMe && respect !== 'loading' && (
           <button

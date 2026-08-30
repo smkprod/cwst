@@ -46,9 +46,11 @@ interface Props {
   myPlayerTag?: string
   /** Первый по медалям недели — единственный, кто получает королевский фон. */
   kingTag?: string
+  /** Лидер или админ группы: только им показываем приглашение непривязанным. */
+  canManage?: boolean
 }
 
-export function PlayerList({ players, myPlayerTag, kingTag }: Props) {
+export function PlayerList({ players, myPlayerTag, kingTag, canManage = false }: Props) {
   const [selected, setSelected] = useState<PlayerStatus | null>(null)
   const [sort, setSort] = useState<SortKey>('status')
   const [filter, setFilter] = useState<FilterKey>('all')
@@ -186,6 +188,7 @@ export function PlayerList({ players, myPlayerTag, kingTag }: Props) {
         <PlayerInfoModal
           player={selected}
           isMe={selected.playerTag === myPlayerTag}
+          canManage={canManage}
           onClose={() => setSelected(null)}
         />
       )}

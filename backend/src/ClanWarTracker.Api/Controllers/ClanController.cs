@@ -1,5 +1,6 @@
 using ClanWarTracker.Application.DTOs;
 using ClanWarTracker.Application.Notifications;
+using ClanWarTracker.Application.Security;
 using ClanWarTracker.Application.UseCases;
 using ClanWarTracker.Domain.Entities;
 using ClanWarTracker.Domain.Enums;
@@ -453,6 +454,79 @@ public class ClanController(
             ? Conflict(new { error = "no_war_day", message = "Сейчас не день войны — пинать некого" })
             : Ok(result);
     }
+
+    /// <summary>
+    /// GET /api/clans/my/claim-link?tag=#XXXX — ссылка-приглашение для непривязанного игрока.
+    ///
+    /// Нужна тем, у кого нет @username: их нельзя было привязать командой, а ответить
+    /// на их сообщение получалось не всегда — молчуны в чате как раз и есть те, кого
+    /// приходится пинать. Лидер берёт ссылку и передаёт её человеку любым способом.
+    /// </summary>
+    [HttpGet("my/claim-link")]
+    public async Task<IActionResult> GetClaimLink([FromQuery] string tag, CancellationToken ct)
+    {
+        var (player, clan, error) = await ResolvePlayerClanAsync(ct);
+        if (error is not null) return error;
+
+        var userId = (long)HttpContext.Items["TelegramUserId"]!;
+        var isAdmin = await IsClanAdminAsync(clan!.TelegramChatId, userId, ct);
+        var crRole = await crApi.GetPlayerClanRoleAsync(clan.ClanTag, player!.PlayerTag, ct);
+        if (!isAdmin && crRole is not ("leader" or "coLeader"))
+            return StatusCode(403, new { error = "not_admin", message = "Приглашать может только админ группы или лидер клана" });
+
+        var playerTag = LinkPlayerUseCase.Normalize(tag);
+
+        // Тег обязан быть в текущем составе: иначе лидер по опечатке выдал бы ссылку
+        // на постороннего, и тот попал бы в клановую статистику.
+        Dictionary<string, string> roles;
+        try { roles = await crApi.GetClanMemberRolesAsync(clan.ClanTag, ct); }
+        catch (HttpRequestException ex) when ((int)(ex.StatusCode ?? 0) is >= 500 or 429)
+            { return StatusCode(503, new { error = "cr_api_unavailable", message = ex.Message }); }
+        if (roles.Count > 0 && !roles.ContainsKey(playerTag))
+            return NotFound(new { error = "not_in_clan", message = "Этого тега нет в текущем составе клана" });
+
+        var secret = BotSecret();
+        if (secret is null)
+            return StatusCode(500, new { error = "server_misconfigured", message = "Бот-токен не настроен" });
+
+        var botName = await BotUsernameAsync(ct);
+        if (botName is null)
+            return StatusCode(503, new { error = "bot_unavailable", message = "Не удалось узнать имя бота" });
+
+        var expires = DateTime.UtcNow + ClaimLink.Lifetime;
+        var code = ClaimLink.Create(clan.Id, playerTag, expires, secret);
+
+        return Ok(new
+        {
+            link = $"https://t.me/{botName}?start={code}",
+            playerTag,
+            expiresUtc = expires,
+        });
+    }
+
+    /// <summary>Токен бота — он же ключ подписи приглашений. null — токен не настроен.</summary>
+    private string? BotSecret()
+    {
+        var token = ClanWarTracker.Infrastructure.DependencyInjection.CleanToken(
+            Environment.GetEnvironmentVariable("TELEGRAM_BOT_TOKEN")
+            ?? config["TELEGRAM_BOT_TOKEN"]
+            ?? config["Telegram:BotToken"]);
+        return string.IsNullOrEmpty(token) ? null : token;
+    }
+
+    /// <summary>@username бота для ссылок. Меняется раз в жизни — держим сутки.</summary>
+    private async Task<string?> BotUsernameAsync(CancellationToken ct) =>
+        await cache.GetOrCreateAsync("botusername", async e =>
+        {
+            e.Size = 1;
+            e.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(24);
+            try { return (await bot.GetMe(ct)).Username; }
+            catch
+            {
+                e.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1);
+                return null;
+            }
+        });
 
     private async Task<(Player? Player, Clan? Clan, IActionResult? Error)> ResolvePlayerClanAsync(CancellationToken ct)
     {

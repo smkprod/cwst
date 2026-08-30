@@ -269,13 +269,13 @@ export default function App() {
             )}
             {tab === 'clan' && clanSection === 'roster' && (
               <div className="fade-in">
-                <PlayerList players={data.players} myPlayerTag={data.myPlayerTag} kingTag={king?.playerTag} />
+                <PlayerList players={data.players} myPlayerTag={data.myPlayerTag} kingTag={king?.playerTag} canManage={canManage} />
               </div>
             )}
             {tab === 'clan' && clanSection === 'rating' && (
               <div className="fade-in">
                 <ClanWorldRankCard />
-                <Leaderboard players={data.players} myPlayerTag={data.myPlayerTag} plan={data.plan} periodType={data.periodType} warLog={data.warLog ?? []} />
+                <Leaderboard players={data.players} myPlayerTag={data.myPlayerTag} plan={data.plan} periodType={data.periodType} warLog={data.warLog ?? []} canManage={canManage} />
               </div>
             )}
             {tab === 'me' && (

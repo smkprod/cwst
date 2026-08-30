@@ -16,6 +16,8 @@ interface Props {
   periodType: ClanStatus['periodType']
   /** Нужен, чтобы назвать короля, когда медали текущей недели уже обнулились. */
   warLog: WarLogWeek[]
+  /** Лидер или админ группы: только им показываем приглашение непривязанным. */
+  canManage?: boolean
 }
 
 type Selection = 'current' | 'season' | 'archive' | 'global'
@@ -38,7 +40,7 @@ type ArchiveState =
 
 const MEDALS = ['🥇', '🥈', '🥉']
 
-export function Leaderboard({ players, myPlayerTag, plan, periodType, warLog }: Props) {
+export function Leaderboard({ players, myPlayerTag, plan, periodType, warLog, canManage = false }: Props) {
   const [sel, setSel] = useState<Selection>('current')
   const [breakdown, setBreakdown] = useState<BreakdownState>({ kind: 'idle' })
   const [global, setGlobal] = useState<GlobalState>({ kind: 'idle' })
@@ -118,6 +120,7 @@ export function Leaderboard({ players, myPlayerTag, plan, periodType, warLog }: 
         <PlayerInfoModal
           player={selected}
           isMe={selected.playerTag === myPlayerTag}
+          canManage={canManage}
           onClose={() => setSelected(null)}
         />
       )}

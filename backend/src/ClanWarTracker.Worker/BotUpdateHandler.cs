@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Text;
 using ClanWarTracker.Application.DTOs;
 using ClanWarTracker.Application.Notifications;
+using ClanWarTracker.Application.Security;
 using ClanWarTracker.Application.UseCases;
 using ClanWarTracker.Domain.Entities;
 using ClanWarTracker.Domain.Enums;
@@ -478,6 +479,14 @@ public class BotUpdateHandler(
                 case "/start":
                     if (msg.Chat.Type == ChatType.Private)
                     {
+                        // Приглашение от лидера: /start claim_<подписанный код>. Отвечает само
+                        // за себя целиком, обычное приветствие после него было бы шумом.
+                        if (arg is not null && arg.StartsWith(ClaimLink.Prefix, StringComparison.Ordinal))
+                        {
+                            await HandleClaimAsync(msg, arg, sp, t, ct);
+                            return;
+                        }
+
                         // Реферальная ссылка: /start ref_<telegramId> — запоминаем пригласившего
                         // до момента, когда новый пользователь пришлёт свой тег.
                         if (arg is not null && arg.StartsWith("ref_", StringComparison.Ordinal)
@@ -932,6 +941,49 @@ public class BotUpdateHandler(
                           || (msg.MessageThreadId is int threadId && replyTo.MessageId == threadId);
 
         return isTopicRoot ? null : replyTo.From;
+    }
+
+    /// <summary>
+    /// Приглашение по ссылке: /start claim_&lt;код&gt; в личке.
+    ///
+    /// Ради этого всё и затевалось — человеку не нужен @username и не нужно ничего
+    /// писать в чате, достаточно нажать на ссылку. Заодно он нажимает «Старт», и бот
+    /// получает право писать ему в личку, чего при привязке лидером не бывает.
+    /// </summary>
+    private async Task HandleClaimAsync(Message msg, string arg, IServiceProvider sp, BotText t, CancellationToken ct)
+    {
+        var secret = ClanWarTracker.Infrastructure.DependencyInjection.CleanToken(
+            Environment.GetEnvironmentVariable("TELEGRAM_BOT_TOKEN")
+            ?? config["TELEGRAM_BOT_TOKEN"]
+            ?? config["Telegram:BotToken"]);
+
+        var payload = string.IsNullOrEmpty(secret) ? null : ClaimLink.Verify(arg, secret, DateTime.UtcNow);
+        if (payload is null) { await Reply(msg, t.ClaimBadLink, ct); return; }
+
+        var from = msg.From!;
+        var clanPlayers = await sp.GetRequiredService<IPlayerRepository>()
+            .GetByClanIdAsync(payload.ClanId, ct);
+        var existing = clanPlayers.FirstOrDefault(p =>
+            string.Equals(p.PlayerTag, payload.PlayerTag, StringComparison.OrdinalIgnoreCase));
+
+        // Тег уже за другим аккаунтом — значит, ссылку либо переслали дальше, либо ей
+        // воспользовались раньше. Это и делает приглашение одноразовым: отдельного
+        // счётчика использований нет, роль отметки «использовано» играет сама привязка.
+        if (existing?.TelegramUserId is long owner && owner != from.Id)
+        {
+            await Reply(msg, t.ClaimTaken, ct);
+            return;
+        }
+
+        var result = await sp.GetRequiredService<BindPlayerUseCase>()
+            .BindAsync(payload.ClanId, payload.PlayerTag, from.Username, from.Id, ct);
+
+        await Reply(msg, result.Outcome switch
+        {
+            BindOutcome.TagNotFound => t.BindTagNotFound,
+            BindOutcome.NotInClan => t.BindNotInClan,
+            _ => string.Format(t.ClaimOk, result.PlayerName),
+        }, ct);
     }
 
     /// <summary>
