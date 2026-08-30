@@ -61,6 +61,42 @@ export function openExternalLink(url: string) {
   else window.open(url, '_blank')
 }
 
+/**
+ * Скопировать текст в буфер обмена. true — получилось.
+ *
+ * У Telegram нет своего метода записи в буфер (WebApp умеет только читать), поэтому
+ * идём через обычный веб-API. Он есть не везде: в старых вебвью и без https объект
+ * clipboard просто отсутствует — там остаётся приём со скрытым textarea, который
+ * умеет ровно то же самое, только через устаревшую команду. Ошибку не глотаем молча:
+ * вызывающий должен уметь показать, что не вышло.
+ */
+export async function copyText(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text)
+      return true
+    }
+  } catch {
+    // Разрешение не дали или вебвью соврало о поддержке — пробуем запасной путь
+  }
+
+  try {
+    const area = document.createElement('textarea')
+    area.value = text
+    // Вне экрана, но в документе: невидимый или display:none элемент не выделяется
+    area.style.position = 'fixed'
+    area.style.opacity = '0'
+    area.style.pointerEvents = 'none'
+    document.body.appendChild(area)
+    area.select()
+    const ok = document.execCommand('copy')
+    document.body.removeChild(area)
+    return ok
+  } catch {
+    return false
+  }
+}
+
 /** Поделиться текстом через нативный share-диалог Telegram.
  *  linkUrl — что прикладывается ссылкой (по умолчанию глубокая ссылка в бота, если известен username). */
 export function shareToTelegram(text: string, linkUrl: string = botStartLink()) {

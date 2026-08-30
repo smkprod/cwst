@@ -204,6 +204,12 @@ public sealed class BotText
     /// <summary>{0} — прежний тег.</summary>
     public required string BindMoved { get; init; }
     public required string BindNoDm { get; init; }
+    /// <summary>Ссылка-приглашение не читается: подделана, испорчена при пересылке или протухла.</summary>
+    public required string ClaimBadLink { get; init; }
+    /// <summary>Тег уже занят другим аккаунтом — ссылкой воспользовались раньше.</summary>
+    public required string ClaimTaken { get; init; }
+    /// <summary>{0} — имя игрока.</summary>
+    public required string ClaimOk { get; init; }
     public required string UnbindOnlyAdmin { get; init; }
     public required string UnbindNeedTag { get; init; }
     /// <summary>{0} — имя игрока.</summary>
@@ -473,6 +479,13 @@ public sealed class BotText
                   + "Если это разные люди, привяжи их по отдельности.",
         BindNoDm = "\n\n⚠️ В личные сообщения бот писать не сможет, пока игрок сам не нажмёт «Старт» у бота — "
                  + "Telegram запрещает писать первым. В чате тег работает.",
+        ClaimBadLink = "Ссылка не подошла: она действует сутки и только один раз. "
+                     + "Попроси у лидера новую.",
+        ClaimTaken = "Этот тег уже привязан к другому аккаунту. Если это твой тег — "
+                   + "напиши лидеру, он отвяжет старую привязку командой /unbind.",
+        ClaimOk = "✅ Готово, ты привязан как {0}.\n\n"
+                + "Теперь бот напомнит тебе про колоды КВ и тегнёт в чате, если забудешь. "
+                + "Открой приложение кнопкой ниже — там твоя статистика и состав клана.",
         UnbindOnlyAdmin = "Отвязывать игроков может только админ группы.",
         UnbindNeedTag = "Укажи тег: /unbind #ТЕГИГРОКА",
         UnbindOk = "✅ Привязка {0} снята.",
@@ -710,6 +723,13 @@ public sealed class BotText
                   + "Якщо це різні люди, прив’яжи їх окремо.",
         BindNoDm = "\n\n⚠️ В особисті повідомлення бот писати не зможе, поки гравець сам не натисне «Старт» у бота — "
                  + "Telegram забороняє писати першим. У чаті тег працює.",
+        ClaimBadLink = "Посилання не підійшло: воно діє добу і лише один раз. "
+                     + "Попроси в лідера нове.",
+        ClaimTaken = "Цей тег уже прив’язаний до іншого акаунта. Якщо це твій тег — "
+                   + "напиши лідеру, він відв’яже стару прив’язку командою /unbind.",
+        ClaimOk = "✅ Готово, тебе прив’язано як {0}.\n\n"
+                + "Тепер бот нагадає тобі про колоди КВ і тегне в чаті, якщо забудеш. "
+                + "Відкрий застосунок кнопкою нижче — там твоя статистика і склад клану.",
         UnbindOnlyAdmin = "Відв’язувати гравців може лише адмін групи.",
         UnbindNeedTag = "Вкажи тег: /unbind #ТЕГГРАВЦЯ",
         UnbindOk = "✅ Прив’язку {0} знято.",
@@ -947,6 +967,13 @@ public sealed class BotText
                   + "If these are different people, link them separately.",
         BindNoDm = "\n\n⚠️ The bot can't send DMs until the player presses \"Start\" on the bot themselves — "
                  + "Telegram doesn't allow messaging first. Tagging in the chat works.",
+        ClaimBadLink = "That link didn't work: it lasts 24 hours and only once. "
+                     + "Ask your leader for a new one.",
+        ClaimTaken = "This tag is already linked to another account. If it's your tag, "
+                   + "ask your leader to unlink it with /unbind.",
+        ClaimOk = "✅ Done, you're linked as {0}.\n\n"
+                + "The bot will now remind you about your war decks and tag you in the chat if you forget. "
+                + "Open the app with the button below — your stats and the clan roster are there.",
         UnbindOnlyAdmin = "Only a group admin can unlink players.",
         UnbindNeedTag = "Give a tag: /unbind #PLAYERTAG",
         UnbindOk = "✅ The link for {0} has been removed.",
