@@ -33,7 +33,16 @@ public record OwnerStatsDto(
 
     // Вовлечённость
     int Respects7d,
-    double AvgLinkedPerClan);
+    double AvgLinkedPerClan,
+
+    /// <summary>Приход по дням за последние 90 суток, от старых к свежим, без пропусков.</summary>
+    IReadOnlyList<SignupPointDto> Signups);
+
+/// <summary>
+/// Сколько пришло за один день. Дни с нулями тоже присутствуют: без них график
+/// сжался бы в сплошную линию и соврал бы про темп.
+/// </summary>
+public record SignupPointDto(DateOnly Date, int Users, int Clans);
 
 /// <summary>Строка списка кланов в панели владельца.</summary>
 public record OwnerClanDto(
