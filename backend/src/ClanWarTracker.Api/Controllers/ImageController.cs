@@ -1,4 +1,5 @@
 using ClanWarTracker.Api.Rendering;
+using ClanWarTracker.Application.Games;
 using ClanWarTracker.Application.UseCases;
 using ClanWarTracker.Domain.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -99,6 +100,52 @@ public class ImageController(
                 $"Колода {info.Name}", info.ClanName ?? "без клана", cards,
                 Math.Round(info.CurrentDeck.Average(c => (double)c.Level), 1),
                 await BotNameAsync(ct)));
+        });
+
+    /// <summary>
+    /// GET /api/img/puzzle/{level}.jpg — фрагмент карты дня для игры «угадай карту».
+    ///
+    /// Без авторизации, как и остальные картинки: их грузит &lt;img&gt;, а заголовок с
+    /// initData туда не подставить. Ответ по адресу не угадывается — в нём только
+    /// номер попытки, имя карты не фигурирует.
+    /// </summary>
+    [HttpGet("puzzle/{level:int}.jpg")]
+    public Task<IActionResult> PuzzleFragment(int level, CancellationToken ct)
+    {
+        var day = DailyCard.DayNumber(DateTime.UtcNow);
+        return Serve($"puzzle:{day}:{level}", CardTtl, async () =>
+        {
+            var catalog = await Try(() => crApi.GetAllCardsAsync(ct));
+            if (catalog is null) return null;
+
+            var card = DailyCard.Pick(catalog.Values.ToList(), day);
+            return card is null ? null : renderer.RenderPuzzle(card.IconUrl, level, DailyCard.Seed($"day:{day}"));
+        });
+    }
+
+    /// <summary>
+    /// GET /api/img/puzzle/sample/{seed}.jpg — лист предпросмотра для настройки игры.
+    ///
+    /// Карты берутся случайные по seed, а НЕ карты ближайших дней: иначе эта ручка
+    /// раздавала бы ответы на будущие загадки всем желающим.
+    /// </summary>
+    [HttpGet("puzzle/sample/{seed:int}.jpg")]
+    public Task<IActionResult> PuzzleSample(int seed, CancellationToken ct) =>
+        Serve($"puzzlesample:{seed}", SlowTtl, async () =>
+        {
+            var catalog = await Try(() => crApi.GetAllCardsAsync(ct));
+            if (catalog is null) return null;
+
+            var all = catalog.Values.OrderBy(c => c.Id).ToList();
+            if (all.Count == 0) return null;
+
+            var rnd = new Random(seed);
+            var cards = Enumerable.Range(0, 4)
+                .Select(_ => all[rnd.Next(all.Count)])
+                .Select(c => (c.Name, c.IconUrl))
+                .ToList();
+
+            return renderer.RenderPuzzleSheet(cards, seed);
         });
 
     /// <summary>
