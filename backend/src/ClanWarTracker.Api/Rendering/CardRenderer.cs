@@ -168,6 +168,172 @@ public class CardRenderer(IWebHostEnvironment env, IHttpClientFactory http, IMem
             SKTextAlign.Center, new SKFont(_bold, 24), p);
     }
 
+    /// <summary>Сторона картинки-загадки. Квадрат: фрагмент вырезается квадратом.</summary>
+    public const int PuzzleSize = 420;
+
+    /// <summary>
+    /// Какую долю арта показываем на 1-й, 2-й и 3-й попытке. Начинаем не с самого
+    /// мелкого куска: по 10% арта не угадывается ничего, и игра из загадки
+    /// превращается в лотерею.
+    /// </summary>
+    private static readonly float[] PuzzleZoom = [0.30f, 0.48f, 0.72f];
+
+    /// <summary>
+    /// Фрагмент арта карты для игры «угадай карту».
+    ///
+    /// Все три уровня вырезаются вокруг ОДНОЙ точки — с каждой попыткой квадрат
+    /// растёт, и открывается то же место, только шире. Так у игры есть ощущение
+    /// приближения к ответу, а не трёх независимых загадок.
+    ///
+    /// null — арт не скачался; вызывающий отдаёт 404, а не пустой квадрат.
+    /// </summary>
+    public byte[]? RenderPuzzle(string artUrl, int level, int seed)
+    {
+        var art = Icon(artUrl);
+        if (art is null) return null;
+
+        using var surface = SKSurface.Create(new SKImageInfo(PuzzleSize, PuzzleSize));
+        Backdrop(surface.Canvas, PuzzleSize, PuzzleSize);
+        Fragment(surface.Canvas, art, new SKRect(0, 0, PuzzleSize, PuzzleSize), level, seed);
+
+        using var image = surface.Snapshot();
+        using var data = image.Encode(SKEncodedImageFormat.Jpeg, 88);
+        return data.ToArray();
+    }
+
+    /// <summary>
+    /// Лист предпросмотра: несколько карт, у каждой все три попытки подряд, с ответом
+    /// под строкой. Нужен, чтобы одним взглядом понять, угадываемы ли фрагменты
+    /// вообще — по одной картинке этого не видно, а перебирать их по ссылкам мучительно.
+    /// </summary>
+    public byte[] RenderPuzzleSheet(IReadOnlyList<(string Name, string ArtUrl)> cards, int seed)
+    {
+        const int cell = 200, pad = 10, caption = 22;
+        var cols = PuzzleZoom.Length;
+        var rows = cards.Count;
+        var w = pad + cols * (cell + pad);
+        var h = pad + rows * (cell + caption + pad);
+
+        using var surface = SKSurface.Create(new SKImageInfo(w, h));
+        var canvas = surface.Canvas;
+        Backdrop(canvas, w, h);
+
+        using var p = new SKPaint { IsAntialias = true };
+        for (var row = 0; row < rows; row++)
+        {
+            var art = Icon(cards[row].ArtUrl);
+            var y = pad + row * (cell + caption + pad);
+
+            for (var col = 0; col < cols; col++)
+            {
+                var x = pad + col * (cell + pad);
+                var box = new SKRect(x, y, x + cell, y + cell);
+
+                p.Color = Deep.WithAlpha(140);
+                canvas.DrawRoundRect(box, 10, 10, p);
+                if (art is not null) Fragment(canvas, art, box, col + 1, seed + row);
+            }
+
+            p.Color = Muted;
+            canvas.DrawText(
+                Fit(Clean(cards[row].Name), new SKFont(_regular, 16), w - 2 * pad),
+                pad, y + cell + 17, new SKFont(_regular, 16), p);
+        }
+
+        using var image = surface.Snapshot();
+        using var data = image.Encode(SKEncodedImageFormat.Jpeg, 88);
+        return data.ToArray();
+    }
+
+    /// <summary>
+    /// Подложка под фрагмент. Арты карт лежат с прозрачным фоном, а JPEG прозрачности
+    /// не знает — без неё всё пустое место стало бы чёрным провалом.
+    /// </summary>
+    private static void Backdrop(SKCanvas canvas, int w, int h)
+    {
+        using var bg = new SKPaint { IsAntialias = true };
+        bg.Shader = SKShader.CreateLinearGradient(
+            new SKPoint(0, 0), new SKPoint(w, h),
+            [Mid, Deep], [0f, 1f], SKShaderTileMode.Clamp);
+        canvas.DrawRect(new SKRect(0, 0, w, h), bg);
+    }
+
+    /// <summary>Вырезает кусок арта вокруг найденной детали и вписывает его в dest.</summary>
+    private static void Fragment(SKCanvas canvas, SKImage art, SKRect dest, int level, int seed)
+    {
+        var zoom = PuzzleZoom[Math.Clamp(level, 1, PuzzleZoom.Length) - 1];
+        var centre = DetailPoint(art, seed);
+
+        var half = Math.Min(art.Width, art.Height) * zoom / 2;
+        // Квадрат держим внутри арта, не сжимая: иначе у краёв менялся бы масштаб,
+        // и по «раздутости» картинки было бы видно, что кроп упёрся в границу.
+        var cx = Math.Clamp(centre.X, half, art.Width - half);
+        var cy = Math.Clamp(centre.Y, half, art.Height - half);
+        var src = new SKRect(cx - half, cy - half, cx + half, cy + half);
+
+        // Линейная фильтрация: при увеличении втрое соседние пиксели иначе
+        // превращаются в крупные квадраты, и угадывать приходится мозаику, а не карту.
+        using var p = new SKPaint { IsAntialias = true };
+        canvas.DrawImage(art, src, dest,
+            new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear), p);
+    }
+
+    /// <summary>Сетка кандидатов при поиске детали. 8×8 — 36 внутренних клеток.</summary>
+    private const int PuzzleGrid = 8;
+
+    /// <summary>Из скольких самых «детальных» клеток выбираем, чтобы кроп не повторялся.</summary>
+    private const int PuzzleTopCells = 10;
+
+    /// <summary>
+    /// Точка, вокруг которой резать: самое насыщенное деталями место арта.
+    ///
+    /// Случайная точка не годится — половина арта карты это ровная заливка брони
+    /// или прозрачный фон, и на такой кусок смотреть бессмысленно. Считаем по
+    /// уменьшенной копии, насколько клетка отличается от соседей, и выбираем из
+    /// десятка лучших — детерминированно по seed, чтобы у всех была одна загадка.
+    ///
+    /// Края отбрасываем: там у артов пусто.
+    /// </summary>
+    private static SKPoint DetailPoint(SKImage art, int seed)
+    {
+        const int px = PuzzleGrid * 4;
+        using var small = new SKBitmap(new SKImageInfo(px, px, SKColorType.Rgba8888, SKAlphaType.Premul));
+        using (var c = new SKCanvas(small))
+        {
+            c.Clear(SKColors.Transparent);
+            c.DrawImage(art, new SKRect(0, 0, px, px));
+        }
+
+        var luma = new int[px, px];
+        for (var y = 0; y < px; y++)
+            for (var x = 0; x < px; x++)
+            {
+                var c = small.GetPixel(x, y);
+                // Прозрачное считаем нулём: пустой фон не должен выглядеть деталью
+                luma[x, y] = c.Alpha == 0 ? 0 : (c.Red * 299 + c.Green * 587 + c.Blue * 114) / 1000;
+            }
+
+        var cells = new List<(int Score, int X, int Y)>();
+        for (var gy = 1; gy < PuzzleGrid - 1; gy++)
+            for (var gx = 1; gx < PuzzleGrid - 1; gx++)
+            {
+                var score = 0;
+                for (var y = gy * 4; y < gy * 4 + 4; y++)
+                    for (var x = gx * 4; x < gx * 4 + 4; x++)
+                    {
+                        if (x + 1 < px) score += Math.Abs(luma[x, y] - luma[x + 1, y]);
+                        if (y + 1 < px) score += Math.Abs(luma[x, y] - luma[x, y + 1]);
+                    }
+                cells.Add((score, gx, gy));
+            }
+
+        var top = cells.OrderByDescending(c => c.Score).Take(PuzzleTopCells).ToList();
+        var pick = top[(seed & 0x7FFFFFFF) % top.Count];
+        return new SKPoint(
+            (pick.X + 0.5f) * art.Width / PuzzleGrid,
+            (pick.Y + 0.5f) * art.Height / PuzzleGrid);
+    }
+
     /// <summary>
     /// Общий каркас: диагональный градиент, подсветка, арт карты справа и кодирование.
     ///
