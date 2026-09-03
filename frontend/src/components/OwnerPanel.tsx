@@ -3,6 +3,7 @@ import { api } from '../lib/api'
 import type { BroadcastTarget, OwnerClan, OwnerClanDetail, OwnerStats } from '../types'
 import { haptic, hapticNotify, openExternalLink } from '../lib/telegram'
 import { useT, type Translations } from '../lib/i18n'
+import { SignupsChart } from './SignupsChart'
 
 type State =
   | { kind: 'loading' }
@@ -120,6 +121,17 @@ function Overview({ stats, clans }: { stats: OwnerStats; clans: OwnerClan[] }) {
             </p>
           )}
         </div>
+      )}
+
+      <SignupsChart points={stats.signups ?? []} />
+
+      {/* Честность: у привязавшихся до появления поля даты нет, и в график они
+          не попадут. Молча занизить прошлое хуже, чем сказать об этом строкой. */}
+      {stats.totalLinkedUsers > stats.usersWithKnownDate && (
+        <p className="muted small chart-footnote">
+          {stats.totalLinkedUsers - stats.usersWithKnownDate} игроков привязались до того,
+          как бот начал запоминать дату — в графике их нет.
+        </p>
       )}
 
       <Block title="🏰 Кланы">

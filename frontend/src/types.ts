@@ -526,6 +526,14 @@ export interface OwnerStats {
   // Вовлечённость
   respects7d: number
   avgLinkedPerClan: number
+  /** Приход по дням за 90 суток, от старых к свежим. Дни без привязок тоже здесь, с нулями. */
+  signups: SignupPoint[]
+}
+
+export interface SignupPoint {
+  date: string        // YYYY-MM-DD
+  users: number
+  clans: number
 }
 
 export type NotifyChannel = 'dm' | 'chat' | 'both'

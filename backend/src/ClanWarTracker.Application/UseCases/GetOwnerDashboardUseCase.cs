@@ -75,7 +75,44 @@ public class GetOwnerDashboardUseCase(
             Respects7d: respects7d,
             AvgLinkedPerClan: allClans.Count == 0
                 ? 0
-                : Math.Round((double)allPlayers.Count(p => p.ClanId.HasValue) / allClans.Count, 1));
+                : Math.Round((double)allPlayers.Count(p => p.ClanId.HasValue) / allClans.Count, 1),
+
+            Signups: DailySignups(usersDated, clansDated, now));
+    }
+
+    /// <summary>Окно графика прихода. 90 дней — видно и всплеск, и фон вокруг него.</summary>
+    private const int SignupWindowDays = 90;
+
+    /// <summary>
+    /// Приход по дням. Считается по уже загруженным спискам — второй проход по базе
+    /// ради девяноста чисел не нужен.
+    ///
+    /// Пустые дни заполняются нулями намеренно: если отдавать только дни с приходом,
+    /// график поставит их вплотную, и неделя тишины будет выглядеть так же, как
+    /// неделя ежедневных привязок.
+    /// </summary>
+    private static List<SignupPointDto> DailySignups(
+        List<Domain.Entities.Player> usersDated, List<Domain.Entities.Clan> clansDated, DateTime now)
+    {
+        var first = DateOnly.FromDateTime(now.AddDays(-(SignupWindowDays - 1)));
+
+        var byDay = usersDated
+            .Where(p => p.CreatedAtUtc >= now.AddDays(-SignupWindowDays))
+            .GroupBy(p => DateOnly.FromDateTime(p.CreatedAtUtc!.Value))
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        var clansByDay = clansDated
+            .Where(c => c.CreatedAtUtc >= now.AddDays(-SignupWindowDays))
+            .GroupBy(c => DateOnly.FromDateTime(c.CreatedAtUtc!.Value))
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        return Enumerable.Range(0, SignupWindowDays)
+            .Select(i => first.AddDays(i))
+            .Select(d => new SignupPointDto(
+                d,
+                byDay.GetValueOrDefault(d),
+                clansByDay.GetValueOrDefault(d)))
+            .ToList();
     }
 
     public async Task<List<OwnerClanDto>> GetClansAsync(CancellationToken ct = default)
