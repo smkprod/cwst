@@ -107,6 +107,22 @@ public interface IWarBattleRepository
     Task SaveChangesAsync(CancellationToken ct = default);
 }
 
+public interface IPuzzleRepository
+{
+    /// <summary>Результат игрока за день. null — сегодня ещё не играл.</summary>
+    Task<PuzzleResult?> GetAsync(int playerId, int day, CancellationToken ct = default);
+
+    /// <summary>Создаёт или обновляет запись дня и сразу сохраняет.</summary>
+    Task SaveAsync(PuzzleResult result, CancellationToken ct = default);
+
+    /// <summary>
+    /// Сколько дней подряд игрок угадывал карту, считая назад от указанного дня.
+    /// Сегодняшний день учитывается, только если он уже угадан, — иначе серия
+    /// обнулялась бы каждое утро до первой игры.
+    /// </summary>
+    Task<int> GetStreakAsync(int playerId, int day, CancellationToken ct = default);
+}
+
 public interface IRespectRepository
 {
     /// <summary>Респект игрока за конкретный день (лимит «1 в сутки»). null — ещё не давал.</summary>

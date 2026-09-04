@@ -8,6 +8,7 @@ import { useT, perfLabel, type Translations } from '../lib/i18n'
 import { TournamentHistoryCard } from './TournamentHistoryCard'
 import { PlayerProfileCard } from './PlayerProfileCard'
 import { DecksButton } from './DecksButton'
+import { DailyPuzzleCard } from './DailyPuzzleCard'
 
 type State =
   | { kind: 'loading' }
@@ -82,6 +83,9 @@ export function MyStatsView() {
   // когда известен тег. Раньше отсутствие в составе войны делало вкладку тупиком.
   const gameSection = (
     <div className="fade-in">
+      {/* Игра стоит первой: за ней приходят ежедневно, а профиль смотрят раз в пару
+          недель. Внизу простыни её просто не находили бы. */}
+      <DailyPuzzleCard />
       {profile && playerTag ? (
         <>
           <DecksButton playerTag={playerTag} />
