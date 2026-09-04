@@ -17,6 +17,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<WarBattle> WarBattles => Set<WarBattle>();
     public DbSet<Respect> Respects => Set<Respect>();
     public DbSet<SentNotification> SentNotifications => Set<SentNotification>();
+    public DbSet<PuzzleResult> PuzzleResults => Set<PuzzleResult>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -66,6 +67,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasIndex(n => n.SentAtUtc);   // по нему чистим старое
             e.Property(n => n.Kind).HasMaxLength(32);
             e.Property(n => n.Key).HasMaxLength(200);
+        });
+
+        mb.Entity<PuzzleResult>(e =>
+        {
+            // Одна запись на игрока в день: она же защита от переигровки после промаха
+            e.HasIndex(r => new { r.PlayerId, r.Day }).IsUnique();
+            // Серия считается обходом дней игрока назад — нужен порядок по дню
+            e.HasIndex(r => new { r.PlayerId, r.Day, r.Solved });
         });
 
         mb.Entity<Respect>(e =>

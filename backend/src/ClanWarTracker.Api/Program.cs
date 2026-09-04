@@ -13,6 +13,7 @@ builder.Services.AddScoped<GetClanStatusUseCase>();
 builder.Services.AddHttpClient();
 builder.Services.AddSingleton<ClanWarTracker.Api.Rendering.CardRenderer>();
 builder.Services.AddScoped<GetClanDisciplineUseCase>();
+builder.Services.AddScoped<DailyPuzzleUseCase>();
 builder.Services.AddScoped<GetRaceScoutUseCase>();
 builder.Services.AddScoped<GetPlayerStatsUseCase>();
 builder.Services.AddScoped<GetClanHistoryUseCase>();
