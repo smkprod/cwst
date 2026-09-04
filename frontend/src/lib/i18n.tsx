@@ -32,6 +32,13 @@ const ru = {
     aboutHint: 'Откуда цифры и что умеет бот',
   },
 
+  updateNotice: {
+    title: 'Что нового',
+    game: '🔍 Карта дня — угадай карту по фрагменту арта, вкладка «Я»',
+    invite: '🔗 Позвать в бота — привязать игрока даже без @username',
+    tag: '⧉ Тег игрока копируется по тапу в его карточке',
+    gotIt: 'Понятно',
+  },
   menuNotice: {
     title: 'Клан стало удобнее смотреть',
     clan: '⚔️ Война — гонка и журналы сразу под цифрами',
@@ -898,6 +905,13 @@ const uk: Translations = {
     aboutHint: 'Звідки цифри і що вміє бот',
   },
 
+  updateNotice: {
+    title: 'Що нового',
+    game: '🔍 Карта дня — вгадай карту за фрагментом арту, вкладка «Я»',
+    invite: '🔗 Покликати в бота — прив’язати гравця навіть без @username',
+    tag: '⧉ Тег гравця копіюється дотиком у його картці',
+    gotIt: 'Зрозуміло',
+  },
   menuNotice: {
     title: 'Клан стало зручніше дивитися',
     clan: '⚔️ Війна — гонка і журнали одразу під цифрами',
@@ -1762,6 +1776,13 @@ const en: Translations = {
     aboutHint: 'Where the numbers come from',
   },
 
+  updateNotice: {
+    title: "What's new",
+    game: '🔍 Card of the day — guess the card from a piece of its art, "Me" tab',
+    invite: '🔗 Invite to the bot — link a player even without a @username',
+    tag: '⧉ Tap a player tag in their card to copy it',
+    gotIt: 'Got it',
+  },
   menuNotice: {
     title: 'The clan tab is easier to read',
     clan: '⚔️ War — race and logs right under the numbers',
