@@ -530,6 +530,29 @@ export interface OwnerStats {
   signups: SignupPoint[]
 }
 
+export interface PuzzleOption {
+  cardId: number
+  name: string
+  iconUrl: string
+}
+
+/** Состояние сегодняшней «Карты дня». Ответ приходит только после того, как день доигран. */
+export interface DailyPuzzle {
+  day: number
+  attempt: number
+  maxAttempts: number
+  level: number
+  solved: boolean
+  finished: boolean
+  points: number
+  streak: number
+  imageToken: string
+  options: PuzzleOption[]
+  answerCardId: number | null
+  answerName: string | null
+  answerIconUrl: string | null
+}
+
 export interface SignupPoint {
   date: string        // YYYY-MM-DD
   users: number

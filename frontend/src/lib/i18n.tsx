@@ -435,6 +435,17 @@ const ru = {
     ],
   },
 
+  puzzle: {
+    title: 'Карта дня',
+    attempt: 'Попытка {n} из {max} — что это за карта?',
+    solved: 'Угадал с попытки {n}',
+    failed: 'Не угадал. Завтра новая карта',
+    share: 'Похвастаться в чате',
+    comeBack: 'Новая загадка каждый день. Серия растёт, пока не пропустишь.',
+    shareSolved: 'угадал с {n}-й попытки',
+    shareFailed: 'не угадал',
+    shareStreak: 'серия: {n} дней подряд',
+  },
   playerModal: {
     close: 'Закрыть',
     rankInClan: 'в клане',
@@ -1290,6 +1301,17 @@ const uk: Translations = {
     ],
   },
 
+  puzzle: {
+    title: 'Карта дня',
+    attempt: 'Спроба {n} з {max} — що це за карта?',
+    solved: 'Вгадав зі спроби {n}',
+    failed: 'Не вгадав. Завтра нова карта',
+    share: 'Похвалитися в чаті',
+    comeBack: 'Нова загадка щодня. Серія росте, поки не пропустиш.',
+    shareSolved: 'вгадав з {n}-ї спроби',
+    shareFailed: 'не вгадав',
+    shareStreak: 'серія: {n} днів поспіль',
+  },
   playerModal: {
     close: 'Закрити',
     rankInClan: 'у клані',
@@ -2143,6 +2165,17 @@ const en: Translations = {
     ],
   },
 
+  puzzle: {
+    title: 'Card of the day',
+    attempt: 'Try {n} of {max} — which card is this?',
+    solved: 'Got it on try {n}',
+    failed: "Didn't get it. New card tomorrow",
+    share: 'Share in chat',
+    comeBack: 'A new puzzle every day. The streak grows until you miss one.',
+    shareSolved: 'got it on try {n}',
+    shareFailed: 'missed it',
+    shareStreak: 'streak: {n} days',
+  },
   playerModal: {
     close: 'Close',
     rankInClan: 'in clan',

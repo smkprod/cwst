@@ -70,6 +70,12 @@ public static class DependencyInjection
         services.AddScoped<IGameTournamentRepository, GameTournamentRepository>();
         services.AddScoped<IWarBattleRepository, WarBattleRepository>();
         services.AddScoped<IRespectRepository, RespectRepository>();
+        services.AddScoped<IPuzzleRepository, PuzzleRepository>();
+        // Ключ подписи пропусков к картинкам-загадкам — тот же токен бота. Отдельный
+        // секрет пришлось бы заводить в .env на сервере, куда доступа нет ни у кого,
+        // кроме владельца, а выигрыш нулевой: утечка любого из них одинаково фатальна.
+        services.AddSingleton<ClanWarTracker.Application.Games.IPuzzleSecret>(
+            new PuzzleSecret(botToken ?? "unset"));
         services.AddScoped<ISentNotificationRepository, SentNotificationRepository>();
 
         return services;
@@ -392,6 +398,24 @@ CREATE TABLE IF NOT EXISTS ""Respects"" (
             "CREATE INDEX IF NOT EXISTS \"IX_Respects_ClanId_DayUtc\" ON \"Respects\" (\"ClanId\", \"DayUtc\");");
         await db.Database.ExecuteSqlRawAsync(
             "CREATE INDEX IF NOT EXISTS \"IX_Respects_ToPlayerTag\" ON \"Respects\" (\"ToPlayerTag\");");
+
+        // «Карта дня»: одна попытка-загадка в сутки на игрока.
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""PuzzleResults"" (
+    ""Id"" serial PRIMARY KEY,
+    ""PlayerId"" integer NOT NULL,
+    ""Day"" integer NOT NULL,
+    ""Attempts"" integer NOT NULL DEFAULT 0,
+    ""Solved"" boolean NOT NULL DEFAULT false,
+    ""Points"" integer NOT NULL DEFAULT 0,
+    ""PlayedAtUtc"" timestamptz NOT NULL
+);");
+
+        // Уникальность (игрок, день) — она же запрет переигрывать после промаха
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_PuzzleResults_PlayerId_Day\" ON \"PuzzleResults\" (\"PlayerId\", \"Day\");");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_PuzzleResults_PlayerId_Day_Solved\" ON \"PuzzleResults\" (\"PlayerId\", \"Day\", \"Solved\");");
     }
 
     /// <summary>Убирает все пробельные символы (включая \r\n) из токена. null, если пусто.</summary>
@@ -423,4 +447,10 @@ CREATE TABLE IF NOT EXISTS ""Respects"" (
         return $"Host={uri.Host};Port={port};Database={database};Username={user};Password={pass};" +
                "SSL Mode=Prefer;Trust Server Certificate=true";
     }
+}
+
+/// <summary>Ключ подписи пропусков к картинкам «Карты дня» (см. IPuzzleSecret).</summary>
+internal sealed class PuzzleSecret(string value) : ClanWarTracker.Application.Games.IPuzzleSecret
+{
+    public string Value { get; } = value;
 }
