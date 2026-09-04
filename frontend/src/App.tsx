@@ -28,6 +28,7 @@ import { MyActionBanner } from './components/MyActionBanner'
 import { SplashScreen } from './components/SplashScreen'
 import { MoreView } from './components/MoreView'
 import { MenuChangedNotice } from './components/MenuChangedNotice'
+import { UpdateNotice } from './components/UpdateNotice'
 import { DisciplineCard } from './components/DisciplineCard'
 import { ScoutCard } from './components/ScoutCard'
 import { weekKing } from './lib/king'
@@ -238,6 +239,7 @@ export default function App() {
             {tab === 'clan' && (
               <div className="fade-in">
                 <MenuChangedNotice />
+                <UpdateNotice />
                 <ClanSectionTabs value={clanSection} onChange={next => { haptic('light'); setClanSection(next) }} t={t} />
               </div>
             )}
@@ -346,6 +348,7 @@ export default function App() {
             {tab === 'clan' && (
               <div className="fade-in">
                 <MenuChangedNotice />
+                <UpdateNotice />
                 <ClanSectionTabs value={clanSection} onChange={next => { haptic('light'); setClanSection(next) }} t={t} />
               </div>
             )}

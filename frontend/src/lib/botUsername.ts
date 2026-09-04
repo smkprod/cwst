@@ -32,6 +32,17 @@ function load(): Promise<void> {
   return request
 }
 
+/**
+ * Запустить загрузку, не дожидаясь компонента, которому юзернейм нужен.
+ *
+ * Раньше запрос уходил только из «пригласить» и «нет клана». На остальных экранах
+ * юзернейм оставался пустым, и ссылка «поделиться» превращалась в голый t.me —
+ * без бота, без payload, без смысла. Зовём один раз на старте приложения.
+ */
+export function ensureBotUsername(): Promise<void> {
+  return getBotUsername() ? Promise.resolve() : load()
+}
+
 /** Юзернейм бота; пустая строка, пока он неизвестен. */
 export function useBotUsername(): string {
   const [value, setValue] = useState(getBotUsername)

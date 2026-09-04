@@ -100,7 +100,11 @@ export async function copyText(text: string): Promise<boolean> {
 /** Поделиться текстом через нативный share-диалог Telegram.
  *  linkUrl — что прикладывается ссылкой (по умолчанию глубокая ссылка в бота, если известен username). */
 export function shareToTelegram(text: string, linkUrl: string = botStartLink()) {
-  const url = `https://t.me/share/url?url=${encodeURIComponent(linkUrl)}&text=${encodeURIComponent(text)}`
+  // Юзернейм бота ещё не доехал — botStartLink отдал заглушку «https://t.me».
+  // Отправлять её нельзя: в чате появится ссылка в никуда, и это хуже, чем её
+  // отсутствие. Делимся одним текстом.
+  const share = linkUrl === 'https://t.me' ? '' : linkUrl
+  const url = `https://t.me/share/url?url=${encodeURIComponent(share)}&text=${encodeURIComponent(text)}`
   if (tg?.openTelegramLink) tg.openTelegramLink(url)
   else window.open(url, '_blank')
 }
