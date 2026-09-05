@@ -13,7 +13,8 @@ public class GetOwnerDashboardUseCase(
     IClanRepository clans,
     IPlayerRepository players,
     IWarSnapshotRepository snapshots,
-    IRespectRepository respects)
+    IRespectRepository respects,
+    IActivityRepository activity)
 {
     /// <summary>Клан считается живым, если снимок войны обновлялся за это окно.</summary>
     private static readonly TimeSpan ActiveWindow = TimeSpan.FromDays(7);
@@ -77,7 +78,9 @@ public class GetOwnerDashboardUseCase(
                 ? 0
                 : Math.Round((double)allPlayers.Count(p => p.ClanId.HasValue) / allClans.Count, 1),
 
-            Signups: DailySignups(usersDated, clansDated, now));
+            Signups: DailySignups(usersDated, clansDated, now,
+                await activity.GetDailyAsync(
+                    DateOnly.FromDateTime(now.AddDays(-(SignupWindowDays - 1))).ToString("yyyy-MM-dd"), ct)));
     }
 
     /// <summary>Окно графика прихода. 90 дней — видно и всплеск, и фон вокруг него.</summary>
@@ -92,7 +95,8 @@ public class GetOwnerDashboardUseCase(
     /// неделя ежедневных привязок.
     /// </summary>
     private static List<SignupPointDto> DailySignups(
-        List<Domain.Entities.Player> usersDated, List<Domain.Entities.Clan> clansDated, DateTime now)
+        List<Domain.Entities.Player> usersDated, List<Domain.Entities.Clan> clansDated, DateTime now,
+        Dictionary<string, (int Active, int Acting)> active)
     {
         var first = DateOnly.FromDateTime(now.AddDays(-(SignupWindowDays - 1)));
 
@@ -108,10 +112,18 @@ public class GetOwnerDashboardUseCase(
 
         return Enumerable.Range(0, SignupWindowDays)
             .Select(i => first.AddDays(i))
-            .Select(d => new SignupPointDto(
-                d,
-                byDay.GetValueOrDefault(d),
-                clansByDay.GetValueOrDefault(d)))
+            .Select(d =>
+            {
+                // Журнал активности ведётся с момента, когда мы начали его писать:
+                // за более ранние дни здесь честные нули, а не выдуманные числа.
+                var seen = active.GetValueOrDefault(d.ToString("yyyy-MM-dd"));
+                return new SignupPointDto(
+                    d,
+                    byDay.GetValueOrDefault(d),
+                    clansByDay.GetValueOrDefault(d),
+                    seen.Active,
+                    seen.Acting);
+            })
             .ToList();
     }
 

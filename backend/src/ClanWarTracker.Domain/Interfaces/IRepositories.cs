@@ -107,6 +107,23 @@ public interface IWarBattleRepository
     Task SaveChangesAsync(CancellationToken ct = default);
 }
 
+/// <summary>Журнал активных дней: кто заходил и что-то делал в конкретную дату.</summary>
+public interface IActivityRepository
+{
+    /// <summary>
+    /// Отмечает, что игрок сегодня был. isAction — было ли это изменяющее действие
+    /// (пинок, респект, ответ в игре), а не просто открытие приложения.
+    /// Идемпотентно: строка на человека в день.
+    /// </summary>
+    Task TouchAsync(int playerId, string dayUtc, bool isAction, CancellationToken ct = default);
+
+    /// <summary>
+    /// Сколько людей было активно в каждый день начиная с указанной даты:
+    /// (день → сколько заходило, сколько что-то делало).
+    /// </summary>
+    Task<Dictionary<string, (int Active, int Acting)>> GetDailyAsync(string sinceDayUtc, CancellationToken ct = default);
+}
+
 public interface IPuzzleRepository
 {
     /// <summary>Результат игрока за день. null — сегодня ещё не играл.</summary>
