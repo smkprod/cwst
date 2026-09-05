@@ -2,7 +2,13 @@ import { useState } from 'react'
 import type { SignupPoint } from '../types'
 import { haptic } from '../lib/telegram'
 
-type Metric = 'users' | 'clans'
+/** Какие ряды показывать. key — поле в SignupPoint, noun — что считаем в подписи. */
+export interface ChartMetric {
+  key: 'users' | 'clans' | 'active' | 'acting'
+  label: string
+  noun: string
+}
+
 type Range = 30 | 90
 
 interface Bar {
@@ -21,8 +27,10 @@ interface Bar {
  * меньше четырёх пикселей на каждый: формально данные показаны, фактически не
  * прочитать ни одного.
  */
-export function SignupsChart({ points }: { points: SignupPoint[] }) {
-  const [metric, setMetric] = useState<Metric>('users')
+export function SignupsChart(
+  { title, points, metrics }: { title: string; points: SignupPoint[]; metrics: ChartMetric[] },
+) {
+  const [metric, setMetric] = useState<ChartMetric['key']>(metrics[0].key)
   const [range, setRange] = useState<Range>(30)
   const [picked, setPicked] = useState<number | null>(null)
 
@@ -34,22 +42,21 @@ export function SignupsChart({ points }: { points: SignupPoint[] }) {
   const peak = max > 0 ? bars.findIndex(b => b.value === max) : -1
 
   const shown = picked !== null ? bars[picked] : null
-  const noun = metric === 'users' ? 'игроков' : 'кланов'
+  const noun = metrics.find(m => m.key === metric)?.noun ?? ''
 
   return (
     <div className="card">
-      <p className="adm-block-title">📈 Кто и когда приходил</p>
+      <p className="adm-block-title">{title}</p>
 
       <div className="chart-controls">
         <div className="chart-switch">
-          <button
-            className={`chart-opt ${metric === 'users' ? 'chart-opt-on' : ''}`}
-            onClick={() => { haptic('light'); setMetric('users'); setPicked(null) }}
-          >Игроки</button>
-          <button
-            className={`chart-opt ${metric === 'clans' ? 'chart-opt-on' : ''}`}
-            onClick={() => { haptic('light'); setMetric('clans'); setPicked(null) }}
-          >Кланы</button>
+          {metrics.map(m => (
+            <button
+              key={m.key}
+              className={`chart-opt ${metric === m.key ? 'chart-opt-on' : ''}`}
+              onClick={() => { haptic('light'); setMetric(m.key); setPicked(null) }}
+            >{m.label}</button>
+          ))}
         </div>
         <div className="chart-switch">
           <button
@@ -109,7 +116,7 @@ function short(iso: string): string {
   return `${Number(d)} ${MONTHS[Number(m) - 1]}`
 }
 
-function daily(points: SignupPoint[], metric: Metric): Bar[] {
+function daily(points: SignupPoint[], metric: ChartMetric['key']): Bar[] {
   return points.map(p => ({ label: short(p.date), value: p[metric] }))
 }
 
@@ -118,7 +125,7 @@ function daily(points: SignupPoint[], metric: Metric): Bar[] {
  * человек смотрит на правый край графика, и обрезанный «хвост» там выглядел бы
  * как спад, которого нет.
  */
-function weekly(points: SignupPoint[], metric: Metric): Bar[] {
+function weekly(points: SignupPoint[], metric: ChartMetric['key']): Bar[] {
   const out: Bar[] = []
   for (let end = points.length; end > 0; end -= 7) {
     const chunk = points.slice(Math.max(0, end - 7), end)

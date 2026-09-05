@@ -71,6 +71,7 @@ public static class DependencyInjection
         services.AddScoped<IWarBattleRepository, WarBattleRepository>();
         services.AddScoped<IRespectRepository, RespectRepository>();
         services.AddScoped<IPuzzleRepository, PuzzleRepository>();
+        services.AddScoped<IActivityRepository, ActivityRepository>();
         // Ключ подписи пропусков к картинкам-загадкам — тот же токен бота. Отдельный
         // секрет пришлось бы заводить в .env на сервере, куда доступа нет ни у кого,
         // кроме владельца, а выигрыш нулевой: утечка любого из них одинаково фатальна.
@@ -416,6 +417,21 @@ CREATE TABLE IF NOT EXISTS ""PuzzleResults"" (
             "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_PuzzleResults_PlayerId_Day\" ON \"PuzzleResults\" (\"PlayerId\", \"Day\");");
         await db.Database.ExecuteSqlRawAsync(
             "CREATE INDEX IF NOT EXISTS \"IX_PuzzleResults_PlayerId_Day_Solved\" ON \"PuzzleResults\" (\"PlayerId\", \"Day\", \"Solved\");");
+
+        // Журнал активных дней: без него DAU считать не из чего.
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""ActivityDays"" (
+    ""Id"" serial PRIMARY KEY,
+    ""PlayerId"" integer NOT NULL,
+    ""DayUtc"" varchar(10) NOT NULL,
+    ""Actions"" integer NOT NULL DEFAULT 0,
+    ""FirstSeenUtc"" timestamptz NOT NULL
+);");
+
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_ActivityDays_PlayerId_DayUtc\" ON \"ActivityDays\" (\"PlayerId\", \"DayUtc\");");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_ActivityDays_DayUtc\" ON \"ActivityDays\" (\"DayUtc\");");
     }
 
     /// <summary>Убирает все пробельные символы (включая \r\n) из токена. null, если пусто.</summary>
