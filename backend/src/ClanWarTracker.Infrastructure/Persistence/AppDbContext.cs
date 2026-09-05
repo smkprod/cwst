@@ -18,6 +18,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Respect> Respects => Set<Respect>();
     public DbSet<SentNotification> SentNotifications => Set<SentNotification>();
     public DbSet<PuzzleResult> PuzzleResults => Set<PuzzleResult>();
+    public DbSet<ActivityDay> ActivityDays => Set<ActivityDay>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -67,6 +68,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasIndex(n => n.SentAtUtc);   // по нему чистим старое
             e.Property(n => n.Kind).HasMaxLength(32);
             e.Property(n => n.Key).HasMaxLength(200);
+        });
+
+        mb.Entity<ActivityDay>(e =>
+        {
+            // Одна строка на человека в день — она же защита от повторной записи
+            e.HasIndex(a => new { a.PlayerId, a.DayUtc }).IsUnique();
+            // Сводка считает по дням сразу по всем игрокам
+            e.HasIndex(a => a.DayUtc);
+            e.Property(a => a.DayUtc).HasMaxLength(10);
         });
 
         mb.Entity<PuzzleResult>(e =>

@@ -555,8 +555,10 @@ export interface DailyPuzzle {
 
 export interface SignupPoint {
   date: string        // YYYY-MM-DD
-  users: number
-  clans: number
+  users: number       // привязалось новых игроков
+  clans: number       // подключилось новых кланов
+  active: number      // заходило в приложение
+  acting: number      // из них что-то сделало, а не только посмотрело
 }
 
 export type NotifyChannel = 'dm' | 'chat' | 'both'

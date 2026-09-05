@@ -90,7 +90,54 @@ public class TelegramAuthMiddleware(RequestDelegate next, IConfiguration config,
 
         ctx.Items["TelegramUserId"] = userId;
         await SyncUsernameAsync(ctx, userId, username);
+        await TrackActivityAsync(ctx, userId);
         await next(ctx);
+    }
+
+    /// <summary>
+    /// Отмечает активный день игрока.
+    ///
+    /// Считаем здесь, а не в каждом контроллере: любой запрос из Mini App проходит
+    /// через авторизацию, и это единственное место, где видно вообще всех.
+    ///
+    /// Изменяющим действием считаем не-GET: пинок, респект, ответ в игре, настройки.
+    /// Открытие приложения тоже пишем, но без счётчика — сам факт строки уже значит,
+    /// что человек заходил.
+    ///
+    /// Кэш нужен, чтобы не ходить в БД на каждый запрос: за день на человека
+    /// получается максимум одна запись о заходе плюс редкие инкременты действий.
+    /// </summary>
+    private async Task TrackActivityAsync(HttpContext ctx, long userId)
+    {
+        var isAction = !HttpMethods.IsGet(ctx.Request.Method);
+        var day = DateTime.UtcNow.ToString("yyyy-MM-dd");
+
+        // Заход отмечаем раз в сутки, действия пишем всегда: их количество и есть
+        // то, что отличает «зашёл посмотреть» от «поработал».
+        var cacheKey = $"act:{userId}:{day}";
+        if (!isAction && cache.TryGetValue(cacheKey, out _)) return;
+
+        try
+        {
+            var players = ctx.RequestServices.GetRequiredService<IPlayerRepository>();
+            var player = await players.GetByTelegramIdAsync(userId, ctx.RequestAborted);
+            if (player is null) return;   // ещё не привязался — считать нечего
+
+            await ctx.RequestServices.GetRequiredService<IActivityRepository>()
+                .TouchAsync(player.Id, day, isAction, ctx.RequestAborted);
+
+            cache.Set(cacheKey, true, new MemoryCacheEntryOptions
+            {
+                Size = 1,
+                // До конца суток плюс запас: раньше сбросится — просто лишний запрос
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(6),
+            });
+        }
+        catch (Exception ex)
+        {
+            // Статистика посещаемости не повод ронять запрос пользователя
+            logger.LogWarning(ex, "Не удалось отметить активность {UserId}", userId);
+        }
     }
 
     /// <summary>

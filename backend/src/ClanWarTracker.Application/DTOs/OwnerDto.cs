@@ -42,7 +42,12 @@ public record OwnerStatsDto(
 /// Сколько пришло за один день. Дни с нулями тоже присутствуют: без них график
 /// сжался бы в сплошную линию и соврал бы про темп.
 /// </summary>
-public record SignupPointDto(DateOnly Date, int Users, int Clans);
+public record SignupPointDto(
+    DateOnly Date,
+    int Users,          // привязалось новых игроков
+    int Clans,          // подключилось новых кланов
+    int Active,         // заходило в приложение
+    int Acting);        // из них что-то сделало, а не только посмотрело
 
 /// <summary>Строка списка кланов в панели владельца.</summary>
 public record OwnerClanDto(
