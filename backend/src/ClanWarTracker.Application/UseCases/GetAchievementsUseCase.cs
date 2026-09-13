@@ -11,6 +11,9 @@ namespace ClanWarTracker.Application.UseCases;
 ///   👑 mvpWeeks     — недель, где игрок был №1 клана по медалям
 ///   🏅 totalFame    — медали за всё время наблюдений
 ///   ⚔️ warsPlayed   — сыграно военных недель
+///   💎 perfectWeeks — идеальные недели (3600 медалей: 16 атак без единого поражения)
+///   🏆 perfectSeasons — сезоны, где отыграны все колоды во всех неделях
+///   🚤 boatAttacks  — атаки по лодке за всё время
 /// </summary>
 public class GetAchievementsUseCase(IWarSnapshotRepository snapshots)
 {
@@ -18,6 +21,22 @@ public class GetAchievementsUseCase(IWarSnapshotRepository snapshots)
 
     /// <summary>4 атаки без поражений — максимум за военный день.</summary>
     private const int PerfectDayFame = 900;
+
+    /// <summary>
+    /// Потолок недели: 16 атак по 225. Одинаков и для обычной войны (4 дня × 4),
+    /// и для колизея (все 16 в любой день) — поэтому одна константа на оба формата.
+    /// </summary>
+    private const int PerfectWeekFame = 3600;
+
+    /// <summary>Сколько колод нужно отыграть за неделю, чтобы она считалась закрытой.</summary>
+    private const int WarDecksPerWeek = 16;
+
+    /// <summary>
+    /// Меньше трёх недель — это не сезон, а его огрызок. Бот мог подключиться к клану
+    /// в середине, и объявлять такой хвост «идеальным сезоном» значило бы выдавать
+    /// награду за то, что мы просто поздно начали смотреть.
+    /// </summary>
+    private const int MinWeeksForSeason = 3;
 
     private static readonly Dictionary<string, int[]> Levels = new()
     {
@@ -27,6 +46,9 @@ public class GetAchievementsUseCase(IWarSnapshotRepository snapshots)
         ["mvpWeeks"] = [1, 3, 8],
         ["totalFame"] = [10_000, 40_000, 100_000],
         ["warsPlayed"] = [3, 10, 25],
+        ["perfectWeeks"] = [1, 3, 8],
+        ["perfectSeasons"] = [1, 2, 4],
+        ["boatAttacks"] = [5, 25, 75],
     };
 
     public async Task<AchievementsDto> ExecuteAsync(int clanId, string playerTag, CancellationToken ct = default)
@@ -40,7 +62,11 @@ public class GetAchievementsUseCase(IWarSnapshotRepository snapshots)
             .ToList();
 
         int totalFame = 0, warsPlayed = 0, mvpWeeks = 0, perfectDays = 0, streak = 0;
+        int perfectWeeks = 0, boatAttacks = 0;
         var dayDecks = new List<int>(); // 4/4-дни в хронологии — для «серии дней»
+
+        // Сезон → (сколько недель видели, во всех ли отыграны все колоды)
+        var seasons = new Dictionary<int, (int Weeks, bool AllFull)>();
 
         foreach (var week in weeks)
         {
@@ -55,6 +81,23 @@ public class GetAchievementsUseCase(IWarSnapshotRepository snapshots)
             var myWeekFame = mine?.Fame ?? 0;
 
             totalFame += myWeekFame;
+            boatAttacks += mine?.BoatAttacks ?? 0;
+            if (myWeekFame == PerfectWeekFame) perfectWeeks++;
+
+            // Сезон закрыт идеально, только если КАЖДАЯ его неделя отыграна полностью.
+            // Одна пропущенная неделя рушит весь сезон — в этом и смысл награды.
+            var weeksSoFar = 0;
+            var allFullSoFar = true;
+            if (seasons.TryGetValue(final.SeasonId, out var seenSeason))
+            {
+                weeksSoFar = seenSeason.Weeks;
+                allFullSoFar = seenSeason.AllFull;
+            }
+
+            seasons[final.SeasonId] = (
+                weeksSoFar + 1,
+                allFullSoFar && (mine?.DecksUsed ?? 0) >= WarDecksPerWeek);
+
             if (myWeekFame > 0)
             {
                 warsPlayed++;
@@ -116,6 +159,8 @@ public class GetAchievementsUseCase(IWarSnapshotRepository snapshots)
             break;
         }
 
+        var perfectSeasons = seasons.Count(s => s.Value.Weeks >= MinWeeksForSeason && s.Value.AllFull);
+
         List<AchievementDto> badges =
         [
             Badge("streak", streak),
@@ -124,9 +169,50 @@ public class GetAchievementsUseCase(IWarSnapshotRepository snapshots)
             Badge("mvpWeeks", mvpWeeks),
             Badge("totalFame", totalFame),
             Badge("warsPlayed", warsPlayed),
+            Badge("perfectWeeks", perfectWeeks),
+            Badge("perfectSeasons", perfectSeasons),
+            Badge("boatAttacks", boatAttacks),
         ];
 
-        return new AchievementsDto(playerTag, badges, weeks.Count);
+        return new AchievementsDto(playerTag, badges, weeks.Count, JustUnlocked: []);
+    }
+
+    /// <summary>
+    /// Что открылось с прошлого просмотра, и каким стал снимок уровней.
+    ///
+    /// Уровень — это и есть «ачивка, которую получают один раз»: бронза берётся
+    /// однажды, серебро однажды, золото однажды. Не хватало только момента — без
+    /// сравнения со снимком человек просто однажды замечает, что число выросло.
+    ///
+    /// Незнакомые ключи в старом снимке игнорируем: список наград пополняется, и
+    /// падать на снимке, снятом до появления значка, нельзя. Новый значок, у
+    /// которого сразу есть уровень, считается открытым — это честно, человек его
+    /// и правда только что увидел впервые.
+    /// </summary>
+    public static (List<string> Unlocked, string Snapshot) Diff(
+        IEnumerable<AchievementDto> badges, string? seenJson)
+    {
+        Dictionary<string, int> seen;
+        try
+        {
+            seen = string.IsNullOrWhiteSpace(seenJson)
+                ? []
+                : System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, int>>(seenJson) ?? [];
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            // Снимок испорчен — начинаем заново. Поздравить лишний раз не страшно,
+            // уронить витрину из-за кривой строки в базе — страшно.
+            seen = [];
+        }
+
+        var now = badges.ToDictionary(b => b.Key, b => b.Level);
+        var unlocked = now
+            .Where(b => b.Value > 0 && b.Value > seen.GetValueOrDefault(b.Key))
+            .Select(b => b.Key)
+            .ToList();
+
+        return (unlocked, System.Text.Json.JsonSerializer.Serialize(now));
     }
 
     private static AchievementDto Badge(string key, int value)

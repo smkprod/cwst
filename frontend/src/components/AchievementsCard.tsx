@@ -11,6 +11,9 @@ const BADGE_ICONS: Record<Achievement['key'], string> = {
   mvpWeeks: '👑',
   totalFame: '🏅',
   warsPlayed: '⚔️',
+  perfectWeeks: '💎',
+  perfectSeasons: '🏆',
+  boatAttacks: '🚤',
 }
 
 const LEVEL_CLS = ['ach-none', 'ach-bronze', 'ach-silver', 'ach-gold']
@@ -19,26 +22,58 @@ const LEVEL_CLS = ['ach-none', 'ach-bronze', 'ach-silver', 'ach-gold']
  * Витрина наград: личная коллекция значков (эффект владения) с открытым прогрессом
  * до следующего уровня (эффект Зейгарник — незакрытая шкала тянет доиграть).
  */
-export function AchievementsCard() {
+/**
+ * @param playerTag  чей показывать. Не задан — свои.
+ * @param compact    в чужой карточке место дорого: показываем только добытое,
+ *                   пустые шкалы чужого прогресса там никому не интересны.
+ */
+export function AchievementsCard({ playerTag, compact = false }: { playerTag?: string; compact?: boolean } = {}) {
   const { t } = useT()
   const [data, setData] = useState<Achievements | null>(null)
 
   useEffect(() => {
-    api.getMyAchievements().then(setData).catch(() => setData(null))
-  }, [])
+    let alive = true
+    const load = playerTag ? api.getPlayerAchievements(playerTag) : api.getMyAchievements()
+    load.then(d => { if (alive) setData(d) }).catch(() => { if (alive) setData(null) })
+    return () => { alive = false }
+  }, [playerTag])
 
   if (!data || data.badges.length === 0) return null
 
   const goldCount = data.badges.filter(b => b.level === 3).length
+  const shown = compact ? data.badges.filter(b => b.level > 0) : data.badges
+  // Чужая витрина без единой награды — пустая карточка, её лучше не показывать вовсе
+  if (shown.length === 0) return null
+
+  // Открытое только что показываем отдельно и крупно: если новое ничем не
+  // отличается от старого, «получил награду» перестаёт быть событием вообще.
+  const fresh = (data.justUnlocked ?? [])
+    .map(key => data.badges.find(b => b.key === key))
+    .filter((b): b is Achievement => b !== undefined)
 
   return (
     <div className="card ach-card">
+      {fresh.length > 0 && (
+        <div className="ach-unlocked fade-in">
+          <div className="ach-unlocked-title">🎉 {t.ach.unlocked}</div>
+          {fresh.map(b => (
+            <div key={b.key} className="ach-unlocked-row">
+              <span className="ach-unlocked-icon">{BADGE_ICONS[b.key]}</span>
+              <span>
+                <b>{t.ach.badges[b.key]}</b>
+                {' '}{[t.ach.lvlNone, t.ach.lvlBronze, t.ach.lvlSilver, t.ach.lvlGold][b.level]}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="card-title-row">
         <div className="card-title">{t.ach.title}</div>
         <span className="muted small">{goldCount > 0 ? `🥇 ${goldCount}/${data.badges.length}` : ''}</span>
       </div>
       <div className="ach-grid">
-        {data.badges.map(b => <Badge key={b.key} b={b} t={t} />)}
+        {shown.map(b => <Badge key={b.key} b={b} t={t} />)}
       </div>
     </div>
   )
