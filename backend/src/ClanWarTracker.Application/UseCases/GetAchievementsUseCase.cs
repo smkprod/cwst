@@ -86,10 +86,17 @@ public class GetAchievementsUseCase(IWarSnapshotRepository snapshots)
 
             // Сезон закрыт идеально, только если КАЖДАЯ его неделя отыграна полностью.
             // Одна пропущенная неделя рушит весь сезон — в этом и смысл награды.
-            var seen = seasons.GetValueOrDefault(final.SeasonId, (0, true));
+            var weeksSoFar = 0;
+            var allFullSoFar = true;
+            if (seasons.TryGetValue(final.SeasonId, out var seenSeason))
+            {
+                weeksSoFar = seenSeason.Weeks;
+                allFullSoFar = seenSeason.AllFull;
+            }
+
             seasons[final.SeasonId] = (
-                seen.Weeks + 1,
-                seen.AllFull && (mine?.DecksUsed ?? 0) >= WarDecksPerWeek);
+                weeksSoFar + 1,
+                allFullSoFar && (mine?.DecksUsed ?? 0) >= WarDecksPerWeek);
 
             if (myWeekFame > 0)
             {
