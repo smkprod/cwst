@@ -888,6 +888,25 @@ button.race-row {
 .chart-axis { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-top: 6px; }
 .chart-footnote { margin: -4px 2px 12px; line-height: 1.4; }
 
+/* Строки-кланы, открывающие страницу клана.
+   Кнопкой, а не div с onClick: нужна доступность с клавиатуры и нативное нажатие,
+   а выглядеть она должна ровно как строка списка. */
+.clan-row-tap {
+  width: 100%; background: none; border: none; color: inherit; font: inherit;
+  text-align: left; cursor: pointer;
+}
+.clan-row-tap:active { opacity: 0.7; }
+
+/* Имя клана внутри строки, у которой свой клик (раскрыть состав/досье).
+   Подчёркивание пунктиром — единственный намёк, что это отдельная цель. */
+.clan-name-link {
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+}
+.clan-name-link:active { opacity: 0.7; }
+
 /* «Карта дня»: угадай карту по фрагменту арта */
 .puzzle-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .puzzle-streak { font-size: 13px; font-weight: 800; color: var(--gold); }

@@ -33,6 +33,7 @@ public record WarLogWeekDto(
 
 public record WarLogClanDto(
     int Rank,                 // 1..5
+    string Tag,               // по нему открывается страница клана
     string Name,
     int Fame,                 // медали клана за неделю
     int TrophyChange,         // +/- КВ-трофеи по итогам

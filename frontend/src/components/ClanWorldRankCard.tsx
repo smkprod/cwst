@@ -3,12 +3,14 @@ import { api } from '../lib/api'
 import type { ClanRanking } from '../types'
 import { fmt } from '../lib/format'
 import { useT } from '../lib/i18n'
+import { useOpenClan } from '../lib/clanModal'
 
 /**
  * Место клана в стране и мире по КВ-трофеям — официальные rankings из CR API.
  * Ранги есть только у топ-1000; если клана там нет, показываем топ страны и трофеи.
  */
 export function ClanWorldRankCard() {
+  const openClan = useOpenClan()
   const { t } = useT()
   const [rank, setRank] = useState<ClanRanking | null>(null)
 
@@ -59,10 +61,15 @@ export function ClanWorldRankCard() {
           </p>
           <ul className="wr-top">
             {rank.countryTop.map(c => (
-              <li key={c.rank} className={`wr-row ${c.isOurClan ? 'wr-row-ours' : ''}`}>
-                <span className="wr-row-rank">#{c.rank}</span>
-                <span className="wr-row-name">{c.name}</span>
-                <span className="wr-row-score">{fmt(c.warTrophies)} ⚔️</span>
+              <li key={c.rank}>
+                <button
+                  className={`wr-row clan-row-tap ${c.isOurClan ? 'wr-row-ours' : ''}`}
+                  onClick={() => openClan(c.tag, c.name)}
+                >
+                  <span className="wr-row-rank">#{c.rank}</span>
+                  <span className="wr-row-name">{c.name}</span>
+                  <span className="wr-row-score">{fmt(c.warTrophies)} ⚔️</span>
+                </button>
               </li>
             ))}
           </ul>

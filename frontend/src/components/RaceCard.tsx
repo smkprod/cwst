@@ -1,9 +1,7 @@
-import { useState } from 'react'
 import type { ClanStatus, RaceClan } from '../types'
 import { fmt } from '../lib/format'
-import { haptic } from '../lib/telegram'
 import { useT } from '../lib/i18n'
-import { ClanWarLogModal } from './ClanWarLogModal'
+import { useOpenClan } from '../lib/clanModal'
 
 interface Props {
   race: RaceClan[]
@@ -17,7 +15,7 @@ interface Props {
  *    подписи словами и легенда, чтобы низ карточки читался без догадок.
  */
 export function RaceCard({ race, periodType }: Props) {
-  const [selected, setSelected] = useState<RaceClan | null>(null)
+  const openClan = useOpenClan()
   const { t } = useT()
 
   if (!race || race.length === 0) return null
@@ -25,11 +23,6 @@ export function RaceCard({ race, periodType }: Props) {
   const maxFame = Math.max(...race.map(c => Math.max(c.fame, 1)))
   const isColosseum = periodType === 'colosseum'
   const isWarDay = periodType === 'warDay' || isColosseum
-
-  const open = (c: RaceClan) => {
-    haptic('light')
-    setSelected(c)
-  }
 
   return (
     <section className="card race-card">
@@ -57,7 +50,7 @@ export function RaceCard({ race, periodType }: Props) {
 
           return (
             <li key={c.tag}>
-              <button className={`race-row ${c.isOurClan ? 'race-ours' : ''}`} onClick={() => open(c)}>
+              <button className={`race-row ${c.isOurClan ? 'race-ours' : ''}`} onClick={() => openClan(c.tag, c.name)}>
                 <span className={`race-pos ${c.position === 1 ? 'race-pos-gold' : ''}`}>{c.position}</span>
 
                 <div className="race-info">
@@ -121,7 +114,6 @@ export function RaceCard({ race, periodType }: Props) {
 
       {isColosseum && <p className="muted small race-colosseum-legend">{t.race.colosseumLegend}</p>}
 
-      {selected && <ClanWarLogModal clan={selected} onClose={() => setSelected(null)} />}
     </section>
   )
 }

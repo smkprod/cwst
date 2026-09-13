@@ -3,6 +3,7 @@ import type { WarLogWeek } from '../types'
 import { fmt } from '../lib/format'
 import { haptic } from '../lib/telegram'
 import { useT, formatPlace } from '../lib/i18n'
+import { useOpenClan } from '../lib/clanModal'
 
 const PLACE_ICONS = ['🥇', '🥈', '🥉', '4', '5']
 
@@ -14,6 +15,7 @@ interface WeeksProps {
 export function WarLogWeeks({ weeks, meLabel }: WeeksProps) {
   const [openKey, setOpenKey] = useState<string | null>(null)
   const [openClan, setOpenClan] = useState<string | null>(null)
+  const showClanPage = useOpenClan()
   const { t } = useT()
 
   const toggleWeek = (key: string) => {
@@ -73,8 +75,18 @@ export function WarLogWeeks({ weeks, meLabel }: WeeksProps) {
                         disabled={!hasPlayers}
                       >
                         <span className={`race-pos ${s.rank === 1 ? 'race-pos-gold' : ''}`}>{s.rank}</span>
+                        {/* Тап по строке раскрывает состав, тап по имени открывает клан:
+                            вкладывать кнопку в кнопку нельзя, поэтому имя — span,
+                            гасящий всплытие. */}
                         <span className="warlog-standing-name">
-                          {s.name}
+                          <span
+                            className="clan-name-link"
+                            role="button"
+                            tabIndex={0}
+                            onClick={e => { e.stopPropagation(); showClanPage(s.tag, s.name) }}
+                          >
+                            {s.name} ↗
+                          </span>
                           {s.isOurClan && meLabel && <span className="me-badge">{meLabel}</span>}
                         </span>
                         <span className="race-fame">{fmt(s.fame)}</span>
