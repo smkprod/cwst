@@ -231,7 +231,7 @@ public class ClanController(
             CountryRank: rank?.CountryRank,
             GlobalRank: rank?.GlobalRank,
             CountryTop: rank?.CountryTop.Select(c => new RankedClanDto(
-                c.Rank, c.PreviousRank, c.Name, c.WarTrophies, c.Members,
+                c.Rank, c.PreviousRank, c.Tag, c.Name, c.WarTrophies, c.Members,
                 string.Equals(c.Tag, clanTag, StringComparison.OrdinalIgnoreCase))).ToList() ?? [],
             Description: info?.Description,
             Type: info?.Type,
@@ -257,6 +257,7 @@ public class ClanController(
             IsColosseum: w.IsColosseum,
             Standings: w.Standings.Select(s => new WarLogClanDto(
                 Rank: s.Rank,
+                Tag: s.ClanTag,
                 Name: s.ClanName,
                 Fame: s.Fame,
                 TrophyChange: s.TrophyChange,
@@ -424,7 +425,7 @@ public class ClanController(
             rank.GlobalRank,
             rank.GlobalPreviousRank is > 0 ? rank.GlobalPreviousRank : null,
             rank.CountryTop.Select(c => new RankedClanDto(
-                c.Rank, c.PreviousRank, c.Name, c.WarTrophies, c.Members,
+                c.Rank, c.PreviousRank, c.Tag, c.Name, c.WarTrophies, c.Members,
                 string.Equals(c.Tag, clan!.ClanTag, StringComparison.OrdinalIgnoreCase))).ToList()));
     }
 

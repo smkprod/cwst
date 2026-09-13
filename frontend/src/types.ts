@@ -160,6 +160,7 @@ export interface WarLogPlayer {
 /** Журнал прошлых войн (официальный riverracelog): места кланов и очки. */
 export interface WarLogClan {
   rank: number               // 1..5
+  tag: string                // по нему открывается страница клана
   name: string
   fame: number               // медали клана за неделю
   trophyChange: number       // +/- КВ-трофеи по итогам
@@ -184,6 +185,7 @@ export interface ClanWarLog {
 export interface RankedClanRow {
   rank: number
   previousRank: number
+  tag: string                // по нему открывается страница клана
   name: string
   warTrophies: number
   members: number

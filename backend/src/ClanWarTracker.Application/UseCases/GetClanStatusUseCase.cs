@@ -181,6 +181,7 @@ public class GetClanStatusUseCase(
                 IsColosseum: IsColosseum(w),
                 Standings: w.Standings.Select(s => new WarLogClanDto(
                     Rank: s.Rank,
+                    Tag: s.ClanTag,
                     Name: s.ClanName,
                     Fame: s.Fame,
                     TrophyChange: s.TrophyChange,
