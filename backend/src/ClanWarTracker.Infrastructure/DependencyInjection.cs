@@ -241,6 +241,10 @@ CREATE TABLE IF NOT EXISTS ""RecruitmentProfiles"" (
         await db.Database.ExecuteSqlRawAsync(
             "ALTER TABLE \"Players\" ADD COLUMN IF NOT EXISTS \"ReferrerTelegramUserId\" bigint;");
 
+        // Снимок уровней наград: по нему ловим момент «открыл новую ачивку».
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Players\" ADD COLUMN IF NOT EXISTS \"SeenAchievementsJson\" text;");
+
         // @username игрока в Telegram — для тегов по юзернейму в чате.
         await db.Database.ExecuteSqlRawAsync(
             "ALTER TABLE \"Players\" ADD COLUMN IF NOT EXISTS \"TelegramUsername\" text;");

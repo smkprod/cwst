@@ -50,6 +50,9 @@ interface Props {
   canManage?: boolean
 }
 
+/** Потолок недели: 16 атак по 225 медалей. Больше игра не даёт. */
+const PERFECT_WEEK_FAME = 3600
+
 export function PlayerList({ players, myPlayerTag, kingTag, canManage = false }: Props) {
   const [selected, setSelected] = useState<PlayerStatus | null>(null)
   const [sort, setSort] = useState<SortKey>('status')
@@ -159,6 +162,11 @@ export function PlayerList({ players, myPlayerTag, kingTag, canManage = false }:
                     {isMe && <span className="me-badge">{t.leaderboard.you}</span>}
                     {/* Обрезается только само имя: значки рядом не должны съедаться многоточием */}
                     <span className="player-name-text">{p.name}</span>
+                    {/* Идеальная неделя прямо сейчас: 3600 — потолок, выше не бывает.
+                        Считается из уже загруженных медалей, лишних запросов нет. */}
+                    {p.fame >= PERFECT_WEEK_FAME && (
+                      <span className="perfect-week" title={t.players.perfectWeek}>💎</span>
+                    )}
                     {!p.isLinked && <span className="unlinked">{t.players.noTg}</span>}
                   </span>
                   {/* Отдельными элементами, чтобы строка переносилась, а не вылезала за карточку */}

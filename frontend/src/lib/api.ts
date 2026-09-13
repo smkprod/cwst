@@ -92,6 +92,8 @@ export const api = {
   getSeasonArchive: () => request<SeasonArchive>('/api/clans/my/season-archive'),
   getGlobalTop: () => request<GlobalTop>('/api/players/top'),
   getMyAchievements: () => request<Achievements>('/api/players/me/achievements'),
+  getPlayerAchievements: (tag: string) =>
+    request<Achievements>(`/api/players/${encodeURIComponent(tag.replace('#', ''))}/achievements`),
   // 204 (нет данных: не привязан / нет войны) — отдаём null, а не падаем на пустом теле
   getWhatsNew: async (): Promise<WhatsNew | null> => {
     const res = await fetch(`${BASE}/api/players/me/whats-new`, {

@@ -132,7 +132,38 @@ public class PlayerController(
         if (player.ClanId is not int clanId)
             return NotFound(new { error = "no_clan", message = "Игрок не состоит в клане бота" });
 
-        return Ok(await getAchievements.ExecuteAsync(clanId, player.PlayerTag, ct));
+        var result = await getAchievements.ExecuteAsync(clanId, player.PlayerTag, ct);
+
+        // Момент «открыл новую награду» существует только здесь: сравниваем уровни
+        // с теми, что человек видел в прошлый раз, и тут же запоминаем новые —
+        // иначе поздравление повторялось бы при каждом открытии приложения.
+        var (unlocked, snapshot) = GetAchievementsUseCase.Diff(result.Badges, player.SeenAchievementsJson);
+        if (unlocked.Count > 0 || player.SeenAchievementsJson is null)
+        {
+            player.SeenAchievementsJson = snapshot;
+            await players.SaveChangesAsync(ct);
+        }
+
+        return Ok(result with { JustUnlocked = unlocked });
+    }
+
+    /// <summary>
+    /// GET /api/players/{tag}/achievements — награды ЛЮБОГО игрока своего клана.
+    ///
+    /// Нужен, чтобы коллекцию было видно не только у себя: смотреть на чужие значки
+    /// и есть половина смысла наград. Клан берём свой — считать награды постороннему
+    /// не по чему, снапшоты есть только у подключённых кланов.
+    /// </summary>
+    [HttpGet("{tag}/achievements")]
+    public async Task<IActionResult> PlayerAchievements(string tag, CancellationToken ct)
+    {
+        var userId = (long)HttpContext.Items["TelegramUserId"]!;
+        var me = await players.GetByTelegramIdAsync(userId, ct);
+        if (me is null) return NotFound(new { error = "player_not_linked" });
+        if (me.ClanId is not int clanId)
+            return NotFound(new { error = "no_clan", message = "Игрок не состоит в клане бота" });
+
+        return Ok(await getAchievements.ExecuteAsync(clanId, LinkPlayerUseCase.Normalize(tag), ct));
     }
 
     /// <summary>
