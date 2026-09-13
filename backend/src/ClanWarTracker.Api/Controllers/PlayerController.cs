@@ -132,7 +132,19 @@ public class PlayerController(
         if (player.ClanId is not int clanId)
             return NotFound(new { error = "no_clan", message = "Игрок не состоит в клане бота" });
 
-        return Ok(await getAchievements.ExecuteAsync(clanId, player.PlayerTag, ct));
+        var result = await getAchievements.ExecuteAsync(clanId, player.PlayerTag, ct);
+
+        // Момент «открыл новую награду» существует только здесь: сравниваем уровни
+        // с теми, что человек видел в прошлый раз, и тут же запоминаем новые —
+        // иначе поздравление повторялось бы при каждом открытии приложения.
+        var (unlocked, snapshot) = GetAchievementsUseCase.Diff(result.Badges, player.SeenAchievementsJson);
+        if (unlocked.Count > 0 || player.SeenAchievementsJson is null)
+        {
+            player.SeenAchievementsJson = snapshot;
+            await players.SaveChangesAsync(ct);
+        }
+
+        return Ok(result with { JustUnlocked = unlocked });
     }
 
     /// <summary>

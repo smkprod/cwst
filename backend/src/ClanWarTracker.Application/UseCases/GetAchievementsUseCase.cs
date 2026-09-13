@@ -167,7 +167,45 @@ public class GetAchievementsUseCase(IWarSnapshotRepository snapshots)
             Badge("boatAttacks", boatAttacks),
         ];
 
-        return new AchievementsDto(playerTag, badges, weeks.Count);
+        return new AchievementsDto(playerTag, badges, weeks.Count, JustUnlocked: []);
+    }
+
+    /// <summary>
+    /// Что открылось с прошлого просмотра, и каким стал снимок уровней.
+    ///
+    /// Уровень — это и есть «ачивка, которую получают один раз»: бронза берётся
+    /// однажды, серебро однажды, золото однажды. Не хватало только момента — без
+    /// сравнения со снимком человек просто однажды замечает, что число выросло.
+    ///
+    /// Незнакомые ключи в старом снимке игнорируем: список наград пополняется, и
+    /// падать на снимке, снятом до появления значка, нельзя. Новый значок, у
+    /// которого сразу есть уровень, считается открытым — это честно, человек его
+    /// и правда только что увидел впервые.
+    /// </summary>
+    public static (List<string> Unlocked, string Snapshot) Diff(
+        IEnumerable<AchievementDto> badges, string? seenJson)
+    {
+        Dictionary<string, int> seen;
+        try
+        {
+            seen = string.IsNullOrWhiteSpace(seenJson)
+                ? []
+                : System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, int>>(seenJson) ?? [];
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            // Снимок испорчен — начинаем заново. Поздравить лишний раз не страшно,
+            // уронить витрину из-за кривой строки в базе — страшно.
+            seen = [];
+        }
+
+        var now = badges.ToDictionary(b => b.Key, b => b.Level);
+        var unlocked = now
+            .Where(b => b.Value > 0 && b.Value > seen.GetValueOrDefault(b.Key))
+            .Select(b => b.Key)
+            .ToList();
+
+        return (unlocked, System.Text.Json.JsonSerializer.Serialize(now));
     }
 
     private static AchievementDto Badge(string key, int value)

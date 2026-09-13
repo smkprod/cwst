@@ -355,6 +355,7 @@ const ru = {
     lvlNone: '', lvlBronze: '🥉', lvlSilver: '🥈', lvlGold: '🥇',
     toNext: 'до след. уровня',
     maxed: 'максимум!',
+    unlocked: 'Новая награда!',
   },
   me: {
     notInWar: 'Тебя нет в составе текущей войны',
@@ -1232,6 +1233,7 @@ const uk: Translations = {
     lvlNone: '', lvlBronze: '🥉', lvlSilver: '🥈', lvlGold: '🥇',
     toNext: 'до наст. рівня',
     maxed: 'максимум!',
+    unlocked: 'Нова нагорода!',
   },
   me: {
     notInWar: 'Тебе немає у складі поточної війни',
@@ -2107,6 +2109,7 @@ const en: Translations = {
     lvlNone: '', lvlBronze: '🥉', lvlSilver: '🥈', lvlGold: '🥇',
     toNext: 'to next level',
     maxed: 'maxed!',
+    unlocked: 'New achievement!',
   },
   me: {
     notInWar: 'You are not in the current war',

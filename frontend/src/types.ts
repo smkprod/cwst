@@ -293,6 +293,8 @@ export interface Achievements {
   playerTag: string
   badges: Achievement[]
   weeksAnalyzed: number
+  /** Ключи наград, открытых с прошлого просмотра. Приходят ровно один раз. */
+  justUnlocked: string[]
 }
 
 export interface MyStats {

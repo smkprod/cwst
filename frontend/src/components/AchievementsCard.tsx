@@ -45,8 +45,29 @@ export function AchievementsCard({ playerTag, compact = false }: { playerTag?: s
   // Чужая витрина без единой награды — пустая карточка, её лучше не показывать вовсе
   if (shown.length === 0) return null
 
+  // Открытое только что показываем отдельно и крупно: если новое ничем не
+  // отличается от старого, «получил награду» перестаёт быть событием вообще.
+  const fresh = (data.justUnlocked ?? [])
+    .map(key => data.badges.find(b => b.key === key))
+    .filter((b): b is Achievement => b !== undefined)
+
   return (
     <div className="card ach-card">
+      {fresh.length > 0 && (
+        <div className="ach-unlocked fade-in">
+          <div className="ach-unlocked-title">🎉 {t.ach.unlocked}</div>
+          {fresh.map(b => (
+            <div key={b.key} className="ach-unlocked-row">
+              <span className="ach-unlocked-icon">{BADGE_ICONS[b.key]}</span>
+              <span>
+                <b>{t.ach.badges[b.key]}</b>
+                {' '}{[t.ach.lvlNone, t.ach.lvlBronze, t.ach.lvlSilver, t.ach.lvlGold][b.level]}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="card-title-row">
         <div className="card-title">{t.ach.title}</div>
         <span className="muted small">{goldCount > 0 ? `🥇 ${goldCount}/${data.badges.length}` : ''}</span>
