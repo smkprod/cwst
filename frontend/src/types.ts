@@ -282,6 +282,7 @@ export interface RespectStatus {
 /* --- Витрина наград: значки с уровнями и прогрессом (эффект владения + Зейгарник) --- */
 export interface Achievement {
   key: 'streak' | 'dailyStreak' | 'perfectDays' | 'mvpWeeks' | 'totalFame' | 'warsPlayed'
+       | 'perfectWeeks' | 'perfectSeasons' | 'boatAttacks'
   level: number          // 0 нет, 1 бронза, 2 серебро, 3 золото
   value: number
   nextAt: number | null  // порог следующего уровня, null = золото

@@ -136,6 +136,25 @@ public class PlayerController(
     }
 
     /// <summary>
+    /// GET /api/players/{tag}/achievements — награды ЛЮБОГО игрока своего клана.
+    ///
+    /// Нужен, чтобы коллекцию было видно не только у себя: смотреть на чужие значки
+    /// и есть половина смысла наград. Клан берём свой — считать награды постороннему
+    /// не по чему, снапшоты есть только у подключённых кланов.
+    /// </summary>
+    [HttpGet("{tag}/achievements")]
+    public async Task<IActionResult> PlayerAchievements(string tag, CancellationToken ct)
+    {
+        var userId = (long)HttpContext.Items["TelegramUserId"]!;
+        var me = await players.GetByTelegramIdAsync(userId, ct);
+        if (me is null) return NotFound(new { error = "player_not_linked" });
+        if (me.ClanId is not int clanId)
+            return NotFound(new { error = "no_clan", message = "Игрок не состоит в клане бота" });
+
+        return Ok(await getAchievements.ExecuteAsync(clanId, LinkPlayerUseCase.Normalize(tag), ct));
+    }
+
+    /// <summary>
     /// GET /api/players/{tag}/history — история войн игрока по неделям (tag без #).
     /// Источники: собственные снапшоты сервиса + официальный журнал войн его
     /// текущего клана (/riverracelog, до 10 недель). Полная история — на RoyaleAPI.

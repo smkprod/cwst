@@ -358,13 +358,18 @@ public sealed class BotText
 
         PerfectDayJokes =
         [
-            "🏆 {0} набил 900 за день! Чемпион. Передай остальным, где брал читы 😎",
-            "👑 {0} — 900/900 за день! Противники уже пишут жалобу в Supercell 📝",
-            "🚀 {0} набрал 900 медалей за день. NASA интересуется его руками 🚀",
-            "💪 {0} сделал идеальный день: 900! Ни одной осечки — машина, а не игрок",
-            "⚡ 900 за день от {0}! Оставь немного медалей другим, жадина 😄",
-            "🔥 {0} закрыл день на 900! Скамейка запасных в шоке, тренер плачет от счастья",
-            "🎯 {0} — 900 из 900! Снайпер. В следующий раз пусть играет с закрытыми глазами",
+            "🏆 {0} — 900 за день. Четыре боя, четыре трупа, ноль свидетелей",
+            "👑 900/900 у {0}. Соперники сменили ник и ушли в другой клан 📝",
+            "🚀 {0} закрыл день на 900. Где-то в Supercell нервно пересчитывают баланс карт",
+            "💪 {0}: 900 из 900. Даже башня не поняла, за что ей прилетело",
+            "⚡ 900 за день от {0}. Противники до сих пор ищут кнопку «сдаться»",
+            "🔥 {0} сделал идеальный день. Сегодня он играл, остальные — присутствовали",
+            "🎯 900 у {0}. Три короны стали его личным почерком ✍️",
+            "🧊 {0} — 900 за день, не моргнув. Ледяное спокойствие и чужие слёзы",
+            "📈 {0} набил 900. Клан растёт, соперники — в терапии",
+            "🛡️ 900/900 от {0}. Защита была, просто она не пригодилась",
+            "🤖 {0} закрыл 4/4 на максимум. Подозрительно ровно. Проверьте, человек ли он",
+            "🍿 {0} — 900 за день. Остальные могли не играть, а просто посмотреть",
         ],
 
         RespectTitle = "👏 <b>Респекты дня</b>",
@@ -602,13 +607,18 @@ public sealed class BotText
 
         PerfectDayJokes =
         [
-            "🏆 {0} набив 900 за день! Чемпіон. Розкажи іншим, де брав чіти 😎",
-            "👑 {0} — 900/900 за день! Суперники вже пишуть скаргу в Supercell 📝",
-            "🚀 {0} набрав 900 медалей за день. NASA цікавиться його руками 🚀",
-            "💪 {0} зробив ідеальний день: 900! Жодної осічки — машина, а не гравець",
-            "⚡ 900 за день від {0}! Залиш трохи медалей іншим, жаднюго 😄",
-            "🔥 {0} закрив день на 900! Лава запасних у шоці, тренер плаче від щастя",
-            "🎯 {0} — 900 із 900! Снайпер. Наступного разу хай грає із заплющеними очима",
+            "🏆 {0} — 900 за день. Чотири бої, чотири трупи, жодного свідка",
+            "👑 900/900 у {0}. Суперники змінили нік і пішли в інший клан 📝",
+            "🚀 {0} закрив день на 900. Десь у Supercell нервово перераховують баланс карт",
+            "💪 {0}: 900 із 900. Навіть вежа не зрозуміла, за що їй прилетіло",
+            "⚡ 900 за день від {0}. Суперники досі шукають кнопку «здатися»",
+            "🔥 {0} зробив ідеальний день. Сьогодні він грав, решта — була присутня",
+            "🎯 900 у {0}. Три корони стали його особистим почерком ✍️",
+            "🧊 {0} — 900 за день, і оком не змигнув. Крижаний спокій і чужі сльози",
+            "📈 {0} набив 900. Клан росте, суперники — на терапії",
+            "🛡️ 900/900 від {0}. Захист був, просто не знадобився",
+            "🤖 {0} закрив 4/4 на максимум. Підозріло рівно. Перевірте, чи він людина",
+            "🍿 {0} — 900 за день. Решта могла не грати, а просто подивитися",
         ],
 
         RespectTitle = "👏 <b>Респекти дня</b>",
@@ -846,13 +856,18 @@ public sealed class BotText
 
         PerfectDayJokes =
         [
-            "🏆 {0} scored 900 in a day! Champion. Tell the rest where you got the cheats 😎",
-            "👑 {0} — 900/900 in a day! The opponents are already filing a complaint with Supercell 📝",
-            "🚀 {0} racked up 900 medals in a day. NASA would like a word about those hands 🚀",
-            "💪 {0} had a perfect day: 900! Not a single slip — that's a machine, not a player",
-            "⚡ 900 in a day from {0}! Leave some medals for the rest of us 😄",
-            "🔥 {0} closed the day at 900! The bench is stunned, the coach is crying with joy",
-            "🎯 {0} — 900 out of 900! Sniper. Next time try it with your eyes closed",
+            "🏆 {0} — 900 in a day. Four battles, four bodies, no witnesses",
+            "👑 900/900 for {0}. The opponents changed their names and joined another clan 📝",
+            "🚀 {0} closed the day at 900. Somewhere at Supercell they're rechecking the card balance",
+            "💪 {0}: 900 out of 900. Even the tower didn't understand what hit it",
+            "⚡ 900 in a day from {0}. The opponents are still looking for the surrender button",
+            "🔥 {0} had a perfect day. Today he played — everyone else merely attended",
+            "🎯 900 for {0}. Three crowns are officially his signature now ✍️",
+            "🧊 {0} — 900 in a day without blinking. Ice-cold, and someone else's tears",
+            "📈 {0} scored 900. The clan grows, the rivals go to therapy",
+            "🛡️ 900/900 from {0}. There was a defense. It just wasn't needed",
+            "🤖 {0} maxed out 4/4. Suspiciously clean. Someone check if he's human",
+            "🍿 {0} — 900 in a day. The rest could have skipped playing and just watched",
         ],
 
         RespectTitle = "👏 <b>Respects of the day</b>",

@@ -4,6 +4,7 @@ import { api } from '../lib/api'
 import { fmt } from '../lib/format'
 import { copyText, haptic, hapticNotify, openExternalLink, shareToTelegram } from '../lib/telegram'
 import { useT, roleLabel } from '../lib/i18n'
+import { AchievementsCard } from './AchievementsCard'
 
 const ROLE_ICON: Record<string, string> = {
   leader: '👑',
@@ -199,6 +200,9 @@ export function PlayerInfoModal({ player: p, isMe, canManage = false, onClose }:
             {respect === 'used' && <>👏 {t.respect.usedToday}</>}
           </button>
         )}
+
+        {/* Награды человека — то, ради чего их и собирают: чтобы их видели другие */}
+        <AchievementsCard playerTag={p.playerTag} compact />
 
         {p.dnaLabel && (
           <div className="dna-row">

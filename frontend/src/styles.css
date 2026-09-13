@@ -1316,6 +1316,23 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 .ach-gold { background: rgba(255,200,50,0.07); }
 .ach-gold .ach-fill { background: #ffc832; }
 
+/* Добытый значок должен выглядеть как награда, а не как строка списка: рамка
+   цвета уровня и мягкое свечение под иконкой. Неоткрытые остаются серыми —
+   разница между «есть» и «нет» и есть весь смысл витрины. */
+.ach-bronze, .ach-silver, .ach-gold { border: 1px solid transparent; }
+.ach-bronze { background: linear-gradient(135deg, rgba(205,127,50,0.16), rgba(205,127,50,0.04)); border-color: rgba(205,127,50,0.35); }
+.ach-silver { background: linear-gradient(135deg, rgba(159,168,181,0.18), rgba(159,168,181,0.04)); border-color: rgba(159,168,181,0.38); }
+.ach-gold   { background: linear-gradient(135deg, rgba(255,200,50,0.20), rgba(255,200,50,0.04)); border-color: rgba(255,200,50,0.45); }
+.ach-bronze .ach-icon { text-shadow: 0 0 12px rgba(205,127,50,0.55); }
+.ach-silver .ach-icon { text-shadow: 0 0 12px rgba(159,168,181,0.55); }
+.ach-gold .ach-icon   { text-shadow: 0 0 14px rgba(255,200,50,0.65); }
+
+/* Идеальная неделя у игрока в составе — отметка прямо в строке списка */
+.perfect-week {
+  font-size: 12px; margin-left: 4px;
+  filter: drop-shadow(0 0 6px rgba(120, 200, 255, 0.7));
+}
+
 /* --- «Что нового»: персональная дельта с прошлого визита --- */
 .whats-new-card { border: 1px solid rgba(135,116,225,0.35); background: rgba(135,116,225,0.07); }
 .whats-new-list { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
