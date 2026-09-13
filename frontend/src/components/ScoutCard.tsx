@@ -4,6 +4,7 @@ import type { Plan, RaceScout, ScoutClan } from '../types'
 import { fmt } from '../lib/format'
 import { haptic } from '../lib/telegram'
 import { useT, type Translations } from '../lib/i18n'
+import { useOpenClan } from '../lib/clanModal'
 
 type State =
   | { kind: 'loading' }
@@ -28,6 +29,7 @@ interface Props {
  * внутри того, что ему показали.
  */
 export function ScoutCard({ plan }: Props) {
+  const openClan = useOpenClan()
   const { t } = useT()
   const [state, setState] = useState<State>({ kind: 'loading' })
   const [openTag, setOpenTag] = useState<string | null>(null)
@@ -80,7 +82,8 @@ export function ScoutCard({ plan }: Props) {
           {teaser && <p className="scout-teaser">🔒 {teaser}</p>}
           <ul className="scout-list scout-list-locked">
             {data.clans.map(c => (
-              <li key={c.tag} className={`scout-row ${c.isOurClan ? 'scout-row-ours' : ''}`}>
+              <li key={c.tag} className={`scout-row ${c.isOurClan ? 'scout-row-ours' : ''}`}
+                  onClick={() => openClan(c.tag, c.name)}>
                 <span className="scout-place">{c.position}</span>
                 <span className="scout-name">{c.name}</span>
                 <span className="muted small">{fmt(c.currentFame)} 🏅</span>
@@ -121,6 +124,7 @@ function ScoutRow({ clan, isRealRival, open, onToggle, t }: {
   onToggle: () => void
   t: Translations
 }) {
+  const openClan = useOpenClan()
   const noData = clan.weeksTracked === 0
 
   // Знак темпа важнее величины: «идёт выше себя» и «просел» — разные новости,
@@ -135,7 +139,11 @@ function ScoutRow({ clan, isRealRival, open, onToggle, t }: {
 
         <span className="scout-info">
           <span className="scout-name-row">
-            <span className="scout-name">{clan.name}</span>
+            {/* Строка раскрывает досье, имя открывает страницу клана */}
+            <span className="scout-name clan-name-link" role="button" tabIndex={0}
+                  onClick={e => { e.stopPropagation(); openClan(clan.tag, clan.name) }}>
+              {clan.name} ↗
+            </span>
             {clan.isOurClan && <span className="me-badge">{t.scout.us}</span>}
             {isRealRival && <span className="scout-rival-badge">{t.scout.realRival}</span>}
           </span>
