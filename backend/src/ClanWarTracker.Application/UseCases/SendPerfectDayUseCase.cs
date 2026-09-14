@@ -14,7 +14,8 @@ public class SendPerfectDayUseCase(
     IClashRoyaleApi crApi,
     IClanRepository clans,
     IWarSnapshotRepository snapshots,
-    INotificationSender notifier)
+    INotificationSender notifier,
+    ICardUrls cardUrls)
 {
     /// <summary>4 атаки × 225 (все победы) — максимум и «идеальный день».</summary>
     private const int PerfectDayFame = 900;
@@ -83,11 +84,21 @@ public class SendPerfectDayUseCase(
                 // дня не должен поздравлять тем же человеком, но другими словами.
                 var jokes = settings.Text.PerfectDayJokes;
                 var phrase = jokes[StablePick(key) % jokes.Length];
+                var text = string.Format(phrase, p.Name);
                 try
                 {
-                    await notifier.SendToChatAsync(
-                        clan.TelegramChatId, string.Format(phrase, p.Name),
-                        clan.TelegramMessageThreadId, ct: ct);
+                    // Картинкой, если публичный адрес настроен. Не вышло — шлём текстом:
+                    // поздравление без картинки лучше, чем молчание.
+                    var photo = cardUrls.Card("perfect", p.PlayerTag);
+                    var withPhoto = photo is not null && await notifier.SendPhotoToChatAsync(
+                        clan.TelegramChatId, photo, text, clan.TelegramMessageThreadId, ct);
+
+                    if (!withPhoto)
+                    {
+                        await notifier.SendToChatAsync(
+                            clan.TelegramChatId, text, clan.TelegramMessageThreadId, ct: ct);
+                    }
+
                     congratulatedKeys.Add(key);
                     sent++;
                 }

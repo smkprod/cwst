@@ -38,6 +38,32 @@ public class TelegramNotificationSender(ITelegramBotClient bot) : INotificationS
         long chatId, string text, int? threadId = null, bool html = false, CancellationToken ct = default) =>
         SendAsync(chatId, text, threadId, html, ct);
 
+    public async Task<bool> SendPhotoToChatAsync(
+        long chatId, string photoUrl, string caption, int? threadId = null, CancellationToken ct = default)
+    {
+        try
+        {
+            var appUrl = await GetAppUrlAsync(ct);
+            var keyboard = appUrl is null
+                ? null
+                : new InlineKeyboardMarkup(InlineKeyboardButton.WithUrl("🎮 Открыть в Mini App", appUrl));
+
+            await bot.SendPhoto(chatId, Telegram.Bot.Types.InputFile.FromUri(photoUrl),
+                caption: caption, replyMarkup: keyboard, messageThreadId: threadId, cancellationToken: ct);
+            return true;
+        }
+        catch (ApiRequestException)
+        {
+            // Telegram не смог скачать картинку, адрес недоступен снаружи, чат закрыт —
+            // причин много, и ни одна не повод остаться вообще без поздравления.
+            return false;
+        }
+        catch (HttpRequestException)
+        {
+            return false;
+        }
+    }
+
     private async Task SendAsync(long chatId, string text, int? threadId, bool html, CancellationToken ct)
     {
         var appUrl = await GetAppUrlAsync(ct);

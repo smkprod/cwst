@@ -17,8 +17,9 @@
   <ItemGroup>
     <!-- Шрифты едут в образ: в базовом образе .NET их нет вообще, и без своего файла
          кириллица в карточках превратилась бы в квадраты. -->
-    <Content Include="Assets\DejaVuSans.ttf" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="Assets\DejaVuSans-Bold.ttf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\Rubik-Regular.ttf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\Rubik-SemiBold.ttf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\RussoOne-Regular.ttf" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ClanWarTracker.Application\ClanWarTracker.Application.csproj" />
