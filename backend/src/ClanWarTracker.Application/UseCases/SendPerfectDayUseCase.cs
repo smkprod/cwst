@@ -14,10 +14,21 @@ public class SendPerfectDayUseCase(
     IClashRoyaleApi crApi,
     IClanRepository clans,
     IWarSnapshotRepository snapshots,
-    INotificationSender notifier)
+    INotificationSender notifier,
+    ICardUrls cardUrls,
+    ISentNotificationRepository sentLog)
 {
     /// <summary>4 атаки × 225 (все победы) — максимум и «идеальный день».</summary>
     private const int PerfectDayFame = 900;
+
+    /// <summary>
+    /// Кто уже получал карточку за первый идеальный день. Ключ — тег игрока.
+    ///
+    /// Префикс «once:» защищает эти отметки от двухнедельной чистки: они и нужны,
+    /// чтобы помнить дольше. Забыв их, бот объявил бы первым день, который у человека
+    /// уже пятый, — и картинка, весь смысл которой в редкости, стала бы рутиной.
+    /// </summary>
+    private const string FirstPerfectKind = SentNotification.OncePrefix + "perfectday";
 
 
     /// <param name="congratulatedKeys">Дедуп между тиками: "clanId:season:section:period:tag".</param>
@@ -25,6 +36,11 @@ public class SendPerfectDayUseCase(
     public async Task<int> ExecuteAsync(ISet<string> congratulatedKeys, CancellationToken ct = default)
     {
         var sent = 0;
+
+        // Один запрос на весь проход: у кого идеальный день уже был когда-либо.
+        // DateTime.MinValue — намеренно «за всё время», окно здесь не нужно.
+        var firstPerfect = await sentLog.GetKeysAsync(FirstPerfectKind, DateTime.MinValue, ct);
+
         foreach (var clan in await clans.GetAllAsync(ct))
         {
             if (clan.TelegramChatId == 0) continue;
@@ -83,11 +99,39 @@ public class SendPerfectDayUseCase(
                 // дня не должен поздравлять тем же человеком, но другими словами.
                 var jokes = settings.Text.PerfectDayJokes;
                 var phrase = jokes[StablePick(key) % jokes.Length];
+                var text = string.Format(phrase, p.Name);
+
+                // Первый идеальный день в жизни игрока — событие, и только он получает
+                // карточку. Дальше 900 остаётся поводом для шутки в чате, но перестаёт
+                // быть новостью: картинка на каждый повтор обесценила бы и её, и повод.
+                var isFirstEver = !firstPerfect.Contains(p.PlayerTag);
+
                 try
                 {
-                    await notifier.SendToChatAsync(
-                        clan.TelegramChatId, string.Format(phrase, p.Name),
-                        clan.TelegramMessageThreadId, ct: ct);
+                    var sentWithPhoto = false;
+                    if (isFirstEver && cardUrls.Card("perfect", p.PlayerTag) is { } photo)
+                    {
+                        sentWithPhoto = await notifier.SendPhotoToChatAsync(
+                            clan.TelegramChatId, photo, text, clan.TelegramMessageThreadId, ct);
+                    }
+
+                    // Не первый раз — или картинку отправить не удалось. Текст уходит
+                    // всегда: поздравление без картинки лучше, чем молчание.
+                    if (!sentWithPhoto)
+                    {
+                        await notifier.SendToChatAsync(
+                            clan.TelegramChatId, text, clan.TelegramMessageThreadId, ct: ct);
+                    }
+
+                    // Отмечаем факт «первый идеальный день был» независимо от того,
+                    // дошла ли картинка: иначе при недоступном фото бот пытался бы
+                    // отправить её снова и снова на каждом следующем девятисотом.
+                    if (isFirstEver)
+                    {
+                        await sentLog.AddAsync(FirstPerfectKind, p.PlayerTag, ct);
+                        firstPerfect.Add(p.PlayerTag);
+                    }
+
                     congratulatedKeys.Add(key);
                     sent++;
                 }

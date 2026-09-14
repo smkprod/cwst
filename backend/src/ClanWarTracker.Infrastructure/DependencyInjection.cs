@@ -62,6 +62,8 @@ public static class DependencyInjection
         services.AddSingleton<ITelegramBotClient>(new TelegramBotClient(botToken!));
 
         services.AddScoped<INotificationSender, TelegramNotificationSender>();
+        services.AddSingleton<ClanWarTracker.Application.Notifications.ICardUrls>(
+            new CardUrls(config["PUBLIC_BASE_URL"]?.Trim().TrimEnd('/')));
         services.AddScoped<IClanRepository, ClanRepository>();
         services.AddScoped<IPlayerRepository, PlayerRepository>();
         services.AddScoped<IWarSnapshotRepository, WarSnapshotRepository>();
@@ -473,4 +475,21 @@ CREATE TABLE IF NOT EXISTS ""ActivityDays"" (
 internal sealed class PuzzleSecret(string value) : ClanWarTracker.Application.Games.IPuzzleSecret
 {
     public string Value { get; } = value;
+}
+
+/// <summary>
+/// Адреса нарисованных карточек (см. ICardUrls).
+///
+/// К адресу добавляется десятиминутная метка: Telegram кэширует скачанное фото по
+/// URL и без изменения адреса неделями показывал бы одну и ту же картинку. Чаще
+/// менять нельзя — сведём на нет и его кэш, и наш.
+/// </summary>
+internal sealed class CardUrls(string? baseUrl) : ClanWarTracker.Application.Notifications.ICardUrls
+{
+    public string? Card(string kind, string playerTag)
+    {
+        if (string.IsNullOrEmpty(baseUrl)) return null;
+        var bucket = DateTime.UtcNow.Ticks / TimeSpan.TicksPerMinute / 10;
+        return $"{baseUrl}/api/img/{kind}/{playerTag.TrimStart('#')}.jpg?v={bucket}";
+    }
 }

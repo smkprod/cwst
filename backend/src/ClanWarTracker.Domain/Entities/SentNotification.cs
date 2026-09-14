@@ -12,6 +12,12 @@ namespace ClanWarTracker.Domain.Entities;
 /// </summary>
 public class SentNotification
 {
+    /// <summary>
+    /// Виды с этим префиксом не удаляются при чистке: они помнят, что событие уже
+    /// случалось когда-то, и двухнедельного окна им мало.
+    /// </summary>
+    public const string OncePrefix = "once:";
+
     public int Id { get; set; }
 
     /// <summary>Вид уведомления: perfectday, dailyreport, finalcall, reminder, briefing, respectdigest.</summary>

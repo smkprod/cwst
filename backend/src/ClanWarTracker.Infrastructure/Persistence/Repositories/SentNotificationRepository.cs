@@ -37,5 +37,10 @@ public class SentNotificationRepository(AppDbContext db) : ISentNotificationRepo
     }
 
     public async Task PurgeOlderThanAsync(DateTime cutoffUtc, CancellationToken ct = default) =>
-        await db.SentNotifications.Where(n => n.SentAtUtc < cutoffUtc).ExecuteDeleteAsync(ct);
+        await db.SentNotifications
+            // Отметки «это случилось впервые» живут вечно: их смысл ровно в том, чтобы
+            // помнить дольше двух недель. Стереть их — значит объявить первым событие,
+            // которое случалось уже пять раз.
+            .Where(n => n.SentAtUtc < cutoffUtc && !n.Kind.StartsWith(SentNotification.OncePrefix))
+            .ExecuteDeleteAsync(ct);
 }
