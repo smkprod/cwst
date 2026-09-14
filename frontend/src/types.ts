@@ -657,10 +657,15 @@ export type TournamentStatus = 'registrationOpen' | 'bracketReady' | 'inProgress
 export type TournamentParticipantStatus = 'active' | 'eliminated' | 'withdrawn'
 export type TournamentMatchStatus = 'pending' | 'ready' | 'bye' | 'completed'
 
+/** Формат турнира: одиночный или парный (команда из двоих). */
+export type TournamentMode = 'solo' | 'duo'
+
 export interface TournamentSummary {
   id: number
   name: string
   status: TournamentStatus
+  mode: TournamentMode
+  startsAtUtc: string | null
   bestOf: number
   maxParticipants: number
   participantCount: number
@@ -672,6 +677,10 @@ export interface TournamentParticipant {
   id: number
   playerTag: string
   playerName: string
+  /** Название команды в парном турнире; null — одиночный. */
+  teamName: string | null
+  partnerPlayerTag: string | null
+  partnerPlayerName: string | null
   seed: number
   status: TournamentParticipantStatus
   finalPlacement: number | null
@@ -732,6 +741,8 @@ export interface Tournament {
   minParticipants: number
   maxParticipants: number
   status: TournamentStatus
+  mode: TournamentMode
+  startsAtUtc: string | null
   createdAtUtc: string
   isCreator: boolean
   isParticipant: boolean
