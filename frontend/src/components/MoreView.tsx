@@ -8,9 +8,8 @@ import { CommunityCard } from './CommunityCard'
 import { InviteCard } from './InviteCard'
 import { RecruitToggle } from './RecruitToggle'
 import { RecruitBoard } from './RecruitBoard'
-import { TournamentView } from './TournamentView'
 
-type Section = 'tournaments' | 'recruit' | 'about'
+type Section = 'recruit' | 'about'
 
 interface Props {
   plan: Plan
@@ -40,7 +39,6 @@ export function MoreView({ plan, canManage, isProLeader, onOpenNotifications }: 
     return (
       <div className="fade-in">
         <button className="btn-mini more-back" onClick={back}>← {t.more.back}</button>
-        {section === 'tournaments' && <TournamentView />}
         {section === 'recruit' && (isProLeader ? <RecruitBoard /> : <RecruitToggle />)}
         {section === 'about' && <AboutCard plan={plan} />}
       </div>
@@ -71,15 +69,6 @@ export function MoreView({ plan, canManage, isProLeader, onOpenNotifications }: 
 
       <section className="card" style={{ marginTop: 10 }}>
         <div className="card-title">{t.more.sectionsTitle}</div>
-
-        <button className="more-row" onClick={() => open('tournaments')}>
-          <span className="more-row-icon">🥇</span>
-          <span className="more-row-text">
-            <span className="more-row-title">{t.more.tournaments}</span>
-            <span className="muted small">{t.more.tournamentsHint}</span>
-          </span>
-          <span className="more-row-arrow">›</span>
-        </button>
 
         <button className="more-row" onClick={() => open('recruit')}>
           <span className="more-row-icon">👥</span>

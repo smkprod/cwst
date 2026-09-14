@@ -65,6 +65,7 @@ export function TournamentBracket({ tournament, onUpdated }: Props) {
   return (
     <div className="tournament-bracket-wrap">
       <h3 className="section-title">{t.tournament.bracketTitle}</h3>
+      {roundNumbers.length > 2 && <p className="muted small bracket-hint">{t.tournament.bracketScrollHint}</p>}
 
       {champion && (
         <div className="card tournament-champion-card">

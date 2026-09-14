@@ -8,8 +8,14 @@ public class Tournament
     public required string Name { get; set; }
     public string? Description { get; set; }
     public string? PrizeInfo { get; set; }
-    /// <summary>Ссылка-приглашение во временный игровой клан, созданный под турнир.</summary>
-    public required string ClanInviteLink { get; set; }
+    /// <summary>
+    /// Ссылка-приглашение во временный игровой клан, созданный под турнир.
+    ///
+    /// Необязательна при создании: клан обычно делают позже, ближе к дате, а
+    /// требовать ссылку заранее значит заставлять организатора либо врать
+    /// заглушкой, либо откладывать объявление турнира.
+    /// </summary>
+    public string? ClanInviteLink { get; set; }
 
     public long CreatorTelegramUserId { get; set; }
     public required string CreatorPlayerTag { get; set; }

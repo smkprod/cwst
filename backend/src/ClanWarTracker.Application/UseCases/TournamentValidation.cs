@@ -7,6 +7,12 @@ public static class TournamentValidation
     /// Только ссылки на clashroyale.com — поле рассылается всем участникам и кликается,
     /// произвольный URL здесь превращает турнир в вектор фишинга/спама.
     /// </summary>
+    /// <summary>
+    /// Ссылка не указана — это не ошибка: её добавляют позже. Проверяем только то,
+    /// что человек всё-таки ввёл.
+    /// </summary>
+    public static bool IsMissing(string? link) => string.IsNullOrWhiteSpace(link);
+
     public static bool IsValidClanInviteLink(string? link)
     {
         if (string.IsNullOrWhiteSpace(link) || link.Length > 300) return false;
