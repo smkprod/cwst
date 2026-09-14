@@ -1340,6 +1340,12 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 .ach-unlocked-row { display: flex; align-items: center; gap: 10px; font-size: 13px; padding: 2px 0; }
 .ach-unlocked-icon { font-size: 22px; text-shadow: 0 0 14px rgba(255,200,50,0.7); }
 
+/* Заявка команды в парном турнире */
+.team-form { display: grid; gap: 8px; }
+.team-form .search-input { width: 100%; }
+/* Состав команды под её названием: мелким, чтобы название оставалось главным */
+.team-roster { font-weight: 400; }
+
 .perfect-week {
   font-size: 12px; margin-left: 4px;
   filter: drop-shadow(0 0 6px rgba(120, 200, 255, 0.7));

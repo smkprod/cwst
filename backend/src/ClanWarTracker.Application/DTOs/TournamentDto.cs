@@ -4,6 +4,8 @@ public record TournamentSummaryDto(
     int Id,
     string Name,
     string Status,                 // registrationOpen | bracketReady | inProgress | completed | cancelled
+    string Mode,                   // solo | duo
+    DateTime? StartsAtUtc,         // объявленная дата начала; null — не объявлена
     int BestOf,
     int MaxParticipants,
     int ParticipantCount,
@@ -21,6 +23,8 @@ public record TournamentDto(
     int MinParticipants,
     int MaxParticipants,
     string Status,
+    string Mode,                   // solo | duo
+    DateTime? StartsAtUtc,
     DateTime CreatedAtUtc,
     bool IsCreator,
     bool IsParticipant,
@@ -32,6 +36,10 @@ public record TournamentParticipantDto(
     int Id,
     string PlayerTag,
     string PlayerName,
+    /// <summary>Название команды в парном турнире; null — одиночный.</summary>
+    string? TeamName,
+    string? PartnerPlayerTag,
+    string? PartnerPlayerName,
     int Seed,
     string Status,                 // active | eliminated | withdrawn
     int? FinalPlacement);

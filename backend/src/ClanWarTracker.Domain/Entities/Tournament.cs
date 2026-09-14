@@ -21,6 +21,16 @@ public class Tournament
     public int MinParticipants { get; set; } = 2;
     public int MaxParticipants { get; set; } = 16;
 
+    /// <summary>1×1 или 2×2. В парном участник — команда из двоих.</summary>
+    public TournamentMode Mode { get; set; } = TournamentMode.Solo;
+
+    /// <summary>
+    /// Когда турнир начинается. Нужна для предварительной регистрации: люди
+    /// записываются заранее, зная дату, а не гадают, когда всё стартует.
+    /// null — дата не объявлена, собираемся и стартуем вручную.
+    /// </summary>
+    public DateTime? StartsAtUtc { get; set; }
+
     public TournamentStatus Status { get; set; } = TournamentStatus.RegistrationOpen;
 
     public DateTime CreatedAtUtc { get; set; }

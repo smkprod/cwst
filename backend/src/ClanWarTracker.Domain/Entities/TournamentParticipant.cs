@@ -12,6 +12,20 @@ public class TournamentParticipant
     public required string PlayerTag { get; set; }
     public required string PlayerName { get; set; }
 
+    /// <summary>
+    /// Название команды в парном турнире. В одиночном null — там участник и есть
+    /// игрок, и выдумывать ему название незачем.
+    /// </summary>
+    public string? TeamName { get; set; }
+
+    /// <summary>
+    /// Напарник в парном турнире. Регистрирует команду один человек (капитан) —
+    /// он же TelegramUserId и PlayerTag; напарник хранится тегом и именем, своей
+    /// привязки к Telegram у него может не быть вовсе.
+    /// </summary>
+    public string? PartnerPlayerTag { get; set; }
+    public string? PartnerPlayerName { get; set; }
+
     /// <summary>Позиция в сетке при жеребьёвке (0-based); назначается при генерации сетки.</summary>
     public int Seed { get; set; }
     public TournamentParticipantStatus Status { get; set; } = TournamentParticipantStatus.Active;
