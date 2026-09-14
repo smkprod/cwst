@@ -105,6 +105,25 @@ public class ImageController(
         });
 
     /// <summary>
+    /// GET /api/img/perfect/{tag}.jpg — поздравление с идеальным днём для чата.
+    ///
+    /// Число всегда 900: это и есть определение идеального дня, а не показатель,
+    /// который надо откуда-то доставать.
+    /// </summary>
+    [HttpGet("perfect/{tag}.jpg")]
+    public Task<IActionResult> PerfectDayCard(string tag, CancellationToken ct) =>
+        Serve($"perfect:{tag}", CardTtl, async () =>
+        {
+            var playerTag = Normalize(tag);
+            var info = await Try(() => crApi.GetPlayerInfoAsync(playerTag, ct));
+            if (info is null) return null;
+
+            return renderer.RenderPerfectDay(new PerfectDayCardModel(
+                info.Name, info.ClanName ?? "без клана", 900,
+                await BotNameAsync(ct), await ArtAsync(playerTag, ct)));
+        });
+
+    /// <summary>
     /// GET /api/img/puzzle/{token}.jpg — фрагмент карты дня.
     ///
     /// Без авторизации, как и остальные картинки: их грузит &lt;img&gt;, а заголовок с

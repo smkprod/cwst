@@ -11,6 +11,16 @@ public interface INotificationSender
     Task SendToChatAsync(
         long chatId, string text, int? threadId = null, bool html = false, CancellationToken ct = default);
 
+    /// <summary>
+    /// Картинка в чат с подписью. photoUrl — публичный адрес, картинку качает сам
+    /// Telegram; передавать байты не нужно и не стоит.
+    ///
+    /// Возвращает false, если отправить не удалось: вызывающий тогда шлёт текстом.
+    /// Поздравление без картинки лучше, чем отсутствие поздравления.
+    /// </summary>
+    Task<bool> SendPhotoToChatAsync(
+        long chatId, string photoUrl, string caption, int? threadId = null, CancellationToken ct = default);
+
     /// <summary>То же, что SendToChatAsync, но с кнопкой «Открыть в Mini App» под сообщением
     /// (если username бота удалось определить; иначе просто текст).</summary>
     Task SendToChatWithAppButtonAsync(
