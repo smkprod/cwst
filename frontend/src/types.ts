@@ -735,7 +735,8 @@ export interface Tournament {
   name: string
   description: string | null
   prizeInfo: string | null
-  clanInviteLink: string
+  /** null — организатор ещё не создал клан под турнир. */
+  clanInviteLink: string | null
   creatorName: string
   bestOf: number
   minParticipants: number

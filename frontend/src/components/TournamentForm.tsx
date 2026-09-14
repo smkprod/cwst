@@ -178,7 +178,7 @@ export function TournamentForm({ mode, initial, onSaved, onCancel }: Props) {
       {error && <p className="form-error small">{error}</p>}
 
       <div className="recruit-actions">
-        <button className="btn" disabled={busy || !name.trim() || !clanInviteLink.trim()} onClick={submit}>
+        <button className="btn" disabled={busy || !name.trim()} onClick={submit}>
           {busy ? t.tournament.saving : mode === 'create' ? t.tournament.create : t.tournament.update}
         </button>
         <button className="btn-mini" disabled={busy} onClick={onCancel}>{t.tournament.cancelForm}</button>

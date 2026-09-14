@@ -211,10 +211,15 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
         {actionError && <p className="form-error small">{actionError}</p>}
 
         <div className="tournament-detail-actions">
-          {d.isParticipant && (
-            <button className="btn" disabled={busy} onClick={() => openExternalLink(d.clanInviteLink)}>
+          {d.isParticipant && d.clanInviteLink !== null && (
+            <button className="btn" disabled={busy} onClick={() => openExternalLink(d.clanInviteLink!)}>
               {t.tournament.joinClanBtn}
             </button>
+          )}
+          {d.isParticipant && d.clanInviteLink === null && (
+            <p className="muted small">
+              {d.isCreator ? t.tournament.linkMissingCreator : t.tournament.linkMissing}
+            </p>
           )}
           {d.canJoin && d.mode === 'duo' && !teamOpen && (
             <button className="btn" disabled={busy} onClick={() => setTeamOpen(true)}>

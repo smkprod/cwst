@@ -17,7 +17,7 @@ public record TournamentDto(
     string Name,
     string? Description,
     string? PrizeInfo,
-    string ClanInviteLink,
+    string? ClanInviteLink,     // null — организатор ещё не создал клан
     string CreatorName,
     int BestOf,
     int MinParticipants,

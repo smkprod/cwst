@@ -19,7 +19,9 @@ public class UpdateTournamentUseCase(ITournamentRepository tournaments)
 
         name = name?.Trim() ?? "";
         if (name.Length is 0 or > 80) return UpdateTournamentError.BadName;
-        if (!TournamentValidation.IsValidClanInviteLink(clanInviteLink)) return UpdateTournamentError.BadLink;
+        var hasLink = !TournamentValidation.IsMissing(clanInviteLink);
+        if (hasLink && !TournamentValidation.IsValidClanInviteLink(clanInviteLink))
+            return UpdateTournamentError.BadLink;
 
         description = TournamentValidation.Truncate(description?.Trim(), 2000);
         prizeInfo = TournamentValidation.Truncate(prizeInfo?.Trim(), 500);
@@ -27,7 +29,7 @@ public class UpdateTournamentUseCase(ITournamentRepository tournaments)
         tournament.Name = name;
         tournament.Description = string.IsNullOrEmpty(description) ? null : description;
         tournament.PrizeInfo = string.IsNullOrEmpty(prizeInfo) ? null : prizeInfo;
-        tournament.ClanInviteLink = clanInviteLink.Trim();
+        tournament.ClanInviteLink = hasLink ? clanInviteLink.Trim() : null;
 
         // Дату начала двигают чаще всего остального: собрались не все, перенесли на
         // завтра. Разрешаем менять и стирать, но не назначать на прошлое — кроме

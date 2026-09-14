@@ -450,6 +450,10 @@ CREATE TABLE IF NOT EXISTS ""ActivityDays"" (
             "ALTER TABLE \"TournamentParticipants\" ADD COLUMN IF NOT EXISTS \"PartnerPlayerTag\" varchar(16);");
         await db.Database.ExecuteSqlRawAsync(
             "ALTER TABLE \"TournamentParticipants\" ADD COLUMN IF NOT EXISTS \"PartnerPlayerName\" varchar(64);");
+
+        // Ссылку на клан теперь можно добавить позже — снимаем NOT NULL.
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Tournaments\" ALTER COLUMN \"ClanInviteLink\" DROP NOT NULL;");
     }
 
     /// <summary>Убирает все пробельные символы (включая \r\n) из токена. null, если пусто.</summary>

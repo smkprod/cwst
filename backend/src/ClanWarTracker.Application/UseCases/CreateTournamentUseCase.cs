@@ -25,7 +25,10 @@ public class CreateTournamentUseCase(IPlayerRepository players, ITournamentRepos
         name = name?.Trim() ?? "";
         if (name.Length is 0 or > 80) return (null, CreateTournamentError.BadName);
 
-        if (!TournamentValidation.IsValidClanInviteLink(clanInviteLink)) return (null, CreateTournamentError.BadLink);
+        // Пустую ссылку принимаем: её добавят позже. Непустую — проверяем.
+        var hasLink = !TournamentValidation.IsMissing(clanInviteLink);
+        if (hasLink && !TournamentValidation.IsValidClanInviteLink(clanInviteLink))
+            return (null, CreateTournamentError.BadLink);
 
         if (bestOf is < 1 or > 3) return (null, CreateTournamentError.BadFormat);
         if (maxParticipants < MinParticipants || maxParticipants > MaxParticipantsLimit)
@@ -48,7 +51,7 @@ public class CreateTournamentUseCase(IPlayerRepository players, ITournamentRepos
             Name = name,
             Description = string.IsNullOrEmpty(description) ? null : description,
             PrizeInfo = string.IsNullOrEmpty(prizeInfo) ? null : prizeInfo,
-            ClanInviteLink = clanInviteLink.Trim(),
+            ClanInviteLink = hasLink ? clanInviteLink.Trim() : null,
             CreatorTelegramUserId = telegramUserId,
             CreatorPlayerTag = player.PlayerTag,
             CreatorName = player.Name,
