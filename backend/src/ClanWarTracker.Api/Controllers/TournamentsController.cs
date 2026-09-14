@@ -27,7 +27,8 @@ public class TournamentsController(
     /// <summary>Заявка. В парном турнире оба поля обязательны, в одиночном не нужны.</summary>
     public record JoinRequest(string? TeamName = null, string? PartnerTag = null);
     public record UpdateRequest(string Name, string? Description, string? PrizeInfo,
-        string ClanInviteLink, int BestOf, int MinParticipants, int MaxParticipants);
+        string ClanInviteLink, int BestOf, int MinParticipants, int MaxParticipants,
+        DateTime? StartsAtUtc = null);
     public record SetResultRequest(int ScoreA, int ScoreB);
 
     /// <summary>GET /api/tournaments — открытые/идущие турниры, для вкладки "Турнир".</summary>
@@ -68,7 +69,7 @@ public class TournamentsController(
         var userId = (long)HttpContext.Items["TelegramUserId"]!;
         var error = await update.ExecuteAsync(
             id, userId, req.Name, req.Description, req.PrizeInfo, req.ClanInviteLink,
-            req.BestOf, req.MinParticipants, req.MaxParticipants, ct);
+            req.BestOf, req.MinParticipants, req.MaxParticipants, req.StartsAtUtc, ct);
         if (error is not null) return MapUpdateError(error.Value);
 
         return Ok(await getOne.ExecuteAsync(id, userId, ct));
@@ -164,6 +165,8 @@ public class TournamentsController(
     {
         UpdateTournamentError.TournamentNotFound => NotFound(new { error = "tournament_not_found" }),
         UpdateTournamentError.NotCreator => StatusCode(403, new { error = "not_creator" }),
+        UpdateTournamentError.BadStartDate =>
+            BadRequest(new { error = "bad_start_date", message = "Дата начала должна быть в будущем" }),
         UpdateTournamentError.BadName => BadRequest(new { error = "bad_name" }),
         UpdateTournamentError.BadLink => BadRequest(new { error = "bad_link" }),
         UpdateTournamentError.BadFormat => BadRequest(new { error = "bad_format" }),

@@ -20,6 +20,7 @@ import { WarJournalCard } from './components/WarJournalCard'
 import { OwnerPanel } from './components/OwnerPanel'
 import { LinkPrompt } from './components/LinkPrompt'
 import { PlayerSearchView } from './components/PlayerSearchView'
+import { TournamentView } from './components/TournamentView'
 import { ClanlessView } from './components/ClanlessView'
 import { GuestEntry } from './components/GuestEntry'
 import { GuestMyStats } from './components/GuestMyStats'
@@ -52,7 +53,7 @@ const TRANSIENT_TOLERANCE = 3
  * редкое собрано в «Ещё». Панель владельца — пятая и только у владельца: она невидима
  * для остальных, так что места в баре ни у кого не занимает.
  */
-type Tab = 'clan' | 'me' | 'search' | 'more' | 'owner'
+type Tab = 'clan' | 'me' | 'tournament' | 'search' | 'more' | 'owner'
 
 /**
  * Внутри «Клана»: война, состав и рейтинг — разные взгляды на один и тот же клан.
@@ -228,6 +229,7 @@ export default function App() {
       const tabs: { id: Tab; icon: string; label: string }[] = [
         { id: 'clan', icon: '🏰', label: t.tabs.clan },
         { id: 'me', icon: '👤', label: t.tabs.me },
+        { id: 'tournament', icon: '🏆', label: t.tabs.tournament },
         { id: 'search', icon: '🔍', label: t.tabs.search },
         { id: 'more', icon: '⚙️', label: t.tabs.more },
         ...(data.isOwner ? [{ id: 'owner' as Tab, icon: '📊', label: t.tabs.owner }] : []),
@@ -285,6 +287,11 @@ export default function App() {
                 <MyStatsView />
               </div>
             )}
+            {tab === 'tournament' && (
+              <div className="fade-in">
+                <TournamentView />
+              </div>
+            )}
             {tab === 'search' && (
               <div className="fade-in">
                 <PlayerSearchView />
@@ -333,6 +340,7 @@ export default function App() {
       const tabs: { id: Tab; icon: string; label: string }[] = [
         { id: 'clan', icon: '🏰', label: t.tabs.clan },
         { id: 'me', icon: '👤', label: t.tabs.me },
+        { id: 'tournament', icon: '🏆', label: t.tabs.tournament },
         { id: 'search', icon: '🔍', label: t.tabs.search },
         { id: 'more', icon: '⚙️', label: t.tabs.more },
       ]
@@ -379,6 +387,11 @@ export default function App() {
             {tab === 'me' && (
               <div className="fade-in">
                 <GuestMyStats data={data} myPlayerTag={myPlayerTag} />
+              </div>
+            )}
+            {tab === 'tournament' && (
+              <div className="fade-in">
+                <TournamentView />
               </div>
             )}
             {tab === 'search' && (

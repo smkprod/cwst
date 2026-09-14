@@ -1275,6 +1275,7 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 .tournament-champion-title { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
 .tournament-champion-name { font-size: 15px; font-weight: 800; color: var(--gold); }
 
+.bracket-hint { margin: -6px 0 8px; }
 .tournament-bracket { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 6px; }
 .tournament-round { flex: none; width: 180px; display: grid; gap: 8px; align-content: start; }
 .tournament-round-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; text-align: center; }

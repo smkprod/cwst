@@ -3,14 +3,15 @@ using ClanWarTracker.Domain.Interfaces;
 
 namespace ClanWarTracker.Application.UseCases;
 
-public enum UpdateTournamentError { TournamentNotFound, NotCreator, BadName, BadLink, BadFormat, AlreadyStarted }
+public enum UpdateTournamentError { TournamentNotFound, NotCreator, BadName, BadLink, BadFormat, AlreadyStarted, BadStartDate }
 
 /// <summary>Редактирование описания/призовых/ссылки и формата турнира — доступно только создателю.</summary>
 public class UpdateTournamentUseCase(ITournamentRepository tournaments)
 {
     public async Task<UpdateTournamentError?> ExecuteAsync(
         int tournamentId, long telegramUserId, string name, string? description, string? prizeInfo,
-        string clanInviteLink, int bestOf, int minParticipants, int maxParticipants, CancellationToken ct = default)
+        string clanInviteLink, int bestOf, int minParticipants, int maxParticipants,
+        DateTime? startsAtUtc = null, CancellationToken ct = default)
     {
         var tournament = await tournaments.GetByIdAsync(tournamentId, ct);
         if (tournament is null) return UpdateTournamentError.TournamentNotFound;
@@ -18,7 +19,9 @@ public class UpdateTournamentUseCase(ITournamentRepository tournaments)
 
         name = name?.Trim() ?? "";
         if (name.Length is 0 or > 80) return UpdateTournamentError.BadName;
-        if (!TournamentValidation.IsValidClanInviteLink(clanInviteLink)) return UpdateTournamentError.BadLink;
+        var hasLink = !TournamentValidation.IsMissing(clanInviteLink);
+        if (hasLink && !TournamentValidation.IsValidClanInviteLink(clanInviteLink))
+            return UpdateTournamentError.BadLink;
 
         description = TournamentValidation.Truncate(description?.Trim(), 2000);
         prizeInfo = TournamentValidation.Truncate(prizeInfo?.Trim(), 500);
@@ -26,7 +29,20 @@ public class UpdateTournamentUseCase(ITournamentRepository tournaments)
         tournament.Name = name;
         tournament.Description = string.IsNullOrEmpty(description) ? null : description;
         tournament.PrizeInfo = string.IsNullOrEmpty(prizeInfo) ? null : prizeInfo;
-        tournament.ClanInviteLink = clanInviteLink.Trim();
+        tournament.ClanInviteLink = hasLink ? clanInviteLink.Trim() : null;
+
+        // Дату начала двигают чаще всего остального: собрались не все, перенесли на
+        // завтра. Разрешаем менять и стирать, но не назначать на прошлое — кроме
+        // случая, когда турнир уже идёт: там дата стала историей, и трогать её нечего.
+        if (startsAtUtc != tournament.StartsAtUtc)
+        {
+            if (startsAtUtc is { } starts
+                && starts <= DateTime.UtcNow
+                && tournament.Status == TournamentStatus.RegistrationOpen)
+                return UpdateTournamentError.BadStartDate;
+
+            tournament.StartsAtUtc = startsAtUtc;
+        }
 
         // Формат, минимум и лимит мест меняют сценарий запуска — после жеребьёвки уже не редактируется.
         if (bestOf != tournament.BestOf || minParticipants != tournament.MinParticipants
