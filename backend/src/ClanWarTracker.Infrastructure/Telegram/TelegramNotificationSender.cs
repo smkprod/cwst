@@ -48,7 +48,7 @@ public class TelegramNotificationSender(ITelegramBotClient bot) : INotificationS
                 ? null
                 : new InlineKeyboardMarkup(InlineKeyboardButton.WithUrl("🎮 Открыть в Mini App", appUrl));
 
-            await bot.SendPhoto(chatId, Telegram.Bot.Types.InputFile.FromUri(photoUrl),
+            await bot.SendPhoto(chatId, global::Telegram.Bot.Types.InputFile.FromUri(photoUrl),
                 caption: caption, replyMarkup: keyboard, messageThreadId: threadId, cancellationToken: ct);
             return true;
         }
