@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { api, ApiError } from '../lib/api'
-import type { Tournament } from '../types'
+import type { Tournament, TournamentMode } from '../types'
 import { haptic, hapticNotify } from '../lib/telegram'
 import { useT } from '../lib/i18n'
 
@@ -20,6 +20,11 @@ export function TournamentForm({ mode, initial, onSaved, onCancel }: Props) {
   const [bestOf, setBestOf] = useState(initial?.bestOf ?? 2)
   const [minParticipants, setMinParticipants] = useState(initial?.minParticipants ?? 2)
   const [maxParticipants, setMaxParticipants] = useState(initial?.maxParticipants ?? 16)
+  // Формат турнира (solo/duo) — не путать со свойством mode, которое означает
+  // «создаём или редактируем». Менять формат после создания нельзя: в сетке уже
+  // могут стоять команды, и превращать их в одиночек некуда.
+  const [format, setFormat] = useState<TournamentMode>(initial?.mode ?? 'solo')
+  const [startsAt, setStartsAt] = useState(toLocalInput(initial?.startsAtUtc ?? null))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -28,6 +33,7 @@ export function TournamentForm({ mode, initial, onSaved, onCancel }: Props) {
       case 'bad_name': return t.tournament.badName
       case 'bad_link': return t.tournament.badLink
       case 'bad_format': return t.tournament.badFormat
+      case 'bad_start_date': return t.tournament.badStartDate
       case 'too_many_active': return t.tournament.tooManyActive
       case 'player_not_linked': return t.tournament.notLinked
       default: return t.tournament.error
@@ -47,6 +53,9 @@ export function TournamentForm({ mode, initial, onSaved, onCancel }: Props) {
         bestOf,
         minParticipants,
         maxParticipants,
+        mode: format,
+        // Пустое поле — дата не объявлена; это допустимо, турнир стартуют вручную
+        startsAtUtc: startsAt ? new Date(startsAt).toISOString() : null,
       }
       const result = mode === 'create'
         ? await api.createTournament(req)
@@ -121,6 +130,27 @@ export function TournamentForm({ mode, initial, onSaved, onCancel }: Props) {
           </select>
         </div>
         <div className="form-field">
+          <label className="muted small">{t.tournament.formatLabel}</label>
+          <select
+            className="rating-select tournament-select"
+            value={format}
+            disabled={mode === 'edit'}
+            onChange={e => setFormat(e.target.value as TournamentMode)}
+          >
+            <option value="solo">{t.tournament.formatSolo}</option>
+            <option value="duo">{t.tournament.formatDuo}</option>
+          </select>
+        </div>
+        <div className="form-field">
+          <label className="muted small">{t.tournament.startsAtLabel}</label>
+          <input
+            className="search-input"
+            type="datetime-local"
+            value={startsAt}
+            onChange={e => setStartsAt(e.target.value)}
+          />
+        </div>
+        <div className="form-field">
           <label className="muted small">{t.tournament.minParticipantsLabel}</label>
           <input
             className="search-input"
@@ -155,4 +185,18 @@ export function TournamentForm({ mode, initial, onSaved, onCancel }: Props) {
       </div>
     </div>
   )
+}
+
+/**
+ * ISO-строка UTC → значение для datetime-local, которое работает в местном времени.
+ * Пустая строка, если даты нет: поле должно остаться незаполненным, а не показывать
+ * начало эпохи.
+ */
+function toLocalInput(iso: string | null): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+       + `T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }

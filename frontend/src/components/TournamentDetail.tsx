@@ -70,7 +70,15 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
     }
   }
 
+  // Парная заявка: форму разворачиваем по кнопке, а не показываем всегда —
+  // в одиночном турнире она лишняя, а в парном нужна ровно один раз.
+  const [teamOpen, setTeamOpen] = useState(false)
+  const [teamName, setTeamName] = useState('')
+  const [partnerTag, setPartnerTag] = useState('')
+
   const join = () => runAction(() => api.joinTournament(tournamentId))
+  const joinAsTeam = () => runAction(() =>
+    api.joinTournament(tournamentId, { teamName: teamName.trim(), partnerTag: partnerTag.trim() }))
   const leave = () => runAction(() => api.leaveTournament(tournamentId))
   const generateBracket = () => runAction(() => api.generateTournamentBracket(tournamentId))
   const startTournament = () => runAction(() => api.startTournament(tournamentId))
@@ -208,7 +216,37 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
               {t.tournament.joinClanBtn}
             </button>
           )}
-          {d.canJoin && (
+          {d.canJoin && d.mode === 'duo' && !teamOpen && (
+            <button className="btn" disabled={busy} onClick={() => setTeamOpen(true)}>
+              {t.tournament.joinTeamBtn}
+            </button>
+          )}
+          {d.canJoin && d.mode === 'duo' && teamOpen && (
+            <div className="team-form">
+              <input
+                className="search-input"
+                placeholder={t.tournament.teamNamePlaceholder}
+                maxLength={64}
+                value={teamName}
+                onChange={e => setTeamName(e.target.value)}
+              />
+              <input
+                className="search-input"
+                placeholder={t.tournament.partnerTagPlaceholder}
+                value={partnerTag}
+                onChange={e => setPartnerTag(e.target.value)}
+              />
+              <p className="muted small">{t.tournament.teamHint}</p>
+              <button
+                className="btn"
+                disabled={busy || teamName.trim() === '' || partnerTag.trim() === ''}
+                onClick={joinAsTeam}
+              >
+                {t.tournament.joinBtn}
+              </button>
+            </div>
+          )}
+          {d.canJoin && d.mode !== 'duo' && (
             <button className="btn" disabled={busy} onClick={join}>{t.tournament.joinBtn}</button>
           )}
           {canLeave && (
@@ -250,7 +288,14 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
         <ul className="tournament-participants-list">
           {d.participants.map(p => (
             <li key={p.id} className="tournament-participant-row">
-              <span className="tournament-participant-name">{p.playerName}</span>
+              <span className="tournament-participant-name">
+                {p.teamName ?? p.playerName}
+                {p.partnerPlayerName !== null && (
+                  <span className="muted small team-roster">
+                    {' '}{p.playerName} + {p.partnerPlayerName}
+                  </span>
+                )}
+              </span>
               {p.finalPlacement && <span className="muted small">#{p.finalPlacement}</span>}
             </li>
           ))}

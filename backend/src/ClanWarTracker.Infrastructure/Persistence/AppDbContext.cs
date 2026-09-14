@@ -125,6 +125,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasIndex(p => new { p.TournamentId, p.TelegramUserId }).IsUnique();
             e.Property(p => p.PlayerTag).HasMaxLength(16);
             e.Property(p => p.PlayerName).HasMaxLength(64);
+            e.Property(p => p.TeamName).HasMaxLength(64);
+            e.Property(p => p.PartnerPlayerTag).HasMaxLength(16);
+            e.Property(p => p.PartnerPlayerName).HasMaxLength(64);
             e.HasOne(p => p.Tournament)
              .WithMany(t => t.Participants)
              .HasForeignKey(p => p.TournamentId)

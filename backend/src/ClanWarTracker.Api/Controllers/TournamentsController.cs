@@ -1,4 +1,5 @@
 using ClanWarTracker.Application.UseCases;
+using ClanWarTracker.Domain.Enums;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ClanWarTracker.Api.Controllers;
@@ -20,7 +21,11 @@ public class TournamentsController(
     IConfiguration config) : ControllerBase
 {
     public record CreateRequest(string Name, string? Description, string? PrizeInfo,
-        string ClanInviteLink, int BestOf, int MinParticipants, int MaxParticipants);
+        string ClanInviteLink, int BestOf, int MinParticipants, int MaxParticipants,
+        string? Mode = null, DateTime? StartsAtUtc = null);
+
+    /// <summary>Заявка. В парном турнире оба поля обязательны, в одиночном не нужны.</summary>
+    public record JoinRequest(string? TeamName = null, string? PartnerTag = null);
     public record UpdateRequest(string Name, string? Description, string? PrizeInfo,
         string ClanInviteLink, int BestOf, int MinParticipants, int MaxParticipants);
     public record SetResultRequest(int ScoreA, int ScoreB);
@@ -43,9 +48,13 @@ public class TournamentsController(
     public async Task<IActionResult> Create([FromBody] CreateRequest req, CancellationToken ct)
     {
         var userId = (long)HttpContext.Items["TelegramUserId"]!;
+        var mode = string.Equals(req.Mode, "duo", StringComparison.OrdinalIgnoreCase)
+            ? TournamentMode.Duo
+            : TournamentMode.Solo;
+
         var (tournament, error) = await create.ExecuteAsync(
             userId, req.Name, req.Description, req.PrizeInfo, req.ClanInviteLink,
-            req.BestOf, req.MinParticipants, req.MaxParticipants, ct);
+            req.BestOf, req.MinParticipants, req.MaxParticipants, mode, req.StartsAtUtc, ct);
 
         if (error is not null) return MapCreateError(error.Value);
         var dto = await getOne.ExecuteAsync(tournament!.Id, userId, ct);
@@ -67,10 +76,11 @@ public class TournamentsController(
 
     /// <summary>POST /api/tournaments/{id}/join — вступить в турнир.</summary>
     [HttpPost("{id:int}/join")]
-    public async Task<IActionResult> Join(int id, CancellationToken ct)
+    public async Task<IActionResult> Join(int id, [FromBody] JoinRequest? req, CancellationToken ct)
     {
         var userId = (long)HttpContext.Items["TelegramUserId"]!;
-        var error = await join.ExecuteAsync(id, userId, ct);
+        // Тело необязательно: одиночные турниры зовут эту ручку вообще без него.
+        var error = await join.ExecuteAsync(id, userId, req?.TeamName, req?.PartnerTag, ct);
         if (error is not null) return MapJoinError(error.Value);
         return Ok(await getOne.ExecuteAsync(id, userId, ct));
     }
@@ -144,6 +154,8 @@ public class TournamentsController(
         CreateTournamentError.TooManyActive => StatusCode(429, new { error = "too_many_active", message = "Слишком много активных турниров — заверши или отмени старые" }),
         CreateTournamentError.BadLink => BadRequest(new { error = "bad_link", message = "Нужна ссылка-приглашение в клан (clashroyale.com)" }),
         CreateTournamentError.BadName => BadRequest(new { error = "bad_name", message = "Название турнира: 1–80 символов" }),
+        CreateTournamentError.BadStartDate =>
+            BadRequest(new { error = "bad_start_date", message = "Дата начала должна быть в будущем" }),
         CreateTournamentError.BadFormat => BadRequest(new { error = "bad_format" }),
         _ => BadRequest(new { error = "bad_request" }),
     };
@@ -166,6 +178,16 @@ public class TournamentsController(
         JoinTournamentError.NotOpen => BadRequest(new { error = "not_open", message = "Регистрация закрыта" }),
         JoinTournamentError.Full => BadRequest(new { error = "full", message = "Турнир набрал максимум участников" }),
         JoinTournamentError.AlreadyJoined => BadRequest(new { error = "already_joined" }),
+        JoinTournamentError.TeamNameRequired =>
+            BadRequest(new { error = "team_name_required", message = "Укажи название команды" }),
+        JoinTournamentError.PartnerRequired =>
+            BadRequest(new { error = "partner_required", message = "Укажи тег напарника" }),
+        JoinTournamentError.PartnerNotFound =>
+            BadRequest(new { error = "partner_not_found", message = "Игрок с таким тегом не найден" }),
+        JoinTournamentError.PartnerIsSelf =>
+            BadRequest(new { error = "partner_is_self", message = "Это твой собственный тег" }),
+        JoinTournamentError.PartnerAlreadyPlaying =>
+            BadRequest(new { error = "partner_already_playing", message = "Этот игрок уже заявлен в турнире" }),
         _ => BadRequest(new { error = "bad_request" }),
     };
 

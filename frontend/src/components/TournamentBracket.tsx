@@ -69,7 +69,7 @@ export function TournamentBracket({ tournament, onUpdated }: Props) {
       {champion && (
         <div className="card tournament-champion-card">
           <span className="tournament-champion-title">{t.tournament.champion}</span>
-          <span className="tournament-champion-name">🏆 {champion.playerName}</span>
+          <span className="tournament-champion-name">🏆 {champion.teamName ?? champion.playerName}</span>
         </div>
       )}
 
@@ -142,7 +142,10 @@ function MatchSide({ participant, isWinner, score, status }: {
 }) {
   return (
     <div className={`tournament-match-side ${isWinner ? 'tournament-match-winner' : ''}`}>
-      <span className="tournament-match-name">{participant ? participant.playerName : '—'}</span>
+      {/* В парном турнире в сетке стоит команда: её имя короче двух ников и не рвёт вёрстку */}
+      <span className="tournament-match-name">
+        {participant ? participant.teamName ?? participant.playerName : '—'}
+      </span>
       {status === 'completed' && <span className="tournament-match-score">{score}</span>}
     </div>
   )

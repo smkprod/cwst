@@ -34,13 +34,17 @@ public static class TournamentMapping
         _ => "pending",
     };
 
+    public static string ToText(TournamentMode m) => m == TournamentMode.Duo ? "duo" : "solo";
+
     public static TournamentSummaryDto ToSummary(Tournament t) => new(
-        t.Id, t.Name, ToText(t.Status), t.BestOf, t.MaxParticipants,
+        t.Id, t.Name, ToText(t.Status), ToText(t.Mode), t.StartsAtUtc, t.BestOf, t.MaxParticipants,
         t.Participants.Count(p => p.Status != TournamentParticipantStatus.Withdrawn),
         t.CreatorName, t.CreatedAtUtc);
 
     public static TournamentParticipantDto ToDto(TournamentParticipant p) => new(
-        p.Id, p.PlayerTag, p.PlayerName, p.Seed, ToText(p.Status), p.FinalPlacement);
+        p.Id, p.PlayerTag, p.PlayerName,
+        p.TeamName, p.PartnerPlayerTag, p.PartnerPlayerName,
+        p.Seed, ToText(p.Status), p.FinalPlacement);
 
     public static TournamentDto ToDto(Tournament t, long requestingTelegramUserId)
     {
@@ -70,7 +74,7 @@ public static class TournamentMapping
         return new TournamentDto(
             t.Id, t.Name, t.Description, t.PrizeInfo, t.ClanInviteLink,
             t.CreatorName, t.BestOf, t.MinParticipants, t.MaxParticipants,
-            ToText(t.Status), t.CreatedAtUtc,
+            ToText(t.Status), ToText(t.Mode), t.StartsAtUtc, t.CreatedAtUtc,
             IsCreator: t.CreatorTelegramUserId == requestingTelegramUserId,
             IsParticipant: isParticipant,
             CanJoin: t.Status == TournamentStatus.RegistrationOpen && !isParticipant

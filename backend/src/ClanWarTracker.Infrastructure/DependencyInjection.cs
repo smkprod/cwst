@@ -438,6 +438,18 @@ CREATE TABLE IF NOT EXISTS ""ActivityDays"" (
             "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_ActivityDays_PlayerId_DayUtc\" ON \"ActivityDays\" (\"PlayerId\", \"DayUtc\");");
         await db.Database.ExecuteSqlRawAsync(
             "CREATE INDEX IF NOT EXISTS \"IX_ActivityDays_DayUtc\" ON \"ActivityDays\" (\"DayUtc\");");
+
+        // Парные турниры: формат, дата старта и команда участника.
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Tournaments\" ADD COLUMN IF NOT EXISTS \"Mode\" integer NOT NULL DEFAULT 0;");
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Tournaments\" ADD COLUMN IF NOT EXISTS \"StartsAtUtc\" timestamptz;");
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"TournamentParticipants\" ADD COLUMN IF NOT EXISTS \"TeamName\" varchar(64);");
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"TournamentParticipants\" ADD COLUMN IF NOT EXISTS \"PartnerPlayerTag\" varchar(16);");
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"TournamentParticipants\" ADD COLUMN IF NOT EXISTS \"PartnerPlayerName\" varchar(64);");
     }
 
     /// <summary>Убирает все пробельные символы (включая \r\n) из токена. null, если пусто.</summary>

@@ -140,7 +140,9 @@ export function TournamentView() {
                 <span className={`badge tournament-status-badge ${clanStatusClass(tr.status)}`}>{clanStatusLabel(tr.status)}</span>
               </div>
               <p className="muted small">
+                {tr.mode === 'duo' && <>{t.tournament.formatDuo} · </>}
                 {tr.creatorName} · {t.tournament.bestOfLabel} {tr.bestOf} · {tr.participantCount}/{tr.maxParticipants} {t.tournament.participantsCount}
+                {tr.startsAtUtc !== null && <> · 📅 {new Date(tr.startsAtUtc).toLocaleString()}</>}
               </p>
             </li>
           ))}

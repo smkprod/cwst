@@ -1,5 +1,5 @@
 import { initData } from './telegram'
-import type { BroadcastResult, BroadcastTarget, ClanDiscipline, DailyPuzzle, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, Tournament, TournamentSummary, WarJournal } from '../types'
+import type { BroadcastResult, BroadcastTarget, ClanDiscipline, DailyPuzzle, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, Tournament, TournamentSummary, WarJournal } from '../types'
 
 // Если мы на Render (production), BASE должен быть пустой строкой '', чтобы запросы шли на тот же домен.
 // Для локальной разработки (Development) оставляем localhost:5000.
@@ -157,6 +157,7 @@ export const api = {
   createTournament: (req: {
     name: string; description?: string; prizeInfo?: string
     clanInviteLink: string; bestOf: number; minParticipants: number; maxParticipants: number
+    mode?: TournamentMode; startsAtUtc?: string | null
   }) =>
     request<Tournament>('/api/tournaments', {
       method: 'POST',
@@ -172,8 +173,13 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(req),
     }),
-  joinTournament: (id: number) =>
-    request<Tournament>(`/api/tournaments/${id}/join`, { method: 'POST' }),
+  /** В парном турнире обязательны название команды и тег напарника. */
+  joinTournament: (id: number, team?: { teamName: string; partnerTag: string }) =>
+    request<Tournament>(`/api/tournaments/${id}/join`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(team ?? {}),
+    }),
   leaveTournament: (id: number) =>
     request<Tournament>(`/api/tournaments/${id}/leave`, { method: 'POST' }),
   generateTournamentBracket: (id: number) =>
