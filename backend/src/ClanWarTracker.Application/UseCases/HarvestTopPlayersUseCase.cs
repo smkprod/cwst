@@ -33,8 +33,17 @@ public class HarvestTopPlayersUseCase(IClashRoyaleApi crApi, ITopPlayerRepositor
         var day = DateTime.UtcNow.ToString("yyyy-MM-dd");
         if (!force && await top.HasDayAsync(day, ct)) return 0;
 
-        var ranking = await crApi.GetGlobalRankingAsync(TopSize, ct);
-        if (ranking.Count == 0) return 0;
+        var all = await crApi.GetGlobalRankingAsync(TopSize, ct);
+        if (all.Count == 0) return 0;
+
+        // Место — уникальный ключ снимка, и повтор в ответе API уронил бы вставку всей
+        // тысячи разом: остались бы без снимка за день из-за одной лишней строки.
+        // Тег страхуем той же логикой — один игрок дважды в рейтинге тоже бессмыслица.
+        var ranking = all
+            .GroupBy(r => r.Rank).Select(g => g.First())
+            .GroupBy(r => r.Tag, StringComparer.OrdinalIgnoreCase).Select(g => g.First())
+            .OrderBy(r => r.Rank)
+            .ToList();
 
         var rows = new TopPlayer[ranking.Count];
         using var gate = new SemaphoreSlim(Parallelism);
