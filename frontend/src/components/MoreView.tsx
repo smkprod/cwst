@@ -8,8 +8,9 @@ import { CommunityCard } from './CommunityCard'
 import { InviteCard } from './InviteCard'
 import { RecruitToggle } from './RecruitToggle'
 import { RecruitBoard } from './RecruitBoard'
+import { WorldTopView } from './WorldTopView'
 
-type Section = 'recruit' | 'about'
+type Section = 'recruit' | 'about' | 'worldTop'
 
 interface Props {
   plan: Plan
@@ -41,6 +42,7 @@ export function MoreView({ plan, canManage, isProLeader, onOpenNotifications }: 
         <button className="btn-mini more-back" onClick={back}>← {t.more.back}</button>
         {section === 'recruit' && (isProLeader ? <RecruitBoard /> : <RecruitToggle />)}
         {section === 'about' && <AboutCard plan={plan} />}
+        {section === 'worldTop' && <WorldTopView />}
       </div>
     )
   }
@@ -69,6 +71,15 @@ export function MoreView({ plan, canManage, isProLeader, onOpenNotifications }: 
 
       <section className="card" style={{ marginTop: 10 }}>
         <div className="card-title">{t.more.sectionsTitle}</div>
+
+        <button className="more-row" onClick={() => open('worldTop')}>
+          <span className="more-row-icon">🌍</span>
+          <span className="more-row-text">
+            <span className="more-row-title">{t.more.worldTop}</span>
+            <span className="muted small">{t.more.worldTopHint}</span>
+          </span>
+          <span className="more-row-arrow">›</span>
+        </button>
 
         <button className="more-row" onClick={() => open('recruit')}>
           <span className="more-row-icon">👥</span>

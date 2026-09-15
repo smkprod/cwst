@@ -1931,3 +1931,101 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
   list-style: none; margin: 8px 0 0; padding: 0;
   display: grid; gap: 5px; font-size: 13px; color: var(--muted);
 }
+
+/* --- Мировой топ --- */
+
+.wtop-empty { font-size: 14px; font-weight: 600; margin: 4px 0 4px; }
+
+.wtop-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.wtop-tile {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  padding: 9px 4px; border-radius: 10px; background: rgba(255, 255, 255, 0.05);
+  text-align: center;
+}
+.wtop-tile-accent { background: rgba(156, 107, 255, 0.16); }
+.wtop-tile-value { font-size: 18px; font-weight: 800; line-height: 1.1; }
+.wtop-tile-accent .wtop-tile-value { color: var(--purple); }
+.wtop-tile-label { font-size: 11px; font-weight: 600; }
+.wtop-tile-hint { font-size: 10px; color: var(--muted); line-height: 1.2; }
+
+.wtop-tabs { display: flex; gap: 6px; margin-top: 10px; }
+.wtop-tab {
+  flex: 1; padding: 8px 4px; border-radius: 10px; border: none; cursor: pointer;
+  background: var(--bg-card); color: var(--muted);
+  font-size: 13px; font-weight: 700;
+}
+.wtop-tab-on { background: var(--accent); color: #fff; }
+
+/* Витрина карт. Четыре в ряд: иконка остаётся узнаваемой, а проценты и стрелка
+   умещаются под ней без переносов. */
+.wtop-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.wtop-card { position: relative; display: grid; gap: 1px; justify-items: center; text-align: center; }
+.wtop-card img {
+  width: 100%; aspect-ratio: 1; object-fit: contain; border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+}
+.wtop-card-blank {
+  width: 100%; aspect-ratio: 1; border-radius: 6px; background: rgba(255, 255, 255, 0.06);
+}
+.wtop-card-pct { font-size: 13px; font-weight: 800; line-height: 1.1; }
+.wtop-card-name {
+  font-size: 9px; color: var(--muted); line-height: 1.15;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;
+}
+/* Стрелка сидит на иконке: отдельной строкой она сдвигала бы подписи и ряды
+   переставали бы выстраиваться по высоте. */
+.wtop-delta {
+  position: absolute; top: 2px; right: 2px;
+  font-size: 9px; font-weight: 800; padding: 1px 3px; border-radius: 4px;
+  background: rgba(0, 0, 0, 0.6);
+}
+.wtop-up { color: var(--green); }
+.wtop-down { color: var(--red); }
+
+.wtop-row {
+  display: block; width: 100%; text-align: left; cursor: pointer;
+  border: none; color: var(--text); margin-bottom: 8px;
+}
+.wtop-row-head { display: flex; align-items: center; gap: 9px; }
+.wtop-rank {
+  flex-shrink: 0; min-width: 28px; text-align: center;
+  font-size: 13px; font-weight: 800; color: var(--muted);
+}
+.wtop-rank-medal { font-size: 17px; }
+.wtop-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.wtop-row-name {
+  font-size: 14px; font-weight: 700;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.wtop-row-clan { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wtop-row-trophies { flex-shrink: 0; font-size: 13px; font-weight: 700; }
+.wtop-row-nodeck { display: block; margin-top: 7px; }
+
+.wtop-deck { display: grid; grid-template-columns: repeat(8, 1fr); gap: 3px; margin-top: 7px; }
+.wtop-deck-card { display: block; }
+.wtop-deck-card img {
+  width: 100%; aspect-ratio: 1; object-fit: contain; border-radius: 4px;
+  background: rgba(255, 255, 255, 0.04);
+}
+.wtop-deck-label { display: block; font-size: 10px; color: var(--muted); margin-top: 7px; }
+
+.wtop-more { width: 100%; margin: 4px 0 8px; }
+
+.wtop-section-title { font-size: 13px; font-weight: 700; margin: 14px 0 4px; }
+
+.wtop-battle {
+  border-radius: 10px; padding: 8px 9px; margin-bottom: 7px;
+  background: rgba(255, 255, 255, 0.04);
+  border-left: 3px solid var(--muted);
+}
+.wtop-battle-win { border-left-color: var(--green); }
+.wtop-battle-loss { border-left-color: var(--red); }
+.wtop-battle-head { display: flex; align-items: baseline; gap: 7px; }
+.wtop-battle-score { font-size: 13px; font-weight: 800; flex-shrink: 0; }
+.wtop-battle-opp {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.wtop-battle-when { flex-shrink: 0; }
+.wtop-battle-decks .wtop-deck { margin-top: 3px; }
+/* Единственная строка в карточке — рамка сверху от .more-row тут лишняя. */
+.wtop-entry { border-top: none; padding: 2px 4px; }

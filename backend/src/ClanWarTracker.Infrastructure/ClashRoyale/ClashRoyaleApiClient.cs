@@ -656,7 +656,8 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
                     .Where(c => c?.IconUrls?.Medium is not null)
                     .Select(c => new CrDeckCard
                     {
-                        Name = c!.Name,
+                        Id = c!.Id,
+                        Name = c.Name,
                         Level = ToGameLevel(c.Level, c.MaxLevel, maxCardLevel),
                         MaxLevel = maxCardLevel,
                         IconUrl = c.IconUrls!.Medium!,
@@ -717,6 +718,9 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         [property: JsonPropertyName("level")] int Level,
         [property: JsonPropertyName("maxLevel")] int MaxLevel,
         [property: JsonPropertyName("iconUrls")] CardIconUrls? IconUrls,
+        // id карты — по нему считается популярность в снимках топа: он стабилен,
+        // а имя зависит от языка ответа и может поменяться правкой локализации
+        [property: JsonPropertyName("id")] int Id = 0,
         // Эволюции: maxEvolutionLevel > 0 — у карты вообще есть эволюция,
         // evolutionLevel > 0 — игрок её разблокировал. У старых карт полей нет.
         [property: JsonPropertyName("evolutionLevel")] int EvolutionLevel = 0,
@@ -917,6 +921,41 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         return result ?? [];
     }
 
+    /// <summary>
+    /// Мировой рейтинг по кубкам. 1000 — предел самого API, больше оно не отдаёт
+    /// ни при каком limit, поэтому и просить больше незачем.
+    /// Кэш короткий: снимок снимается раз в сутки, но ручку могут дёрнуть и вручную.
+    /// </summary>
+    public async Task<List<CrRankedPlayer>> GetGlobalRankingAsync(int limit = 1000, CancellationToken ct = default)
+    {
+        var capped = Math.Clamp(limit, 1, 1000);
+        var result = await cache.GetOrCreateAsync($"globalranking:{capped}", async entry =>
+        {
+            entry.Size = 1;
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30);
+
+            var resp = await http.GetAsync($"locations/global/rankings/players?limit={capped}", ct);
+            if (!resp.IsSuccessStatusCode)
+            {
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
+                return new List<CrRankedPlayer>();
+            }
+
+            var data = await resp.Content.ReadFromJsonAsync<PlayerRankingsResponse>(cancellationToken: ct);
+            return (data?.Items ?? [])
+                .Select(p => new CrRankedPlayer
+                {
+                    Rank = p.Rank,
+                    Tag = p.Tag,
+                    Name = p.Name,
+                    Trophies = p.Trophies,
+                    ClanName = p.Clan?.Name,
+                })
+                .ToList();
+        });
+        return result ?? [];
+    }
+
     private record PlayerRankingsResponse(
         [property: JsonPropertyName("items")] List<PlayerRankingItem>? Items);
 
@@ -1012,6 +1051,73 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         return list ?? [];
     }
 
+    /// <summary>
+    /// Последние бои игрока с колодами обеих сторон, без фильтра по режиму.
+    /// Кэш пять минут: журнал обновляется после каждого боя, но дёргать его
+    /// на каждый показ карточки незачем.
+    /// </summary>
+    public async Task<List<CrRecentBattle>> GetRecentBattlesAsync(string playerTag, CancellationToken ct = default)
+    {
+        var list = await cache.GetOrCreateAsync($"recentbattles:{playerTag}", async entry =>
+        {
+            entry.Size = 1;
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
+
+            var resp = await http.GetAsync($"players/{Encode(playerTag)}/battlelog", ct);
+            if (!resp.IsSuccessStatusCode) return new List<CrRecentBattle>();
+
+            var raw = await resp.Content.ReadFromJsonAsync<List<BattlelogEntry>>(cancellationToken: ct);
+            var result = new List<CrRecentBattle>();
+
+            foreach (var b in raw ?? [])
+            {
+                var me = b.Team?.FirstOrDefault();
+                var opp = b.Opponent?.FirstOrDefault();
+                var time = ParseCrTime(b.BattleTime);
+                if (me is null || time is null) continue;
+
+                var crownsFor = me.Crowns;
+                var crownsAgainst = opp?.Crowns ?? 0;
+                var isBoat = (b.Type ?? "").Contains("boat", StringComparison.OrdinalIgnoreCase);
+
+                result.Add(new CrRecentBattle
+                {
+                    BattleTimeUtc = time.Value,
+                    Type = b.Type ?? "",
+                    Won = isBoat ? (b.BoatBattleWon ?? crownsFor > crownsAgainst) : crownsFor > crownsAgainst,
+                    CrownsFor = crownsFor,
+                    CrownsAgainst = crownsAgainst,
+                    OpponentName = opp?.Name,
+                    OpponentTag = opp?.Tag,
+                    MyDeck = Deck(me.Cards),
+                    OpponentDeck = Deck(opp?.Cards),
+                });
+            }
+            return result;
+        });
+        return list ?? [];
+    }
+
+    /// <summary>
+    /// Колода из боя. Уровень оставляем как пришёл: в бою у каждого свой потолок
+    /// по редкости, и переводить его в игровую шкалу без данных о карте нечем.
+    /// </summary>
+    private static List<CrDeckCard> Deck(List<CardResponse>? cards) =>
+        (cards ?? [])
+            .Where(c => c?.IconUrls?.Medium is not null)
+            .Select(c => new CrDeckCard
+            {
+                Id = c!.Id,
+                Name = c.Name,
+                Level = c.Level,
+                MaxLevel = c.MaxLevel,
+                IconUrl = c.IconUrls!.Medium!,
+                EvolutionLevel = c.EvolutionLevel,
+                MaxEvolutionLevel = c.MaxEvolutionLevel,
+                EvoIconUrl = c.IconUrls.EvolutionMedium,
+            })
+            .ToList();
+
     private record BattlelogEntry(
         [property: JsonPropertyName("type")] string? Type,
         [property: JsonPropertyName("battleTime")] string? BattleTime,
@@ -1022,7 +1128,9 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
     private record BattlePlayer(
         [property: JsonPropertyName("tag")] string Tag,
         [property: JsonPropertyName("name")] string Name,
-        [property: JsonPropertyName("crowns")] int Crowns);
+        [property: JsonPropertyName("crowns")] int Crowns,
+        // Колода в ответе была всегда — просто раньше её выбрасывали за ненадобностью
+        [property: JsonPropertyName("cards")] List<CardResponse>? Cards = null);
 
     private record NamedEntity([property: JsonPropertyName("name")] string Name);
     private record ClanProfile([property: JsonPropertyName("clanWarTrophies")] int? ClanWarTrophies);

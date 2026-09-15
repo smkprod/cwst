@@ -1,5 +1,5 @@
 import { initData } from './telegram'
-import type { BroadcastResult, BroadcastTarget, ClanDiscipline, DailyPuzzle, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, Tournament, TournamentSummary, WarJournal } from '../types'
+import type { BroadcastResult, BroadcastTarget, ClanDiscipline, DailyPuzzle, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, TopPlayerRow, TopPlayerDetail, Tournament, TournamentSummary, WarJournal } from '../types'
 
 // Если мы на Render (production), BASE должен быть пустой строкой '', чтобы запросы шли на тот же домен.
 // Для локальной разработки (Development) оставляем localhost:5000.
@@ -91,6 +91,20 @@ export const api = {
   getSeasonBreakdown: () => request<SeasonBreakdown>('/api/clans/my/season-weeks'),
   getSeasonArchive: () => request<SeasonArchive>('/api/clans/my/season-archive'),
   getGlobalTop: () => request<GlobalTop>('/api/players/top'),
+
+  // Мировой топ (снимки CR-рейтинга)
+  // 204 — снимков ещё нет: копим. Пустое тело, поэтому не парсим.
+  getTopMeta: async (): Promise<TopMeta | null> => {
+    const res = await fetch(`${BASE}/api/top/meta`, {
+      headers: { 'X-Telegram-Init-Data': window.Telegram?.WebApp?.initData ?? '' },
+    })
+    if (!res.ok || res.status === 204) return null
+    return res.json().catch(() => null)
+  },
+  getTopPlayers: (skip = 0, take = 50) =>
+    request<TopPlayerRow[]>(`/api/top/players?skip=${skip}&take=${take}`),
+  getTopPlayerDetail: (tag: string) =>
+    request<TopPlayerDetail>(`/api/top/players/${encodeURIComponent(tag.replace('#', ''))}`),
   getMyAchievements: () => request<Achievements>('/api/players/me/achievements'),
   getPlayerAchievements: (tag: string) =>
     request<Achievements>(`/api/players/${encodeURIComponent(tag.replace('#', ''))}/achievements`),

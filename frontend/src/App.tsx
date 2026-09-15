@@ -32,6 +32,7 @@ import { MenuChangedNotice } from './components/MenuChangedNotice'
 import { UpdateNotice } from './components/UpdateNotice'
 import { DisciplineCard } from './components/DisciplineCard'
 import { ScoutCard } from './components/ScoutCard'
+import { WorldTopEntry } from './components/WorldTopEntry'
 import { weekKing } from './lib/king'
 
 type State =
@@ -280,6 +281,7 @@ export default function App() {
               <div className="fade-in">
                 <ClanWorldRankCard />
                 <Leaderboard players={data.players} myPlayerTag={data.myPlayerTag} plan={data.plan} periodType={data.periodType} warLog={data.warLog ?? []} canManage={canManage} />
+                <WorldTopEntry />
               </div>
             )}
             {tab === 'me' && (
@@ -382,6 +384,7 @@ export default function App() {
             {tab === 'clan' && clanSection === 'rating' && (
               <div className="fade-in">
                 <Leaderboard players={data.players} myPlayerTag={myPlayerTag} plan={data.plan} periodType={data.periodType} warLog={data.warLog ?? []} />
+                <WorldTopEntry />
               </div>
             )}
             {tab === 'me' && (

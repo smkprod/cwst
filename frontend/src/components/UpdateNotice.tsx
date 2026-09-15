@@ -6,7 +6,7 @@ import { useT } from '../lib/i18n'
  * Ключ версии объявления. Вышло новое — поднимаем номер и меняем строки в i18n
  * (updateNotice.*), карточка снова покажется всем ровно один раз.
  */
-const SEEN_KEY = 'updateNotice:v1'
+const SEEN_KEY = 'updateNotice:v2'
 
 function alreadySeen(): boolean {
   try { return localStorage.getItem(SEEN_KEY) === '1' } catch { return false }
