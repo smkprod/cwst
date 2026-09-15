@@ -49,6 +49,9 @@ public class CrPathOfLegend
 /// </summary>
 public class CrDeckCard
 {
+    /// <summary>Числовой id карты из игры — стабильный ключ, в отличие от имени.</summary>
+    public int Id { get; set; }
+
     public required string Name { get; set; }
     public int Level { get; set; }        // игровой уровень (как в игре)
     public int MaxLevel { get; set; }     // потолок для этой карты, тоже в игровой шкале

@@ -40,6 +40,12 @@ public interface IClashRoyaleApi
     /// </summary>
     Task<List<CrTopDeck>> GetTopPlayerDecksAsync(int limit = 20, CancellationToken ct = default);
 
+    /// <summary>
+    /// Мировой рейтинг по кубкам, до 1000 мест — потолок самого API.
+    /// Только строки рейтинга, без профилей: колоды собираются отдельно и параллельно.
+    /// </summary>
+    Task<List<CrRankedPlayer>> GetGlobalRankingAsync(int limit = 1000, CancellationToken ct = default);
+
     /// <summary>Живые данные игрового турнира по тегу (/tournaments/{tag}). null — не найден.</summary>
     Task<CrTournament?> GetTournamentAsync(string tournamentTag, CancellationToken ct = default);
 
@@ -51,6 +57,13 @@ public interface IClashRoyaleApi
 
     /// <summary>Военные бои из боевого лога игрока (только КВ-типы). Пустой список — нет/ошибка.</summary>
     Task<List<CrBattle>> GetPlayerBattlelogAsync(string playerTag, CancellationToken ct = default);
+
+    /// <summary>
+    /// Последние бои игрока любого режима, с колодами обеих сторон.
+    /// В отличие от GetPlayerBattlelogAsync ничего не отфильтровывает: там нужны
+    /// только военные бои, здесь — то, чем человек играет на самом деле.
+    /// </summary>
+    Task<List<CrRecentBattle>> GetRecentBattlesAsync(string playerTag, CancellationToken ct = default);
 
     /// <summary>
     /// Справочник всех карт игры: имя → карта. Нужен, чтобы показывать карты, которых
