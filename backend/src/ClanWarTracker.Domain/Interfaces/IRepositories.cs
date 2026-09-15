@@ -124,6 +124,25 @@ public interface IActivityRepository
     Task<Dictionary<string, (int Active, int Acting)>> GetDailyAsync(string sinceDayUtc, CancellationToken ct = default);
 }
 
+/// <summary>Ежедневные снимки мирового топа по кубкам.</summary>
+public interface ITopPlayerRepository
+{
+    /// <summary>Есть ли уже снимок за этот день — чтобы не собирать тысячу профилей дважды.</summary>
+    Task<bool> HasDayAsync(string dayUtc, CancellationToken ct = default);
+
+    /// <summary>Записывает снимок дня целиком, заменяя прежний за ту же дату.</summary>
+    Task ReplaceDayAsync(string dayUtc, IReadOnlyList<TopPlayer> rows, CancellationToken ct = default);
+
+    /// <summary>Снимок за конкретный день, по возрастанию места. Пусто — снимка нет.</summary>
+    Task<List<TopPlayer>> GetDayAsync(string dayUtc, CancellationToken ct = default);
+
+    /// <summary>Самая свежая дата, за которую есть снимок. null — снимков нет вовсе.</summary>
+    Task<string?> LatestDayAsync(CancellationToken ct = default);
+
+    /// <summary>Даты снимков, новые первыми — для выбора «неделю назад».</summary>
+    Task<List<string>> DaysAsync(int limit, CancellationToken ct = default);
+}
+
 public interface IPuzzleRepository
 {
     /// <summary>Результат игрока за день. null — сегодня ещё не играл.</summary>

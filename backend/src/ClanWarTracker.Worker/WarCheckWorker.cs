@@ -269,6 +269,21 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
             {
                 logger.LogError(ex, "Perfect day congrats failed");
             }
+
+            try
+            {
+                // Снимок мирового топа — раз в сутки. Сам use case проверяет, есть ли
+                // уже снимок за сегодня, поэтому частый цикл ему не вредит: лишний
+                // вызов стоит одного запроса к базе, а не тысячи к API.
+                using var scope = scopeFactory.CreateScope();
+                var harvest = scope.ServiceProvider.GetRequiredService<HarvestTopPlayersUseCase>();
+                var rows = await harvest.ExecuteAsync(ct: stoppingToken);
+                if (rows > 0) logger.LogInformation("Captured top-{Count} snapshot", rows);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Top players harvest failed");
+            }
         }
         while (await timer.WaitForNextTickAsync(stoppingToken));
     }

@@ -501,6 +501,71 @@ export interface GlobalTop {
   players: GlobalTopPlayer[]
 }
 
+/* --- Мировой топ: мета, список, карточка игрока --- */
+export interface TopDeckCard {
+  cardId: number
+  name: string
+  iconUrl: string
+}
+
+export interface TopCard {
+  cardId: number
+  name: string
+  iconUrl: string
+  /** Доля колод топа, где карта встречается. */
+  percent: number
+  /** Изменение доли за неделю в п.п.; null — сравнивать не с чем. */
+  deltaPercent: number | null
+}
+
+export interface TopMeta {
+  dayUtc: string
+  comparedToDayUtc: string | null
+  playersTracked: number
+  /** У скольких колода известна — проценты считаются от этого числа. */
+  playersWithDeck: number
+  cutoffTrophies: number
+  topTrophies: number
+  avgLevel: number
+  cards: TopCard[]
+}
+
+export interface TopPlayerRow {
+  rank: number
+  playerTag: string
+  name: string
+  clanName: string | null
+  trophies: number
+  expLevel: number
+  deck: TopDeckCard[]
+}
+
+export interface TopBattle {
+  battleTimeUtc: string
+  type: string
+  won: boolean
+  crownsFor: number
+  crownsAgainst: number
+  opponentName: string | null
+  myDeck: TopDeckCard[]
+  opponentDeck: TopDeckCard[]
+}
+
+export interface TopPlayerDetail {
+  playerTag: string
+  name: string
+  clanName: string | null
+  trophies: number
+  bestTrophies: number
+  expLevel: number
+  wins: number
+  losses: number
+  threeCrownWins: number
+  rank: number | null
+  currentDeck: TopDeckCard[]
+  battles: TopBattle[]
+}
+
 /* --- Панель владельца --- */
 export interface OwnerStats {
   // Кланы

@@ -74,6 +74,7 @@ public static class DependencyInjection
         services.AddScoped<IRespectRepository, RespectRepository>();
         services.AddScoped<IPuzzleRepository, PuzzleRepository>();
         services.AddScoped<IActivityRepository, ActivityRepository>();
+        services.AddScoped<ITopPlayerRepository, TopPlayerRepository>();
         // Ключ подписи пропусков к картинкам-загадкам — тот же токен бота. Отдельный
         // секрет пришлось бы заводить в .env на сервере, куда доступа нет ни у кого,
         // кроме владельца, а выигрыш нулевой: утечка любого из них одинаково фатальна.
@@ -438,6 +439,24 @@ CREATE TABLE IF NOT EXISTS ""ActivityDays"" (
             "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_ActivityDays_PlayerId_DayUtc\" ON \"ActivityDays\" (\"PlayerId\", \"DayUtc\");");
         await db.Database.ExecuteSqlRawAsync(
             "CREATE INDEX IF NOT EXISTS \"IX_ActivityDays_DayUtc\" ON \"ActivityDays\" (\"DayUtc\");");
+
+        // Ежедневный снимок мирового топа: истории у API нет, копим сами.
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""TopPlayers"" (
+    ""Id"" serial PRIMARY KEY,
+    ""DayUtc"" varchar(10) NOT NULL,
+    ""Rank"" integer NOT NULL,
+    ""PlayerTag"" varchar(16) NOT NULL,
+    ""Name"" varchar(64) NOT NULL,
+    ""ClanName"" varchar(64),
+    ""Trophies"" integer NOT NULL DEFAULT 0,
+    ""ExpLevel"" integer NOT NULL DEFAULT 0,
+    ""DeckCardIds"" varchar(128)
+);");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_TopPlayers_DayUtc_Rank\" ON \"TopPlayers\" (\"DayUtc\", \"Rank\");");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_TopPlayers_DayUtc\" ON \"TopPlayers\" (\"DayUtc\");");
 
         // Парные турниры: формат, дата старта и команда участника.
         await db.Database.ExecuteSqlRawAsync(

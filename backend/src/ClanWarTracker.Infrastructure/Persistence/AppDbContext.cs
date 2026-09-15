@@ -19,6 +19,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<SentNotification> SentNotifications => Set<SentNotification>();
     public DbSet<PuzzleResult> PuzzleResults => Set<PuzzleResult>();
     public DbSet<ActivityDay> ActivityDays => Set<ActivityDay>();
+    public DbSet<TopPlayer> TopPlayers => Set<TopPlayer>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -68,6 +69,19 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasIndex(n => n.SentAtUtc);   // по нему чистим старое
             e.Property(n => n.Kind).HasMaxLength(32);
             e.Property(n => n.Key).HasMaxLength(200);
+        });
+
+        mb.Entity<TopPlayer>(e =>
+        {
+            // Одно место в один день — повторный сбор не должен раздваивать снимок
+            e.HasIndex(t => new { t.DayUtc, t.Rank }).IsUnique();
+            // Витрина всегда читает снимок целиком за дату
+            e.HasIndex(t => t.DayUtc);
+            e.Property(t => t.DayUtc).HasMaxLength(10);
+            e.Property(t => t.PlayerTag).HasMaxLength(16);
+            e.Property(t => t.Name).HasMaxLength(64);
+            e.Property(t => t.ClanName).HasMaxLength(64);
+            e.Property(t => t.DeckCardIds).HasMaxLength(128);
         });
 
         mb.Entity<ActivityDay>(e =>
