@@ -215,6 +215,12 @@ public interface ITournamentRepository
         int maxActive, CancellationToken ct = default);
 
     /// <summary>
+    /// Завершённые турниры, свежие первыми: история. Отменённые не показываем —
+    /// это не событие, а его отсутствие.
+    /// </summary>
+    Task<List<Tournament>> GetFinishedAsync(int limit, CancellationToken ct = default);
+
+    /// <summary>
     /// Турниры, где есть что закрывать автоматически: сетка собрана или идёт игра,
     /// автозачёт не выключен. С матчами и участниками — они нужны сразу.
     /// </summary>
