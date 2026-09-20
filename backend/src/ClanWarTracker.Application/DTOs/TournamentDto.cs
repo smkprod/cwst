@@ -10,7 +10,10 @@ public record TournamentSummaryDto(
     int MaxParticipants,
     int ParticipantCount,
     string CreatorName,
-    DateTime CreatedAtUtc);
+    DateTime CreatedAtUtc,
+    /// <summary>Чемпион; null — турнир ещё не завершён или победитель не определился.</summary>
+    string? ChampionName = null,
+    DateTime? CompletedAtUtc = null);
 
 public record TournamentDto(
     int Id,

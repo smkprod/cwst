@@ -39,7 +39,13 @@ public static class TournamentMapping
     public static TournamentSummaryDto ToSummary(Tournament t) => new(
         t.Id, t.Name, ToText(t.Status), ToText(t.Mode), t.StartsAtUtc, t.BestOf, t.MaxParticipants,
         t.Participants.Count(p => p.Status != TournamentParticipantStatus.Withdrawn),
-        t.CreatorName, t.CreatedAtUtc);
+        t.CreatorName, t.CreatedAtUtc,
+        // Имя чемпиона — единственное, ради чего вообще открывают список прошедших
+        // турниров, поэтому оно едет прямо в списке, а не за ещё одним запросом.
+        t.Participants.FirstOrDefault(p => p.FinalPlacement == 1) is { } champ
+            ? champ.TeamName ?? champ.PlayerName
+            : null,
+        t.CompletedAtUtc);
 
     public static TournamentParticipantDto ToDto(TournamentParticipant p, long requestingTelegramUserId = 0) => new(
         p.Id, p.PlayerTag, p.PlayerName,

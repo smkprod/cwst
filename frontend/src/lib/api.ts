@@ -167,6 +167,9 @@ export const api = {
 
   // Турниры
   getTournaments: () => request<TournamentSummary[]>('/api/tournaments'),
+  /** Завершённые турниры с чемпионами — история. */
+  getTournamentHistory: (limit = 20) =>
+    request<TournamentSummary[]>(`/api/tournaments/history?limit=${limit}`),
   getTournament: (id: number) => request<Tournament>(`/api/tournaments/${id}`),
   createTournament: (req: {
     name: string; description?: string; prizeInfo?: string
