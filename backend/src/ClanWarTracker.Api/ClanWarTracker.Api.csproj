@@ -20,6 +20,9 @@
     <Content Include="Assets\Rubik-Regular.ttf" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets\Rubik-SemiBold.ttf" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets\RussoOne-Regular.ttf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\KingBlue.png" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\KingRed.png" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\Trophy.png" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ClanWarTracker.Application\ClanWarTracker.Application.csproj" />

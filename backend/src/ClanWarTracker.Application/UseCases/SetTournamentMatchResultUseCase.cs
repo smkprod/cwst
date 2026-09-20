@@ -10,7 +10,8 @@ public enum SetMatchResultError { TournamentNotFound, NotCreator, MatchNotFound,
 /// При исправлении уже сыгранного матча каскадно сбрасывает все матчи, которые зависели
 /// от старого победителя, — иначе в сетке останется игрок, который туда не должен попасть.
 /// </summary>
-public class SetTournamentMatchResultUseCase(ITournamentRepository tournaments, TournamentBracketService bracket)
+public class SetTournamentMatchResultUseCase(
+    ITournamentRepository tournaments, TournamentBracketService bracket, TournamentNotifier notify)
 {
     public async Task<SetMatchResultError?> ExecuteAsync(
         int tournamentId, int matchId, long telegramUserId, int scoreA, int scoreB, CancellationToken ct = default)
@@ -35,36 +36,21 @@ public class SetTournamentMatchResultUseCase(ITournamentRepository tournaments, 
         if (match.Status == TournamentMatchStatus.Completed)
             bracket.ClearDownstream(match);
 
-        var winner = aWins ? match.ParticipantA! : match.ParticipantB!;
-        var loser = aWins ? match.ParticipantB! : match.ParticipantA!;
-
-        match.ScoreA = scoreA;
-        match.ScoreB = scoreB;
-        match.WinnerParticipantId = winner.Id;
-        match.WinnerParticipant = winner;
-        match.Status = TournamentMatchStatus.Completed;
-        match.UpdatedAtUtc = DateTime.UtcNow;
-
-        winner.Status = TournamentParticipantStatus.Active;
-        loser.Status = TournamentParticipantStatus.Eliminated;
-
-        if (tournament.Status == TournamentStatus.BracketReady)
-            tournament.Status = TournamentStatus.InProgress;
-
-        if (match.NextMatch is null)
-        {
-            // Финал сыгран — турнир завершён.
-            winner.FinalPlacement = 1;
-            loser.FinalPlacement = 2;
-            tournament.Status = TournamentStatus.Completed;
-            tournament.CompletedAtUtc = DateTime.UtcNow;
-        }
-        else
-        {
-            bracket.AdvanceWinner(match, winner);
-        }
+        // Дальше всё делает общий код — тот же, которым закрывает матч автозачёт.
+        var outcome = bracket.ApplyResult(tournament, match, scoreA, scoreB, auto: false);
 
         await tournaments.SaveChangesAsync(ct);
+
+        // Рассылаем только после сохранения: сообщение «вы прошли дальше» по матчу,
+        // который не записался, отозвать уже нельзя.
+        await notify.MatchResultAsync(tournament, match, outcome, ct);
+        if (outcome.NextReady is { } next) await notify.MatchReadyAsync(tournament, next, ct);
+
+        // Табло публикуется при первом обновлении и дальше только переписывается.
+        // Сохраняем повторно: внутри могли проставиться id сообщения.
+        if (await notify.UpdateScoreboardAsync(tournament, ct))
+            await tournaments.SaveChangesAsync(ct);
+
         return null;
     }
 }

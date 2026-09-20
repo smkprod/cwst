@@ -8,6 +8,20 @@ namespace ClanWarTracker.Application.UseCases;
 /// Жеребьёвка случайна (турнир дружеский, не рейтинговый), но баи распределяются
 /// по стандартному алгоритму сидирования, чтобы они не скапливались в одном углу сетки.
 /// </summary>
+/// <summary>
+/// Что произошло при проставлении результата — всё, что нужно, чтобы разослать
+/// уведомления, не пересчитывая сетку заново.
+/// </summary>
+/// <param name="NextReady">
+/// Следующий матч, если он стал готов именно сейчас: пришёл второй соперник.
+/// Null — впереди финал, либо второго соперника ещё нет, либо он уже был готов.
+/// </param>
+public record MatchOutcome(
+    TournamentParticipant Winner,
+    TournamentParticipant Loser,
+    TournamentMatch? NextReady,
+    bool TournamentCompleted);
+
 public class TournamentBracketService
 {
     /// <summary>
@@ -62,6 +76,7 @@ public class TournamentBracketService
             else
             {
                 match.Status = TournamentMatchStatus.Ready;
+                match.ReadyAtUtc = DateTime.UtcNow;
             }
             round1.Add(match);
             t.Matches.Add(match);
@@ -119,7 +134,122 @@ public class TournamentBracketService
         }
 
         if (next.ParticipantA is not null && next.ParticipantB is not null)
+        {
             next.Status = TournamentMatchStatus.Ready;
+            next.ReadyAtUtc = DateTime.UtcNow;
+            return;
+        }
+
+        // Соседний слот опустел навсегда — снятую команду ждать бессмысленно,
+        // пришедший проходит дальше без игры.
+        var opposite = match.NextMatchSlot == 0 ? next.SlotBVacated : next.SlotAVacated;
+        if (opposite) WalkOver(next, winner);
+    }
+
+    /// <summary>
+    /// Проход без игры: соперника сняли или его не было изначально. Счёт не ставим —
+    /// матча не было, и «2:0» на табло вводило бы в заблуждение.
+    /// </summary>
+    public void WalkOver(TournamentMatch match, TournamentParticipant survivor)
+    {
+        match.Status = TournamentMatchStatus.Bye;
+        match.WinnerParticipantId = survivor.Id;
+        match.WinnerParticipant = survivor;
+        match.ScoreA = 0;
+        match.ScoreB = 0;
+        match.AutoResolved = false;
+        match.UpdatedAtUtc = DateTime.UtcNow;
+        AdvanceWinner(match, survivor);
+    }
+
+    /// <summary>
+    /// Убирает участника из ещё не сыгранного матча. Возвращает соперника, если тот
+    /// уже известен и проходит дальше без игры, — вызывающему это нужно, чтобы его
+    /// уведомить.
+    /// </summary>
+    public TournamentParticipant? VacateSlot(TournamentMatch match, TournamentParticipant leaving)
+    {
+        TournamentParticipant? survivor;
+        if (match.ParticipantAId == leaving.Id)
+        {
+            match.ParticipantAId = null;
+            match.ParticipantA = null;
+            match.SlotAVacated = true;
+            survivor = match.ParticipantB;
+        }
+        else
+        {
+            match.ParticipantBId = null;
+            match.ParticipantB = null;
+            match.SlotBVacated = true;
+            survivor = match.ParticipantA;
+        }
+
+        if (survivor is null)
+        {
+            // Второго соперника ещё нет — матч ждёт его, и тот пройдёт без игры,
+            // как только доиграет свой. Отметка слота об этом и позаботится.
+            match.Status = TournamentMatchStatus.Pending;
+            match.ReadyAtUtc = null;
+            return null;
+        }
+
+        WalkOver(match, survivor);
+        return survivor;
+    }
+
+    /// <summary>
+    /// Проставляет результат матча и двигает сетку. Один код на ручной ввод и на
+    /// автозачёт по логу: разойдись они — и матч, закрытый ботом, повёл бы себя иначе,
+    /// чем закрытый организатором.
+    ///
+    /// Вызывающий обязан сам проверить право на действие и корректность счёта, а при
+    /// исправлении уже сыгранного матча — вызвать ClearDownstream.
+    /// </summary>
+    public MatchOutcome ApplyResult(Tournament tournament, TournamentMatch match, int scoreA, int scoreB, bool auto)
+    {
+        // Запоминаем ДО: после AdvanceWinner следующий матч может стать готовым, и отличить
+        // «стал готов только что» от «был готов и раньше» иначе будет нечем, а рассылать
+        // приглашение играть повторно нельзя.
+        var nextWasReady = match.NextMatch?.Status == TournamentMatchStatus.Ready;
+
+        var aWins = scoreA > scoreB;
+        var winner = aWins ? match.ParticipantA! : match.ParticipantB!;
+        var loser = aWins ? match.ParticipantB! : match.ParticipantA!;
+
+        match.ScoreA = scoreA;
+        match.ScoreB = scoreB;
+        match.WinnerParticipantId = winner.Id;
+        match.WinnerParticipant = winner;
+        match.Status = TournamentMatchStatus.Completed;
+        match.AutoResolved = auto;
+        match.UpdatedAtUtc = DateTime.UtcNow;
+
+        winner.Status = TournamentParticipantStatus.Active;
+        loser.Status = TournamentParticipantStatus.Eliminated;
+
+        if (tournament.Status == TournamentStatus.BracketReady)
+            tournament.Status = TournamentStatus.InProgress;
+
+        if (match.NextMatch is null)
+        {
+            // Финал сыгран — турнир завершён.
+            winner.FinalPlacement = 1;
+            loser.FinalPlacement = 2;
+            tournament.Status = TournamentStatus.Completed;
+            tournament.CompletedAtUtc = DateTime.UtcNow;
+        }
+        else
+        {
+            AdvanceWinner(match, winner);
+        }
+
+        var nextReady = !nextWasReady && match.NextMatch is { Status: TournamentMatchStatus.Ready } next
+            ? next
+            : null;
+
+        return new MatchOutcome(winner, loser, nextReady,
+            TournamentCompleted: tournament.Status == TournamentStatus.Completed);
     }
 
     /// <summary>
@@ -143,7 +273,13 @@ public class TournamentBracketService
         next.WinnerParticipantId = null;
         next.WinnerParticipant = null;
         next.Status = TournamentMatchStatus.Pending;
+        // Момент готовности сбрасываем вместе со статусом: когда пара соберётся заново,
+        // отсчёт боёв должен пойти от нового времени, а не от старого раунда.
+        next.ReadyAtUtc = null;
+        next.AutoResolved = false;
         next.UpdatedAtUtc = null;
+        next.SlotAVacated = false;
+        next.SlotBVacated = false;
     }
 
     /// <summary>

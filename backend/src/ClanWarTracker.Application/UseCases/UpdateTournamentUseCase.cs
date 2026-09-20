@@ -11,7 +11,8 @@ public class UpdateTournamentUseCase(ITournamentRepository tournaments)
     public async Task<UpdateTournamentError?> ExecuteAsync(
         int tournamentId, long telegramUserId, string name, string? description, string? prizeInfo,
         string clanInviteLink, int bestOf, int minParticipants, int maxParticipants,
-        DateTime? startsAtUtc = null, CancellationToken ct = default)
+        DateTime? startsAtUtc = null, bool autoResults = true, bool announceResults = true,
+        CancellationToken ct = default)
     {
         var tournament = await tournaments.GetByIdAsync(tournamentId, ct);
         if (tournament is null) return UpdateTournamentError.TournamentNotFound;
@@ -30,6 +31,12 @@ public class UpdateTournamentUseCase(ITournamentRepository tournaments)
         tournament.Description = string.IsNullOrEmpty(description) ? null : description;
         tournament.PrizeInfo = string.IsNullOrEmpty(prizeInfo) ? null : prizeInfo;
         tournament.ClanInviteLink = hasLink ? clanInviteLink.Trim() : null;
+
+        // Автозачёт можно выключить в любой момент, даже посреди турнира: если бот
+        // начал засчитывать не то, организатор должен иметь возможность его остановить,
+        // не дожидаясь конца. Уже проставленные счета при этом остаются.
+        tournament.AutoResults = autoResults;
+        tournament.AnnounceResults = announceResults;
 
         // Дату начала двигают чаще всего остального: собрались не все, перенесли на
         // завтра. Разрешаем менять и стирать, но не назначать на прошлое — кроме

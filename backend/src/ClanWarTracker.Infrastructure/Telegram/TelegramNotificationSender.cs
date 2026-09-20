@@ -64,6 +64,56 @@ public class TelegramNotificationSender(ITelegramBotClient bot) : INotificationS
         }
     }
 
+    public async Task<int?> PostAsync(long chatId, string text, int? threadId = null, CancellationToken ct = default)
+    {
+        try
+        {
+            var appUrl = await GetAppUrlAsync(ct);
+            var keyboard = appUrl is null
+                ? null
+                : new InlineKeyboardMarkup(InlineKeyboardButton.WithUrl("🎮 Открыть в Mini App", appUrl));
+
+            var message = await bot.SendMessage(chatId, text,
+                replyMarkup: keyboard, messageThreadId: threadId, cancellationToken: ct);
+            return message.MessageId;
+        }
+        catch (ApiRequestException) { return null; }
+        catch (HttpRequestException) { return null; }
+    }
+
+    public async Task<bool> EditAsync(long chatId, int messageId, string text, CancellationToken ct = default)
+    {
+        try
+        {
+            var appUrl = await GetAppUrlAsync(ct);
+            var keyboard = appUrl is null
+                ? null
+                : new InlineKeyboardMarkup(InlineKeyboardButton.WithUrl("🎮 Открыть в Mini App", appUrl));
+
+            await bot.EditMessageText(chatId, messageId, text, replyMarkup: keyboard, cancellationToken: ct);
+            return true;
+        }
+        catch (ApiRequestException)
+        {
+            // Сообщение удалили, бота выгнали или текст совпал с прежним («message is not
+            // modified»). Последнее — не ошибка, но и отличать его по строке не стоит:
+            // вызывающий в любом случае просто попробует опубликовать табло заново.
+            return false;
+        }
+        catch (HttpRequestException) { return false; }
+    }
+
+    public async Task PinAsync(long chatId, int messageId, CancellationToken ct = default)
+    {
+        try
+        {
+            // Без звука: табло обновляется часто, и уведомлять о каждом закреплении незачем.
+            await bot.PinChatMessage(chatId, messageId, disableNotification: true, cancellationToken: ct);
+        }
+        catch (ApiRequestException) { /* бот не админ — табло просто не будет закреплено */ }
+        catch (HttpRequestException) { }
+    }
+
     private async Task SendAsync(long chatId, string text, int? threadId, bool html, CancellationToken ct)
     {
         var appUrl = await GetAppUrlAsync(ct);
