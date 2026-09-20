@@ -1,6 +1,7 @@
 using ClanWarTracker.Api.Rendering;
 using ClanWarTracker.Application.Games;
 using ClanWarTracker.Application.UseCases;
+using ClanWarTracker.Domain.Enums;
 using ClanWarTracker.Domain.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
@@ -26,6 +27,7 @@ public class ImageController(
     CardRenderer renderer,
     ITelegramBotClient bot,
     IPuzzleRepository puzzles,
+    ITournamentRepository tournaments,
     IPuzzleSecret puzzleSecret,
     IMemoryCache cache) : ControllerBase
 {
@@ -121,6 +123,59 @@ public class ImageController(
             return renderer.RenderPerfectDay(new PerfectDayCardModel(
                 info.Name, info.ClanName ?? "без клана", 900,
                 await BotNameAsync(ct), await ArtAsync(playerTag, ct)));
+        });
+
+    /// <summary>
+    /// GET /api/img/champion/{id}.jpg — итог турнира для чата.
+    ///
+    /// Без авторизации, как и остальные картинки: их качает Telegram со своих серверов.
+    /// Отдаём только по завершённому турниру и только то, что и так видно всем в
+    /// приложении, — имя команды, счёт финала и любимые карты победителей.
+    /// </summary>
+    [HttpGet("champion/{id:int}.jpg")]
+    public Task<IActionResult> ChampionCard(int id, CancellationToken ct) =>
+        Serve($"champion:{id}", SlowTtl, async () =>
+        {
+            var t = await tournaments.GetByIdAsync(id, ct);
+            if (t is null || t.Status != TournamentStatus.Completed) return null;
+
+            var champion = t.Participants.FirstOrDefault(x => x.FinalPlacement == 1);
+            if (champion is null) return null;
+
+            var runnerUp = t.Participants.FirstOrDefault(x => x.FinalPlacement == 2);
+            var final = t.Matches
+                .Where(x => x.NextMatchId is null && x.Status == TournamentMatchStatus.Completed)
+                .OrderByDescending(x => x.Round)
+                .FirstOrDefault();
+
+            // Счёт со стороны чемпиона: «2:1» должно читаться как «победитель — второй».
+            var score = final is null
+                ? ""
+                : final.WinnerParticipantId == final.ParticipantAId
+                    ? $"{final.ScoreA}:{final.ScoreB}"
+                    : $"{final.ScoreB}:{final.ScoreA}";
+
+            var roster = champion.PartnerPlayerName is null
+                ? ""
+                : $"{champion.PlayerName} + {champion.PartnerPlayerName}";
+
+            // Любимые карты обоих: именно они ставятся в рамки по бокам от кубка.
+            var arts = new List<string>();
+            foreach (var tag in new[] { champion.PlayerTag, champion.PartnerPlayerTag })
+            {
+                if (string.IsNullOrWhiteSpace(tag)) continue;
+                if (await ArtAsync(Normalize(tag), ct) is { } url) arts.Add(url);
+            }
+
+            return renderer.RenderChampion(new ChampionCardModel(
+                champion.TeamName ?? champion.PlayerName,
+                roster,
+                t.Name,
+                score,
+                runnerUp?.TeamName ?? runnerUp?.PlayerName ?? "",
+                t.Participants.Count(x => x.Status != TournamentParticipantStatus.Withdrawn),
+                await BotNameAsync(ct),
+                arts));
         });
 
     /// <summary>

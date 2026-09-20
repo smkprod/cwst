@@ -1,3 +1,4 @@
+using ClanWarTracker.Application.Notifications;
 using ClanWarTracker.Domain.Entities;
 using ClanWarTracker.Domain.Interfaces;
 
@@ -18,7 +19,8 @@ namespace ClanWarTracker.Application.UseCases;
 public class TournamentNotifier(
     INotificationSender notifier,
     IPlayerRepository players,
-    IClanRepository clans)
+    IClanRepository clans,
+    ICardUrls cardUrls)
 {
     /// <summary>Итог матча: обоим капитанам в личку и, если разрешено, в чат клана.</summary>
     public async Task MatchResultAsync(
@@ -31,13 +33,23 @@ public class TournamentNotifier(
 
         if (outcome.TournamentCompleted)
         {
+            // Картинку рисует уже сохранённый турнир, поэтому её адрес можно собирать
+            // прямо здесь: ручка сама возьмёт из базы чемпиона, счёт и любимые карты.
+            var card = cardUrls.Card("champion", tournament.Id.ToString());
+            var caption = $"👑 Турнир «{tournament.Name}» завершён!\n" +
+                          $"Чемпион — {winner} ({score} в финале против {loser}).";
+
             await DmAsync(outcome.Winner,
                 $"👑 Вы выиграли турнир «{tournament.Name}»!\n\nФинал: {winner} — {loser} {score}", ct);
             await DmAsync(outcome.Loser,
                 $"🥈 Второе место в турнире «{tournament.Name}».\n\nФинал: {winner} — {loser} {score}\n" +
                 "Обидно, но до финала дошли не все.", ct);
-            await ChatAsync(tournament,
-                $"👑 Турнир «{tournament.Name}» завершён!\nЧемпион — {winner} ({score} в финале против {loser}).", ct);
+
+            // Чемпиону карточка уходит и в личку: её кидают в чаты, и удобно, когда
+            // она уже лежит в переписке с ботом, а не только в клановой беседе.
+            if (card is not null) await PhotoAsync(outcome.Winner.TelegramUserId, card, caption, ct);
+
+            await ChatAsync(tournament, caption, card, ct);
             return;
         }
 
@@ -46,7 +58,7 @@ public class TournamentNotifier(
             $"❌ Поражение: {winner} — {loser} {score}{how}\n\n" +
             $"На этом турнир «{tournament.Name}» для вас закончен. Спасибо за игру!", ct);
 
-        await ChatAsync(tournament, $"🏆 «{tournament.Name}»: {winner} — {loser} {score}", ct);
+        await ChatAsync(tournament, $"🏆 «{tournament.Name}»: {winner} — {loser} {score}", null, ct);
     }
 
     /// <summary>
@@ -101,7 +113,7 @@ public class TournamentNotifier(
     /// в турнире: организатор может сменить клан, и правильный адрес — тот, где он
     /// сейчас, а не тот, где был при создании.
     /// </summary>
-    private async Task ChatAsync(Tournament tournament, string text, CancellationToken ct)
+    private async Task ChatAsync(Tournament tournament, string text, string? photoUrl, CancellationToken ct)
     {
         if (!tournament.AnnounceResults) return;
 
@@ -113,8 +125,20 @@ public class TournamentNotifier(
             var clan = await clans.GetByIdAsync(clanId, ct);
             if (clan is null || clan.TelegramChatId == 0) return;
 
+            // Картинка не ушла — шлём текстом. Объявление чемпиона без картинки
+            // лучше, чем отсутствие объявления.
+            if (photoUrl is not null && await notifier.SendPhotoToChatAsync(
+                    clan.TelegramChatId, photoUrl, text, clan.TelegramMessageThreadId, ct))
+                return;
+
             await notifier.SendToChatAsync(clan.TelegramChatId, text, clan.TelegramMessageThreadId, ct: ct);
         }
         catch { /* бота выгнали из группы и т.п. — личные сообщения уже ушли */ }
+    }
+
+    private async Task PhotoAsync(long chatId, string photoUrl, string caption, CancellationToken ct)
+    {
+        try { await notifier.SendPhotoToChatAsync(chatId, photoUrl, caption, null, ct); }
+        catch { /* личка могла быть закрыта — объявление в чат это не отменяет */ }
     }
 }
