@@ -159,14 +159,6 @@ public class ImageController(
                 ? ""
                 : $"{champion.PlayerName} + {champion.PartnerPlayerName}";
 
-            // Любимые карты обоих: именно они ставятся в рамки по бокам от кубка.
-            var arts = new List<string>();
-            foreach (var tag in new[] { champion.PlayerTag, champion.PartnerPlayerTag })
-            {
-                if (string.IsNullOrWhiteSpace(tag)) continue;
-                if (await ArtAsync(Normalize(tag), ct) is { } url) arts.Add(url);
-            }
-
             return renderer.RenderChampion(new ChampionCardModel(
                 champion.TeamName ?? champion.PlayerName,
                 roster,
@@ -174,8 +166,7 @@ public class ImageController(
                 score,
                 runnerUp?.TeamName ?? runnerUp?.PlayerName ?? "",
                 t.Participants.Count(x => x.Status != TournamentParticipantStatus.Withdrawn),
-                await BotNameAsync(ct),
-                arts));
+                await BotNameAsync(ct)));
         });
 
     /// <summary>
