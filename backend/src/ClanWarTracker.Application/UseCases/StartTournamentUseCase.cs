@@ -36,6 +36,13 @@ public class StartTournamentUseCase(
         foreach (var match in tournament.Matches.Where(m => m.Status == TournamentMatchStatus.Ready))
             await notify.MatchReadyAsync(tournament, match, ct);
 
+        // Командам с баем «ваш матч готов» не придёт — играть им не с кем. Отдельное
+        // сообщение нужно, чтобы они не сидели в недоумении: в сетке на шесть команд
+        // таких двое из шести.
+        foreach (var bye in tournament.Matches.Where(m =>
+                     m.Round == 1 && m.Status == TournamentMatchStatus.Bye && m.WinnerParticipant is not null))
+            await notify.ByeAsync(tournament, bye.WinnerParticipant!, ct);
+
         // Табло вешаем сразу со стартом: к первому же матчу оно должно быть в закрепе.
         if (await notify.UpdateScoreboardAsync(tournament, ct))
             await tournaments.SaveChangesAsync(ct);
