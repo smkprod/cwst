@@ -214,6 +214,12 @@ public interface ITournamentRepository
     Task<bool> TryAddWithinActiveLimitAsync(Tournament tournament, long creatorTelegramUserId,
         int maxActive, CancellationToken ct = default);
 
+    /// <summary>
+    /// Турниры, где есть что закрывать автоматически: сетка собрана или идёт игра,
+    /// автозачёт не выключен. С матчами и участниками — они нужны сразу.
+    /// </summary>
+    Task<List<Tournament>> GetForAutoResultsAsync(CancellationToken ct = default);
+
     /// <summary>История участия игрока: его записи участника с загруженным турниром, новые — первыми.</summary>
     Task<List<TournamentParticipant>> GetPlayerHistoryAsync(string playerTag, CancellationToken ct = default);
 

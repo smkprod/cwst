@@ -1258,33 +1258,159 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 .tournament-detail-text { white-space: pre-wrap; word-break: break-word; }
 .tournament-detail-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
 
-.tournament-participants-list { list-style: none; padding: 0; margin-top: 6px; display: grid; gap: 4px; }
+.tournament-participants-list { list-style: none; padding: 0; margin-top: 6px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
 .tournament-participant-row {
+  /* min-width:auto у flex-элементов не даёт имени ужаться, и строка расталкивает
+     список: до появления кнопки снятия это было не видно, с ней — вылезает за экран. */
+  min-width: 0;
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
   background: rgba(255, 255, 255, 0.04); border-radius: 8px; padding: 7px 10px;
 }
-.tournament-participant-name { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tournament-participant-name {
+  flex: 1; min-width: 0;
+  font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 
 /* Сетка турнира */
 .tournament-bracket-wrap { margin-top: 18px; }
 .tournament-champion-card {
-  display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  background: linear-gradient(135deg, rgba(255, 200, 61, 0.18), rgba(255, 200, 61, 0.05));
-  border: 1px solid rgba(255, 200, 61, 0.3);
+  display: grid; gap: 2px; justify-items: center; text-align: center;
+  margin-bottom: 10px;
+  background: linear-gradient(180deg, rgba(255,200,61,0.16), rgba(255,200,61,0.04));
+  border: 1px solid rgba(255,200,61,0.3);
 }
 .tournament-champion-title { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
-.tournament-champion-name { font-size: 15px; font-weight: 800; color: var(--gold); }
+.tournament-champion-name { font-size: 17px; font-weight: 800; color: var(--gold); }
 
 .bracket-hint { margin: -6px 0 8px; }
-.tournament-bracket { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 6px; }
-.tournament-round { flex: none; width: 180px; display: grid; gap: 8px; align-content: start; }
-.tournament-round-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; text-align: center; }
-.tournament-match { display: grid; gap: 6px; padding: 10px; }
-.tournament-match-side { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 2px; }
-.tournament-match-winner { color: #5fd573; font-weight: 700; }
-.tournament-match-name { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tournament-match-score { font-size: 13px; font-weight: 800; }
-.tournament-match-vs { font-size: 10px; color: var(--muted); text-align: center; }
+
+/* --- Турнирная сетка --- */
+
+/* Прокручивается обёртка, холст внутри неё остаётся неподвижным относительно
+   своего содержимого — только поэтому замер координат для линий работает без
+   поправки на scrollLeft. */
+.bracket-scroll {
+  overflow-x: auto; overflow-y: hidden;
+  padding-bottom: 8px;
+  -webkit-overflow-scrolling: touch;
+}
+.bracket-canvas {
+  position: relative;
+  display: flex; align-items: stretch;
+  gap: 42px;                        /* место под изгиб линии между раундами */
+  width: max-content; min-width: 100%;
+  padding: 2px 2px 4px;
+}
+
+/* z-index обязателен: позиционированный SVG иначе рисуется ПОВЕРХ статичных
+   колонок и перечёркивает названия команд. Линии — подложка, карточки — сверху. */
+.bracket-links {
+  position: absolute; inset: 0; z-index: 0;
+  width: 100%; height: 100%;
+  pointer-events: none; overflow: visible;
+}
+.bracket-link {
+  fill: none; stroke: rgba(255,255,255,0.16); stroke-width: 2;
+  stroke-linecap: round;
+}
+/* Пройденный путь виден целиком: по зелёным линиям читается, как команда дошла
+   до финала, без чтения каждой пары. */
+.bracket-link-done { stroke: rgba(95,213,115,0.6); stroke-width: 2.5; }
+
+.bracket-round { position: relative; z-index: 1; flex: none; width: 174px; display: flex; flex-direction: column; }
+.bracket-round-label {
+  flex: none;
+  font-size: 10px; font-weight: 800; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.6px; text-align: center;
+  padding: 4px 0 10px;
+}
+.bracket-round-body {
+  flex: 1; display: flex; flex-direction: column; justify-content: space-around;
+  gap: 10px;
+}
+
+.bmatch {
+  position: relative;
+  /* min-width:auto у grid/flex-элементов — причина, по которой длинное название
+     расталкивает карточку вместо многоточия, и ряд перестаёт быть ровным.
+     Гасим на всех трёх уровнях: сама карточка, её колонка, строка участника. */
+  min-width: 0;
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 3px;
+  padding: 7px;
+  border-radius: 12px;
+  background: var(--bg-card);
+  border: 1px solid rgba(255,255,255,0.07);
+}
+.bmatch-done { border-color: rgba(95,213,115,0.22); }
+.bmatch-final {
+  background: linear-gradient(180deg, rgba(255,200,61,0.1), rgba(255,255,255,0.03));
+  border-color: rgba(255,200,61,0.28);
+}
+
+.bside {
+  min-width: 0;
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 6px; border-radius: 8px;
+  background: rgba(255,255,255,0.04);
+}
+.bside-seed {
+  flex: none; width: 13px; text-align: center;
+  font-size: 9px; font-weight: 800; color: var(--muted);
+}
+.bside-name {
+  flex: 1; min-width: 0;
+  font-size: 12px; font-weight: 600; line-height: 1.25;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.bside-score {
+  flex: none; min-width: 17px; text-align: center;
+  font-size: 12px; font-weight: 800;
+  padding: 1px 4px; border-radius: 5px;
+  background: rgba(255,255,255,0.08);
+}
+
+/* Победитель — заливкой, а не только цветом текста: на маленькой карточке
+   зелёная строка читается быстрее, чем жирность. */
+.bside-win { background: rgba(95,213,115,0.18); }
+.bside-win .bside-name { color: #7ee08e; font-weight: 800; }
+.bside-win .bside-score { background: rgba(95,213,115,0.3); color: #7ee08e; }
+.bside-lost { opacity: 0.5; }
+
+.bside-empty { background: none; padding: 4px 6px; }
+.bside-slot {
+  display: block; width: 100%; height: 19px;
+  border: 1px dashed rgba(255,255,255,0.16); border-radius: 7px;
+}
+
+.bmatch-note {
+  margin: 1px 0 0; text-align: center;
+  font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px;
+}
+
+.bmatch-btn {
+  width: 100%; margin-top: 3px;
+  padding: 5px 6px; border-radius: 7px; border: none; cursor: pointer;
+  background: rgba(255,255,255,0.07); color: var(--text);
+  font-size: 10px; font-weight: 700;
+}
+.bmatch-btn:disabled { opacity: 0.5; }
+.bmatch-btn-primary { background: var(--accent); color: #fff; }
+
+.bmatch-edit { display: grid; gap: 5px; margin-top: 4px; }
+.bmatch-score-inputs { display: flex; align-items: center; gap: 5px; justify-content: center; }
+.bmatch-score-input {
+  width: 42px; text-align: center;
+  padding: 5px 2px; border-radius: 7px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.25); color: var(--text);
+  font-size: 14px; font-weight: 800;
+  -moz-appearance: textfield;
+}
+.bmatch-score-input::-webkit-outer-spin-button,
+.bmatch-score-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.bmatch-score-colon { font-size: 14px; font-weight: 800; color: var(--muted); }
+.bmatch-edit-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.bmatch-edit-actions .bmatch-btn { margin-top: 0; }
 .tournament-bye { text-align: center; margin-top: 2px; }
 
 .tournament-result-btn { width: 100%; margin-top: 2px; }
@@ -2029,3 +2155,24 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 .wtop-battle-decks .wtop-deck { margin-top: 3px; }
 /* Единственная строка в карточке — рамка сверху от .more-row тут лишняя. */
 .wtop-entry { border-top: none; padding: 2px 4px; }
+
+/* Автозачёт результатов турнира */
+.bmatch-auto { color: #7ee08e; opacity: 0.85; }
+.auto-results {
+  display: flex; align-items: flex-start; gap: 9px;
+  margin-top: 12px; padding: 10px; border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04); cursor: pointer;
+}
+.auto-results input { margin-top: 2px; flex: none; width: 16px; height: 16px; accent-color: var(--accent); }
+.auto-results-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.auto-results-title { font-size: 13px; font-weight: 700; }
+
+/* Снятие команды организатором */
+.tournament-participant-row .participant-remove {
+  flex: none; margin-left: auto;
+  background: none; border: none; cursor: pointer;
+  color: var(--muted); font-size: 14px; line-height: 1;
+  padding: 6px 4px;                      /* палец толще крестика */
+}
+.participant-remove-confirm { display: flex; gap: 5px; margin-left: auto; flex: none; }
+.btn-mini.danger { background: rgba(229, 57, 53, 0.22); color: #ff8a85; }

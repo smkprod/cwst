@@ -20,6 +20,12 @@ builder.Services.AddScoped<SendSmartAlertUseCase>();
 builder.Services.AddScoped<SendLeaderBriefingUseCase>();
 builder.Services.AddScoped<SendPerfectDayUseCase>();
 builder.Services.AddScoped<HarvestTopPlayersUseCase>();
+builder.Services.AddScoped<TournamentBracketService>();
+builder.Services.AddScoped<TournamentNotifier>();
+builder.Services.AddScoped<AutoResolveTournamentMatchesUseCase>();
+// Темп опроса — синглтон: он и есть память между проходами, в scope он обнулялся бы
+// каждые двадцать секунд, и никакой адаптивности не получилось бы.
+builder.Services.AddSingleton<TournamentPollState>();
 builder.Services.AddScoped<SendRespectDigestUseCase>();
 builder.Services.AddScoped<NudgePlayersUseCase>();
 builder.Services.AddScoped<LinkPlayerUseCase>();

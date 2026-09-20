@@ -23,6 +23,16 @@ public class TournamentRepository(AppDbContext db) : ITournamentRepository
             .OrderByDescending(t => t.CreatedAtUtc)
             .ToListAsync(ct);
 
+    public Task<List<Tournament>> GetForAutoResultsAsync(CancellationToken ct = default) =>
+        db.Tournaments
+            .Where(t => t.AutoResults
+                        && (t.Status == TournamentStatus.BracketReady || t.Status == TournamentStatus.InProgress))
+            .Include(t => t.Participants)
+            .Include(t => t.Matches).ThenInclude(m => m.ParticipantA)
+            .Include(t => t.Matches).ThenInclude(m => m.ParticipantB)
+            .Include(t => t.Matches).ThenInclude(m => m.NextMatch)
+            .ToListAsync(ct);
+
     public async Task AddAsync(Tournament tournament, CancellationToken ct = default) =>
         await db.Tournaments.AddAsync(tournament, ct);
 

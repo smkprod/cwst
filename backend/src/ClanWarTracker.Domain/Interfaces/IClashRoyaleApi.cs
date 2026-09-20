@@ -66,6 +66,16 @@ public interface IClashRoyaleApi
     Task<List<CrRecentBattle>> GetRecentBattlesAsync(string playerTag, CancellationToken ct = default);
 
     /// <summary>
+    /// Тот же журнал боёв, но с коротким кэшем — для автозачёта результатов турнира.
+    ///
+    /// Отдельный метод, а не параметр: обычный журнал показывается в карточке игрока,
+    /// и держать его пять минут правильно. Автозачёт же опрашивает раз в полминуты,
+    /// и пятиминутный кэш означал бы, что результат матча появляется через пять минут
+    /// после боя — ровно то, ради чего частый опрос и затевался.
+    /// </summary>
+    Task<List<CrRecentBattle>> GetBattlesForAutoResultAsync(string playerTag, CancellationToken ct = default);
+
+    /// <summary>
     /// Справочник всех карт игры: имя → карта. Нужен, чтобы показывать карты, которых
     /// у игрока ещё нет (в его профиле API отдаёт только открытые). Пустой словарь — ошибка API.
     /// </summary>

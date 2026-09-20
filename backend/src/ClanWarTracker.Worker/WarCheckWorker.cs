@@ -14,6 +14,17 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
     // Снапшоты снимаем чаще основного цикла: финальный снимок дня всегда свежий (в пределах
     // 10 минут до сброса в 10:00 UTC), поэтому «медали за день» по каждому игроку точнее.
     private static readonly TimeSpan SnapshotInterval = TimeSpan.FromMinutes(10);
+
+    /// <summary>
+    /// Такт автозачёта турнирных результатов. Двадцать секунд — это шаг сетки, а не
+    /// частота запросов: сам use case решает, какие матчи сейчас смотреть, и пока никто
+    /// не играет, такт обходится одним запросом к базе раз в минуту.
+    ///
+    /// Частить приходится ради людей, а не ради данных: пара доиграла серию и сидит ждёт,
+    /// когда бот её закроет, чтобы идти в следующий раунд. Десять минут такого ожидания
+    /// обесценивают всю автоматику — проще было вбить счёт руками.
+    /// </summary>
+    private static readonly TimeSpan TournamentResultsInterval = TimeSpan.FromSeconds(20);
     /// <summary>
     /// Наборы ключей «это уже отправлено». Живут в памяти ради скорости, но дублируются
     /// в БД: рестарт воркера не должен приводить к повторной рассылке. Именно из-за
@@ -47,7 +58,30 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
         await Task.WhenAll(
             RunPeriodicChecksAsync(stoppingToken),
             RunSnapshotLoopAsync(stoppingToken),
-            RunFinalCallLoopAsync(stoppingToken));
+            RunFinalCallLoopAsync(stoppingToken),
+            RunTournamentResultsLoopAsync(stoppingToken));
+    }
+
+    /// <summary>Автозачёт результатов турниров по боевому логу участников.</summary>
+    private async Task RunTournamentResultsLoopAsync(CancellationToken stoppingToken)
+    {
+        using var timer = new PeriodicTimer(TournamentResultsInterval);
+        do
+        {
+            try
+            {
+                using var scope = scopeFactory.CreateScope();
+                var auto = scope.ServiceProvider.GetRequiredService<AutoResolveTournamentMatchesUseCase>();
+                var matches = await auto.ExecuteAsync(stoppingToken);
+                if (matches > 0) logger.LogInformation("Auto-resolved {Count} tournament matches", matches);
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Tournament auto-results failed");
+            }
+        }
+        while (await timer.WaitForNextTickAsync(stoppingToken));
     }
 
     /// <summary>Поднимает отметки об уже отправленном из БД и подчищает совсем старые.</summary>
@@ -284,6 +318,7 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
             {
                 logger.LogError(ex, "Top players harvest failed");
             }
+
         }
         while (await timer.WaitForNextTickAsync(stoppingToken));
     }

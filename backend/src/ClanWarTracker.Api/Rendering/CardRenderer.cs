@@ -26,6 +26,14 @@ public record PerfectDayCardModel(
     string PlayerName, string ClanName, int Fame, string BotName, string? ArtUrl);
 
 /// <summary>
+/// Итог турнира: кто победил, с каким счётом и над кем.
+/// </summary>
+/// <param name="Roster">Состав команды строкой; пусто в одиночном турнире.</param>
+public record ChampionCardModel(
+    string TeamName, string Roster, string TournamentName, string Score,
+    string RunnerUp, int Teams, string BotName);
+
+/// <summary>
 /// Рисует карточки для inline-режима и для чата.
 ///
 /// Прошлые версии выглядели как тёмный прямоугольник с цифрами, и дело было не в
@@ -403,6 +411,203 @@ public class CardRenderer(IWebHostEnvironment env, IHttpClientFactory http, IMem
     /* ---------- «Карта дня»: фрагмент арта ---------- */
 
     /// <summary>Сторона картинки-загадки. Квадрат: фрагмент вырезается квадратом.</summary>
+
+    /* --- Карточка чемпиона турнира --- */
+
+    public const int ChampionHeight = 560;
+
+    /// <summary>Белое золото: эта карточка намеренно выбивается из тёмной остальной серии.</summary>
+    private static readonly SKColor ChampInk = SKColor.Parse("#2e2611");
+    private static readonly SKColor ChampMuted = SKColor.Parse("#8a7440");
+    private static readonly SKColor ChampFaint = SKColor.Parse("#9c8a55");
+    private static readonly SKColor ChampDeep = SKColor.Parse("#6b5a2a");
+    private static readonly SKColor GoldDark = SKColor.Parse("#b8860b");
+
+    private readonly SKImage? _kingBlue = LoadImage(env, "KingBlue.png");
+    private readonly SKImage? _kingRed = LoadImage(env, "KingRed.png");
+    private readonly SKImage? _trophy = LoadImage(env, "Trophy.png");
+
+    /// <summary>
+    /// Картинка из Assets. В отличие от шрифта её отсутствие не фатально: карточка
+    /// без фигур соберётся, просто будет скучнее — падать из-за этого при старте
+    /// всего сервиса незачем.
+    /// </summary>
+    private static SKImage? LoadImage(IWebHostEnvironment env, string file)
+    {
+        try
+        {
+            // Перегрузки с путём к файлу у FromEncodedData нет — только данные.
+            var path = Path.Combine(env.ContentRootPath, "Assets", file);
+            return SKImage.FromEncodedData(File.ReadAllBytes(path));
+        }
+        catch { return null; }
+    }
+
+    /// <summary>
+    /// Итог турнира для чата: кубок между двумя королями, имя чемпиона на плашке.
+    ///
+    /// Рисовать королей примитивами я пробовал трижды — выходили то иконки
+    /// пользователя, то фигуры в капюшонах. Настоящие фигуры лежат в Assets и
+    /// берутся оттуда: ни сети, ни зависимости от доступности CDN.
+    ///
+    /// Геометрия собиралась макетом в браузере с этими же картинками и правилась по
+    /// скриншотам: в первой версии короли были крупнее и перекрывали имя команды,
+    /// во второй плашка резала им лица. Здесь они стоят по бокам от кубка, а текст
+    /// целиком ниже — пересекаться нечему.
+    /// </summary>
+    public byte[] RenderChampion(ChampionCardModel m)
+    {
+        using var surface = SKSurface.Create(new SKImageInfo(Width, ChampionHeight));
+        var canvas = surface.Canvas;
+        using var p = new SKPaint { IsAntialias = true };
+
+        ChampionBackground(canvas, p);
+
+        // Фигуры и кубок. Каждая может не загрузиться — композиция это переживает.
+        if (_trophy is not null) Art(canvas, p, _trophy, Width / 2f, 46, 206, centered: true);
+        if (_kingBlue is not null) Art(canvas, p, _kingBlue, 4, 62, 226, centered: false);
+        if (_kingRed is not null) Art(canvas, p, _kingRed, Width - 4, 62, 226, centered: false, mirror: true);
+
+        // Надзаголовок вразрядку: межбуквенного интервала в Skia нет, рисуем посимвольно.
+        p.Shader = null;
+        p.Color = GoldDark;
+        Spaced(canvas, "ЧЕМПИОН ТУРНИРА", Width / 2f, 48, new SKFont(_medium, 15), 7, p);
+
+        // Плашка под текстом: короли и кубок сверху, текст снизу — без подложки
+        // светлые буквы на светлом фоне читались бы хуже.
+        p.Color = SKColor.Parse("#fffdf6").WithAlpha(240);
+        canvas.DrawRoundRect(new SKRect(70, 300, 730, 496), 20, 20, p);
+        p.Color = SKColor.Parse("#d4a017");
+        p.Style = SKPaintStyle.Stroke;
+        p.StrokeWidth = 1.5f;
+        canvas.DrawRoundRect(new SKRect(70, 300, 730, 496), 20, 20, p);
+        p.Style = SKPaintStyle.Fill;
+
+        // Имя команды — главный герой карточки, поэтому самый крупный кегль,
+        // но с ужиманием: название разрешено до 64 символов.
+        var nameFont = new SKFont(_display, 42);
+        p.Color = ChampInk;
+        canvas.DrawText(Fit(Clean(m.TeamName), nameFont, 600), Width / 2f, 358,
+            SKTextAlign.Center, nameFont, p);
+
+        if (m.Roster.Length > 0)
+        {
+            var rosterFont = new SKFont(_regular, 15);
+            p.Color = ChampMuted;
+            canvas.DrawText(Fit(Clean(m.Roster), rosterFont, 600), Width / 2f, 386,
+                SKTextAlign.Center, rosterFont, p);
+        }
+
+        // DrawLine рисует обводкой: с Fill-стилем от линии остался бы волосок.
+        p.Color = GoldDark.WithAlpha(102);
+        p.Style = SKPaintStyle.Stroke;
+        p.StrokeWidth = 1;
+        canvas.DrawLine(300, 406, 500, 406, p);
+        p.Style = SKPaintStyle.Fill;
+
+        var tourFont = new SKFont(_medium, 16);
+        p.Color = ChampDeep;
+        canvas.DrawText(Fit(Clean(m.TournamentName), tourFont, 600), Width / 2f, 432,
+            SKTextAlign.Center, tourFont, p);
+
+        var footFont = new SKFont(_regular, 14);
+        p.Color = ChampFaint;
+        var final = m.RunnerUp.Length > 0
+            ? $"Финал {m.Score} против «{Clean(m.RunnerUp)}»"
+            : $"Финал {m.Score}";
+        canvas.DrawText(Fit(final, footFont, 600), Width / 2f, 456, SKTextAlign.Center, footFont, p);
+
+        if (m.Teams > 0)
+            canvas.DrawText($"{m.Teams} команд", Width / 2f, 478, SKTextAlign.Center, footFont, p);
+
+        p.Color = SKColor.Parse("#c2b28a");
+        canvas.DrawText($"@{m.BotName}", Width - 34, 540, SKTextAlign.Right, new SKFont(_regular, 12), p);
+
+        using var image = surface.Snapshot();
+        using var data = image.Encode(SKEncodedImageFormat.Jpeg, 92);
+        return data.ToArray();
+    }
+
+    /// <summary>
+    /// Рисует картинку заданной высоты, сохраняя пропорции.
+    /// </summary>
+    /// <param name="x">Левый край; при centered — центр, при mirror — правый край.</param>
+    private static void Art(SKCanvas canvas, SKPaint p, SKImage img,
+        float x, float y, float height, bool centered, bool mirror = false)
+    {
+        var width = img.Width * (height / img.Height);
+        var left = centered ? x - width / 2 : mirror ? x - width : x;
+        var src = new SKRect(0, 0, img.Width, img.Height);
+        var sampling = new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear);
+
+        if (!mirror)
+        {
+            canvas.DrawImage(img, src, new SKRect(left, y, left + width, y + height), sampling, p);
+            return;
+        }
+
+        // Правый король развёрнут лицом внутрь: оба смотрят на кубок, а не в одну сторону.
+        canvas.Save();
+        canvas.Translate(left + width, y);
+        canvas.Scale(-1, 1);
+        canvas.DrawImage(img, src, new SKRect(0, 0, width, height), sampling, p);
+        canvas.Restore();
+    }
+
+    /// <summary>Тёплый белый фон, золотое свечение вокруг кубка и двойная рамка.</summary>
+    private static void ChampionBackground(SKCanvas canvas, SKPaint p)
+    {
+        var full = new SKRect(0, 0, Width, ChampionHeight);
+
+        p.Shader = SKShader.CreateRadialGradient(
+            new SKPoint(Width / 2f, 78), Width * 1.05f,
+            [SKColor.Parse("#ffffff"), SKColor.Parse("#fffaf0"), SKColor.Parse("#f4e6c6")],
+            [0f, 0.40f, 1f], SKShaderTileMode.Clamp);
+        canvas.DrawRect(full, p);
+
+        // Свечение вокруг кубка: без него центр карточки проваливается.
+        p.Shader = SKShader.CreateRadialGradient(
+            new SKPoint(Width / 2f, 150), 290,
+            [SKColor.Parse("#ffd970").WithAlpha(140), SKColor.Parse("#ffd970").WithAlpha(0)],
+            [0f, 1f], SKShaderTileMode.Clamp);
+        canvas.DrawRect(full, p);
+
+        p.Shader = SKShader.CreateLinearGradient(
+            new SKPoint(0, 16), new SKPoint(0, ChampionHeight - 16),
+            [SKColor.Parse("#fbe18f"), SKColor.Parse("#e0ae21"),
+             SKColor.Parse("#b8860b"), SKColor.Parse("#8a6508")],
+            [0f, 0.38f, 0.72f, 1f], SKShaderTileMode.Clamp);
+        p.Style = SKPaintStyle.Stroke;
+        p.StrokeWidth = 4;
+        canvas.DrawRoundRect(new SKRect(16, 16, Width - 16, ChampionHeight - 16), 22, 22, p);
+
+        p.Shader = null;
+        p.Color = GoldDark.WithAlpha(128);
+        p.StrokeWidth = 1.2f;
+        canvas.DrawRoundRect(new SKRect(27, 27, Width - 27, ChampionHeight - 27), 15, 15, p);
+
+        p.Style = SKPaintStyle.Fill;
+        p.StrokeWidth = 0;
+    }
+
+    /// <summary>
+    /// Текст вразрядку по центру. В Skia межбуквенного интервала нет, поэтому
+    /// считаем ширину сами и рисуем посимвольно от левого края.
+    /// </summary>
+    private static void Spaced(SKCanvas canvas, string text, float centerX, float y,
+        SKFont font, float spacing, SKPaint p)
+    {
+        var total = text.Sum(c => font.MeasureText(c.ToString())) + spacing * (text.Length - 1);
+        var cursor = centerX - total / 2;
+
+        foreach (var c in text)
+        {
+            var s = c.ToString();
+            canvas.DrawText(s, cursor, y, font, p);
+            cursor += font.MeasureText(s) + spacing;
+        }
+    }
+
     public const int PuzzleSize = 420;
 
     /// <summary>

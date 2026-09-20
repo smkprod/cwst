@@ -25,6 +25,8 @@ export function TournamentForm({ mode, initial, onSaved, onCancel }: Props) {
   // могут стоять команды, и превращать их в одиночек некуда.
   const [format, setFormat] = useState<TournamentMode>(initial?.mode ?? 'solo')
   const [startsAt, setStartsAt] = useState(toLocalInput(initial?.startsAtUtc ?? null))
+  const [autoResults, setAutoResults] = useState(initial?.autoResults ?? true)
+  const [announceResults, setAnnounceResults] = useState(initial?.announceResults ?? true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -56,6 +58,8 @@ export function TournamentForm({ mode, initial, onSaved, onCancel }: Props) {
         mode: format,
         // Пустое поле — дата не объявлена; это допустимо, турнир стартуют вручную
         startsAtUtc: startsAt ? new Date(startsAt).toISOString() : null,
+        autoResults,
+        announceResults,
       }
       const result = mode === 'create'
         ? await api.createTournament(req)
@@ -174,6 +178,30 @@ export function TournamentForm({ mode, initial, onSaved, onCancel }: Props) {
         </div>
       </div>
       <p className="muted small form-hint">{t.tournament.minParticipantsHint}</p>
+
+      <label className="auto-results">
+        <input
+          type="checkbox"
+          checked={autoResults}
+          onChange={e => setAutoResults(e.target.checked)}
+        />
+        <span className="auto-results-text">
+          <span className="auto-results-title">🤖 {t.tournament.autoResultsLabel}</span>
+          <span className="muted small">{t.tournament.autoResultsHint}</span>
+        </span>
+      </label>
+
+      <label className="auto-results">
+        <input
+          type="checkbox"
+          checked={announceResults}
+          onChange={e => setAnnounceResults(e.target.checked)}
+        />
+        <span className="auto-results-text">
+          <span className="auto-results-title">📣 {t.tournament.announceLabel}</span>
+          <span className="muted small">{t.tournament.announceHint}</span>
+        </span>
+      </label>
 
       {error && <p className="form-error small">{error}</p>}
 
