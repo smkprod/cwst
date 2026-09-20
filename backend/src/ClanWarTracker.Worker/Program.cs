@@ -20,6 +20,8 @@ builder.Services.AddScoped<SendSmartAlertUseCase>();
 builder.Services.AddScoped<SendLeaderBriefingUseCase>();
 builder.Services.AddScoped<SendPerfectDayUseCase>();
 builder.Services.AddScoped<HarvestTopPlayersUseCase>();
+builder.Services.AddScoped<TournamentBracketService>();
+builder.Services.AddScoped<AutoResolveTournamentMatchesUseCase>();
 builder.Services.AddScoped<SendRespectDigestUseCase>();
 builder.Services.AddScoped<NudgePlayersUseCase>();
 builder.Services.AddScoped<LinkPlayerUseCase>();

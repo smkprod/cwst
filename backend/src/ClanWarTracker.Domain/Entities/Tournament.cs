@@ -37,6 +37,14 @@ public class Tournament
     /// </summary>
     public DateTime? StartsAtUtc { get; set; }
 
+    /// <summary>
+    /// Засчитывать результаты матчей самостоятельно по боевому логу участников.
+    /// Включено по умолчанию: организатору не нужно сидеть и вбивать счёт руками.
+    /// Выключается, если турнир играется вне игры (например, по видеосвязи) и лога
+    /// с этими боями просто не будет.
+    /// </summary>
+    public bool AutoResults { get; set; } = true;
+
     public TournamentStatus Status { get; set; } = TournamentStatus.RegistrationOpen;
 
     public DateTime CreatedAtUtc { get; set; }

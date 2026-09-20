@@ -35,34 +35,8 @@ public class SetTournamentMatchResultUseCase(ITournamentRepository tournaments, 
         if (match.Status == TournamentMatchStatus.Completed)
             bracket.ClearDownstream(match);
 
-        var winner = aWins ? match.ParticipantA! : match.ParticipantB!;
-        var loser = aWins ? match.ParticipantB! : match.ParticipantA!;
-
-        match.ScoreA = scoreA;
-        match.ScoreB = scoreB;
-        match.WinnerParticipantId = winner.Id;
-        match.WinnerParticipant = winner;
-        match.Status = TournamentMatchStatus.Completed;
-        match.UpdatedAtUtc = DateTime.UtcNow;
-
-        winner.Status = TournamentParticipantStatus.Active;
-        loser.Status = TournamentParticipantStatus.Eliminated;
-
-        if (tournament.Status == TournamentStatus.BracketReady)
-            tournament.Status = TournamentStatus.InProgress;
-
-        if (match.NextMatch is null)
-        {
-            // Финал сыгран — турнир завершён.
-            winner.FinalPlacement = 1;
-            loser.FinalPlacement = 2;
-            tournament.Status = TournamentStatus.Completed;
-            tournament.CompletedAtUtc = DateTime.UtcNow;
-        }
-        else
-        {
-            bracket.AdvanceWinner(match, winner);
-        }
+        // Дальше всё делает общий код — тот же, которым закрывает матч автозачёт.
+        bracket.ApplyResult(tournament, match, scoreA, scoreB, auto: false);
 
         await tournaments.SaveChangesAsync(ct);
         return null;

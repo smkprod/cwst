@@ -187,6 +187,13 @@ export function TournamentBracket({ tournament, onUpdated }: Props) {
 
                     {m.status === 'bye' && <p className="bmatch-note">{t.tournament.bye}</p>}
                     {m.status === 'pending' && <p className="bmatch-note">{t.tournament.pendingStatus}</p>}
+                    {/* Отметка «засчитано ботом» нужна не ради красоты: организатор должен
+                        видеть, что счёт взялся из лога, и при желании его поправить. */}
+                    {m.autoResolved && (
+                      <p className="bmatch-note bmatch-auto" title={t.tournament.autoResolvedHint}>
+                        🤖 {t.tournament.autoResolved}
+                      </p>
+                    )}
 
                     {tournament.isCreator && (m.status === 'ready' || m.status === 'completed') && editingMatch !== m.id && (
                       <button className="bmatch-btn" onClick={() => startEdit(m)}>

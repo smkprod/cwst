@@ -281,6 +281,12 @@ CREATE TABLE IF NOT EXISTS ""Tournaments"" (
         await db.Database.ExecuteSqlRawAsync(
             "ALTER TABLE \"Tournaments\" ADD COLUMN IF NOT EXISTS \"MinParticipants\" integer NOT NULL DEFAULT 2;");
 
+        // Автозачёт результатов по боевому логу. Включён по умолчанию и для уже
+        // существующих турниров: организатору это только экономит работу, а его
+        // ручной счёт всё равно перекрывает наш.
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Tournaments\" ADD COLUMN IF NOT EXISTS \"AutoResults\" boolean NOT NULL DEFAULT TRUE;");
+
         await db.Database.ExecuteSqlRawAsync(@"
 CREATE TABLE IF NOT EXISTS ""TournamentParticipants"" (
     ""Id"" serial PRIMARY KEY,
@@ -319,6 +325,16 @@ CREATE TABLE IF NOT EXISTS ""TournamentMatches"" (
 
         await db.Database.ExecuteSqlRawAsync(
             "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_TournamentMatches_TournamentId_Round_SlotIndex\" ON \"TournamentMatches\" (\"TournamentId\", \"Round\", \"SlotIndex\");");
+
+        // Момент, с которого бои считаются этим матчем, и отметка «счёт проставил бот».
+        // У матчей, созданных до автозачёта, ReadyAtUtc пуст — такие бот не трогает
+        // и оставляет организатору: без границы по времени он мог бы засчитать
+        // случайную встречу тех же соперников.
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"TournamentMatches\" ADD COLUMN IF NOT EXISTS \"ReadyAtUtc\" timestamptz;");
+
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"TournamentMatches\" ADD COLUMN IF NOT EXISTS \"AutoResolved\" boolean NOT NULL DEFAULT FALSE;");
 
         // Отслеживаемые игровые турниры (живые данные тянутся из CR API по тегу).
         await db.Database.ExecuteSqlRawAsync(@"

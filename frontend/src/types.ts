@@ -792,6 +792,8 @@ export interface TournamentMatch {
   scoreB: number
   winner: TournamentParticipant | null
   status: TournamentMatchStatus
+  /** Счёт проставил бот по логу, а не организатор руками. */
+  autoResolved: boolean
   nextMatchId: number | null
 }
 
@@ -813,6 +815,8 @@ export interface Tournament {
   isCreator: boolean
   isParticipant: boolean
   canJoin: boolean
+  /** Бот сам закрывает матчи по боевому логу участников. */
+  autoResults: boolean
   participants: TournamentParticipant[]
   matches: TournamentMatch[]
 }

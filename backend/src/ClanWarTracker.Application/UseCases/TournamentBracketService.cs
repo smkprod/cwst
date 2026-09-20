@@ -62,6 +62,7 @@ public class TournamentBracketService
             else
             {
                 match.Status = TournamentMatchStatus.Ready;
+                match.ReadyAtUtc = DateTime.UtcNow;
             }
             round1.Add(match);
             t.Matches.Add(match);
@@ -119,7 +120,52 @@ public class TournamentBracketService
         }
 
         if (next.ParticipantA is not null && next.ParticipantB is not null)
+        {
             next.Status = TournamentMatchStatus.Ready;
+            next.ReadyAtUtc = DateTime.UtcNow;
+        }
+    }
+
+    /// <summary>
+    /// Проставляет результат матча и двигает сетку. Один код на ручной ввод и на
+    /// автозачёт по логу: разойдись они — и матч, закрытый ботом, повёл бы себя иначе,
+    /// чем закрытый организатором.
+    ///
+    /// Вызывающий обязан сам проверить право на действие и корректность счёта, а при
+    /// исправлении уже сыгранного матча — вызвать ClearDownstream.
+    /// </summary>
+    public void ApplyResult(Tournament tournament, TournamentMatch match, int scoreA, int scoreB, bool auto)
+    {
+        var aWins = scoreA > scoreB;
+        var winner = aWins ? match.ParticipantA! : match.ParticipantB!;
+        var loser = aWins ? match.ParticipantB! : match.ParticipantA!;
+
+        match.ScoreA = scoreA;
+        match.ScoreB = scoreB;
+        match.WinnerParticipantId = winner.Id;
+        match.WinnerParticipant = winner;
+        match.Status = TournamentMatchStatus.Completed;
+        match.AutoResolved = auto;
+        match.UpdatedAtUtc = DateTime.UtcNow;
+
+        winner.Status = TournamentParticipantStatus.Active;
+        loser.Status = TournamentParticipantStatus.Eliminated;
+
+        if (tournament.Status == TournamentStatus.BracketReady)
+            tournament.Status = TournamentStatus.InProgress;
+
+        if (match.NextMatch is null)
+        {
+            // Финал сыгран — турнир завершён.
+            winner.FinalPlacement = 1;
+            loser.FinalPlacement = 2;
+            tournament.Status = TournamentStatus.Completed;
+            tournament.CompletedAtUtc = DateTime.UtcNow;
+        }
+        else
+        {
+            AdvanceWinner(match, winner);
+        }
     }
 
     /// <summary>
@@ -143,6 +189,10 @@ public class TournamentBracketService
         next.WinnerParticipantId = null;
         next.WinnerParticipant = null;
         next.Status = TournamentMatchStatus.Pending;
+        // Момент готовности сбрасываем вместе со статусом: когда пара соберётся заново,
+        // отсчёт боёв должен пойти от нового времени, а не от старого раунда.
+        next.ReadyAtUtc = null;
+        next.AutoResolved = false;
         next.UpdatedAtUtc = null;
     }
 

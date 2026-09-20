@@ -1089,6 +1089,8 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
                     CrownsAgainst = crownsAgainst,
                     OpponentName = opp?.Name,
                     OpponentTag = opp?.Tag,
+                    TeamTags = (b.Team ?? []).Select(x => x.Tag).Where(x => x is not null).ToList(),
+                    OpponentTags = (b.Opponent ?? []).Select(x => x.Tag).Where(x => x is not null).ToList(),
                     MyDeck = Deck(me.Cards),
                     OpponentDeck = Deck(opp?.Cards),
                 });

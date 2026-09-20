@@ -284,6 +284,21 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
             {
                 logger.LogError(ex, "Top players harvest failed");
             }
+
+            try
+            {
+                // Автозачёт результатов турнира по боевому логу. Десять минут — с запасом:
+                // лог хранит около двадцати пяти боёв, а столько за десять минут не сыграть,
+                // так что матч из него вымыться не успеет.
+                using var scope = scopeFactory.CreateScope();
+                var auto = scope.ServiceProvider.GetRequiredService<AutoResolveTournamentMatchesUseCase>();
+                var matches = await auto.ExecuteAsync(stoppingToken);
+                if (matches > 0) logger.LogInformation("Auto-resolved {Count} tournament matches", matches);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Tournament auto-results failed");
+            }
         }
         while (await timer.WaitForNextTickAsync(stoppingToken));
     }

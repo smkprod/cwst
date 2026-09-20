@@ -22,6 +22,14 @@ public class CrRecentBattle
     public string? OpponentName { get; set; }
     public string? OpponentTag { get; set; }
 
+    /// <summary>
+    /// Теги всей стороны, чей лог читаем, и всей стороны соперника. В 1х1 по одному,
+    /// в 2х2 по два. Одного OpponentTag для опознания пары в турнире мало: там важно,
+    /// что играли именно эти четверо, а не «кто-то из них с кем-то».
+    /// </summary>
+    public List<string> TeamTags { get; set; } = [];
+    public List<string> OpponentTags { get; set; } = [];
+
     public List<CrDeckCard> MyDeck { get; set; } = [];
     public List<CrDeckCard> OpponentDeck { get; set; } = [];
 }

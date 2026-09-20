@@ -2149,3 +2149,14 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 .wtop-battle-decks .wtop-deck { margin-top: 3px; }
 /* Единственная строка в карточке — рамка сверху от .more-row тут лишняя. */
 .wtop-entry { border-top: none; padding: 2px 4px; }
+
+/* Автозачёт результатов турнира */
+.bmatch-auto { color: #7ee08e; opacity: 0.85; }
+.auto-results {
+  display: flex; align-items: flex-start; gap: 9px;
+  margin-top: 12px; padding: 10px; border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04); cursor: pointer;
+}
+.auto-results input { margin-top: 2px; flex: none; width: 16px; height: 16px; accent-color: var(--accent); }
+.auto-results-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.auto-results-title { font-size: 13px; font-weight: 700; }

@@ -29,6 +29,8 @@ public record TournamentDto(
     bool IsCreator,
     bool IsParticipant,
     bool CanJoin,
+    /// <summary>Бот сам закрывает матчи по боевому логу участников.</summary>
+    bool AutoResults,
     List<TournamentParticipantDto> Participants,
     List<TournamentMatchDto> Matches);
 
@@ -54,6 +56,8 @@ public record TournamentMatchDto(
     int ScoreB,
     TournamentParticipantDto? Winner,
     string Status,                 // pending | ready | bye | completed
+    /// <summary>Счёт проставил бот по логу, а не организатор руками.</summary>
+    bool AutoResolved,
     int? NextMatchId);
 
 /// <summary>Запись в истории турниров игрока — для вкладки статистики.</summary>

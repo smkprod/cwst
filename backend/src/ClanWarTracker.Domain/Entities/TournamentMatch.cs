@@ -31,5 +31,15 @@ public class TournamentMatch
     /// <summary>В какой слот следующего матча встаёт победитель: 0 = A, 1 = B.</summary>
     public int NextMatchSlot { get; set; }
 
+    /// <summary>
+    /// Когда в матче появились оба соперника. Бои раньше этого момента к матчу
+    /// отношения не имеют: те же две команды могли встретиться вчера в ладдере,
+    /// а при пересборке сетки — ещё и до того, как сошлись в этом раунде.
+    /// </summary>
+    public DateTime? ReadyAtUtc { get; set; }
+
+    /// <summary>Счёт проставлен ботом по боевому логу, а не организатором руками.</summary>
+    public bool AutoResolved { get; set; }
+
     public DateTime? UpdatedAtUtc { get; set; }
 }

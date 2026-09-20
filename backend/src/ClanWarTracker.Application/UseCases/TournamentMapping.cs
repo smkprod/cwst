@@ -65,6 +65,7 @@ public static class TournamentMapping
                 m.ScoreA, m.ScoreB,
                 m.WinnerParticipantId.HasValue ? participantDtoById.GetValueOrDefault(m.WinnerParticipantId.Value) : null,
                 ToText(m.Status),
+                m.AutoResolved,
                 m.NextMatchId))
             .ToList();
 
@@ -79,6 +80,7 @@ public static class TournamentMapping
             IsParticipant: isParticipant,
             CanJoin: t.Status == TournamentStatus.RegistrationOpen && !isParticipant
                 && participants.Count < t.MaxParticipants,
+            AutoResults: t.AutoResults,
             participants, matches);
     }
 }
