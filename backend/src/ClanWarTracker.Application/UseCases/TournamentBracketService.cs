@@ -8,6 +8,20 @@ namespace ClanWarTracker.Application.UseCases;
 /// Жеребьёвка случайна (турнир дружеский, не рейтинговый), но баи распределяются
 /// по стандартному алгоритму сидирования, чтобы они не скапливались в одном углу сетки.
 /// </summary>
+/// <summary>
+/// Что произошло при проставлении результата — всё, что нужно, чтобы разослать
+/// уведомления, не пересчитывая сетку заново.
+/// </summary>
+/// <param name="NextReady">
+/// Следующий матч, если он стал готов именно сейчас: пришёл второй соперник.
+/// Null — впереди финал, либо второго соперника ещё нет, либо он уже был готов.
+/// </param>
+public record MatchOutcome(
+    TournamentParticipant Winner,
+    TournamentParticipant Loser,
+    TournamentMatch? NextReady,
+    bool TournamentCompleted);
+
 public class TournamentBracketService
 {
     /// <summary>
@@ -134,8 +148,13 @@ public class TournamentBracketService
     /// Вызывающий обязан сам проверить право на действие и корректность счёта, а при
     /// исправлении уже сыгранного матча — вызвать ClearDownstream.
     /// </summary>
-    public void ApplyResult(Tournament tournament, TournamentMatch match, int scoreA, int scoreB, bool auto)
+    public MatchOutcome ApplyResult(Tournament tournament, TournamentMatch match, int scoreA, int scoreB, bool auto)
     {
+        // Запоминаем ДО: после AdvanceWinner следующий матч может стать готовым, и отличить
+        // «стал готов только что» от «был готов и раньше» иначе будет нечем, а рассылать
+        // приглашение играть повторно нельзя.
+        var nextWasReady = match.NextMatch?.Status == TournamentMatchStatus.Ready;
+
         var aWins = scoreA > scoreB;
         var winner = aWins ? match.ParticipantA! : match.ParticipantB!;
         var loser = aWins ? match.ParticipantB! : match.ParticipantA!;
@@ -166,6 +185,13 @@ public class TournamentBracketService
         {
             AdvanceWinner(match, winner);
         }
+
+        var nextReady = !nextWasReady && match.NextMatch is { Status: TournamentMatchStatus.Ready } next
+            ? next
+            : null;
+
+        return new MatchOutcome(winner, loser, nextReady,
+            TournamentCompleted: tournament.Status == TournamentStatus.Completed);
     }
 
     /// <summary>

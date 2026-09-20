@@ -28,7 +28,7 @@ public class TournamentsController(
     public record JoinRequest(string? TeamName = null, string? PartnerTag = null);
     public record UpdateRequest(string Name, string? Description, string? PrizeInfo,
         string ClanInviteLink, int BestOf, int MinParticipants, int MaxParticipants,
-        DateTime? StartsAtUtc = null, bool AutoResults = true);
+        DateTime? StartsAtUtc = null, bool AutoResults = true, bool AnnounceResults = true);
     public record SetResultRequest(int ScoreA, int ScoreB);
 
     /// <summary>GET /api/tournaments — открытые/идущие турниры, для вкладки "Турнир".</summary>
@@ -70,7 +70,7 @@ public class TournamentsController(
         var error = await update.ExecuteAsync(
             id, userId, req.Name, req.Description, req.PrizeInfo, req.ClanInviteLink,
             req.BestOf, req.MinParticipants, req.MaxParticipants, req.StartsAtUtc,
-            req.AutoResults, ct);
+            req.AutoResults, req.AnnounceResults, ct);
         if (error is not null) return MapUpdateError(error.Value);
 
         return Ok(await getOne.ExecuteAsync(id, userId, ct));

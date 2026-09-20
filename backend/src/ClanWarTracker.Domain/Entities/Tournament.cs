@@ -45,6 +45,13 @@ public class Tournament
     /// </summary>
     public bool AutoResults { get; set; } = true;
 
+    /// <summary>
+    /// Объявлять результаты матчей в чат клана организатора. Личные сообщения
+    /// участникам шлются всегда — они адресные и их ждут; а вот чат клана турнир
+    /// на шестнадцать команд способен засыпать полутора десятками сообщений.
+    /// </summary>
+    public bool AnnounceResults { get; set; } = true;
+
     public TournamentStatus Status { get; set; } = TournamentStatus.RegistrationOpen;
 
     public DateTime CreatedAtUtc { get; set; }

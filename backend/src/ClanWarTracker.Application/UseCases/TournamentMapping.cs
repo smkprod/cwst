@@ -81,6 +81,7 @@ public static class TournamentMapping
             CanJoin: t.Status == TournamentStatus.RegistrationOpen && !isParticipant
                 && participants.Count < t.MaxParticipants,
             AutoResults: t.AutoResults,
+            AnnounceResults: t.AnnounceResults,
             participants, matches);
     }
 }

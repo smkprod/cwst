@@ -183,6 +183,7 @@ export const api = {
     clanInviteLink?: string; bestOf: number; minParticipants: number; maxParticipants: number
     startsAtUtc?: string | null
     autoResults?: boolean
+    announceResults?: boolean
   }) =>
     request<Tournament>(`/api/tournaments/${id}`, {
       method: 'PUT',

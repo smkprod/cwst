@@ -31,6 +31,8 @@ public record TournamentDto(
     bool CanJoin,
     /// <summary>Бот сам закрывает матчи по боевому логу участников.</summary>
     bool AutoResults,
+    /// <summary>Объявлять результаты матчей в чат клана организатора.</summary>
+    bool AnnounceResults,
     List<TournamentParticipantDto> Participants,
     List<TournamentMatchDto> Matches);
 

@@ -9,7 +9,8 @@ public enum StartTournamentError { TournamentNotFound, NotCreator, NotBracketRea
 /// Явный запуск турнира создателем: сетка готова → турнир идёт. Рассылает участникам
 /// уведомление в Telegram. Сбой отправки одному участнику не должен ронять запуск турнира.
 /// </summary>
-public class StartTournamentUseCase(ITournamentRepository tournaments, INotificationSender notifier)
+public class StartTournamentUseCase(
+    ITournamentRepository tournaments, INotificationSender notifier, TournamentNotifier notify)
 {
     public async Task<StartTournamentError?> ExecuteAsync(
         int tournamentId, long telegramUserId, CancellationToken ct = default)
@@ -29,6 +30,11 @@ public class StartTournamentUseCase(ITournamentRepository tournaments, INotifica
             try { await notifier.SendToUserAsync(p.TelegramUserId, text, ct); }
             catch { /* участник заблокировал бота и т.п. — не должно мешать остальным */ }
         }
+
+        // И сразу — кому с кем играть. «Следи за своим матчем» отправляет человека
+        // искать себя в сетке; адресное «ваш матч: X vs Y» не отправляет никуда.
+        foreach (var match in tournament.Matches.Where(m => m.Status == TournamentMatchStatus.Ready))
+            await notify.MatchReadyAsync(tournament, match, ct);
 
         return null;
     }

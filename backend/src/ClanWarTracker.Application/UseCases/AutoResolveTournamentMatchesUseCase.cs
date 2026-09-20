@@ -21,7 +21,8 @@ public class AutoResolveTournamentMatchesUseCase(
     ITournamentRepository tournaments,
     IClashRoyaleApi crApi,
     TournamentBracketService bracket,
-    TournamentPollState poll)
+    TournamentPollState poll,
+    TournamentNotifier notify)
 {
     /// <returns>Сколько матчей закрыто.</returns>
     public async Task<int> ExecuteAsync(CancellationToken ct = default)
@@ -49,15 +50,17 @@ public class AutoResolveTournamentMatchesUseCase(
                 .Where(m => poll.ShouldCheck(m.Id, now))
                 .ToList();
 
-            var changed = false;
+            // Уведомления копим и шлём после сохранения: сообщение «вы прошли дальше»
+            // по матчу, который не записался, отозвать уже нельзя.
+            var pending = new List<(TournamentMatch Match, MatchOutcome Outcome)>();
 
             foreach (var match in ready)
             {
                 try
                 {
-                    if (await TryResolveAsync(tournament, match, now, ct))
+                    if (await TryResolveAsync(tournament, match, now, ct) is { } outcome)
                     {
-                        changed = true;
+                        pending.Add((match, outcome));
                         closed++;
                     }
                 }
@@ -68,13 +71,22 @@ public class AutoResolveTournamentMatchesUseCase(
                 }
             }
 
-            if (changed) await tournaments.SaveChangesAsync(ct);
+            if (pending.Count == 0) continue;
+
+            await tournaments.SaveChangesAsync(ct);
+
+            foreach (var (match, outcome) in pending)
+            {
+                await notify.MatchResultAsync(tournament, match, outcome, ct);
+                if (outcome.NextReady is { } next) await notify.MatchReadyAsync(tournament, next, ct);
+            }
         }
 
         return closed;
     }
 
-    private async Task<bool> TryResolveAsync(
+    /// <returns>Исход матча, если он закрыт; null — ещё не доиграли или опознать не вышло.</returns>
+    private async Task<MatchOutcome?> TryResolveAsync(
         Tournament tournament, TournamentMatch match, DateTime now, CancellationToken ct)
     {
         var tagsA = Tags(match.ParticipantA!, tournament.Mode);
@@ -85,21 +97,21 @@ public class AutoResolveTournamentMatchesUseCase(
         if (tagsA.Count == 0 || tagsB.Count == 0)
         {
             poll.Checked(match.Id, now, readyAt: null, sawBattles: false);
-            return false;
+            return null;
         }
 
         var since = Since(tournament, match);
         if (since is null)
         {
             poll.Checked(match.Id, now, readyAt: null, sawBattles: false);
-            return false;
+            return null;
         }
 
         var battles = await crApi.GetBattlesForAutoResultAsync(match.ParticipantA!.PlayerTag, ct);
         if (battles.Count == 0)
         {
             poll.Checked(match.Id, now, match.ReadyAtUtc, sawBattles: false);
-            return false;
+            return null;
         }
 
         var facts = battles.Select(b => new TournamentAutoResult.BattleFact(
@@ -115,12 +127,12 @@ public class AutoResolveTournamentMatchesUseCase(
             // Бои пары уже есть, но серия не доиграна — следующий бой через минуты,
             // так что переходим на быстрый темп независимо от возраста матча.
             poll.Checked(match.Id, now, match.ReadyAtUtc, sawBattles: outcome.Counted > 0);
-            return false;
+            return null;
         }
 
-        bracket.ApplyResult(tournament, match, outcome.ScoreA, outcome.ScoreB, auto: true);
+        var applied = bracket.ApplyResult(tournament, match, outcome.ScoreA, outcome.ScoreB, auto: true);
         poll.Forget(match.Id);
-        return true;
+        return applied;
     }
 
     /// <summary>

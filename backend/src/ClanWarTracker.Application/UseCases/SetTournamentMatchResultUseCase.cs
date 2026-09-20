@@ -10,7 +10,8 @@ public enum SetMatchResultError { TournamentNotFound, NotCreator, MatchNotFound,
 /// При исправлении уже сыгранного матча каскадно сбрасывает все матчи, которые зависели
 /// от старого победителя, — иначе в сетке останется игрок, который туда не должен попасть.
 /// </summary>
-public class SetTournamentMatchResultUseCase(ITournamentRepository tournaments, TournamentBracketService bracket)
+public class SetTournamentMatchResultUseCase(
+    ITournamentRepository tournaments, TournamentBracketService bracket, TournamentNotifier notify)
 {
     public async Task<SetMatchResultError?> ExecuteAsync(
         int tournamentId, int matchId, long telegramUserId, int scoreA, int scoreB, CancellationToken ct = default)
@@ -36,9 +37,15 @@ public class SetTournamentMatchResultUseCase(ITournamentRepository tournaments, 
             bracket.ClearDownstream(match);
 
         // Дальше всё делает общий код — тот же, которым закрывает матч автозачёт.
-        bracket.ApplyResult(tournament, match, scoreA, scoreB, auto: false);
+        var outcome = bracket.ApplyResult(tournament, match, scoreA, scoreB, auto: false);
 
         await tournaments.SaveChangesAsync(ct);
+
+        // Рассылаем только после сохранения: сообщение «вы прошли дальше» по матчу,
+        // который не записался, отозвать уже нельзя.
+        await notify.MatchResultAsync(tournament, match, outcome, ct);
+        if (outcome.NextReady is { } next) await notify.MatchReadyAsync(tournament, next, ct);
+
         return null;
     }
 }

@@ -287,6 +287,9 @@ CREATE TABLE IF NOT EXISTS ""Tournaments"" (
         await db.Database.ExecuteSqlRawAsync(
             "ALTER TABLE \"Tournaments\" ADD COLUMN IF NOT EXISTS \"AutoResults\" boolean NOT NULL DEFAULT TRUE;");
 
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Tournaments\" ADD COLUMN IF NOT EXISTS \"AnnounceResults\" boolean NOT NULL DEFAULT TRUE;");
+
         await db.Database.ExecuteSqlRawAsync(@"
 CREATE TABLE IF NOT EXISTS ""TournamentParticipants"" (
     ""Id"" serial PRIMARY KEY,

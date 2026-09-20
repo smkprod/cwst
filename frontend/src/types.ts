@@ -817,6 +817,8 @@ export interface Tournament {
   canJoin: boolean
   /** Бот сам закрывает матчи по боевому логу участников. */
   autoResults: boolean
+  /** Объявлять результаты матчей в чат клана организатора. */
+  announceResults: boolean
   participants: TournamentParticipant[]
   matches: TournamentMatch[]
 }

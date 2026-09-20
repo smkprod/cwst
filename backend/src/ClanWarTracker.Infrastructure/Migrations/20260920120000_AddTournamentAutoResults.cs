@@ -7,7 +7,7 @@ using ClanWarTracker.Infrastructure.Persistence;
 namespace ClanWarTracker.Infrastructure.Migrations
 {
     /// <summary>
-    /// Автозачёт результатов матчей по боевому логу участников.
+    /// Автозачёт результатов матчей по боевому логу и объявления о них.
     ///
     /// ReadyAtUtc — момент, с которого бои считаются этим матчем. У матчей, созданных
     /// до этой миграции, он пуст: такие бот не трогает и оставляет организатору, потому
@@ -24,6 +24,10 @@ namespace ClanWarTracker.Infrastructure.Migrations
                 name: "AutoResults", table: "Tournaments",
                 type: "INTEGER", nullable: false, defaultValue: true);
 
+            migrationBuilder.AddColumn<bool>(
+                name: "AnnounceResults", table: "Tournaments",
+                type: "INTEGER", nullable: false, defaultValue: true);
+
             migrationBuilder.AddColumn<System.DateTime>(
                 name: "ReadyAtUtc", table: "TournamentMatches",
                 type: "TEXT", nullable: true);
@@ -37,6 +41,7 @@ namespace ClanWarTracker.Infrastructure.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(name: "AutoResults", table: "Tournaments");
+            migrationBuilder.DropColumn(name: "AnnounceResults", table: "Tournaments");
             migrationBuilder.DropColumn(name: "ReadyAtUtc", table: "TournamentMatches");
             migrationBuilder.DropColumn(name: "AutoResolved", table: "TournamentMatches");
         }
