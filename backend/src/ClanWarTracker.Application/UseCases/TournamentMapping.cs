@@ -41,20 +41,22 @@ public static class TournamentMapping
         t.Participants.Count(p => p.Status != TournamentParticipantStatus.Withdrawn),
         t.CreatorName, t.CreatedAtUtc);
 
-    public static TournamentParticipantDto ToDto(TournamentParticipant p) => new(
+    public static TournamentParticipantDto ToDto(TournamentParticipant p, long requestingTelegramUserId = 0) => new(
         p.Id, p.PlayerTag, p.PlayerName,
         p.TeamName, p.PartnerPlayerTag, p.PartnerPlayerName,
-        p.Seed, ToText(p.Status), p.FinalPlacement);
+        p.Seed, ToText(p.Status), p.FinalPlacement,
+        IsMe: requestingTelegramUserId != 0 && p.TelegramUserId == requestingTelegramUserId);
 
     public static TournamentDto ToDto(Tournament t, long requestingTelegramUserId)
     {
         var participants = t.Participants
             .Where(p => p.Status != TournamentParticipantStatus.Withdrawn)
             .OrderBy(p => p.Seed)
-            .Select(ToDto)
+            .Select(p => ToDto(p, requestingTelegramUserId))
             .ToList();
 
-        var participantDtoById = t.Participants.ToDictionary(p => p.Id, ToDto);
+        var participantDtoById = t.Participants.ToDictionary(
+            p => p.Id, p => ToDto(p, requestingTelegramUserId));
 
         var matches = t.Matches
             .OrderBy(m => m.Round).ThenBy(m => m.SlotIndex)

@@ -2176,3 +2176,14 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 }
 .participant-remove-confirm { display: flex; gap: 5px; margin-left: auto; flex: none; }
 .btn-mini.danger { background: rgba(229, 57, 53, 0.22); color: #ff8a85; }
+
+/* Своя команда в сетке: человек открывает её, чтобы найти себя, и не должен
+   вчитываться в шесть карточек. Рамка вокруг матча, а не только цвет строки, —
+   так видно и то, где ты, и с кем играешь. */
+.bmatch-mine { border-color: rgba(82, 136, 193, 0.75); box-shadow: 0 0 0 1px rgba(82, 136, 193, 0.35); }
+.bside-mine { background: rgba(82, 136, 193, 0.2); }
+.bside-mine .bside-name { font-weight: 800; }
+/* Победа своей команды остаётся зелёной: результат важнее принадлежности. */
+.bside-mine.bside-win { background: rgba(95, 213, 115, 0.2); }
+.participant-mine { background: rgba(82, 136, 193, 0.18); }
+.participant-mine .tournament-participant-name { font-weight: 800; }
