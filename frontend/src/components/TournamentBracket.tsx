@@ -20,6 +20,14 @@ interface Link {
 /** Длина прямого «носика» у карточки перед тем, как линия уходит в изгиб. */
 const STUB = 10
 
+/**
+ * Показывать ли счёт. У завершённого матча — всегда, у идущей серии — как только
+ * сыгран первый бой: «1:0» отличает начатый матч от того, к которому не приступали.
+ */
+function showScore(m: TournamentMatch): boolean {
+  return m.status === 'completed' || m.scoreA > 0 || m.scoreB > 0
+}
+
 export function TournamentBracket({ tournament, onUpdated }: Props) {
   const { t } = useT()
   const [editingMatch, setEditingMatch] = useState<number | null>(null)
@@ -177,14 +185,14 @@ export function TournamentBracket({ tournament, onUpdated }: Props) {
                       isWinner={!!m.winner && m.winner.id === m.participantA?.id}
                       isLoser={!!m.winner && !!m.participantA && m.winner.id !== m.participantA.id}
                       score={m.scoreA}
-                      showScore={m.status === 'completed'}
+                      showScore={showScore(m)}
                     />
                     <Side
                       participant={m.participantB}
                       isWinner={!!m.winner && m.winner.id === m.participantB?.id}
                       isLoser={!!m.winner && !!m.participantB && m.winner.id !== m.participantB.id}
                       score={m.scoreB}
-                      showScore={m.status === 'completed'}
+                      showScore={showScore(m)}
                     />
 
                     {m.status === 'bye' && <p className="bmatch-note">{t.tournament.bye}</p>}

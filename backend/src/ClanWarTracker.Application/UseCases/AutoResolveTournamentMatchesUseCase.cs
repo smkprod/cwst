@@ -54,14 +54,23 @@ public class AutoResolveTournamentMatchesUseCase(
             // по матчу, который не записался, отозвать уже нельзя.
             var pending = new List<(TournamentMatch Match, MatchOutcome Outcome)>();
 
+            // Счёт недоигранной серии тоже меняется — табло должно его показать,
+            // даже когда закрывать ещё нечего.
+            var scoreMoved = false;
+
             foreach (var match in ready)
             {
                 try
                 {
-                    if (await TryResolveAsync(tournament, match, now, ct) is { } outcome)
+                    var step = await TryResolveAsync(tournament, match, now, ct);
+                    if (step.Outcome is { } outcome)
                     {
                         pending.Add((match, outcome));
                         closed++;
+                    }
+                    else if (step.ScoreChanged)
+                    {
+                        scoreMoved = true;
                     }
                 }
                 catch
@@ -71,7 +80,7 @@ public class AutoResolveTournamentMatchesUseCase(
                 }
             }
 
-            if (pending.Count == 0) continue;
+            if (pending.Count == 0 && !scoreMoved) continue;
 
             await tournaments.SaveChangesAsync(ct);
 
@@ -90,8 +99,14 @@ public class AutoResolveTournamentMatchesUseCase(
         return closed;
     }
 
-    /// <returns>Исход матча, если он закрыт; null — ещё не доиграли или опознать не вышло.</returns>
-    private async Task<MatchOutcome?> TryResolveAsync(
+    /// <param name="Outcome">Матч закрыт; null — ещё играют или опознать не вышло.</param>
+    /// <param name="ScoreChanged">Счёт недоигранной серии сдвинулся — табло пора обновить.</param>
+    private record Resolution(MatchOutcome? Outcome, bool ScoreChanged)
+    {
+        public static readonly Resolution Nothing = new(null, false);
+    }
+
+    private async Task<Resolution> TryResolveAsync(
         Tournament tournament, TournamentMatch match, DateTime now, CancellationToken ct)
     {
         var tagsA = Tags(match.ParticipantA!, tournament.Mode);
@@ -102,21 +117,21 @@ public class AutoResolveTournamentMatchesUseCase(
         if (tagsA.Count == 0 || tagsB.Count == 0)
         {
             poll.Checked(match.Id, now, readyAt: null, sawBattles: false);
-            return null;
+            return Resolution.Nothing;
         }
 
         var since = Since(tournament, match);
         if (since is null)
         {
             poll.Checked(match.Id, now, readyAt: null, sawBattles: false);
-            return null;
+            return Resolution.Nothing;
         }
 
         var battles = await crApi.GetBattlesForAutoResultAsync(match.ParticipantA!.PlayerTag, ct);
         if (battles.Count == 0)
         {
             poll.Checked(match.Id, now, match.ReadyAtUtc, sawBattles: false);
-            return null;
+            return Resolution.Nothing;
         }
 
         var facts = battles.Select(b => new TournamentAutoResult.BattleFact(
@@ -132,12 +147,23 @@ public class AutoResolveTournamentMatchesUseCase(
             // Бои пары уже есть, но серия не доиграна — следующий бой через минуты,
             // так что переходим на быстрый темп независимо от возраста матча.
             poll.Checked(match.Id, now, match.ReadyAtUtc, sawBattles: outcome.Counted > 0);
-            return null;
+
+            // Промежуточный счёт записываем в матч, не трогая ни статус, ни победителя:
+            // «1:0» в сетке и на табло показывает, что серия идёт, а не что её выиграли.
+            // Без этого после каждого боя не менялось ровным счётом ничего, и матч
+            // выглядел незапущенным до самого конца.
+            if (match.ScoreA == outcome.ScoreA && match.ScoreB == outcome.ScoreB)
+                return Resolution.Nothing;
+
+            match.ScoreA = outcome.ScoreA;
+            match.ScoreB = outcome.ScoreB;
+            match.UpdatedAtUtc = DateTime.UtcNow;
+            return new Resolution(null, ScoreChanged: true);
         }
 
         var applied = bracket.ApplyResult(tournament, match, outcome.ScoreA, outcome.ScoreB, auto: true);
         poll.Forget(match.Id);
-        return applied;
+        return new Resolution(applied, ScoreChanged: false);
     }
 
     /// <summary>

@@ -143,6 +143,10 @@ public static class TournamentScoreboard
                 ? $"✅ {a} {m.ScoreA}:{m.ScoreB} {b}"
                 : $"{a} {m.ScoreA}:{m.ScoreB} {b} ✅",
             TournamentMatchStatus.Bye => $"⏭ {Name(m.WinnerParticipant, false)} — без игры",
+            // Серия идёт — показываем её счёт. «1:0» отличает начатый матч от того,
+            // к которому ещё не приступали, а именно это и хотят видеть в закрепе.
+            TournamentMatchStatus.Ready when m.ScoreA > 0 || m.ScoreB > 0
+                => $"⚔️ {a} {m.ScoreA}:{m.ScoreB} {b}",
             TournamentMatchStatus.Ready => $"⚔️ {a} vs {b}",
             _ => $"⏳ {a} vs {b}",
         };
