@@ -28,6 +28,15 @@ namespace ClanWarTracker.Infrastructure.Migrations
                 name: "AnnounceResults", table: "Tournaments",
                 type: "INTEGER", nullable: false, defaultValue: true);
 
+            migrationBuilder.AddColumn<long>(
+                name: "ScoreboardChatId", table: "Tournaments", type: "INTEGER", nullable: true);
+
+            migrationBuilder.AddColumn<int>(
+                name: "ScoreboardMessageId", table: "Tournaments", type: "INTEGER", nullable: true);
+
+            migrationBuilder.AddColumn<int>(
+                name: "ScoreboardThreadId", table: "Tournaments", type: "INTEGER", nullable: true);
+
             migrationBuilder.AddColumn<System.DateTime>(
                 name: "ReadyAtUtc", table: "TournamentMatches",
                 type: "TEXT", nullable: true);
@@ -50,6 +59,9 @@ namespace ClanWarTracker.Infrastructure.Migrations
         {
             migrationBuilder.DropColumn(name: "AutoResults", table: "Tournaments");
             migrationBuilder.DropColumn(name: "AnnounceResults", table: "Tournaments");
+            migrationBuilder.DropColumn(name: "ScoreboardChatId", table: "Tournaments");
+            migrationBuilder.DropColumn(name: "ScoreboardMessageId", table: "Tournaments");
+            migrationBuilder.DropColumn(name: "ScoreboardThreadId", table: "Tournaments");
             migrationBuilder.DropColumn(name: "ReadyAtUtc", table: "TournamentMatches");
             migrationBuilder.DropColumn(name: "AutoResolved", table: "TournamentMatches");
             migrationBuilder.DropColumn(name: "SlotAVacated", table: "TournamentMatches");

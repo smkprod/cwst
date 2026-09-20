@@ -25,4 +25,20 @@ public interface INotificationSender
     /// (если username бота удалось определить; иначе просто текст).</summary>
     Task SendToChatWithAppButtonAsync(
         long chatId, string text, int? threadId = null, bool html = false, CancellationToken ct = default);
+
+    /// <summary>
+    /// Публикует сообщение и возвращает его id, чтобы потом редактировать. Нужно для
+    /// живого табло: одно сообщение, которое обновляется, вместо потока новых.
+    /// null — отправить не вышло.
+    /// </summary>
+    Task<int?> PostAsync(long chatId, string text, int? threadId = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// Переписывает ранее отправленное сообщение. false — сообщение удалили, бота
+    /// выгнали или текст не изменился; вызывающий решает, публиковать ли заново.
+    /// </summary>
+    Task<bool> EditAsync(long chatId, int messageId, string text, CancellationToken ct = default);
+
+    /// <summary>Закрепляет сообщение в чате. Молча ничего не делает без прав администратора.</summary>
+    Task PinAsync(long chatId, int messageId, CancellationToken ct = default);
 }

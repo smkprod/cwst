@@ -290,6 +290,16 @@ CREATE TABLE IF NOT EXISTS ""Tournaments"" (
         await db.Database.ExecuteSqlRawAsync(
             "ALTER TABLE \"Tournaments\" ADD COLUMN IF NOT EXISTS \"AnnounceResults\" boolean NOT NULL DEFAULT TRUE;");
 
+        // Живое табло в закрепе: где висит и какое сообщение переписывать.
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Tournaments\" ADD COLUMN IF NOT EXISTS \"ScoreboardChatId\" bigint;");
+
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Tournaments\" ADD COLUMN IF NOT EXISTS \"ScoreboardMessageId\" integer;");
+
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Tournaments\" ADD COLUMN IF NOT EXISTS \"ScoreboardThreadId\" integer;");
+
         await db.Database.ExecuteSqlRawAsync(@"
 CREATE TABLE IF NOT EXISTS ""TournamentParticipants"" (
     ""Id"" serial PRIMARY KEY,

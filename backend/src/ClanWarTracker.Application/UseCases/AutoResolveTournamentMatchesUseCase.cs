@@ -80,6 +80,11 @@ public class AutoResolveTournamentMatchesUseCase(
                 await notify.MatchResultAsync(tournament, match, outcome, ct);
                 if (outcome.NextReady is { } next) await notify.MatchReadyAsync(tournament, next, ct);
             }
+
+            // Табло одно на турнир — обновляем один раз после всей пачки, а не на
+            // каждый матч: иначе одно и то же сообщение переписывалось бы подряд.
+            if (await notify.UpdateScoreboardAsync(tournament, ct))
+                await tournaments.SaveChangesAsync(ct);
         }
 
         return closed;

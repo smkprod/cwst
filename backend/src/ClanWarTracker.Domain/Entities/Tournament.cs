@@ -52,6 +52,15 @@ public class Tournament
     /// </summary>
     public bool AnnounceResults { get; set; } = true;
 
+    /// <summary>
+    /// Живое табло: чат и id сообщения, которое бот переписывает после каждого матча.
+    /// Храним чат отдельно от клана организатора — табло должно продолжать обновляться
+    /// там, где его опубликовали, даже если организатор сменил клан.
+    /// </summary>
+    public long? ScoreboardChatId { get; set; }
+    public int? ScoreboardMessageId { get; set; }
+    public int? ScoreboardThreadId { get; set; }
+
     public TournamentStatus Status { get; set; } = TournamentStatus.RegistrationOpen;
 
     public DateTime CreatedAtUtc { get; set; }

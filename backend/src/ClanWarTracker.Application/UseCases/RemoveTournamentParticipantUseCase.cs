@@ -78,6 +78,10 @@ public class RemoveTournamentParticipantUseCase(
                 await notify.MatchReadyAsync(tournament, next, ct);
         }
 
+        // Снятие меняет сетку — табло должно это показать.
+        if (await notify.UpdateScoreboardAsync(tournament, ct))
+            await tournaments.SaveChangesAsync(ct);
+
         return null;
     }
 

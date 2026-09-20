@@ -36,6 +36,10 @@ public class StartTournamentUseCase(
         foreach (var match in tournament.Matches.Where(m => m.Status == TournamentMatchStatus.Ready))
             await notify.MatchReadyAsync(tournament, match, ct);
 
+        // Табло вешаем сразу со стартом: к первому же матчу оно должно быть в закрепе.
+        if (await notify.UpdateScoreboardAsync(tournament, ct))
+            await tournaments.SaveChangesAsync(ct);
+
         return null;
     }
 }

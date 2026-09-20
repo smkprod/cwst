@@ -119,21 +119,75 @@ public class TournamentNotifier(
 
         try
         {
-            var creator = await players.GetByTelegramIdAsync(tournament.CreatorTelegramUserId, ct);
-            if (creator?.ClanId is not { } clanId) return;
-
-            var clan = await clans.GetByIdAsync(clanId, ct);
-            if (clan is null || clan.TelegramChatId == 0) return;
+            // Туда же, где висит табло, если оно уже опубликовано: результаты и табло
+            // должны жить в одном месте, а не в двух разных чатах.
+            var place = tournament.ScoreboardChatId is { } known
+                ? (known, tournament.ScoreboardThreadId)
+                : await ClanChatAsync(tournament, ct);
+            if (place is not { } target) return;
 
             // Картинка не ушла — шлём текстом. Объявление чемпиона без картинки
             // лучше, чем отсутствие объявления.
             if (photoUrl is not null && await notifier.SendPhotoToChatAsync(
-                    clan.TelegramChatId, photoUrl, text, clan.TelegramMessageThreadId, ct))
+                    target.Item1, photoUrl, text, target.Item2, ct))
                 return;
 
-            await notifier.SendToChatAsync(clan.TelegramChatId, text, clan.TelegramMessageThreadId, ct: ct);
+            await notifier.SendToChatAsync(target.Item1, text, target.Item2, ct: ct);
         }
         catch { /* бота выгнали из группы и т.п. — личные сообщения уже ушли */ }
+    }
+
+    /// <summary>
+    /// Обновляет живое табло. Первый вызов публикует его и закрепляет, дальше только
+    /// переписывает — поэтому чат в закрепе не засоряется.
+    ///
+    /// Вызывающий обязан сохранить турнир после: здесь проставляются id сообщения.
+    /// </summary>
+    public async Task<bool> UpdateScoreboardAsync(Tournament tournament, CancellationToken ct = default)
+    {
+        if (!tournament.AnnounceResults) return false;
+
+        var text = TournamentScoreboard.Render(tournament);
+
+        if (tournament.ScoreboardChatId is { } chatId && tournament.ScoreboardMessageId is { } messageId)
+        {
+            if (await notifier.EditAsync(chatId, messageId, text, ct)) return false;
+
+            // Не переписалось — сообщение удалили или бота выгнали. Публикуем заново,
+            // но только в тот же чат: переезжать табло само не должно.
+            tournament.ScoreboardMessageId = null;
+        }
+
+        var target = tournament.ScoreboardChatId is { } known
+            ? (known, tournament.ScoreboardThreadId)
+            : await ClanChatAsync(tournament, ct);
+        if (target is not { } place) return false;
+
+        var posted = await notifier.PostAsync(place.Item1, text, place.Item2, ct);
+        if (posted is not { } id) return false;
+
+        await notifier.PinAsync(place.Item1, id, ct);
+
+        tournament.ScoreboardChatId = place.Item1;
+        tournament.ScoreboardThreadId = place.Item2;
+        tournament.ScoreboardMessageId = id;
+        return true;
+    }
+
+    /// <summary>Чат клана организатора и тема в нём; null — клана или чата нет.</summary>
+    private async Task<(long, int?)?> ClanChatAsync(Tournament tournament, CancellationToken ct)
+    {
+        try
+        {
+            var creator = await players.GetByTelegramIdAsync(tournament.CreatorTelegramUserId, ct);
+            if (creator?.ClanId is not { } clanId) return null;
+
+            var clan = await clans.GetByIdAsync(clanId, ct);
+            if (clan is null || clan.TelegramChatId == 0) return null;
+
+            return (clan.TelegramChatId, clan.TelegramMessageThreadId);
+        }
+        catch { return null; }
     }
 
     private async Task PhotoAsync(long chatId, string photoUrl, string caption, CancellationToken ct)

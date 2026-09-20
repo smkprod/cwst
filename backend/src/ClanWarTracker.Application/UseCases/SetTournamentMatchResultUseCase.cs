@@ -46,6 +46,11 @@ public class SetTournamentMatchResultUseCase(
         await notify.MatchResultAsync(tournament, match, outcome, ct);
         if (outcome.NextReady is { } next) await notify.MatchReadyAsync(tournament, next, ct);
 
+        // Табло публикуется при первом обновлении и дальше только переписывается.
+        // Сохраняем повторно: внутри могли проставиться id сообщения.
+        if (await notify.UpdateScoreboardAsync(tournament, ct))
+            await tournaments.SaveChangesAsync(ct);
+
         return null;
     }
 }
