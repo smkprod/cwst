@@ -82,9 +82,12 @@ export function TournamentBracket({ tournament, onUpdated }: Props) {
             </div>
             {rounds.get(round)!.map(m => (
               <div key={m.id} className="card tournament-match">
-                <MatchSide participant={m.participantA} isWinner={m.winner?.id === m.participantA?.id} score={m.scoreA} status={m.status} />
+                {/* Сравнивать один optional chaining с другим нельзя: в несыгранной паре
+                    и победитель, и участник — null, undefined === undefined даёт true,
+                    и пустой слот «—» подсвечивался победителем. Требуем самого участника. */}
+                <MatchSide participant={m.participantA} isWinner={!!m.winner && m.winner.id === m.participantA?.id} score={m.scoreA} status={m.status} />
                 <div className="tournament-match-vs">{t.tournament.vs}</div>
-                <MatchSide participant={m.participantB} isWinner={m.winner?.id === m.participantB?.id} score={m.scoreB} status={m.status} />
+                <MatchSide participant={m.participantB} isWinner={!!m.winner && m.winner.id === m.participantB?.id} score={m.scoreB} status={m.status} />
 
                 {m.status === 'bye' && <p className="muted small tournament-bye">{t.tournament.bye}</p>}
                 {m.status === 'pending' && <p className="muted small tournament-bye">{t.tournament.pendingStatus}</p>}
