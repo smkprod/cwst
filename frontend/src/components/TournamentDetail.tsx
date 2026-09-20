@@ -301,7 +301,7 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
         <div className="tournament-detail-section-title">{t.tournament.participantsTitle}</div>
         <ul className="tournament-participants-list">
           {d.participants.map(p => (
-            <li key={p.id} className="tournament-participant-row">
+            <li key={p.id} className={`tournament-participant-row ${p.isMe ? 'participant-mine' : ''}`}>
               <span className="tournament-participant-name">
                 {p.teamName ?? p.playerName}
                 {p.partnerPlayerName !== null && (
