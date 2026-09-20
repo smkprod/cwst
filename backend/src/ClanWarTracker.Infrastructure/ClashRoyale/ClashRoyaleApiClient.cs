@@ -1056,12 +1056,26 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
     /// Кэш пять минут: журнал обновляется после каждого боя, но дёргать его
     /// на каждый показ карточки незачем.
     /// </summary>
-    public async Task<List<CrRecentBattle>> GetRecentBattlesAsync(string playerTag, CancellationToken ct = default)
+    public async Task<List<CrRecentBattle>> GetRecentBattlesAsync(string playerTag, CancellationToken ct = default) =>
+        await FetchBattlesAsync(playerTag, "recentbattles", TimeSpan.FromMinutes(5), ct);
+
+    /// <summary>
+    /// Журнал для автозачёта: свой ключ кэша и всего двадцать секунд жизни.
+    ///
+    /// Двадцать, а не ноль: несколько матчей одной команды в разных турнирах попали бы
+    /// на один и тот же профиль, и без кэша это были бы отдельные запросы к API.
+    /// Двадцати секунд хватает, чтобы их склеить, и мало, чтобы задержать результат.
+    /// </summary>
+    public async Task<List<CrRecentBattle>> GetBattlesForAutoResultAsync(string playerTag, CancellationToken ct = default) =>
+        await FetchBattlesAsync(playerTag, "autobattles", TimeSpan.FromSeconds(20), ct);
+
+    private async Task<List<CrRecentBattle>> FetchBattlesAsync(
+        string playerTag, string cachePrefix, TimeSpan ttl, CancellationToken ct)
     {
-        var list = await cache.GetOrCreateAsync($"recentbattles:{playerTag}", async entry =>
+        var list = await cache.GetOrCreateAsync($"{cachePrefix}:{playerTag}", async entry =>
         {
             entry.Size = 1;
-            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
+            entry.AbsoluteExpirationRelativeToNow = ttl;
 
             var resp = await http.GetAsync($"players/{Encode(playerTag)}/battlelog", ct);
             if (!resp.IsSuccessStatusCode) return new List<CrRecentBattle>();

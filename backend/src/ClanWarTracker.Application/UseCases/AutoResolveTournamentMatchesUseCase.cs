@@ -12,20 +12,26 @@ namespace ClanWarTracker.Application.UseCases;
 /// играть именно друг против друга. Всё, что не сошлось однозначно, остаётся организатору —
 /// кнопка «Внести результат» никуда не девается, и его счёт всегда перекрывает наш.
 ///
-/// Лог хранит около двадцати пяти последних боёв, поэтому проверяем часто: если пара
-/// доиграет матч и уйдёт кататься в ладдер, их бои из лога вымоются. Запрос идёт по тегу
-/// одной стороны (в её логе есть весь матч) и на пять минут оседает в кэше клиента, так
-/// что частый цикл воркера не превращается в частые обращения к API.
+/// Темп опроса подстраивается под матч (см. TournamentPollState): пара в разгаре серии
+/// проверяется раз в полминуты, чтобы счёт появлялся сразу после боя, а матч, до которого
+/// никто не дошёл третий час, — раз в пять минут. Запрос идёт по тегу одной стороны: в её
+/// журнале есть весь матч, второй профиль читать незачем.
 /// </summary>
 public class AutoResolveTournamentMatchesUseCase(
     ITournamentRepository tournaments,
     IClashRoyaleApi crApi,
-    TournamentBracketService bracket)
+    TournamentBracketService bracket,
+    TournamentPollState poll)
 {
     /// <returns>Сколько матчей закрыто.</returns>
     public async Task<int> ExecuteAsync(CancellationToken ct = default)
     {
+        var now = DateTime.UtcNow;
+        if (!poll.ShouldScan(now)) return 0;
+
         var active = await tournaments.GetForAutoResultsAsync(ct);
+        poll.ScanDone(now, active.Count > 0);
+        poll.Prune(now);
         if (active.Count == 0) return 0;
 
         var closed = 0;
@@ -38,6 +44,9 @@ public class AutoResolveTournamentMatchesUseCase(
             var ready = tournament.Matches
                 .Where(m => m.Status == TournamentMatchStatus.Ready
                             && m.ParticipantA is not null && m.ParticipantB is not null)
+                // Каждый матч опрашивается со своей частотой: пара в разгаре серии —
+                // раз в полминуты, матч, до которого не дошли третий час, — раз в пять.
+                .Where(m => poll.ShouldCheck(m.Id, now))
                 .ToList();
 
             var changed = false;
@@ -46,7 +55,7 @@ public class AutoResolveTournamentMatchesUseCase(
             {
                 try
                 {
-                    if (await TryResolveAsync(tournament, match, ct))
+                    if (await TryResolveAsync(tournament, match, now, ct))
                     {
                         changed = true;
                         closed++;
@@ -65,19 +74,33 @@ public class AutoResolveTournamentMatchesUseCase(
         return closed;
     }
 
-    private async Task<bool> TryResolveAsync(Tournament tournament, TournamentMatch match, CancellationToken ct)
+    private async Task<bool> TryResolveAsync(
+        Tournament tournament, TournamentMatch match, DateTime now, CancellationToken ct)
     {
         var tagsA = Tags(match.ParticipantA!, tournament.Mode);
         var tagsB = Tags(match.ParticipantB!, tournament.Mode);
 
         // Неполная заявка в парном турнире (напарник не указан) — опознавать нечем.
-        if (tagsA.Count == 0 || tagsB.Count == 0) return false;
+        // Запоминаем надолго: пока заявку не поправят, смотреть тут нечего.
+        if (tagsA.Count == 0 || tagsB.Count == 0)
+        {
+            poll.Checked(match.Id, now, readyAt: null, sawBattles: false);
+            return false;
+        }
 
         var since = Since(tournament, match);
-        if (since is null) return false;
+        if (since is null)
+        {
+            poll.Checked(match.Id, now, readyAt: null, sawBattles: false);
+            return false;
+        }
 
-        var battles = await crApi.GetRecentBattlesAsync(match.ParticipantA!.PlayerTag, ct);
-        if (battles.Count == 0) return false;
+        var battles = await crApi.GetBattlesForAutoResultAsync(match.ParticipantA!.PlayerTag, ct);
+        if (battles.Count == 0)
+        {
+            poll.Checked(match.Id, now, match.ReadyAtUtc, sawBattles: false);
+            return false;
+        }
 
         var facts = battles.Select(b => new TournamentAutoResult.BattleFact(
             b.BattleTimeUtc,
@@ -87,9 +110,16 @@ public class AutoResolveTournamentMatchesUseCase(
             b.CrownsAgainst));
 
         var outcome = TournamentAutoResult.Resolve(facts, tagsA, tagsB, tournament.BestOf, since.Value);
-        if (!outcome.Decided) return false;
+        if (!outcome.Decided)
+        {
+            // Бои пары уже есть, но серия не доиграна — следующий бой через минуты,
+            // так что переходим на быстрый темп независимо от возраста матча.
+            poll.Checked(match.Id, now, match.ReadyAtUtc, sawBattles: outcome.Counted > 0);
+            return false;
+        }
 
         bracket.ApplyResult(tournament, match, outcome.ScoreA, outcome.ScoreB, auto: true);
+        poll.Forget(match.Id);
         return true;
     }
 
