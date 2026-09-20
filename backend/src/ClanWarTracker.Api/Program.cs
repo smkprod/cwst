@@ -37,6 +37,7 @@ builder.Services.AddScoped<LinkPlayerUseCase>();
 builder.Services.AddScoped<SetupClanUseCase>();
 builder.Services.AddScoped<TournamentBracketService>();
 builder.Services.AddScoped<TournamentNotifier>();
+builder.Services.AddScoped<RemoveTournamentParticipantUseCase>();
 builder.Services.AddScoped<CreateTournamentUseCase>();
 builder.Services.AddScoped<JoinTournamentUseCase>();
 builder.Services.AddScoped<LeaveTournamentUseCase>();

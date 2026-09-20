@@ -22,6 +22,9 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
   const [confirmCancel, setConfirmCancel] = useState(false)
   const [confirmFinish, setConfirmFinish] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
+  // Снятие команды подтверждается вторым тапом: удаление по одному нажатию в списке,
+  // где строки идут вплотную, — это удалённая не та команда.
+  const [confirmRemove, setConfirmRemove] = useState<number | null>(null)
 
   useEffect(() => {
     api.getTournament(tournamentId)
@@ -34,6 +37,7 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
     setActionError(null)
     setConfirmCancel(false)
     setConfirmFinish(false)
+    setConfirmRemove(null)
   }
 
   const mapError = (code: string) => {
@@ -42,6 +46,8 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
       case 'full': return t.tournament.full
       case 'already_joined': return t.tournament.alreadyJoined
       case 'not_joined': return t.tournament.notJoined
+      case 'already_played': return t.tournament.removePlayed
+      case 'participant_not_found': return t.tournament.notJoined
       case 'already_started': return t.tournament.alreadyStarted
       case 'not_enough_participants': return t.tournament.notEnoughParticipants
       case 'already_playing': return t.tournament.alreadyPlaying
@@ -69,6 +75,9 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
       setBusy(false)
     }
   }
+
+  const removeParticipant = (participantId: number) =>
+    runAction(() => api.removeTournamentParticipant(tournamentId, participantId))
 
   // Парная заявка: форму разворачиваем по кнопке, а не показываем всегда —
   // в одиночном турнире она лишняя, а в парном нужна ровно один раз.
@@ -302,6 +311,27 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
                 )}
               </span>
               {p.finalPlacement && <span className="muted small">#{p.finalPlacement}</span>}
+              {d.isCreator && d.status !== 'completed' && d.status !== 'cancelled'
+                && p.status !== 'withdrawn' && (
+                confirmRemove === p.id ? (
+                  <span className="participant-remove-confirm">
+                    <button className="btn-mini danger" disabled={busy} onClick={() => removeParticipant(p.id)}>
+                      {t.tournament.removeConfirm}
+                    </button>
+                    <button className="btn-mini" disabled={busy} onClick={() => setConfirmRemove(null)}>
+                      {t.tournament.cancelForm}
+                    </button>
+                  </span>
+                ) : (
+                  <button
+                    className="participant-remove"
+                    title={t.tournament.removeParticipant}
+                    onClick={() => { haptic('light'); setConfirmRemove(p.id) }}
+                  >
+                    ✕
+                  </button>
+                )
+              )}
             </li>
           ))}
         </ul>

@@ -35,6 +35,14 @@ namespace ClanWarTracker.Infrastructure.Migrations
             migrationBuilder.AddColumn<bool>(
                 name: "AutoResolved", table: "TournamentMatches",
                 type: "INTEGER", nullable: false, defaultValue: false);
+
+            migrationBuilder.AddColumn<bool>(
+                name: "SlotAVacated", table: "TournamentMatches",
+                type: "INTEGER", nullable: false, defaultValue: false);
+
+            migrationBuilder.AddColumn<bool>(
+                name: "SlotBVacated", table: "TournamentMatches",
+                type: "INTEGER", nullable: false, defaultValue: false);
         }
 
         /// <inheritdoc />
@@ -44,6 +52,8 @@ namespace ClanWarTracker.Infrastructure.Migrations
             migrationBuilder.DropColumn(name: "AnnounceResults", table: "Tournaments");
             migrationBuilder.DropColumn(name: "ReadyAtUtc", table: "TournamentMatches");
             migrationBuilder.DropColumn(name: "AutoResolved", table: "TournamentMatches");
+            migrationBuilder.DropColumn(name: "SlotAVacated", table: "TournamentMatches");
+            migrationBuilder.DropColumn(name: "SlotBVacated", table: "TournamentMatches");
         }
     }
 }

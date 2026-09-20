@@ -178,6 +178,10 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(req),
     }),
+  /** Снять команду с турнира (только создатель). */
+  removeTournamentParticipant: (id: number, participantId: number) =>
+    request<Tournament>(`/api/tournaments/${id}/participants/${participantId}`, { method: 'DELETE' }),
+
   updateTournament: (id: number, req: {
     name: string; description?: string; prizeInfo?: string
     clanInviteLink?: string; bestOf: number; minParticipants: number; maxParticipants: number

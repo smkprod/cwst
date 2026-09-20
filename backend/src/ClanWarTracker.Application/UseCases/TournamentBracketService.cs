@@ -137,7 +137,65 @@ public class TournamentBracketService
         {
             next.Status = TournamentMatchStatus.Ready;
             next.ReadyAtUtc = DateTime.UtcNow;
+            return;
         }
+
+        // Соседний слот опустел навсегда — снятую команду ждать бессмысленно,
+        // пришедший проходит дальше без игры.
+        var opposite = match.NextMatchSlot == 0 ? next.SlotBVacated : next.SlotAVacated;
+        if (opposite) WalkOver(next, winner);
+    }
+
+    /// <summary>
+    /// Проход без игры: соперника сняли или его не было изначально. Счёт не ставим —
+    /// матча не было, и «2:0» на табло вводило бы в заблуждение.
+    /// </summary>
+    public void WalkOver(TournamentMatch match, TournamentParticipant survivor)
+    {
+        match.Status = TournamentMatchStatus.Bye;
+        match.WinnerParticipantId = survivor.Id;
+        match.WinnerParticipant = survivor;
+        match.ScoreA = 0;
+        match.ScoreB = 0;
+        match.AutoResolved = false;
+        match.UpdatedAtUtc = DateTime.UtcNow;
+        AdvanceWinner(match, survivor);
+    }
+
+    /// <summary>
+    /// Убирает участника из ещё не сыгранного матча. Возвращает соперника, если тот
+    /// уже известен и проходит дальше без игры, — вызывающему это нужно, чтобы его
+    /// уведомить.
+    /// </summary>
+    public TournamentParticipant? VacateSlot(TournamentMatch match, TournamentParticipant leaving)
+    {
+        TournamentParticipant? survivor;
+        if (match.ParticipantAId == leaving.Id)
+        {
+            match.ParticipantAId = null;
+            match.ParticipantA = null;
+            match.SlotAVacated = true;
+            survivor = match.ParticipantB;
+        }
+        else
+        {
+            match.ParticipantBId = null;
+            match.ParticipantB = null;
+            match.SlotBVacated = true;
+            survivor = match.ParticipantA;
+        }
+
+        if (survivor is null)
+        {
+            // Второго соперника ещё нет — матч ждёт его, и тот пройдёт без игры,
+            // как только доиграет свой. Отметка слота об этом и позаботится.
+            match.Status = TournamentMatchStatus.Pending;
+            match.ReadyAtUtc = null;
+            return null;
+        }
+
+        WalkOver(match, survivor);
+        return survivor;
     }
 
     /// <summary>
@@ -220,6 +278,8 @@ public class TournamentBracketService
         next.ReadyAtUtc = null;
         next.AutoResolved = false;
         next.UpdatedAtUtc = null;
+        next.SlotAVacated = false;
+        next.SlotBVacated = false;
     }
 
     /// <summary>

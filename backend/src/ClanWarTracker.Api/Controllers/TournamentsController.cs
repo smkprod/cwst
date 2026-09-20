@@ -10,6 +10,7 @@ public class TournamentsController(
     CreateTournamentUseCase create,
     JoinTournamentUseCase join,
     LeaveTournamentUseCase leave,
+    RemoveTournamentParticipantUseCase removeParticipant,
     UpdateTournamentUseCase update,
     GenerateTournamentBracketUseCase generateBracket,
     StartTournamentUseCase start,
@@ -97,6 +98,19 @@ public class TournamentsController(
         return Ok(await getOne.ExecuteAsync(id, userId, ct));
     }
 
+    /// <summary>
+    /// DELETE /api/tournaments/{id}/participants/{participantId} — снять команду (только создатель).
+    /// До жеребьёвки вычёркивает, после — помечает выбывшей и отдаёт её несыгранные матчи сопернику.
+    /// </summary>
+    [HttpDelete("{id:int}/participants/{participantId:int}")]
+    public async Task<IActionResult> RemoveParticipant(int id, int participantId, CancellationToken ct)
+    {
+        var userId = (long)HttpContext.Items["TelegramUserId"]!;
+        var error = await removeParticipant.ExecuteAsync(id, userId, participantId, ct);
+        if (error is not null) return MapRemoveError(error.Value);
+        return Ok(await getOne.ExecuteAsync(id, userId, ct));
+    }
+
     /// <summary>POST /api/tournaments/{id}/bracket — сгенерировать/перестроить сетку (только создатель).</summary>
     [HttpPost("{id:int}/bracket")]
     public async Task<IActionResult> GenerateBracket(int id, CancellationToken ct)
@@ -160,6 +174,19 @@ public class TournamentsController(
             BadRequest(new { error = "bad_start_date", message = "Дата начала должна быть в будущем" }),
         CreateTournamentError.BadFormat => BadRequest(new { error = "bad_format" }),
         _ => BadRequest(new { error = "bad_request" }),
+    };
+
+    private IActionResult MapRemoveError(RemoveParticipantError e) => e switch
+    {
+        RemoveParticipantError.TournamentNotFound => NotFound(new { error = "tournament_not_found" }),
+        RemoveParticipantError.NotCreator => StatusCode(403, new { error = "not_creator" }),
+        RemoveParticipantError.NotFound => NotFound(new { error = "participant_not_found" }),
+        RemoveParticipantError.AlreadyPlayed => BadRequest(new
+        {
+            error = "already_played",
+            message = "Команда уже сыграла матч — на её результате держится сетка"
+        }),
+        _ => BadRequest(new { error = "error" }),
     };
 
     private IActionResult MapUpdateError(UpdateTournamentError e) => e switch

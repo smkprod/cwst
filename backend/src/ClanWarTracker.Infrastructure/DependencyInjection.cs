@@ -339,6 +339,14 @@ CREATE TABLE IF NOT EXISTS ""TournamentMatches"" (
         await db.Database.ExecuteSqlRawAsync(
             "ALTER TABLE \"TournamentMatches\" ADD COLUMN IF NOT EXISTS \"AutoResolved\" boolean NOT NULL DEFAULT FALSE;");
 
+        // Слот, опустевший навсегда: команду снял организатор. Отличает «ждём соперника»
+        // от «соперника не будет» — иначе матч завис бы в ожидании навечно.
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"TournamentMatches\" ADD COLUMN IF NOT EXISTS \"SlotAVacated\" boolean NOT NULL DEFAULT FALSE;");
+
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"TournamentMatches\" ADD COLUMN IF NOT EXISTS \"SlotBVacated\" boolean NOT NULL DEFAULT FALSE;");
+
         // Отслеживаемые игровые турниры (живые данные тянутся из CR API по тегу).
         await db.Database.ExecuteSqlRawAsync(@"
 CREATE TABLE IF NOT EXISTS ""GameTournaments"" (

@@ -1258,12 +1258,18 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 .tournament-detail-text { white-space: pre-wrap; word-break: break-word; }
 .tournament-detail-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
 
-.tournament-participants-list { list-style: none; padding: 0; margin-top: 6px; display: grid; gap: 4px; }
+.tournament-participants-list { list-style: none; padding: 0; margin-top: 6px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
 .tournament-participant-row {
+  /* min-width:auto у flex-элементов не даёт имени ужаться, и строка расталкивает
+     список: до появления кнопки снятия это было не видно, с ней — вылезает за экран. */
+  min-width: 0;
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
   background: rgba(255, 255, 255, 0.04); border-radius: 8px; padding: 7px 10px;
 }
-.tournament-participant-name { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tournament-participant-name {
+  flex: 1; min-width: 0;
+  font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 
 /* Сетка турнира */
 .tournament-bracket-wrap { margin-top: 18px; }
@@ -2160,3 +2166,13 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 .auto-results input { margin-top: 2px; flex: none; width: 16px; height: 16px; accent-color: var(--accent); }
 .auto-results-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .auto-results-title { font-size: 13px; font-weight: 700; }
+
+/* Снятие команды организатором */
+.tournament-participant-row .participant-remove {
+  flex: none; margin-left: auto;
+  background: none; border: none; cursor: pointer;
+  color: var(--muted); font-size: 14px; line-height: 1;
+  padding: 6px 4px;                      /* палец толще крестика */
+}
+.participant-remove-confirm { display: flex; gap: 5px; margin-left: auto; flex: none; }
+.btn-mini.danger { background: rgba(229, 57, 53, 0.22); color: #ff8a85; }

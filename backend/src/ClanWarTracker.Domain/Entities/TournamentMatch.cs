@@ -41,5 +41,15 @@ public class TournamentMatch
     /// <summary>Счёт проставлен ботом по боевому логу, а не организатором руками.</summary>
     public bool AutoResolved { get; set; }
 
+    /// <summary>
+    /// Слот опустел навсегда: команду снял организатор, и ждать её больше не нужно.
+    ///
+    /// Просто обнулить участника нельзя — пустой слот в сетке означает «соперник ещё
+    /// не определился», и матч завис бы навечно. Отметка позволяет отличить одно от
+    /// другого: пришедшему в соседний слот засчитывается проход без игры.
+    /// </summary>
+    public bool SlotAVacated { get; set; }
+    public bool SlotBVacated { get; set; }
+
     public DateTime? UpdatedAtUtc { get; set; }
 }
