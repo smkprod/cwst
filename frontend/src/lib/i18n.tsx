@@ -884,6 +884,7 @@ const ru = {
     shareResultCta: 'Организуй свой турнир в Clanify ⚔️',
 
     historyTitle: '🏆 История турниров',
+    pastTitle: '📜 Прошедшие турниры',
     historyEmpty: 'Пока нет турниров Clanify',
     place: 'место',
   },
@@ -1821,6 +1822,7 @@ const uk: Translations = {
     shareResultCta: 'Влаштуй свій турнір у Clanify ⚔️',
 
     historyTitle: '🏆 Історія турнірів',
+    pastTitle: '📜 Минулі турніри',
     historyEmpty: 'Поки немає турнірів Clanify',
     place: 'місце',
   },
@@ -2756,6 +2758,7 @@ const en: Translations = {
     shareResultCta: 'Run your own tournament in Clanify ⚔️',
 
     historyTitle: '🏆 Tournament history',
+    pastTitle: '📜 Past tournaments',
     historyEmpty: 'No Clanify tournaments yet',
     place: 'place',
   },

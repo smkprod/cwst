@@ -18,7 +18,7 @@ type View =
 type ListState =
   | { kind: 'loading' }
   | { kind: 'error' }
-  | { kind: 'ready'; clan: TournamentSummary[]; game: GameTournament[] }
+  | { kind: 'ready'; clan: TournamentSummary[]; game: GameTournament[]; past: TournamentSummary[] }
 
 export function TournamentView() {
   const { t } = useT()
@@ -27,8 +27,14 @@ export function TournamentView() {
 
   const loadList = () => {
     setListState({ kind: 'loading' })
-    Promise.all([api.getTournaments(), api.getGameTournaments()])
-      .then(([clan, game]) => setListState({ kind: 'ready', clan, game }))
+    // История грузится вместе со списком, но её отказ не ломает экран: играют
+    // в активных турнирах, а прошедшие — приятное дополнение.
+    Promise.all([
+      api.getTournaments(),
+      api.getGameTournaments(),
+      api.getTournamentHistory().catch(() => [] as TournamentSummary[]),
+    ])
+      .then(([clan, game, past]) => setListState({ kind: 'ready', clan, game, past }))
       .catch(() => setListState({ kind: 'error' }))
   }
 
@@ -116,6 +122,7 @@ export function TournamentView() {
   }
 
   const isEmpty = listState.kind === 'ready' && listState.clan.length === 0 && listState.game.length === 0
+  const past = listState.kind === 'ready' ? listState.past : []
 
   return (
     <div>
@@ -164,6 +171,37 @@ export function TournamentView() {
             )
           })}
         </ul>
+      )}
+
+      {past.length > 0 && (
+        <>
+          <h3 className="section-title tournament-history-title">{t.tournament.pastTitle}</h3>
+          <ul className="tournament-list">
+            {past.map(tr => (
+              <li
+                key={`h${tr.id}`}
+                className="card tournament-list-item tournament-past"
+                onClick={() => go({ kind: 'clanDetail', id: tr.id })}
+              >
+                <div className="tournament-list-item-top">
+                  <span className="tournament-list-item-name">🏆 {tr.name}</span>
+                  {tr.completedAtUtc !== null && (
+                    <span className="muted small tournament-past-date">
+                      {new Date(tr.completedAtUtc).toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
+                {tr.championName !== null && (
+                  <p className="tournament-champion-line">👑 {tr.championName}</p>
+                )}
+                <p className="muted small">
+                  {tr.mode === 'duo' && <>{t.tournament.formatDuo} · </>}
+                  {tr.participantCount} {t.tournament.participantsCount} · {t.tournament.bestOfLabel} {tr.bestOf}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </div>
   )

@@ -23,6 +23,16 @@ public class TournamentRepository(AppDbContext db) : ITournamentRepository
             .OrderByDescending(t => t.CreatedAtUtc)
             .ToListAsync(ct);
 
+    public Task<List<Tournament>> GetFinishedAsync(int limit, CancellationToken ct = default) =>
+        db.Tournaments
+            .Where(t => t.Status == TournamentStatus.Completed)
+            .Include(t => t.Participants)
+            // По дате завершения, а не создания: турнир, который вели неделю,
+            // должен стоять выше созданного вчера и отыгранного вчера же.
+            .OrderByDescending(t => t.CompletedAtUtc ?? t.CreatedAtUtc)
+            .Take(Math.Clamp(limit, 1, 50))
+            .ToListAsync(ct);
+
     public Task<List<Tournament>> GetForAutoResultsAsync(CancellationToken ct = default) =>
         db.Tournaments
             .Where(t => t.AutoResults

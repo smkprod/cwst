@@ -2187,3 +2187,12 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 .bside-mine.bside-win { background: rgba(95, 213, 115, 0.2); }
 .participant-mine { background: rgba(82, 136, 193, 0.18); }
 .participant-mine .tournament-participant-name { font-weight: 800; }
+
+/* Прошедшие турниры */
+.tournament-history-title { margin-top: 18px; }
+/* Приглушены: список активных — то, куда идут играть, история — то, что смотрят. */
+.tournament-past { opacity: 0.88; }
+.tournament-past-date { flex-shrink: 0; }
+.tournament-champion-line {
+  margin: 4px 0 2px; font-size: 14px; font-weight: 700; color: var(--gold, #ffc83d);
+}

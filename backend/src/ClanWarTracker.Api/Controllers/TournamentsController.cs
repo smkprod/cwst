@@ -32,6 +32,11 @@ public class TournamentsController(
         DateTime? StartsAtUtc = null, bool AutoResults = true, bool AnnounceResults = true);
     public record SetResultRequest(int ScoreA, int ScoreB);
 
+    /// <summary>GET /api/tournaments/history — завершённые турниры с чемпионами.</summary>
+    [HttpGet("history")]
+    public async Task<IActionResult> History([FromQuery] int limit = 20, CancellationToken ct = default) =>
+        Ok(await getList.HistoryAsync(limit, ct));
+
     /// <summary>GET /api/tournaments — открытые/идущие турниры, для вкладки "Турнир".</summary>
     [HttpGet]
     public async Task<IActionResult> List(CancellationToken ct) => Ok(await getList.ExecuteAsync(ct));

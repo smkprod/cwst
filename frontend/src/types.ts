@@ -736,6 +736,9 @@ export interface TournamentSummary {
   participantCount: number
   creatorName: string
   createdAtUtc: string
+  /** Чемпион; null — турнир не завершён. */
+  championName: string | null
+  completedAtUtc: string | null
 }
 
 export interface TournamentParticipant {
