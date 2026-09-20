@@ -749,6 +749,8 @@ export interface TournamentParticipant {
   seed: number
   status: TournamentParticipantStatus
   finalPlacement: number | null
+  /** Команда того, кто смотрит: в сетке её подсвечиваем. */
+  isMe: boolean
 }
 
 /* --- Игровые турниры (отслеживание турнира CR по тегу) --- */

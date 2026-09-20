@@ -167,7 +167,9 @@ export function TournamentBracket({ tournament, onUpdated }: Props) {
                 {rounds.get(round)!.map(m => (
                   <div
                     key={m.id}
-                    className={`bmatch ${m.status === 'completed' ? 'bmatch-done' : ''} ${round === maxRound ? 'bmatch-final' : ''}`}
+                    className={`bmatch ${m.status === 'completed' ? 'bmatch-done' : ''}`
+                      + `${round === maxRound ? ' bmatch-final' : ''}`
+                      + `${m.participantA?.isMe || m.participantB?.isMe ? ' bmatch-mine' : ''}`}
                     ref={el => { if (el) cards.current.set(m.id, el); else cards.current.delete(m.id) }}
                   >
                     <Side
@@ -264,7 +266,8 @@ function Side({ participant, isWinner, isLoser, score, showScore }: {
   }
 
   return (
-    <div className={`bside ${isWinner ? 'bside-win' : ''} ${isLoser ? 'bside-lost' : ''}`}>
+    <div className={`bside ${isWinner ? 'bside-win' : ''} ${isLoser ? 'bside-lost' : ''}`
+      + `${participant.isMe ? ' bside-mine' : ''}`}>
       <span className="bside-seed">{participant.seed}</span>
       {/* В парном турнире в сетке стоит команда: её имя короче двух ников и не рвёт вёрстку */}
       <span className="bside-name">{participant.teamName ?? participant.playerName}</span>

@@ -46,7 +46,12 @@ public record TournamentParticipantDto(
     string? PartnerPlayerName,
     int Seed,
     string Status,                 // active | eliminated | withdrawn
-    int? FinalPlacement);
+    int? FinalPlacement,
+    /// <summary>
+    /// Это команда того, кто смотрит. В парном турнире — капитан: напарник хранится
+    /// тегом, своей привязки к Telegram у него может не быть.
+    /// </summary>
+    bool IsMe);
 
 public record TournamentMatchDto(
     int Id,
