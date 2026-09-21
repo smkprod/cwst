@@ -594,9 +594,14 @@ const ru = {
   },
 
   link: {
-    title: 'Аккаунт не привязан',
+    title: 'Привяжи свой аккаунт',
     desc: 'Отправь боту команду — в группе клана или прямо в ЛС с ботом:',
-    hint: 'Свой тег найдёшь в Clash Royale: профиль → значок под именем.',
+    descApp: 'Введи свой тег из Clash Royale, и я покажу твою статистику войны.',
+    hint: 'Тег в игре: профиль → значок под именем. Начинается с #.',
+    submit: 'Привязать',
+    linking: 'Привязываю…',
+    notFound: 'Игрок с таким тегом не найден. Проверь тег в игре.',
+    error: 'Не получилось. Попробуй ещё раз.',
   },
 
   guest: {
@@ -1532,9 +1537,14 @@ const uk: Translations = {
   },
 
   link: {
-    title: "Акаунт не прив'язаний",
+    title: "Прив'яжи свій акаунт",
     desc: 'Надішли боту команду — у групі клану або прямо в ЛС з ботом:',
-    hint: 'Свій тег знайдеш у Clash Royale: профіль → значок під іменем.',
+    descApp: 'Введи свій тег із Clash Royale, і я покажу твою статистику війни.',
+    hint: 'Тег у грі: профіль → значок під іменем. Починається з #.',
+    submit: "Прив'язати",
+    linking: "Прив'язую…",
+    notFound: 'Гравця з таким тегом не знайдено. Перевір тег у грі.',
+    error: 'Не вийшло. Спробуй ще раз.',
   },
 
   guest: {
@@ -2468,9 +2478,14 @@ const en: Translations = {
   },
 
   link: {
-    title: 'Account not linked',
+    title: 'Link your account',
     desc: 'Send the bot this command — in your clan group chat or directly in a DM with the bot:',
-    hint: 'Find your tag in Clash Royale: profile → icon below your name.',
+    descApp: 'Enter your Clash Royale tag and I will show your war stats.',
+    hint: 'Your tag is in the game: profile → the badge under your name. Starts with #.',
+    submit: 'Link',
+    linking: 'Linking…',
+    notFound: 'No player with that tag. Check it in the game.',
+    error: 'Did not work. Try again.',
   },
 
   guest: {

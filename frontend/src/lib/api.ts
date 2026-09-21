@@ -166,6 +166,14 @@ export const api = {
     }),
 
   // Турниры
+  /** Привязать себя к игроку, не выходя из приложения. */
+  linkMe: (tag: string) =>
+    request<{ playerTag: string; name: string }>('/api/players/me/link', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tag }),
+    }),
+
   getTournaments: () => request<TournamentSummary[]>('/api/tournaments'),
   /** Завершённые турниры с чемпионами — история. */
   getTournamentHistory: (limit = 20) =>
