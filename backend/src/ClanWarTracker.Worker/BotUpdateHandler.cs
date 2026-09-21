@@ -7,6 +7,7 @@ using ClanWarTracker.Application.UseCases;
 using ClanWarTracker.Domain.Entities;
 using ClanWarTracker.Domain.Enums;
 using ClanWarTracker.Domain.Interfaces;
+using Microsoft.EntityFrameworkCore;
 using Telegram.Bot;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
@@ -768,8 +769,11 @@ public class BotUpdateHandler(
             {
                 InvalidOperationException ioe when ioe.Message.Contains("CR API") => errText.ErrCrApiToken,
                 HttpRequestException => errText.ErrCrApiDown,
+                // Текст подробностей больше не подставляем: игрок получал в ответ
+                // дамп исключения Postgres, из которого ему нечего извлечь. Полная
+                // ошибка уже записана логом строкой выше.
                 Microsoft.EntityFrameworkCore.DbUpdateException or System.Data.Common.DbException =>
-                    string.Format(errText.ErrDb, Describe(ex)),
+                    errText.ErrDb,
                 _ => string.Format(errText.ErrGeneric, Describe(ex))
             };
             await Reply(msg, hint, ct);
@@ -819,9 +823,28 @@ public class BotUpdateHandler(
 
             if (autoName is not null)
             {
-                existingClan = new Clan { ClanTag = clanTag, Name = autoName, TelegramChatId = 0, CreatedAtUtc = DateTime.UtcNow };
-                await clanRepo.AddAsync(existingClan, ct);
-                await clanRepo.SaveChangesAsync(ct);
+                // TelegramChatId = 0 означает «чат не привязан»: клан заведён по тегу
+                // игрока, а не командой /setup. Уникальный индекс по чату поэтому
+                // частичный, иначе второй такой клан падал бы с duplicate key.
+                existingClan = new Clan
+                {
+                    ClanTag = clanTag,
+                    Name = autoName,
+                    TelegramChatId = 0,
+                    CreatedAtUtc = DateTime.UtcNow,
+                };
+                try
+                {
+                    await clanRepo.AddAsync(existingClan, ct);
+                    await clanRepo.SaveChangesAsync(ct);
+                }
+                catch (DbUpdateException)
+                {
+                    // Гонка: два игрока одного клана прислали теги одновременно, оба
+                    // увидели «клана нет» и оба вставили. Проигравший просто берёт
+                    // чужую запись — она ничем не хуже своей.
+                    existingClan = await clanRepo.GetByTagAsync(clanTag, ct);
+                }
             }
         }
         if (existingClan is not null)

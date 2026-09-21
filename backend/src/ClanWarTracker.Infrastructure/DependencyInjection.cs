@@ -185,6 +185,27 @@ public static class DependencyInjection
     /// </summary>
     private static async Task EnsureNpgsqlColumnsAsync(AppDbContext db)
     {
+        // Уникальный индекс по чату должен быть ЧАСТИЧНЫМ: ноль означает «чат не
+        // привязан», и таких кланов много. Бот заводит клан сам, когда игрок
+        // присылает тег в личку, и со сплошным индексом второй такой клан падал
+        // с duplicate key — а ошибка базы улетала игроку в ответ.
+        //
+        // EnsureCreated существующий индекс не переделывает, поэтому пересоздаём
+        // руками и только если он ещё сплошной: наличие WHERE в определении и есть
+        // признак того, что чинить уже нечего.
+        await db.Database.ExecuteSqlRawAsync(@"
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_indexes
+        WHERE indexname = 'IX_Clans_TelegramChatId' AND indexdef LIKE '%WHERE%'
+    ) THEN
+        DROP INDEX IF EXISTS ""IX_Clans_TelegramChatId"";
+        CREATE UNIQUE INDEX ""IX_Clans_TelegramChatId""
+            ON ""Clans"" (""TelegramChatId"") WHERE ""TelegramChatId"" <> 0;
+    END IF;
+END $$;");
+
         await db.Database.ExecuteSqlRawAsync(
             "ALTER TABLE \"Clans\" ADD COLUMN IF NOT EXISTS \"PlanReminderStageSent\" integer NOT NULL DEFAULT 0;");
 

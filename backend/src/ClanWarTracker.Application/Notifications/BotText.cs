@@ -533,7 +533,7 @@ public sealed class BotText
         PeriodTraining = "Тренировка",
         ErrCrApiToken = "⚠️ Clash Royale API отклонил запрос — ключ привязан к другому IP. Админ, проверь CLASH_ROYALE_API_TOKEN.",
         ErrCrApiDown = "⚠️ Clash Royale API недоступен. Попробуй через пару минут.",
-        ErrDb = "⚠️ Ошибка базы данных: {0}",
+        ErrDb = "⚠️ Что-то пошло не так на нашей стороне. Я уже записал ошибку, попробуй ещё раз через минуту.",
         ErrGeneric = "⚠️ Ошибка: {0}",
         QuickNotFound = "❌ Игрок {0} не найден в Clash Royale.\n\n"
                       + "Проверь тег — он виден в профиле под именем (выглядит как #ABC123).\n"
@@ -795,7 +795,7 @@ public sealed class BotText
         PeriodTraining = "Тренування",
         ErrCrApiToken = "⚠️ Clash Royale API відхилив запит — ключ прив’язаний до іншого IP. Адміне, перевір CLASH_ROYALE_API_TOKEN.",
         ErrCrApiDown = "⚠️ Clash Royale API недоступний. Спробуй за кілька хвилин.",
-        ErrDb = "⚠️ Помилка бази даних: {0}",
+        ErrDb = "⚠️ Щось пішло не так на нашому боці. Я вже записав помилку, спробуй ще раз за хвилину.",
         ErrGeneric = "⚠️ Помилка: {0}",
         QuickNotFound = "❌ Гравця {0} не знайдено в Clash Royale.\n\n"
                       + "Перевір тег — він видно в профілі під іменем (виглядає як #ABC123).\n"
@@ -1057,7 +1057,7 @@ public sealed class BotText
         PeriodTraining = "Training",
         ErrCrApiToken = "⚠️ The Clash Royale API rejected the request — the key is bound to a different IP. Admin, check CLASH_ROYALE_API_TOKEN.",
         ErrCrApiDown = "⚠️ The Clash Royale API is unavailable. Try again in a couple of minutes.",
-        ErrDb = "⚠️ Database error: {0}",
+        ErrDb = "⚠️ Something broke on our side. The error is logged, try again in a minute.",
         ErrGeneric = "⚠️ Error: {0}",
         QuickNotFound = "❌ Player {0} not found in Clash Royale.\n\n"
                       + "Check the tag — it's shown in the profile under your name (looks like #ABC123).\n"
