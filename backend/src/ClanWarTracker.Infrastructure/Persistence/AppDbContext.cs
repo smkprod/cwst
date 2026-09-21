@@ -25,7 +25,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     {
         mb.Entity<Clan>(e =>
         {
-            e.HasIndex(c => c.TelegramChatId).IsUnique();
+            // Индекс частичный: ноль означает «чат не привязан», и таких кланов много.
+            // Бот заводит клан сам, когда игрок присылает свой тег в личку, — чтобы
+            // приложение показало войну без участия главы. Со сплошным уникальным
+            // индексом второй такой клан падал с duplicate key, и сырая ошибка базы
+            // летела игроку в ответ. Настоящие chat id нулём не бывают.
+            e.HasIndex(c => c.TelegramChatId).IsUnique().HasFilter("\"TelegramChatId\" <> 0");
             e.HasIndex(c => c.ClanTag).IsUnique();
             e.Property(c => c.ClanTag).HasMaxLength(16);
         });
