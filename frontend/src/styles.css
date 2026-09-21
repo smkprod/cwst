@@ -2196,3 +2196,13 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 .tournament-champion-line {
   margin: 4px 0 2px; font-size: 14px; font-weight: 700; color: var(--gold, #ffc83d);
 }
+
+/* Привязка аккаунта: поле и кнопка вместо картинки команды */
+.link-card { margin-top: 10px; }
+.link-desc { margin: 2px 0 12px; }
+.link-input {
+  width: 100%; text-align: center;
+  font-size: 18px; font-weight: 700; letter-spacing: 1px;
+}
+.link-hint { margin: 8px 0 0; }
+.link-btn { width: 100%; margin-top: 12px; }

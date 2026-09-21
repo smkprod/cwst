@@ -162,6 +162,17 @@ public sealed class BotText
 
     /* --- Ответы на команды --- */
     public required string StartPrivate { get; init; }
+    /// <summary>
+    /// Первое, что бот говорит, когда его добавили в группу. Момент единственный,
+    /// когда на него точно смотрят, поэтому текст отвечает ровно на два вопроса:
+    /// что это и что делать дальше. Кто делает — разнесено по ролям: раньше команды
+    /// админа и действия игрока шли одной стеной, и каждый думал, что это не к нему.
+    /// </summary>
+    public required string GroupJoined { get; init; }
+
+    /// <summary>Бота вернули в группу, где клан уже был привязан.</summary>
+    public required string GroupJoinedReady { get; init; }
+
     public required string StartGroupNew { get; init; }
     /// <summary>{0} — название клана.</summary>
     public required string StartGroupReady { get; init; }
@@ -425,10 +436,20 @@ public sealed class BotText
                      + "• сколько часов осталось до конца дня\n\n"
                      + "Работает для всех участников — не только лидеров.\n\n"
                      + "Или открой Mini App кнопкой в меню ниже 👇",
+        GroupJoined = "👋 Привет! Я Clanify, бот для клановых войн Clash Royale.\n\n"
+                    + "Я открываюсь как приложение прямо в Telegram, устанавливать ничего не нужно.\n\n"
+                    + "Осталось два шага:\n\n"
+                    + "1️⃣ АДМИН ГРУППЫ пишет сюда:\n"
+                    + "/setup #ТЕГ_КЛАНА\n"
+                    + "Тег есть в игре, в профиле клана.\n\n"
+                    + "2️⃣ КАЖДЫЙ ИГРОК жмёт кнопку под этим сообщением и привязывает себя.\n\n"
+                    + "После этого я показываю кто отыграл войну, а кто нет, и напоминаю забывшим.",
+        GroupJoinedReady = "👋 Снова здесь! Клан «{0}» уже подключён к этой группе.\n\n"
+                         + "Кто ещё не привязал себя — жмите кнопку под сообщением.",
         StartGroupNew = "⚔️ Clanify — статистика войны Clash Royale\n\n"
-                      + "Чтобы подключить клан к этой группе, лидер или администратор выполняет:\n"
-                      + "/setup #ТЕГ_КЛАНА\n\n"
-                      + "После этого каждый участник может написать боту /start в ЛС и отправить свой тег — и сразу увидит статистику.",
+                      + "1️⃣ Админ группы: /setup #ТЕГ_КЛАНА\n"
+                      + "2️⃣ Игроки: кнопка под сообщением\n\n"
+                      + "Тег клана есть в игре, в профиле клана.",
         StartGroupReady = "⚔️ Клан «{0}» подключён!\n"
                         + "/status — статус текущей войны\n"
                         + "/remind N — напоминания за N часов до конца дня\n"
@@ -442,13 +463,16 @@ public sealed class BotText
         SetupFormat = "Формат: /setup #ТЕГ_КЛАНА",
         SetupOnlyAdmin = "Только админ группы может привязать клан.",
         SetupClanNotFound = "❌ Клан не найден. Проверь тег.",
-        SetupOk = "✅ Клан «{0}» привязан к этой группе!\n\n"
-                + "Участники: напишите боту /start в личку и отправьте свой тег CR — сразу увидите статистику.",
+        SetupOk = "✅ Клан «{0}» подключён!\n\n"
+                + "Теперь каждый игрок жмёт кнопку под этим сообщением и привязывает себя.\n"
+                + "Это займёт полминуты и нужно сделать один раз.\n\n"
+                + "Кто не привязался, того я не вижу в статистике и не могу напомнить о войне.",
         SetupTopicNote = "\n\n📌 Напоминания и отчёты будут приходить в эту тему.",
         LinkFormat = "Формат: /link #ТВОЙ_ТЕГ",
         LinkNotFound = "❌ Игрок не найден. Проверь тег (профиль → значок тега).",
         LinkOkPrivate = "✅ Привязан игрок «{0}»! Открой Mini App через кнопку меню.",
-        LinkOkGroup = "✅ Привязан игрок «{0}». Напишите боту /start в личку — буду присылать напоминания.",
+        LinkOkGroup = "✅ Привязан игрок «{0}».\n\n"
+                    + "Чтобы я мог писать напоминания лично, открой приложение кнопкой ниже.",
         RemindOnlyAdmin = "Только админ группы может менять время напоминаний.",
         RemindFormat = "Формат: /remind N — за сколько часов до конца военного дня напоминать (от 1 до 12).\nНапример: /remind 3",
         RemindOk = "✅ Автонапоминания будут приходить за {0} ч до конца военного дня.\n"
@@ -674,10 +698,20 @@ public sealed class BotText
                      + "• скільки годин лишилось до кінця дня\n\n"
                      + "Працює для всіх учасників — не лише для лідерів.\n\n"
                      + "Або відкрий Mini App кнопкою в меню нижче 👇",
+        GroupJoined = "👋 Привіт! Я Clanify, бот для кланових воєн Clash Royale.\n\n"
+                    + "Я відкриваюся як застосунок прямо в Telegram, встановлювати нічого не треба.\n\n"
+                    + "Лишилося два кроки:\n\n"
+                    + "1️⃣ АДМІН ГРУПИ пише сюди:\n"
+                    + "/setup #ТЕГ_КЛАНУ\n"
+                    + "Тег є у грі, у профілі клану.\n\n"
+                    + "2️⃣ КОЖЕН ГРАВЕЦЬ тисне кнопку під цим повідомленням і прив’язує себе.\n\n"
+                    + "Після цього я показую хто відіграв війну, а хто ні, і нагадую тим, хто забув.",
+        GroupJoinedReady = "👋 Знову тут! Клан «{0}» уже підключено до цієї групи.\n\n"
+                         + "Хто ще не прив’язав себе — тисніть кнопку під повідомленням.",
         StartGroupNew = "⚔️ Clanify — статистика війни Clash Royale\n\n"
-                      + "Щоб підключити клан до цієї групи, лідер або адміністратор виконує:\n"
-                      + "/setup #ТЕГ_КЛАНУ\n\n"
-                      + "Після цього кожен учасник може написати боту /start у ЛС і надіслати свій тег — і одразу побачить статистику.",
+                      + "1️⃣ Адмін групи: /setup #ТЕГ_КЛАНУ\n"
+                      + "2️⃣ Гравці: кнопка під повідомленням\n\n"
+                      + "Тег клану є у грі, у профілі клану.",
         StartGroupReady = "⚔️ Клан «{0}» підключено!\n"
                         + "/status — статус поточної війни\n"
                         + "/remind N — нагадування за N годин до кінця дня\n"
@@ -691,13 +725,16 @@ public sealed class BotText
         SetupFormat = "Формат: /setup #ТЕГ_КЛАНУ",
         SetupOnlyAdmin = "Лише адмін групи може прив’язати клан.",
         SetupClanNotFound = "❌ Клан не знайдено. Перевір тег.",
-        SetupOk = "✅ Клан «{0}» прив’язано до цієї групи!\n\n"
-                + "Учасники: напишіть боту /start у приват і надішліть свій тег CR — одразу побачите статистику.",
+        SetupOk = "✅ Клан «{0}» підключено!\n\n"
+                + "Тепер кожен гравець тисне кнопку під цим повідомленням і прив’язує себе.\n"
+                + "Це займе пів хвилини і потрібно зробити один раз.\n\n"
+                + "Хто не прив’язався, того я не бачу в статистиці й не можу нагадати про війну.",
         SetupTopicNote = "\n\n📌 Нагадування та звіти надходитимуть у цю тему.",
         LinkFormat = "Формат: /link #ТВІЙ_ТЕГ",
         LinkNotFound = "❌ Гравця не знайдено. Перевір тег (профіль → значок тега).",
         LinkOkPrivate = "✅ Прив’язано гравця «{0}»! Відкрий Mini App через кнопку меню.",
-        LinkOkGroup = "✅ Прив’язано гравця «{0}». Напишіть боту /start у приват — надсилатиму нагадування.",
+        LinkOkGroup = "✅ Прив’язано гравця «{0}».\n\n"
+                    + "Щоб я міг писати нагадування особисто, відкрий застосунок кнопкою нижче.",
         RemindOnlyAdmin = "Лише адмін групи може змінювати час нагадувань.",
         RemindFormat = "Формат: /remind N — за скільки годин до кінця воєнного дня нагадувати (від 1 до 12).\nНаприклад: /remind 3",
         RemindOk = "✅ Автонагадування надходитимуть за {0} год до кінця воєнного дня.\n"
@@ -923,10 +960,20 @@ public sealed class BotText
                      + "• how many hours are left in the day\n\n"
                      + "Works for every member — not just leaders.\n\n"
                      + "Or open the Mini App with the menu button below 👇",
+        GroupJoined = "👋 Hi! I'm Clanify, a bot for Clash Royale clan wars.\n\n"
+                    + "I open as an app right inside Telegram, nothing to install.\n\n"
+                    + "Two steps left:\n\n"
+                    + "1️⃣ A GROUP ADMIN types here:\n"
+                    + "/setup #CLAN_TAG\n"
+                    + "The tag is in the game, on the clan profile.\n\n"
+                    + "2️⃣ EVERY PLAYER taps the button below and links themselves.\n\n"
+                    + "After that I show who played the war and who didn't, and remind those who forgot.",
+        GroupJoinedReady = "👋 Back again! Clan \"{0}\" is already linked to this group.\n\n"
+                         + "Anyone not linked yet, tap the button below.",
         StartGroupNew = "⚔️ Clanify — Clash Royale war stats\n\n"
-                      + "To connect a clan to this group, the leader or an admin runs:\n"
-                      + "/setup #CLANTAG\n\n"
-                      + "After that every member can message the bot /start in DM and send their tag — and see the stats right away.",
+                      + "1️⃣ Group admin: /setup #CLAN_TAG\n"
+                      + "2️⃣ Players: the button below\n\n"
+                      + "The clan tag is in the game, on the clan profile.",
         StartGroupReady = "⚔️ Clan \"{0}\" is connected!\n"
                         + "/status — current war status\n"
                         + "/remind N — reminders N hours before the day ends\n"
@@ -940,13 +987,16 @@ public sealed class BotText
         SetupFormat = "Format: /setup #CLANTAG",
         SetupOnlyAdmin = "Only a group admin can link the clan.",
         SetupClanNotFound = "❌ Clan not found. Check the tag.",
-        SetupOk = "✅ Clan \"{0}\" is linked to this group!\n\n"
-                + "Members: message the bot /start in DM and send your CR tag — you'll see the stats right away.",
+        SetupOk = "✅ Clan \"{0}\" is connected!\n\n"
+                + "Now every player taps the button below and links themselves.\n"
+                + "It takes half a minute and is done once.\n\n"
+                + "Anyone not linked is invisible to me: no stats, no war reminders.",
         SetupTopicNote = "\n\n📌 Reminders and reports will arrive in this topic.",
         LinkFormat = "Format: /link #YOURTAG",
         LinkNotFound = "❌ Player not found. Check the tag (profile → the tag under your name).",
         LinkOkPrivate = "✅ Linked player \"{0}\"! Open the Mini App from the menu button.",
-        LinkOkGroup = "✅ Linked player \"{0}\". Message the bot /start in DM — I'll send you reminders.",
+        LinkOkGroup = "✅ Linked player \"{0}\".\n\n"
+                    + "To get reminders in private, open the app with the button below.",
         RemindOnlyAdmin = "Only a group admin can change the reminder time.",
         RemindFormat = "Format: /remind N — how many hours before the war day ends to remind (1 to 12).\nFor example: /remind 3",
         RemindOk = "✅ Auto-reminders will arrive {0}h before the war day ends.\n"

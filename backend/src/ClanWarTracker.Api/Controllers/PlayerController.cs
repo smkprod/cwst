@@ -20,6 +20,7 @@ public class PlayerController(
     GetWhatsNewUseCase getWhatsNew,
     GiveRespectUseCase giveRespect,
     SuggestDecksUseCase suggestDecks,
+    LinkPlayerUseCase linkPlayer,
     IRespectRepository respects) : ControllerBase
 {
     /// <summary>
@@ -63,6 +64,33 @@ public class PlayerController(
         return player is null
             ? NotFound(new { error = "player_not_linked" })
             : Ok(new { player.PlayerTag, player.Name });
+    }
+
+    public record LinkRequest(string Tag);
+
+    /// <summary>
+    /// POST /api/players/me/link — привязать себя, не выходя из приложения.
+    ///
+    /// Раньше привязаться можно было только командой /link в чате, а приложение
+    /// показывало эту команду картинкой и отправляло человека её набирать. Половина
+    /// на этом и заканчивала: открыл, увидел непонятное, закрыл.
+    ///
+    /// Клан здесь не передаём: вызов идёт из приложения, а не из группы, и определить
+    /// по нему конкретную беседу нельзя. Клан подтянется сам, когда игрок окажется
+    /// в составе подключённого клана.
+    /// </summary>
+    [HttpPost("me/link")]
+    public async Task<IActionResult> LinkMe([FromBody] LinkRequest req, CancellationToken ct)
+    {
+        var tag = req.Tag?.Trim();
+        if (string.IsNullOrWhiteSpace(tag)) return BadRequest(new { error = "empty_tag" });
+
+        var userId = (long)HttpContext.Items["TelegramUserId"]!;
+        var name = await linkPlayer.ExecuteAsync(userId, tag, chatId: null, ct: ct);
+
+        return name is null
+            ? NotFound(new { error = "player_not_found" })
+            : Ok(new { playerTag = LinkPlayerUseCase.Normalize(tag), name });
     }
 
     /// <summary>GET /api/players/me/stats — детальная статистика по текущему игроку.</summary>
