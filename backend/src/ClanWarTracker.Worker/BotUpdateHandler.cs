@@ -66,7 +66,14 @@ public class BotUpdateHandler(
         bot.StartReceiving(
             HandleUpdateAsync,
             (_, ex, _) => { logger.LogError(ex, "Bot polling error"); return Task.CompletedTask; },
-            new ReceiverOptions { AllowedUpdates = [UpdateType.Message, UpdateType.InlineQuery] },
+            // MyChatMember обязателен: без него бот не узнаёт, что его добавили в группу,
+            // и молчит. Человек добавил бота, ничего не произошло — и он уходит, так и
+            // не поняв, что дальше. Приветствие срабатывало только на ручной /start,
+            // которого никто не пишет.
+            new ReceiverOptions
+            {
+                AllowedUpdates = [UpdateType.Message, UpdateType.InlineQuery, UpdateType.MyChatMember],
+            },
             stoppingToken);
 
         logger.LogInformation("Bot polling started as @{Username}", _botUsername);
@@ -93,6 +100,17 @@ public class BotUpdateHandler(
                 try { await ProcessInlineQueryAsync(inline, ct); }
                 catch (OperationCanceledException) { /* воркер останавливается */ }
                 catch (Exception ex) { logger.LogError(ex, "Inline query failed"); }
+            });
+            return Task.CompletedTask;
+        }
+
+        if (update.MyChatMember is { } membership)
+        {
+            _ = Task.Run(async () =>
+            {
+                try { await ProcessMembershipAsync(membership, ct); }
+                catch (OperationCanceledException) { /* воркер останавливается */ }
+                catch (Exception ex) { logger.LogError(ex, "Membership update failed"); }
             });
             return Task.CompletedTask;
         }
@@ -1064,6 +1082,52 @@ public class BotUpdateHandler(
         return BotText.For(msg.From?.LanguageCode);
     }
 
+    /// <summary>
+    /// Бота добавили в группу — здороваемся и объясняем, что делать.
+    ///
+    /// Момент добавления единственный, когда на бота точно смотрят. Промолчать здесь
+    /// значит потерять клан: дальше сообщение утонет в чате, а команду /start в группе
+    /// никто не пишет.
+    /// </summary>
+    private async Task ProcessMembershipAsync(ChatMemberUpdated m, CancellationToken ct)
+    {
+        // Только группы и только переход «не был участником → стал».
+        if (m.Chat.Type is not (ChatType.Group or ChatType.Supergroup)) return;
+
+        var was = m.OldChatMember.Status;
+        var now = m.NewChatMember.Status;
+        var joined = was is ChatMemberStatus.Left or ChatMemberStatus.Kicked
+                     && now is ChatMemberStatus.Member or ChatMemberStatus.Administrator;
+        if (!joined) return;
+
+        using var scope = scopeFactory.CreateScope();
+        var sp = scope.ServiceProvider;
+        var clans = sp.GetRequiredService<IClanRepository>();
+        var clan = await clans.GetByChatIdAsync(m.Chat.Id, ct);
+        var t = NotificationSettings.Parse(clan?.NotificationSettingsJson).Text;
+
+        // Клан мог быть привязан раньше — тогда бота вернули, а не привели впервые.
+        var text = clan is null ? t.GroupJoined : string.Format(t.GroupJoinedReady, clan.Name);
+        await SendWithAppButtonAsync(m.Chat.Id, text, ct);
+    }
+
+    /// <summary>Кнопка «Открыть приложение», если username бота известен.</summary>
+    private InlineKeyboardMarkup? AppButton(string label) =>
+        _botUsername == "bot"
+            ? null
+            : new InlineKeyboardMarkup(
+                InlineKeyboardButton.WithUrl(label, $"https://t.me/{_botUsername}?startapp"));
+
+    private Task SendWithAppButtonAsync(long chatId, string text, CancellationToken ct) =>
+        bot.SendMessage(chatId, text, replyMarkup: AppButton("🎮 Открыть приложение"),
+            cancellationToken: ct);
+
+    /// <summary>
+    /// Ответ на команду. Кнопка приложения идёт под каждым ответом: раньше их не было
+    /// вовсе, и игрок, прочитав «привяжи себя», не имел ни одного очевидного способа
+    /// это сделать — текст предлагал уйти в личку и вручную набрать тег.
+    /// </summary>
     private Task Reply(Message msg, string text, CancellationToken ct) =>
-        bot.SendMessage(msg.Chat.Id, text, replyParameters: msg.MessageId, cancellationToken: ct);
+        bot.SendMessage(msg.Chat.Id, text, replyParameters: msg.MessageId,
+            replyMarkup: AppButton("🎮 Открыть приложение"), cancellationToken: ct);
 }
