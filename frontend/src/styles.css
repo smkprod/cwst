@@ -863,23 +863,77 @@ button.race-row {
 .chart-readout b { color: var(--text); font-size: 14px; }
 
 .chart-plot {
-  display: flex; align-items: flex-end; gap: 2px;
+  position: relative;
   height: 126px;
   /* Место под подпись пика: без отступа она налезала на строку с итогами */
   padding-top: 16px;
   /* Линия основания: без неё пустые дни выглядят как обрыв графика, а не как нули */
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+/* Сетка лежит под столбиками и не перехватывает нажатия: попасть пальцем в столбик
+   на телефоне и так непросто, а невидимый слой поверх делает это невозможным. */
+.chart-grid { position: absolute; inset: 16px 0 0; pointer-events: none; }
+.chart-gridline {
+  position: absolute; left: 0; right: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+.chart-gridval {
+  position: absolute; left: 0; bottom: 2px;
+  font-size: 9px; line-height: 1; color: var(--muted);
+  /* Подложка под цифрой: иначе она читается поверх столбика, который под ней */
+  background: var(--bg-card); padding: 0 3px; border-radius: 3px;
+}
+
+.chart-bars {
+  position: relative; z-index: 1;
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 2px; height: 100%;
 }
 .chart-bar {
   flex: 1; min-width: 0; padding: 0; border: none; cursor: pointer;
+  /* Потолок толщины: на пяти столбиках flex:1 растянул бы их в плиты во всю
+     карточку, и график перестал бы читаться как график. Остаток полосы — воздух. */
+  max-width: 24px;
+  /* Сплошная заливка идёт первой намеренно: color-mix() понимают не все вебвью,
+     а невалидное свойство браузер отбрасывает целиком — столбик стал бы прозрачным.
+     Так в старом вебвью останется ровный цвет вместо исчезнувшего графика. */
   background: var(--accent);
+  /* Градиент: низ гасим, чтобы основание не спорило с осью, а верх — там, где глаз
+     считывает значение — оставляем в полную силу. */
+  background: linear-gradient(to top, color-mix(in srgb, var(--accent) 45%, transparent), var(--accent));
   /* Скругление только сверху: низ прижат к оси, и круглить его нечего */
-  border-radius: 3px 3px 0 0;
+  border-radius: 4px 4px 0 0;
   position: relative;
-  transition: opacity 0.12s ease;
+  transition: height 0.45s cubic-bezier(0.22, 1, 0.36, 1), background 0.15s ease;
 }
-.chart-bar:hover { opacity: 0.85; }
-.chart-bar-on { background: var(--gold); }
+.chart-bar:hover { background: linear-gradient(to top, color-mix(in srgb, var(--accent) 60%, transparent), var(--accent)); }
+/* Двойной класс и место после :hover — не стиль, а необходимость: у «.chart-bar:hover»
+   специфичность выше, чем у одиночного класса, и выбранный столбик перекрашивался
+   обратно в цвет серии ровно в тот момент, когда на него наводят. */
+.chart-bar.chart-bar-on,
+.chart-bar.chart-bar-on:hover {
+  background: var(--gold);
+  background: linear-gradient(to top, color-mix(in srgb, var(--gold) 45%, transparent), var(--gold));
+}
+/* Нулевой день — серая чёрточка на оси. Пустое место читалось бы как «данных нет»,
+   а столбик цвета серии — как «кто-то всё же приходил».
+   Правила идут последними и с двойным классом по той же причине, что и выше:
+   иначе наведение красило ноль в цвет серии, то есть ровно в то, чем он не является. */
+.chart-bar.chart-bar-zero,
+.chart-bar.chart-bar-zero:hover {
+  height: 2px; border-radius: 1px;
+  background: rgba(255, 255, 255, 0.16);
+}
+.chart-bar.chart-bar-zero:hover { background: rgba(255, 255, 255, 0.28); }
+/* Выбранный ноль всё же подсвечиваем: нажатие должно отзываться, даже когда
+   отзываться нечему — иначе кажется, что тап не прошёл. */
+.chart-bar.chart-bar-zero.chart-bar-on,
+.chart-bar.chart-bar-zero.chart-bar-on:hover { background: var(--gold); }
+
+@media (prefers-reduced-motion: reduce) {
+  .chart-bar { transition: background 0.15s ease; }
+}
 /* Подписываем только пик: число над каждым столбиком превращает график в таблицу */
 .chart-peak {
   position: absolute; left: 50%; transform: translateX(-50%);
