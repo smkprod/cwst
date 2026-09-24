@@ -29,6 +29,7 @@ public class ClanController(
     IClashRoyaleApi crApi,
     ITelegramBotClient bot,
     IMemoryCache cache,
+    ServiceAccess access,
     IConfiguration config) : ControllerBase
 {
     /// <summary>GET /api/clans/my/status — статус войны клана текущего пользователя.</summary>
@@ -54,11 +55,18 @@ public class ClanController(
         var crRole = await crApi.GetPlayerClanRoleAsync(clan.ClanTag, player!.PlayerTag, ct);
         var isClanLeader = crRole is "leader" or "coLeader";
 
+        // Зашли в чужой клан из панели — фронту нужно и показать об этом плашку,
+        // и понимать, какие кнопки рисовать: у владельца все, у модератора ни одной.
+        var viewingAsAdmin = Acting is not null;
+
         return Ok(new { status.ClanTag, status.ClanName, status.PeriodType, status.PeriodIndex,
                         status.DayEndsAtUtc, status.HoursLeft, status.Plan, status.Stats, status.Forecast,
                         status.Race, status.Players, status.Insights, status.WarLog, status.DayLogs,
                         myPlayerTag = player.PlayerTag,
-                        isAdmin, isClanLeader,
+                        isAdmin = isAdmin || ActingCanManage,
+                        isClanLeader = isClanLeader || ActingCanManage,
+                        viewingAsAdmin,
+                        adminReadOnly = Acting is { } who && !who.Can(ServicePermission.ManageClans),
                         isOwner = IsOwner(userId), reminderHoursBeforeEnd = clan.ReminderHoursBeforeEnd });
     }
 
@@ -74,8 +82,10 @@ public class ClanController(
         var (_, clan, error) = await ResolvePlayerClanAsync(ct);
         if (error is not null) return error;
 
+        if (DenyReadOnlyAdmin() is { } readOnly) return readOnly;
+
         var userId = (long)HttpContext.Items["TelegramUserId"]!;
-        if (!await IsClanAdminAsync(clan!.TelegramChatId, userId, ct))
+        if (!ActingCanManage && !await IsClanAdminAsync(clan!.TelegramChatId, userId, ct))
             return StatusCode(403, new { error = "not_admin", message = "Менять время напоминаний может только админ группы" });
 
         if (req.HoursBeforeEnd is < 1 or > 12)
@@ -114,6 +124,7 @@ public class ClanController(
     {
         var (player, clan, error) = await ResolvePlayerClanAsync(ct);
         if (error is not null) return error;
+        if (DenyReadOnlyAdmin() is { } readOnly) return readOnly;
         if (!await CanManageAsync(clan!, player!, ct))
             return StatusCode(403, new { error = "not_admin", message = "Настройки доступны админу группы или лидеру клана" });
 
@@ -155,6 +166,10 @@ public class ClanController(
     private async Task<bool> CanManageAsync(Clan clan, Player player, CancellationToken ct)
     {
         var userId = (long)HttpContext.Items["TelegramUserId"]!;
+        // Владелец, зашедший в клан из панели, управляет им наравне с главой:
+        // ради этого заход и делался — починить чужие настройки, не прося доступ.
+        // Модератор сюда не попадает: у него роль Moderator, и она правом не является.
+        if (ActingCanManage) return true;
         if (await IsClanAdminAsync(clan.TelegramChatId, userId, ct)) return true;
         try
         {
@@ -437,11 +452,15 @@ public class ClanController(
         if (error is not null) return error;
 
         var userId = (long)HttpContext.Items["TelegramUserId"]!;
+        // Пинок уходит сообщениями в чужой чат — модератору его не дают даже тогда,
+        // когда он в этом клане и сам лидер: в режиме просмотра не действуют.
+        if (DenyReadOnlyAdmin() is { } readOnly) return readOnly;
+
         var isAdmin = await IsClanAdminAsync(clan!.TelegramChatId, userId, ct);
         var crRole = await crApi.GetPlayerClanRoleAsync(clan.ClanTag, player!.PlayerTag, ct);
         var isClanLeader = crRole is "leader" or "coLeader";
 
-        if (!isAdmin && !isClanLeader)
+        if (!ActingCanManage && !isAdmin && !isClanLeader)
             return StatusCode(403, new { error = "not_admin", message = "Пинать может только админ группы или лидер клана" });
 
         var isPro = clan.EffectivePlan(DateTime.UtcNow) == PlanTier.Pro;
@@ -469,10 +488,14 @@ public class ClanController(
         var (player, clan, error) = await ResolvePlayerClanAsync(ct);
         if (error is not null) return error;
 
+        // Ссылка-приглашение даёт права на клан тому, кто по ней перейдёт. Модератору
+        // с правом «только смотреть» выдавать её нельзя — это обход его же ограничения.
+        if (DenyReadOnlyAdmin() is { } readOnly) return readOnly;
+
         var userId = (long)HttpContext.Items["TelegramUserId"]!;
         var isAdmin = await IsClanAdminAsync(clan!.TelegramChatId, userId, ct);
         var crRole = await crApi.GetPlayerClanRoleAsync(clan.ClanTag, player!.PlayerTag, ct);
-        if (!isAdmin && crRole is not ("leader" or "coLeader"))
+        if (!ActingCanManage && !isAdmin && crRole is not ("leader" or "coLeader"))
             return StatusCode(403, new { error = "not_admin", message = "Приглашать может только админ группы или лидер клана" });
 
         var playerTag = LinkPlayerUseCase.Normalize(tag);
@@ -536,6 +559,19 @@ public class ClanController(
         if (player is null)
             return (null, null, NotFound(new { error = "player_not_linked", message = "Сначала привяжи тег: /link #ТЕГ" }));
 
+        // Админ сервиса смотрит чужой клан. Выходим здесь, до авто-переключения:
+        // оно переписывает player.ClanId, и без этого возврата заход в чужой клан
+        // молча переносил бы туда самого админа — с его собственной привязкой,
+        // напоминаниями и статистикой.
+        var (adminClan, adminWho) = await AdminClanOverrideAsync(ct);
+        if (adminWho is not null)
+        {
+            HttpContext.Items["AdminActing"] = adminWho;
+            return adminClan is null
+                ? (player, null, NotFound(new { error = "clan_not_found" }))
+                : (player, adminClan, null);
+        }
+
         var clan = player.ClanId.HasValue ? await clans.GetByIdAsync(player.ClanId.Value, ct) : null;
 
         // Авто-переключение: если игрок в CR сейчас в другом клане,
@@ -564,8 +600,48 @@ public class ClanController(
             : (player, clan, null);
     }
 
-    private bool IsOwner(long userId) =>
-        long.TryParse(config["Owner:TelegramUserId"], out var ownerId) && ownerId != 0 && userId == ownerId;
+    /// <summary>
+    /// Клан, в который админ сервиса зашёл из панели, и с каким правом.
+    ///
+    /// Заголовком, а не параметром пути: иначе пришлось бы заводить двойник каждой
+    /// из полутора десятков ручек «my/…», и любая забытая осталась бы показывать
+    /// свой клан вместо выбранного — расхождение, которое заметить почти нельзя.
+    /// </summary>
+    private async Task<(Clan? Clan, ServiceIdentity? Who)> AdminClanOverrideAsync(CancellationToken ct)
+    {
+        var raw = Request.Headers["X-Admin-Clan"].ToString();
+        if (string.IsNullOrEmpty(raw) || !int.TryParse(raw, out var clanId) || clanId <= 0)
+            return (null, null);
+
+        var userId = (long)HttpContext.Items["TelegramUserId"]!;
+        var username = HttpContext.Items["TelegramUsername"] as string;
+        var me = await access.ResolveAsync(userId, username, ct);
+        // Право заходить в кланы выдаётся отдельно: доступ к панели сам по себе
+        // ещё не означает, что человеку можно смотреть чужие войны и составы.
+        if (!me.Can(ServicePermission.EnterClans)) return (null, null);
+
+        return (await clans.GetByIdAsync(clanId, ct), me);
+    }
+
+    /// <summary>
+    /// Отказ, если это модератор, зашедший в чужой клан. null — можно.
+    ///
+    /// Модератору открыт просмотр, но не действия: кнопки в клановых экранах шлют
+    /// сообщения в чужой чат и меняют чужие настройки. Отдельный код ошибки нужен,
+    /// чтобы фронт написал «только просмотр», а не «ты не админ этого клана».
+    /// </summary>
+    /// <summary>Кто зашёл в этот клан из панели. null — обычный путь, свой клан.</summary>
+    private ServiceIdentity? Acting => HttpContext.Items["AdminActing"] as ServiceIdentity;
+
+    /// <summary>Зашедший из панели вправе здесь распоряжаться наравне с главой.</summary>
+    private bool ActingCanManage => Acting?.Can(ServicePermission.ManageClans) == true;
+
+    private IActionResult? DenyReadOnlyAdmin() =>
+        Acting is { } who && !who.Can(ServicePermission.ManageClans)
+            ? StatusCode(403, new { error = "admin_read_only" })
+            : null;
+
+    private bool IsOwner(long userId) => access.IsOwner(userId);
 
     private async Task<bool> IsClanAdminAsync(long chatId, long userId, CancellationToken ct)
     {

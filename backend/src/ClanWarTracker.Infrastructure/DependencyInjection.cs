@@ -1,3 +1,4 @@
+using ClanWarTracker.Application.Security;
 using ClanWarTracker.Domain.Interfaces;
 using ClanWarTracker.Infrastructure.ClashRoyale;
 using ClanWarTracker.Infrastructure.Persistence;
@@ -75,6 +76,13 @@ public static class DependencyInjection
         services.AddScoped<IPuzzleRepository, PuzzleRepository>();
         services.AddScoped<IActivityRepository, ActivityRepository>();
         services.AddScoped<ITopPlayerRepository, TopPlayerRepository>();
+        services.AddScoped<IServiceModeratorRepository, ServiceModeratorRepository>();
+
+        // Права на сервис — здесь, а не в Program.cs каждого хоста: иначе API и воркер
+        // разъехались бы в понимании того, кто владелец, и разошлись бы молча.
+        services.AddSingleton(new ServiceAccessOptions(
+            long.TryParse(config["Owner:TelegramUserId"], out var ownerId) ? ownerId : 0));
+        services.AddScoped<ServiceAccess>();
         // Ключ подписи пропусков к картинкам-загадкам — тот же токен бота. Отдельный
         // секрет пришлось бы заводить в .env на сервере, куда доступа нет ни у кого,
         // кроме владельца, а выигрыш нулевой: утечка любого из них одинаково фатальна.
@@ -520,6 +528,29 @@ CREATE TABLE IF NOT EXISTS ""TopPlayers"" (
             "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_TopPlayers_DayUtc_Rank\" ON \"TopPlayers\" (\"DayUtc\", \"Rank\");");
         await db.Database.ExecuteSqlRawAsync(
             "CREATE INDEX IF NOT EXISTS \"IX_TopPlayers_DayUtc\" ON \"TopPlayers\" (\"DayUtc\");");
+
+        // Модераторы сервиса: кому владелец открыл панель на просмотр.
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""ServiceModerators"" (
+    ""Id"" serial PRIMARY KEY,
+    ""TelegramUsername"" varchar(32) NOT NULL,
+    ""TelegramUserId"" bigint,
+    ""Permissions"" integer NOT NULL DEFAULT 0,
+    ""Note"" varchar(200),
+    ""AddedAtUtc"" timestamptz NOT NULL,
+    ""AddedByTelegramUserId"" bigint NOT NULL,
+    ""FirstSeenAtUtc"" timestamptz
+);");
+        // Колонка появилась после первой версии таблицы: CREATE TABLE IF NOT EXISTS
+        // в уже существующую её не дотянет.
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"ServiceModerators\" ADD COLUMN IF NOT EXISTS \"Permissions\" integer NOT NULL DEFAULT 0;");
+
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_ServiceModerators_TelegramUsername\" ON \"ServiceModerators\" (\"TelegramUsername\");");
+        // Частичный: у неподтверждённых записей id пуст, и такие не должны мешать друг другу.
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_ServiceModerators_TelegramUserId\" ON \"ServiceModerators\" (\"TelegramUserId\") WHERE \"TelegramUserId\" IS NOT NULL;");
 
         // Парные турниры: формат, дата старта и команда участника.
         await db.Database.ExecuteSqlRawAsync(

@@ -1,5 +1,5 @@
 import { initData } from './telegram'
-import type { BroadcastResult, BroadcastTarget, ClanDiscipline, DailyPuzzle, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, TopPlayerRow, TopPlayerDetail, Tournament, TournamentSummary, WarJournal } from '../types'
+import type { Moderator, ServiceIdentity, ServicePermission, BroadcastResult, BroadcastTarget, ClanDiscipline, DailyPuzzle, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, TopPlayerRow, TopPlayerDetail, Tournament, TournamentSummary, WarJournal } from '../types'
 
 // Если мы на Render (production), BASE должен быть пустой строкой '', чтобы запросы шли на тот же домен.
 // Для локальной разработки (Development) оставляем localhost:5000.
@@ -14,6 +14,40 @@ const BASE = import.meta.env.DEV
  */
 const REQUEST_TIMEOUT_MS = 15_000
 
+/**
+ * Клан, в который админ сервиса зашёл из панели.
+ *
+ * Живёт здесь, а не в пропсах экранов: заголовок должен уходить со ВСЕМИ запросами
+ * «мой клан», а их полтора десятка и они разбросаны по всем вкладкам. Протащить
+ * clanId в каждую значило бы рано или поздно забыть одну, и она молча показывала
+ * бы свой клан посреди чужого — расхождение, которое почти невозможно заметить.
+ *
+ * sessionStorage, а не localStorage: заход в чужой клан не должен переживать
+ * закрытие приложения и встречать потом как «почему у меня чужая война».
+ */
+const ADMIN_CLAN_KEY = 'adminClanId'
+
+function readAdminClan(): number | null {
+  try {
+    const raw = sessionStorage.getItem(ADMIN_CLAN_KEY)
+    const id = raw ? Number(raw) : NaN
+    return Number.isFinite(id) && id > 0 ? id : null
+  } catch {
+    // Приватный режим и заблокированные куки роняют доступ к хранилищу.
+    return null
+  }
+}
+
+export const adminClan = {
+  get: readAdminClan,
+  enter(clanId: number) {
+    try { sessionStorage.setItem(ADMIN_CLAN_KEY, String(clanId)) } catch { /* см. readAdminClan */ }
+  },
+  leave() {
+    try { sessionStorage.removeItem(ADMIN_CLAN_KEY) } catch { /* см. readAdminClan */ }
+  },
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   // КРИТИЧЕСКИЙ ФИКС: Достаем свежайший initData из window прямо в секунду отправки запроса.
   // Теперь заголовок больше никогда не уйдет на сервер пустым.
@@ -22,6 +56,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS)
 
+  // Ручки самой панели шлём всегда от своего имени: иначе, зайдя в чужой клан,
+  // ты перестал бы видеть в панели список кланов и не смог бы из него выйти.
+  const acting = path.startsWith('/api/owner') ? null : readAdminClan()
+
   let res: Response
   try {
     res = await fetch(`${BASE}${path}`, {
@@ -29,6 +67,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       signal: ctrl.signal,
       headers: {
         'X-Telegram-Init-Data': liveInitData,
+        ...(acting ? { 'X-Admin-Clan': String(acting) } : {}),
         ...init?.headers
       },
     })
@@ -147,6 +186,26 @@ export const api = {
     request<RecruitmentCandidates>('/api/recruitment/candidates'),
 
   // Панель владельца
+  /** Кто я для сервиса. Не требует ни привязанного тега, ни клана. */
+  ownerMe: () => request<ServiceIdentity>('/api/owner/me'),
+  ownerGetModerators: () => request<Moderator[]>('/api/owner/moderators'),
+  ownerAddModerator: (username: string, note: string | undefined, permissions: ServicePermission[]) =>
+    request<{ ok: boolean; username: string }>('/api/owner/moderators', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, note, permissions }),
+    }),
+  ownerSetModeratorPermissions: (id: number, permissions: ServicePermission[]) =>
+    request<{ ok: boolean; permissions: ServicePermission[] }>(
+      `/api/owner/moderators/${id}/permissions`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ permissions }),
+      }),
+  ownerRemoveModerator: (id: number) =>
+    request<{ ok: boolean }>(`/api/owner/moderators/${id}`, { method: 'DELETE' }),
+  ownerHarvestTop: () =>
+    request<{ rows: number; problem: string | null }>('/api/owner/top/harvest', { method: 'POST' }),
   ownerGetStats: () => request<OwnerStats>('/api/owner/stats'),
   ownerGetClans: () => request<OwnerClan[]>('/api/owner/clans'),
   ownerGetClanDetail: (clanId: number) => request<OwnerClanDetail>(`/api/owner/clans/${clanId}`),
