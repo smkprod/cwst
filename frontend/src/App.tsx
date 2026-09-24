@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { api, ApiError } from './lib/api'
+import { api, ApiError, adminClan } from './lib/api'
 import { haptic } from './lib/telegram'
 import { useT, type Translations } from './lib/i18n'
-import type { ClanStatus } from './types'
+import type { ClanStatus, ServiceRole } from './types'
 import { WarHeader } from './components/WarHeader'
 import { ForecastCard } from './components/ForecastCard'
 import { InsightsCard } from './components/InsightsCard'
@@ -101,6 +101,13 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('clan')
   const [clanSection, setClanSection] = useState<ClanSection>('war')
   const [settingsOpen, setSettingsOpen] = useState(false)
+  // Права на сервис спрашиваем отдельно от статуса клана.
+  //
+  // Раньше признак владельца приезжал внутри my/status, а та отвечает 404, пока у
+  // человека нет привязанного тега и клана. То есть панель пропадала ровно у того,
+  // кто вышел из клана, — и вернуть её было нечем. Модератору же клан не нужен
+  // вовсе, он может вообще не играть.
+  const [role, setRole] = useState<ServiceRole>('none')
   const { t } = useT()
 
   // Сколько подряд неудачных обновлений терпим, прежде чем показать ошибку.
@@ -157,6 +164,16 @@ export default function App() {
     }
   }, [t])
 
+  // Один раз за сеанс: роль не меняется, пока приложение открыто. Молча падаем в
+  // «никто» — панель просто не появится, а ломать из-за этого весь экран незачем.
+  useEffect(() => {
+    let alive = true
+    api.ownerMe()
+      .then(r => { if (alive) setRole(r.role) })
+      .catch(() => { /* обычный игрок, и это нормальный ответ */ })
+    return () => { alive = false }
+  }, [])
+
   useEffect(() => {
     load()
     // Пока всё хорошо — раз в минуту. После сбоя опрашиваем чаще, чтобы
@@ -197,7 +214,9 @@ export default function App() {
         />
       )
     case 'clanless':
-      return <ClanlessView />
+      // Админ сервиса без своего клана — не тупик: панель и есть то, зачем он зашёл,
+      // а заход в чужой клан из неё вернёт обычные экраны.
+      return role !== 'none' ? <OwnerPanel role={role} /> : <ClanlessView />
     case 'notInTelegram':
       return (
         <div className="center">
@@ -233,12 +252,28 @@ export default function App() {
         { id: 'tournament', icon: '🏆', label: t.tabs.tournament },
         { id: 'search', icon: '🔍', label: t.tabs.search },
         { id: 'more', icon: '⚙️', label: t.tabs.more },
-        ...(data.isOwner ? [{ id: 'owner' as Tab, icon: '📊', label: t.tabs.owner }] : []),
+        ...(role !== 'none' ? [{ id: 'owner' as Tab, icon: '📊', label: t.tabs.owner }] : []),
       ]
 
       return (
         <>
           <main className="with-tabbar">
+            {/* Плашка на всех вкладках, а не только на клановой: забыть, что смотришь
+                чужой клан, проще всего именно уйдя с первого экрана. */}
+            {data.viewingAsAdmin && (
+              <div className="admin-banner">
+                <span className="admin-banner-text">
+                  👁 {data.clanName}
+                  {data.adminReadOnly && <span className="muted small"> · {t.admin.readOnly}</span>}
+                </span>
+                <button
+                  className="btn-mini"
+                  onClick={() => { haptic('light'); adminClan.leave(); window.location.reload() }}
+                >
+                  {t.admin.exit}
+                </button>
+              </div>
+            )}
             {tab === 'clan' && (
               <div className="fade-in">
                 <MenuChangedNotice />
@@ -307,9 +342,9 @@ export default function App() {
                 onOpenNotifications={() => { haptic('light'); setSettingsOpen(true) }}
               />
             )}
-            {tab === 'owner' && data.isOwner && (
+            {tab === 'owner' && role !== 'none' && (
               <div className="fade-in">
-                <OwnerPanel />
+                <OwnerPanel role={role} />
               </div>
             )}
           </main>

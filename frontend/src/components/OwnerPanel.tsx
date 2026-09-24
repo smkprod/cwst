@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { api } from '../lib/api'
-import type { BroadcastTarget, OwnerClan, OwnerClanDetail, OwnerStats } from '../types'
+import { api, ApiError, adminClan } from '../lib/api'
+import type { BroadcastTarget, Moderator, OwnerClan, OwnerClanDetail, OwnerStats, ServiceRole } from '../types'
 import { haptic, hapticNotify, openExternalLink } from '../lib/telegram'
 import { useT, type Translations } from '../lib/i18n'
 import { SignupsChart } from './SignupsChart'
@@ -17,7 +17,7 @@ const ROLE_LABEL: Record<string, string> = {
   elder: '⭐ Старейшина',
 }
 
-type Section = 'overview' | 'clans' | 'broadcast'
+type Section = 'overview' | 'clans' | 'broadcast' | 'moderators'
 type ClanFilter = 'all' | 'pro' | 'free' | 'silent' | 'expiring'
 
 /** Сколько дней назад (для «активность» и «подключён»). null — даты нет. */
@@ -34,10 +34,15 @@ function ago(iso: string | null): string {
   return `${d} дн. назад`
 }
 
-export function OwnerPanel() {
+export function OwnerPanel({ role }: { role: ServiceRole }) {
   const [state, setState] = useState<State>({ kind: 'loading' })
   const [section, setSection] = useState<Section>('overview')
   const { t } = useT()
+
+  // Разделение прав рисуется здесь один раз и дальше передаётся вниз. Сервер всё
+  // равно проверяет сам — эти флаги только про то, чтобы не показывать кнопку,
+  // которая гарантированно ответит отказом.
+  const isOwner = role === 'owner'
 
   const load = useCallback(() => {
     Promise.all([api.ownerGetClans(), api.ownerGetStats()])
@@ -54,12 +59,17 @@ export function OwnerPanel() {
   const sections: { key: Section; label: string }[] = [
     { key: 'overview', label: '📊 Сводка' },
     { key: 'clans', label: `🏰 Кланы ${clans.length}` },
-    { key: 'broadcast', label: '📣 Рассылка' },
+    // Рассылка и модераторы — только владельцу. Вкладки, которые всё равно
+    // ответят отказом, лучше не рисовать вовсе.
+    ...(isOwner ? [{ key: 'broadcast' as Section, label: '📣 Рассылка' }] : []),
+    ...(isOwner ? [{ key: 'moderators' as Section, label: '🛡 Модераторы' }] : []),
   ]
 
   return (
     <div>
       <h2 className="section-title">{t.owner.title}</h2>
+
+      {!isOwner && <p className="muted small adm-role-note">{t.owner.moderatorNote}</p>}
 
       <div className="adm-tabs">
         {sections.map(s => (
@@ -74,10 +84,11 @@ export function OwnerPanel() {
       </div>
 
       {section === 'overview' && <Overview stats={stats} clans={clans} />}
-      {section === 'clans' && <ClansSection clans={clans} onChanged={load} t={t} />}
-      {section === 'broadcast' && (
+      {section === 'clans' && <ClansSection clans={clans} onChanged={load} isOwner={isOwner} t={t} />}
+      {section === 'broadcast' && isOwner && (
         <BroadcastBox dmCount={stats.usersReachableByDm} chatCount={stats.chatsWithBot} t={t} />
       )}
+      {section === 'moderators' && isOwner && <ModeratorsSection t={t} />}
     </div>
   )
 }
@@ -249,8 +260,8 @@ function Row({ label, value, accent }: {
 
 /* ---------- Кланы ---------- */
 
-function ClansSection({ clans, onChanged, t }: {
-  clans: OwnerClan[]; onChanged: () => void; t: Translations
+function ClansSection({ clans, onChanged, isOwner, t }: {
+  clans: OwnerClan[]; onChanged: () => void; isOwner: boolean; t: Translations
 }) {
   const [filter, setFilter] = useState<ClanFilter>('all')
   const [query, setQuery] = useState('')
@@ -296,14 +307,14 @@ function ClansSection({ clans, onChanged, t }: {
       {shown.length === 0 && <p className="center muted">Ничего не найдено</p>}
 
       <ul className="owner-list">
-        {shown.map(c => <ClanCard key={c.id} clan={c} onChanged={onChanged} t={t} />)}
+        {shown.map(c => <ClanCard key={c.id} clan={c} onChanged={onChanged} isOwner={isOwner} t={t} />)}
       </ul>
     </>
   )
 }
 
-function ClanCard({ clan: c, onChanged, t }: {
-  clan: OwnerClan; onChanged: () => void; t: Translations
+function ClanCard({ clan: c, onChanged, isOwner, t }: {
+  clan: OwnerClan; onChanged: () => void; isOwner: boolean; t: Translations
 }) {
   const [open, setOpen] = useState(false)
   const [detail, setDetail] = useState<OwnerClanDetail | null>(null)
@@ -417,6 +428,18 @@ function ClanCard({ clan: c, onChanged, t }: {
           )}
 
           <div className="owner-actions">
+            {/* Заход в клан — не «ещё одна кнопка тарифа», поэтому стоит отдельно
+                и первым: это главное, зачем сюда открывают карточку. */}
+            <button
+              className="btn-mini adm-enter-btn"
+              onClick={() => { haptic('medium'); adminClan.enter(c.id); window.location.reload() }}
+            >
+              {t.owner.enterClan}
+            </button>
+          </div>
+
+          <div className="owner-actions">
+            {isOwner && <>
             <button className="btn-mini" disabled={busy} onClick={() => setPlan('pro', 30)}>{t.owner.pro30}</button>
             <button className="btn-mini" disabled={busy} onClick={() => setPlan('pro', 90)}>{t.owner.pro90}</button>
             <button className="btn-mini" disabled={busy} onClick={() => setPlan('pro')}>{t.owner.proInf}</button>
@@ -429,6 +452,7 @@ function ClanCard({ clan: c, onChanged, t }: {
             >
               {confirmDelete ? t.owner.confirmDelete : t.owner.delete}
             </button>
+            </>}
           </div>
           {confirmDelete && <p className="muted small owner-delete-hint">{t.owner.deleteHint}</p>}
         </div>
@@ -510,6 +534,126 @@ function BroadcastBox({ dmCount, chatCount, t }: { dmCount: number; chatCount: n
         {busy ? t.owner.bcSending : confirm ? t.owner.bcConfirm : t.owner.bcSend}
       </button>
       {result && <p className="muted small owner-bc-result">{result}</p>}
+    </div>
+  )
+}
+
+/* ---------- Модераторы ---------- */
+
+/**
+ * Назначение по юзернейму.
+ *
+ * Юзернейм — единственное, чем можно назвать человека, который ещё ни разу не
+ * открывал приложение: числового id у нас до этого момента просто нет. Поэтому
+ * запись сначала живёт «неподтверждённой», и это состояние честно показано:
+ * пока человек не зайдёт, она держится на имени, а имя в Telegram можно сменить.
+ */
+function ModeratorsSection({ t }: { t: Translations }) {
+  const [list, setList] = useState<Moderator[] | null>(null)
+  const [username, setUsername] = useState('')
+  const [note, setNote] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const load = useCallback(() => {
+    api.ownerGetModerators().then(setList).catch(() => setList([]))
+  }, [])
+  useEffect(load, [load])
+
+  const add = async () => {
+    const clean = username.trim().replace(/^@/, '')
+    if (clean.length < 5) { setError(t.owner.modBadUsername); return }
+
+    haptic('medium')
+    setBusy(true)
+    setError(null)
+    try {
+      await api.ownerAddModerator(clean, note.trim() || undefined)
+      hapticNotify('success')
+      setUsername('')
+      setNote('')
+      load()
+    } catch (e) {
+      hapticNotify('error')
+      setError(e instanceof ApiError && e.code === 'already_moderator'
+        ? t.owner.modAlready
+        : e instanceof ApiError && e.code === 'bad_username'
+          ? t.owner.modBadUsername
+          : t.owner.error)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const remove = async (m: Moderator) => {
+    haptic('medium')
+    setBusy(true)
+    try {
+      await api.ownerRemoveModerator(m.id)
+      hapticNotify('success')
+      load()
+    } catch {
+      hapticNotify('error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="card">
+      <p className="adm-block-title">{t.owner.modTitle}</p>
+      <p className="muted small">{t.owner.modHint}</p>
+
+      <div className="form-field">
+        <input
+          className="search-input"
+          value={username}
+          onChange={e => setUsername(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') add() }}
+          placeholder="@username"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          maxLength={33}
+        />
+      </div>
+      <div className="form-field">
+        <input
+          className="search-input"
+          value={note}
+          onChange={e => setNote(e.target.value)}
+          placeholder={t.owner.modNotePlaceholder}
+          maxLength={200}
+        />
+      </div>
+
+      {error && <p className="form-error small">{error}</p>}
+
+      <button className="btn" disabled={busy || username.trim().length < 5} onClick={add}>
+        {busy ? t.owner.saving : t.owner.modAdd}
+      </button>
+
+      {list === null && <div className="center"><div className="spinner" /></div>}
+      {list !== null && list.length === 0 && (
+        <p className="muted small adm-mod-empty">{t.owner.modEmpty}</p>
+      )}
+
+      <ul className="owner-list adm-mod-list">
+        {(list ?? []).map(m => (
+          <li key={m.id} className="adm-mod-row">
+            <div className="adm-mod-main">
+              <span className="adm-mod-name">@{m.username}</span>
+              {m.note && <span className="muted small">{m.note}</span>}
+              <span className="muted small">
+                {m.confirmed ? t.owner.modConfirmed : t.owner.modPending}
+              </span>
+            </div>
+            <button className="btn-mini btn-mini-danger" disabled={busy} onClick={() => remove(m)}>
+              {t.owner.modRemove}
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }

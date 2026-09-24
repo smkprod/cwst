@@ -1,3 +1,4 @@
+using ClanWarTracker.Application.Security;
 using ClanWarTracker.Application.UseCases;
 using ClanWarTracker.Domain.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -13,7 +14,7 @@ namespace ClanWarTracker.Api.Controllers;
 public class GameTournamentsController(
     GameTournamentService service,
     IPlayerRepository players,
-    IConfiguration config) : ControllerBase
+    ServiceAccessOptions access) : ControllerBase
 {
     public record AddRequest(string Tag, string? Password);
 
@@ -68,8 +69,7 @@ public class GameTournamentsController(
     public async Task<IActionResult> Remove(int id, CancellationToken ct)
     {
         var userId = (long)HttpContext.Items["TelegramUserId"]!;
-        var isOwner = long.TryParse(config["Owner:TelegramUserId"], out var ownerId) && ownerId != 0 && userId == ownerId;
-        var ok = await service.RemoveAsync(id, userId, isOwner, ct);
+        var ok = await service.RemoveAsync(id, userId, access.IsOwner(userId), ct);
         return ok ? Ok(new { ok = true }) : StatusCode(403, new { error = "not_allowed" });
     }
 }

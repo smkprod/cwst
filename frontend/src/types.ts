@@ -246,7 +246,22 @@ export interface ClanStatus {
   isAdmin?: boolean          // админ ли текущий пользователь в группе клана
   isClanLeader?: boolean     // leader или coLeader в CR-клане
   isOwner?: boolean          // владелец сервиса (видит панель ⚙️)
+  viewingAsAdmin?: boolean   // это чужой клан, открытый из панели
+  adminReadOnly?: boolean    // зашёл модератор: смотреть можно, менять нельзя
   reminderHoursBeforeEnd?: number // за сколько часов до конца дня шлём автонапоминания
+}
+
+/** Уровень доступа к сервису целиком. */
+export type ServiceRole = 'none' | 'moderator' | 'owner'
+
+export interface Moderator {
+  id: number
+  username: string
+  note: string | null
+  addedAtUtc: string
+  firstSeenAtUtc: string | null
+  /** false — человек ещё ни разу не заходил, запись держится на юзернейме. */
+  confirmed: boolean
 }
 
 export interface MySeason {

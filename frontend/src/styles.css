@@ -1178,6 +1178,27 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
   padding: 8px 12px; margin-bottom: 8px; border-radius: 10px;
   background: rgba(255,170,0,0.08); border: 1px solid rgba(255,170,0,0.2);
 }
+/* Плашка «смотрю чужой клан». Цвет намеренно не как у гостевой: состояния разные,
+   и спутать «я гость» с «я админ в чужом клане» дороже, чем лишний оттенок. */
+.admin-banner {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 8px 12px; margin-bottom: 8px; border-radius: 10px;
+  background: rgba(156, 107, 255, 0.12); border: 1px solid rgba(156, 107, 255, 0.35);
+}
+.admin-banner-text { font-size: 13px; font-weight: 600; min-width: 0; }
+
+.adm-role-note { margin: -4px 0 8px; }
+.adm-enter-btn { font-weight: 600; }
+.adm-mod-empty { margin: 10px 0 0; }
+.adm-mod-list { margin-top: 10px; }
+.adm-mod-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+/* min-width: 0 — длинная заметка иначе растягивает строку и выдавливает кнопку */
+.adm-mod-main { display: grid; gap: 2px; min-width: 0; }
+.adm-mod-name { font-weight: 600; font-size: 14px; }
+
 .guest-link-card {
   margin-top: 12px; border: 1px solid rgba(82,136,193,0.25);
   background: rgba(82,136,193,0.07);

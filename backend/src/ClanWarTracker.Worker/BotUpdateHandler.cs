@@ -22,6 +22,7 @@ public class BotUpdateHandler(
     ITelegramBotClient bot,
     IServiceScopeFactory scopeFactory,
     IConfiguration config,
+    ServiceAccessOptions ownerAccess,
     ILogger<BotUpdateHandler> logger) : BackgroundService
 {
     private string _botUsername = "bot";
@@ -1058,6 +1059,13 @@ public class BotUpdateHandler(
     private async Task<bool> IsAdminAsync(Message msg, CancellationToken ct)
     {
         if (msg.Chat.Type == ChatType.Private) return true;
+
+        // Владелец сервиса настраивает бота в любом чате, не выпрашивая админку.
+        // Проверяем до кэша и до похода в Telegram: ответ известен заранее и не
+        // зависит от того, состоит ли он в этом чате вообще.
+        // Модератор сюда не попадает намеренно — у него право только смотреть,
+        // а настройки в чате это действие, причём в чужом чате.
+        if (ownerAccess.IsOwner(msg.From!.Id)) return true;
 
         var key = (msg.Chat.Id, msg.From!.Id);
         if (_adminCache.TryGetValue(key, out var hit) && hit.Until > DateTime.UtcNow)
