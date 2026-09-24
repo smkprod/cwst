@@ -89,6 +89,9 @@ public class TelegramAuthMiddleware(RequestDelegate next, IConfiguration config,
         }
 
         ctx.Items["TelegramUserId"] = userId;
+        // Юзернейм нужен назначению модераторов: их назначают по имени ещё до того,
+        // как человек впервые зайдёт, и узнать его в этот первый раз больше нечем.
+        ctx.Items["TelegramUsername"] = username;
         await SyncUsernameAsync(ctx, userId, username);
         await TrackActivityAsync(ctx, userId);
         await next(ctx);

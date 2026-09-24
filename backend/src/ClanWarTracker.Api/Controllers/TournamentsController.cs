@@ -1,3 +1,4 @@
+using ClanWarTracker.Application.Security;
 using ClanWarTracker.Application.UseCases;
 using ClanWarTracker.Domain.Enums;
 using Microsoft.AspNetCore.Mvc;
@@ -19,7 +20,7 @@ public class TournamentsController(
     CancelTournamentUseCase cancel,
     GetTournamentUseCase getOne,
     GetTournamentListUseCase getList,
-    IConfiguration config) : ControllerBase
+    ServiceAccessOptions access) : ControllerBase
 {
     public record CreateRequest(string Name, string? Description, string? PrizeInfo,
         string ClanInviteLink, int BestOf, int MinParticipants, int MaxParticipants,
@@ -167,8 +168,7 @@ public class TournamentsController(
         return Ok(new { ok = true });
     }
 
-    private bool IsOwner(long userId) =>
-        long.TryParse(config["Owner:TelegramUserId"], out var ownerId) && ownerId != 0 && userId == ownerId;
+    private bool IsOwner(long userId) => access.IsOwner(userId);
 
     private IActionResult MapCreateError(CreateTournamentError e) => e switch
     {

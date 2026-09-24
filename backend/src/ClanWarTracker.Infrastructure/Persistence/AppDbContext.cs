@@ -20,6 +20,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<PuzzleResult> PuzzleResults => Set<PuzzleResult>();
     public DbSet<ActivityDay> ActivityDays => Set<ActivityDay>();
     public DbSet<TopPlayer> TopPlayers => Set<TopPlayer>();
+    public DbSet<ServiceModerator> ServiceModerators => Set<ServiceModerator>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -87,6 +88,18 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(t => t.Name).HasMaxLength(64);
             e.Property(t => t.ClanName).HasMaxLength(64);
             e.Property(t => t.DeckCardIds).HasMaxLength(128);
+        });
+
+        mb.Entity<ServiceModerator>(e =>
+        {
+            // Один юзернейм — одна запись: два модератора с одним именем это опечатка,
+            // а не намерение, и ловить её лучше базой, чем разбираться потом.
+            e.HasIndex(m => m.TelegramUsername).IsUnique();
+            // Поиск при каждом входе идёт по id, и он же не должен задваиваться.
+            // Индекс частичный: у неподтверждённых записей id пуст, и таких много.
+            e.HasIndex(m => m.TelegramUserId).IsUnique().HasFilter("\"TelegramUserId\" IS NOT NULL");
+            e.Property(m => m.TelegramUsername).HasMaxLength(32);
+            e.Property(m => m.Note).HasMaxLength(200);
         });
 
         mb.Entity<ActivityDay>(e =>

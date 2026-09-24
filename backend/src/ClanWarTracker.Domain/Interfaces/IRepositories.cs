@@ -231,3 +231,22 @@ public interface ITournamentRepository
 
     Task SaveChangesAsync(CancellationToken ct = default);
 }
+
+public interface IServiceModeratorRepository
+{
+    /// <summary>Все модераторы, новые — первыми. Список короткий, страниц не нужно.</summary>
+    Task<List<ServiceModerator>> GetAllAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Найти модератора по тому, что известно о вошедшем: сперва по числовому id,
+    /// и только если он ещё ни за кем не закреплён — по юзернейму.
+    /// </summary>
+    Task<ServiceModerator?> FindAsync(long telegramUserId, string? username, CancellationToken ct = default);
+
+    /// <summary>Запись по id — отслеживаемая, то есть пригодная к удалению.</summary>
+    Task<ServiceModerator?> GetByIdAsync(int id, CancellationToken ct = default);
+
+    Task AddAsync(ServiceModerator moderator, CancellationToken ct = default);
+    Task RemoveAsync(ServiceModerator moderator, CancellationToken ct = default);
+    Task SaveChangesAsync(CancellationToken ct = default);
+}
