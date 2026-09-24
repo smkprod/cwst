@@ -7,6 +7,8 @@ public record TournamentSummaryDto(
     string Mode,                   // solo | duo
     DateTime? StartsAtUtc,         // объявленная дата начала; null — не объявлена
     int BestOf,
+    /// <summary>Формат финала, если отличается; null — такой же, как везде.</summary>
+    int? FinalBestOf,
     int MaxParticipants,
     int ParticipantCount,
     string CreatorName,
@@ -23,6 +25,8 @@ public record TournamentDto(
     string? ClanInviteLink,     // null — организатор ещё не создал клан
     string CreatorName,
     int BestOf,
+    /// <summary>Формат финала, если отличается; null — такой же, как везде.</summary>
+    int? FinalBestOf,
     int MinParticipants,
     int MaxParticipants,
     string Status,

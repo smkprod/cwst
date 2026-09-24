@@ -43,8 +43,9 @@ public interface IClashRoyaleApi
     /// <summary>
     /// Мировой рейтинг по кубкам, до 1000 мест — потолок самого API.
     /// Только строки рейтинга, без профилей: колоды собираются отдельно и параллельно.
+    /// Пустой результат приходит с причиной — см. <see cref="CrGlobalRanking.Problem"/>.
     /// </summary>
-    Task<List<CrRankedPlayer>> GetGlobalRankingAsync(int limit = 1000, CancellationToken ct = default);
+    Task<CrGlobalRanking> GetGlobalRankingAsync(int limit = 1000, CancellationToken ct = default);
 
     /// <summary>Живые данные игрового турнира по тегу (/tournaments/{tag}). null — не найден.</summary>
     Task<CrTournament?> GetTournamentAsync(string tournamentTag, CancellationToken ct = default);

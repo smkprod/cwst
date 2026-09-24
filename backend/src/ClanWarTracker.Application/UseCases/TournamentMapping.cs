@@ -37,7 +37,7 @@ public static class TournamentMapping
     public static string ToText(TournamentMode m) => m == TournamentMode.Duo ? "duo" : "solo";
 
     public static TournamentSummaryDto ToSummary(Tournament t) => new(
-        t.Id, t.Name, ToText(t.Status), ToText(t.Mode), t.StartsAtUtc, t.BestOf, t.MaxParticipants,
+        t.Id, t.Name, ToText(t.Status), ToText(t.Mode), t.StartsAtUtc, t.BestOf, t.FinalBestOf, t.MaxParticipants,
         t.Participants.Count(p => p.Status != TournamentParticipantStatus.Withdrawn),
         t.CreatorName, t.CreatedAtUtc,
         // Имя чемпиона — единственное, ради чего вообще открывают список прошедших
@@ -82,7 +82,7 @@ public static class TournamentMapping
 
         return new TournamentDto(
             t.Id, t.Name, t.Description, t.PrizeInfo, t.ClanInviteLink,
-            t.CreatorName, t.BestOf, t.MinParticipants, t.MaxParticipants,
+            t.CreatorName, t.BestOf, t.FinalBestOf, t.MinParticipants, t.MaxParticipants,
             ToText(t.Status), ToText(t.Mode), t.StartsAtUtc, t.CreatedAtUtc,
             IsCreator: t.CreatorTelegramUserId == requestingTelegramUserId,
             IsParticipant: isParticipant,

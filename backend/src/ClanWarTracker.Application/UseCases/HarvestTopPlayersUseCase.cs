@@ -27,14 +27,25 @@ public class HarvestTopPlayersUseCase(IClashRoyaleApi crApi, ITopPlayerRepositor
     /// </summary>
     private const int Parallelism = 5;
 
-    /// <returns>Сколько строк записано. 0 — снимок за сегодня уже есть или рейтинг не пришёл.</returns>
-    public async Task<int> ExecuteAsync(bool force = false, CancellationToken ct = default)
+    /// <param name="Rows">Сколько строк записано.</param>
+    /// <param name="Skipped">
+    /// Почему снимка не вышло. null — вышел. «Уже есть за сегодня» — тоже причина,
+    /// но штатная, поэтому она отделена флагом <paramref name="AlreadyDone"/>.
+    /// </param>
+    public record HarvestResult(int Rows, string? Skipped, bool AlreadyDone = false)
+    {
+        public static readonly HarvestResult Done = new(0, "снимок за сегодня уже есть", AlreadyDone: true);
+    }
+
+    public async Task<HarvestResult> ExecuteAsync(bool force = false, CancellationToken ct = default)
     {
         var day = DateTime.UtcNow.ToString("yyyy-MM-dd");
-        if (!force && await top.HasDayAsync(day, ct)) return 0;
+        if (!force && await top.HasDayAsync(day, ct)) return HarvestResult.Done;
 
-        var all = await crApi.GetGlobalRankingAsync(TopSize, ct);
-        if (all.Count == 0) return 0;
+        var response = await crApi.GetGlobalRankingAsync(TopSize, ct);
+        var all = response.Players;
+        if (all.Count == 0)
+            return new HarvestResult(0, response.Problem ?? "рейтинг пуст без объяснения");
 
         // Место — уникальный ключ снимка, и повтор в ответе API уронил бы вставку всей
         // тысячи разом: остались бы без снимка за день из-за одной лишней строки.
@@ -73,7 +84,7 @@ public class HarvestTopPlayersUseCase(IClashRoyaleApi crApi, ITopPlayerRepositor
         }));
 
         await top.ReplaceDayAsync(day, rows, ct);
-        return rows.Length;
+        return new HarvestResult(rows.Length, null);
     }
 
     /// <summary>
