@@ -141,7 +141,8 @@ public class AutoResolveTournamentMatchesUseCase(
             b.CrownsFor,
             b.CrownsAgainst));
 
-        var outcome = TournamentAutoResult.Resolve(facts, tagsA, tagsB, tournament.BestOf, since.Value);
+        var wins = TournamentBracketService.WinsNeeded(tournament, match);
+        var outcome = TournamentAutoResult.Resolve(facts, tagsA, tagsB, wins, since.Value);
         if (!outcome.Decided)
         {
             // Бои пары уже есть, но серия не доиграна — следующий бой через минуты,

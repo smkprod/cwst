@@ -72,7 +72,10 @@ public class TournamentNotifier(
 
         var a = Name(match.ParticipantA);
         var b = Name(match.ParticipantB);
-        var format = tournament.BestOf > 1 ? $"до {tournament.BestOf} побед" : "один бой";
+        // Формат берём по конкретному матчу: у финала он может отличаться, и написать
+        // финалистам «один бой», когда у них серия, — верный способ их запутать.
+        var wins = TournamentBracketService.WinsNeeded(tournament, match);
+        var format = wins > 1 ? $"до {wins} побед" : "один бой";
         var link = string.IsNullOrWhiteSpace(tournament.ClanInviteLink)
             ? ""
             : $"\nКлан турнира: {tournament.ClanInviteLink}";

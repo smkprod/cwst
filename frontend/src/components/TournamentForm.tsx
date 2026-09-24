@@ -18,6 +18,10 @@ export function TournamentForm({ mode, initial, onSaved, onCancel }: Props) {
   const [prizeInfo, setPrizeInfo] = useState(initial?.prizeInfo ?? '')
   const [clanInviteLink, setClanInviteLink] = useState(initial?.clanInviteLink ?? '')
   const [bestOf, setBestOf] = useState(initial?.bestOf ?? 2)
+  // 0 — «как везде»: финал играется тем же форматом, что и остальная сетка. В селекте
+  // это отдельный пункт, а не пустая строка, потому что выбор «тот же» осознанный,
+  // а не отсутствие выбора.
+  const [finalBestOf, setFinalBestOf] = useState(initial?.finalBestOf ?? 0)
   const [minParticipants, setMinParticipants] = useState(initial?.minParticipants ?? 2)
   const [maxParticipants, setMaxParticipants] = useState(initial?.maxParticipants ?? 16)
   // Формат турнира (solo/duo) — не путать со свойством mode, которое означает
@@ -53,6 +57,7 @@ export function TournamentForm({ mode, initial, onSaved, onCancel }: Props) {
         prizeInfo: prizeInfo.trim() || undefined,
         clanInviteLink,
         bestOf,
+        finalBestOf: finalBestOf === 0 ? null : finalBestOf,
         minParticipants,
         maxParticipants,
         mode: format,
@@ -132,6 +137,20 @@ export function TournamentForm({ mode, initial, onSaved, onCancel }: Props) {
             <option value={2}>{t.tournament.format2}</option>
             <option value={3}>{t.tournament.format3}</option>
           </select>
+        </div>
+        <div className="form-field">
+          <label className="muted small">{t.tournament.finalBestOfLabel}</label>
+          <select
+            className="rating-select tournament-select"
+            value={finalBestOf}
+            onChange={e => setFinalBestOf(Number(e.target.value))}
+          >
+            <option value={0}>{t.tournament.finalSameAsAll}</option>
+            <option value={1}>{t.tournament.format1}</option>
+            <option value={2}>{t.tournament.format2}</option>
+            <option value={3}>{t.tournament.format3}</option>
+          </select>
+          <p className="muted small form-hint">{t.tournament.finalBestOfHint}</p>
         </div>
         <div className="form-field">
           <label className="muted small">{t.tournament.formatLabel}</label>

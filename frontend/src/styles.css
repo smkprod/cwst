@@ -1209,9 +1209,13 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 .recruit-stat { font-size: 13px; }
 
 /* --- Турниры --- */
-.form-field { display: grid; gap: 4px; margin-bottom: 10px; }
+/* min-width: 0 — иначе поле раздувается до своей «естественной» ширины: у
+   datetime-local она равна всему «mm/dd/yyyy, --:-- --» с иконкой, и колонка
+   вылезает за карточку на узком экране. */
+.form-field { display: grid; gap: 4px; margin-bottom: 10px; min-width: 0; }
 .form-field label { font-size: 12px; }
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.form-field input, .form-field select { min-width: 0; max-width: 100%; }
+.form-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
 .form-hint { margin-top: 2px; }
 .form-error {
   color: #ff7a76; background: rgba(229, 57, 53, 0.12);

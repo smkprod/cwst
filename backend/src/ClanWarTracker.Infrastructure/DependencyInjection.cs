@@ -321,6 +321,11 @@ CREATE TABLE IF NOT EXISTS ""Tournaments"" (
         await db.Database.ExecuteSqlRawAsync(
             "ALTER TABLE \"Tournaments\" ADD COLUMN IF NOT EXISTS \"ScoreboardThreadId\" integer;");
 
+        // Отдельный формат финала. NULL — финал играется как все матчи; так стоит у всех
+        // турниров, созданных до этой колонки, и менять их задним числом нельзя.
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Tournaments\" ADD COLUMN IF NOT EXISTS \"FinalBestOf\" integer;");
+
         await db.Database.ExecuteSqlRawAsync(@"
 CREATE TABLE IF NOT EXISTS ""TournamentParticipants"" (
     ""Id"" serial PRIMARY KEY,
