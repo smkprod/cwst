@@ -52,40 +52,49 @@ public static class TournamentScoreboard
         var maxRound = rounds[^1].Key;
         var budget = MaxLength - sb.Length;
 
+        // Формат финала дописываем к его заголовку, только если он свой: приписка
+        // «финал — как всё остальное» ничего не сообщает и висела бы всегда.
+        var finalNote = t.FinalBestOf is { } f ? $" · {MatchFormat(f)}" : "";
+
         // Сворачиваем ступенями, пока не влезет. Одного шага мало: в турнире на
         // шестьдесят четыре команды до первого сыгранного матча сворачивать некуда —
         // текущий раунд и есть первый, и «показать с текущего» ничего не сокращает.
-        var body = Rounds(rounds, maxRound, from: 1, limit: int.MaxValue);
+        var body = Rounds(rounds, maxRound, from: 1, limit: int.MaxValue, finalNote: finalNote);
         if (body.Length > budget)
         {
             var live = rounds.FirstOrDefault(g =>
                 g.Any(m => m.Status is TournamentMatchStatus.Ready or TournamentMatchStatus.Pending));
             var from = live?.Key ?? maxRound;
 
-            body = Folded(rounds, maxRound, from, int.MaxValue);
+            body = Folded(rounds, maxRound, from, int.MaxValue, finalNote: finalNote);
 
             // Всё ещё не влезло — оставляем один текущий раунд.
             if (body.Length > budget)
-                body = Folded(rounds, maxRound, from, int.MaxValue, only: from);
+                body = Folded(rounds, maxRound, from, int.MaxValue, finalNote, only: from);
 
             // И даже он длинный — обрезаем число строк, честно сказав сколько скрыто.
             if (body.Length > budget)
-                body = Folded(rounds, maxRound, from, MaxLines, only: from);
+                body = Folded(rounds, maxRound, from, MaxLines, finalNote, only: from);
         }
 
         sb.Append(body);
         return sb.ToString();
     }
 
+    /// <summary>Сколько побед нужно, словами: «один бой» вместо «до 1 побед».</summary>
+    private static string MatchFormat(int wins) => wins > 1 ? $"до {wins} побед" : "один бой";
+
     private static string Folded(
-        List<IGrouping<int, TournamentMatch>> rounds, int maxRound, int from, int limit, int? only = null)
+        List<IGrouping<int, TournamentMatch>> rounds, int maxRound, int from, int limit,
+        string finalNote, int? only = null)
     {
         var head = from > 1 ? "…предыдущие раунды сыграны\n\n" : "";
-        return head + Rounds(rounds, maxRound, only ?? from, limit, only);
+        return head + Rounds(rounds, maxRound, only ?? from, limit, finalNote, only);
     }
 
     private static string Rounds(
-        List<IGrouping<int, TournamentMatch>> rounds, int maxRound, int from, int limit, int? only = null)
+        List<IGrouping<int, TournamentMatch>> rounds, int maxRound, int from, int limit,
+        string finalNote, int? only = null)
     {
         var sb = new StringBuilder();
         var printed = 0;
@@ -93,7 +102,7 @@ public static class TournamentScoreboard
 
         foreach (var round in rounds.Where(r => r.Key >= from && (only is null || r.Key == only)))
         {
-            sb.Append(round.Key == maxRound ? "— ФИНАЛ —" : $"— Раунд {round.Key} —").Append('\n');
+            sb.Append(round.Key == maxRound ? $"— ФИНАЛ{finalNote} —" : $"— Раунд {round.Key} —").Append('\n');
             foreach (var m in round.OrderBy(m => m.SlotIndex))
             {
                 if (printed >= limit) { hidden++; continue; }

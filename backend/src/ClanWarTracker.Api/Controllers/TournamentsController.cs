@@ -23,13 +23,14 @@ public class TournamentsController(
 {
     public record CreateRequest(string Name, string? Description, string? PrizeInfo,
         string ClanInviteLink, int BestOf, int MinParticipants, int MaxParticipants,
-        string? Mode = null, DateTime? StartsAtUtc = null);
+        string? Mode = null, DateTime? StartsAtUtc = null, int? FinalBestOf = null);
 
     /// <summary>Заявка. В парном турнире оба поля обязательны, в одиночном не нужны.</summary>
     public record JoinRequest(string? TeamName = null, string? PartnerTag = null);
     public record UpdateRequest(string Name, string? Description, string? PrizeInfo,
         string ClanInviteLink, int BestOf, int MinParticipants, int MaxParticipants,
-        DateTime? StartsAtUtc = null, bool AutoResults = true, bool AnnounceResults = true);
+        DateTime? StartsAtUtc = null, bool AutoResults = true, bool AnnounceResults = true,
+        int? FinalBestOf = null);
     public record SetResultRequest(int ScoreA, int ScoreB);
 
     /// <summary>GET /api/tournaments/history — завершённые турниры с чемпионами.</summary>
@@ -61,7 +62,7 @@ public class TournamentsController(
 
         var (tournament, error) = await create.ExecuteAsync(
             userId, req.Name, req.Description, req.PrizeInfo, req.ClanInviteLink,
-            req.BestOf, req.MinParticipants, req.MaxParticipants, mode, req.StartsAtUtc, ct);
+            req.BestOf, req.FinalBestOf, req.MinParticipants, req.MaxParticipants, mode, req.StartsAtUtc, ct);
 
         if (error is not null) return MapCreateError(error.Value);
         var dto = await getOne.ExecuteAsync(tournament!.Id, userId, ct);
@@ -75,7 +76,7 @@ public class TournamentsController(
         var userId = (long)HttpContext.Items["TelegramUserId"]!;
         var error = await update.ExecuteAsync(
             id, userId, req.Name, req.Description, req.PrizeInfo, req.ClanInviteLink,
-            req.BestOf, req.MinParticipants, req.MaxParticipants, req.StartsAtUtc,
+            req.BestOf, req.FinalBestOf, req.MinParticipants, req.MaxParticipants, req.StartsAtUtc,
             req.AutoResults, req.AnnounceResults, ct);
         if (error is not null) return MapUpdateError(error.Value);
 

@@ -732,6 +732,8 @@ export interface TournamentSummary {
   mode: TournamentMode
   startsAtUtc: string | null
   bestOf: number
+  /** Формат финала, если он отличается от остальных матчей; null — такой же. */
+  finalBestOf: number | null
   maxParticipants: number
   participantCount: number
   creatorName: string
@@ -811,6 +813,8 @@ export interface Tournament {
   clanInviteLink: string | null
   creatorName: string
   bestOf: number
+  /** Формат финала, если он отличается от остальных матчей; null — такой же. */
+  finalBestOf: number | null
   minParticipants: number
   maxParticipants: number
   status: TournamentStatus

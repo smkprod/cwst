@@ -84,6 +84,37 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
         while (await timer.WaitForNextTickAsync(stoppingToken));
     }
 
+    /// <summary>
+    /// Последняя причина, по которой снимок топа не собрался. Нужна только чтобы не
+    /// писать одно и то же каждые десять минут: цикл частый, а сломанный рейтинг
+    /// ломается надолго, и сто сорок одинаковых строк в сутки лог не улучшат.
+    /// </summary>
+    private string? _lastTopProblem;
+
+    /// <summary>
+    /// Пишет в лог итог сбора мирового топа.
+    ///
+    /// Раньше здесь было «если что-то записали — сообщи», то есть неудача не оставляла
+    /// вообще ничего. Ровно поэтому снимок не собирался две недели, а узнали об этом
+    /// не из логов, а от человека, который открыл вкладку и увидел «ещё собираем».
+    /// </summary>
+    private void LogTopHarvest(HarvestTopPlayersUseCase.HarvestResult result)
+    {
+        if (result.Rows > 0)
+        {
+            logger.LogInformation("Captured top-{Count} snapshot", result.Rows);
+            _lastTopProblem = null;
+            return;
+        }
+
+        // Снимок за сегодня уже есть — это штатный исход почти каждого тика.
+        if (result.AlreadyDone) return;
+
+        if (result.Skipped == _lastTopProblem) return;
+        _lastTopProblem = result.Skipped;
+        logger.LogWarning("Top snapshot not captured: {Reason}", result.Skipped);
+    }
+
     /// <summary>Поднимает отметки об уже отправленном из БД и подчищает совсем старые.</summary>
     private async Task RestoreSentKeysAsync(CancellationToken ct)
     {
@@ -311,8 +342,8 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
                 // вызов стоит одного запроса к базе, а не тысячи к API.
                 using var scope = scopeFactory.CreateScope();
                 var harvest = scope.ServiceProvider.GetRequiredService<HarvestTopPlayersUseCase>();
-                var rows = await harvest.ExecuteAsync(ct: stoppingToken);
-                if (rows > 0) logger.LogInformation("Captured top-{Count} snapshot", rows);
+                var result = await harvest.ExecuteAsync(ct: stoppingToken);
+                LogTopHarvest(result);
             }
             catch (Exception ex)
             {

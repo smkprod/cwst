@@ -28,6 +28,15 @@ function showScore(m: TournamentMatch): boolean {
   return m.status === 'completed' || m.scoreA > 0 || m.scoreB > 0
 }
 
+/**
+ * Сколько побед нужно в этом матче — повторяет правило сервера: у финала формат
+ * может быть свой. Нужно здесь, чтобы поля ввода счёта не обрезали организатору
+ * двойку в финале турнира, который весь играется до одной победы.
+ */
+function winsNeeded(t: Tournament, m: TournamentMatch): number {
+  return m.nextMatchId == null ? (t.finalBestOf ?? t.bestOf) : t.bestOf
+}
+
 export function TournamentBracket({ tournament, onUpdated }: Props) {
   const { t } = useT()
   const [editingMatch, setEditingMatch] = useState<number | null>(null)
@@ -167,7 +176,13 @@ export function TournamentBracket({ tournament, onUpdated }: Props) {
           {roundNumbers.map(round => (
             <div key={round} className="bracket-round">
               <div className="bracket-round-label">
-                {round === maxRound ? t.tournament.finalLabel : `${t.tournament.roundLabel} ${round}`}
+                {round === maxRound
+                  // У финала со своим форматом подписываем его прямо над колонкой:
+                  // иначе игрок узнаёт про Bo3 только когда бот пришлёт ему пару.
+                  ? t.tournament.finalLabel + (tournament.finalBestOf != null
+                      ? ` · ${t.tournament.bestOfLabel} ${tournament.finalBestOf}`
+                      : '')
+                  : `${t.tournament.roundLabel} ${round}`}
               </div>
               {/* space-around разносит пары так, что следующий раунд встаёт ровно
                   между своими двумя — это и даёт форму сетки, а не столбиков. */}
@@ -218,7 +233,7 @@ export function TournamentBracket({ tournament, onUpdated }: Props) {
                             className="bmatch-score-input"
                             type="number"
                             min={0}
-                            max={tournament.bestOf}
+                            max={winsNeeded(tournament, m)}
                             value={scoreA}
                             onChange={e => setScoreA(Number(e.target.value))}
                           />
@@ -227,7 +242,7 @@ export function TournamentBracket({ tournament, onUpdated }: Props) {
                             className="bmatch-score-input"
                             type="number"
                             min={0}
-                            max={tournament.bestOf}
+                            max={winsNeeded(tournament, m)}
                             value={scoreB}
                             onChange={e => setScoreB(Number(e.target.value))}
                           />

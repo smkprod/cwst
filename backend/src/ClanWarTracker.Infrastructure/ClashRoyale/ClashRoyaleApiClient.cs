@@ -926,23 +926,27 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
     /// ни при каком limit, поэтому и просить больше незачем.
     /// Кэш короткий: снимок снимается раз в сутки, но ручку могут дёрнуть и вручную.
     /// </summary>
-    public async Task<List<CrRankedPlayer>> GetGlobalRankingAsync(int limit = 1000, CancellationToken ct = default)
+    public async Task<CrGlobalRanking> GetGlobalRankingAsync(int limit = 1000, CancellationToken ct = default)
     {
         var capped = Math.Clamp(limit, 1, 1000);
+        var path = $"locations/global/rankings/players?limit={capped}";
         var result = await cache.GetOrCreateAsync($"globalranking:{capped}", async entry =>
         {
             entry.Size = 1;
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30);
 
-            var resp = await http.GetAsync($"locations/global/rankings/players?limit={capped}", ct);
+            var resp = await http.GetAsync(path, ct);
             if (!resp.IsSuccessStatusCode)
             {
+                // Тело ответа CR API содержит reason и message — без них «не пришло»
+                // не отличить от «ключ не тот» и от «эндпоинта больше нет».
+                var body = await SafeBodyAsync(resp, ct);
                 entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
-                return new List<CrRankedPlayer>();
+                return CrGlobalRanking.Failed($"GET {path} → HTTP {(int)resp.StatusCode} {body}");
             }
 
             var data = await resp.Content.ReadFromJsonAsync<PlayerRankingsResponse>(cancellationToken: ct);
-            return (data?.Items ?? [])
+            var players = (data?.Items ?? [])
                 .Select(p => new CrRankedPlayer
                 {
                     Rank = p.Rank,
@@ -952,8 +956,37 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
                     ClanName = p.Clan?.Name,
                 })
                 .ToList();
+
+            // 200 с пустым items — отдельный случай, и самый коварный: повторять его
+            // бессмысленно, а выглядит он ровно как временный сбой. Держим недолго,
+            // чтобы починка на стороне игры подхватилась сама.
+            if (players.Count == 0)
+            {
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
+                return CrGlobalRanking.Failed($"GET {path} → HTTP 200, но список мест пуст");
+            }
+
+            return CrGlobalRanking.Ok(players);
         });
-        return result ?? [];
+        return result ?? CrGlobalRanking.Failed("рейтинг не пришёл и причина неизвестна");
+    }
+
+    /// <summary>
+    /// Кусочек тела ответа для лога. Целиком не берём: у CR API это пара строк JSON,
+    /// но полагаться на это в логе, который никто не ротирует, не стоит.
+    /// </summary>
+    private static async Task<string> SafeBodyAsync(HttpResponseMessage resp, CancellationToken ct)
+    {
+        try
+        {
+            var text = await resp.Content.ReadAsStringAsync(ct);
+            text = text.Trim();
+            return text.Length <= 300 ? text : text[..300] + "…";
+        }
+        catch
+        {
+            return "";
+        }
     }
 
     private record PlayerRankingsResponse(

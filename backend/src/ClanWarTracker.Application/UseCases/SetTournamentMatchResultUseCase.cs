@@ -27,7 +27,7 @@ public class SetTournamentMatchResultUseCase(
             || match.Status is TournamentMatchStatus.Bye or TournamentMatchStatus.Pending)
             return SetMatchResultError.NotPlayable;
 
-        var winsNeeded = tournament.BestOf;
+        var winsNeeded = TournamentBracketService.WinsNeeded(tournament, match);
         var aWins = scoreA == winsNeeded && scoreB < winsNeeded;
         var bWins = scoreB == winsNeeded && scoreA < winsNeeded;
         if (scoreA < 0 || scoreB < 0 || (!aWins && !bWins)) return SetMatchResultError.BadScore;

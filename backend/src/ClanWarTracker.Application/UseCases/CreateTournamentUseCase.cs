@@ -15,7 +15,7 @@ public class CreateTournamentUseCase(IPlayerRepository players, ITournamentRepos
 
     public async Task<(Tournament? tournament, CreateTournamentError? error)> ExecuteAsync(
         long telegramUserId, string name, string? description, string? prizeInfo,
-        string clanInviteLink, int bestOf, int minParticipants, int maxParticipants,
+        string clanInviteLink, int bestOf, int? finalBestOf, int minParticipants, int maxParticipants,
         TournamentMode mode = TournamentMode.Solo, DateTime? startsAtUtc = null,
         CancellationToken ct = default)
     {
@@ -31,6 +31,7 @@ public class CreateTournamentUseCase(IPlayerRepository players, ITournamentRepos
             return (null, CreateTournamentError.BadLink);
 
         if (bestOf is < 1 or > 3) return (null, CreateTournamentError.BadFormat);
+        if (finalBestOf is < 1 or > 3) return (null, CreateTournamentError.BadFormat);
         if (maxParticipants < MinParticipants || maxParticipants > MaxParticipantsLimit)
             return (null, CreateTournamentError.BadFormat);
         // Минимум для старта: не меньше 2 и не больше лимита мест.
@@ -56,6 +57,9 @@ public class CreateTournamentUseCase(IPlayerRepository players, ITournamentRepos
             CreatorPlayerTag = player.PlayerTag,
             CreatorName = player.Name,
             BestOf = bestOf,
+            // Совпал с основным — храним null: «как везде» и «так же, как везде»
+            // это одно состояние, и два способа его записать только мешают.
+            FinalBestOf = finalBestOf == bestOf ? null : finalBestOf,
             Mode = mode,
             StartsAtUtc = startsAtUtc,
             MinParticipants = minParticipants,

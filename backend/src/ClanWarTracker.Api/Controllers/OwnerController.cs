@@ -17,6 +17,7 @@ public class OwnerController(
     GetOwnerClanDetailUseCase clanDetail,
     SetClanPlanUseCase setPlan,
     OwnerBroadcastUseCase broadcast,
+    HarvestTopPlayersUseCase harvestTop,
     IConfiguration config) : ControllerBase
 {
     public record SetPlanRequest(string Tier, int? Days);
@@ -104,6 +105,22 @@ public class OwnerController(
 
         await clans.RemoveAsync(clan, ct);
         return Ok(new { ok = true });
+    }
+
+    /// <summary>
+    /// POST /api/owner/top/harvest — собрать снимок мирового топа прямо сейчас.
+    ///
+    /// Сбор живёт в суточном цикле воркера, и до этой ручки единственным способом
+    /// проверить, работает ли он, было ждать следующего тика и идти читать логи.
+    /// Когда снимок не собирается, проверять приходится часто, а ждать — некогда.
+    /// </summary>
+    [HttpPost("top/harvest")]
+    public async Task<IActionResult> HarvestTop(CancellationToken ct)
+    {
+        if (!IsOwner()) return StatusCode(403, new { error = "not_owner" });
+
+        var result = await harvestTop.ExecuteAsync(force: true, ct: ct);
+        return Ok(new { rows = result.Rows, problem = result.Skipped });
     }
 
     private bool IsOwner()

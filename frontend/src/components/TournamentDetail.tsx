@@ -195,7 +195,11 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
           <span className="badge tournament-status-badge">{statusLabel(d.status)}</span>
         </div>
         <p className="muted small">
-          {t.tournament.bestOfLabel} {d.bestOf} · {d.participants.length}/{d.maxParticipants} {t.tournament.participantsCount}
+          {t.tournament.bestOfLabel} {d.bestOf}
+          {/* Формат финала пишем только когда он свой: строка «финал такой же»
+              не несёт ничего и висела бы у каждого турнира. */}
+          {d.finalBestOf != null && ` (${t.tournament.finalFormatLabel} — ${t.tournament.bestOfLabel.toLowerCase()} ${d.finalBestOf})`}
+          {' · '}{d.participants.length}/{d.maxParticipants} {t.tournament.participantsCount}
         </p>
         {d.isCreator && d.status === 'registrationOpen' && (
           <p className="muted small">

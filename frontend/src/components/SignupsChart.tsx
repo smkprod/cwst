@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { SignupPoint } from '../types'
 import { haptic } from '../lib/telegram'
 
@@ -34,6 +34,15 @@ export function SignupsChart(
   const [range, setRange] = useState<Range>(30)
   const [picked, setPicked] = useState<number | null>(null)
 
+  // Столбики выезжают снизу: первый кадр рисуем нулевой высоты и сразу переключаем
+  // на настоящую, чтобы сработал transition. Иначе график просто возникает целиком,
+  // а это единственный момент, когда видно, что он про изменение во времени.
+  const [grown, setGrown] = useState(false)
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setGrown(true))
+    return () => cancelAnimationFrame(id)
+  }, [])
+
   const window = points.slice(-range)
   const bars = range === 30 ? daily(window, metric) : weekly(window, metric)
 
@@ -41,6 +50,11 @@ export function SignupsChart(
   const max = bars.reduce((m, b) => Math.max(m, b.value), 0)
   const peak = max > 0 ? bars.findIndex(b => b.value === max) : -1
 
+  // Потолок шкалы — сам пик, а не круглое число над ним. Круглое давало бы до
+  // четверти пустой высоты сверху, а на карточке в 126 пикселей это заметная
+  // потеря: мелкие дни и так почти не видны. Читаемость шкалы вместо этого даёт
+  // сетка на круглых значениях, а верх и без того подписан значением пика.
+  const top = max
   const shown = picked !== null ? bars[picked] : null
   const noun = metrics.find(m => m.key === metric)?.noun ?? ''
 
@@ -82,21 +96,40 @@ export function SignupsChart(
         <p className="muted small">За этот период никто не приходил.</p>
       ) : (
         <div className="chart-plot">
-          {bars.map((b, i) => (
-            <button
-              key={i}
-              className={`chart-bar ${picked === i ? 'chart-bar-on' : ''}`}
-              // Нулевой день не рисуем вовсе: столбик в пару пикселей читался бы
-              // как «кто-то был», а это ровно противоположное значение.
-              style={{ height: b.value === 0 ? 0 : `${Math.max(6, b.value / max * 100)}%` }}
-              onPointerEnter={() => setPicked(i)}
-              onPointerLeave={() => setPicked(null)}
-              onClick={() => { haptic('light'); setPicked(i) }}
-              aria-label={`${b.label}: ${b.value} ${noun}`}
-            >
-              {i === peak && picked === null && <span className="chart-peak">{b.value}</span>}
-            </button>
-          ))}
+          {/* Сетка под столбиками: две волосяные линии с подписями. Больше двух на
+              высоту телефона превращаются в штриховку, меньше — и столбик не с чем
+              сопоставить, кроме подписанного пика. */}
+          <div className="chart-grid" aria-hidden="true">
+            {gridLines(top).map(v => (
+              <div className="chart-gridline" key={v} style={{ bottom: `${(v / top) * 100}%` }}>
+                <span className="chart-gridval">{v}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="chart-bars">
+            {bars.map((b, i) => (
+              <button
+                key={i}
+                className={`chart-bar ${picked === i ? 'chart-bar-on' : ''}`
+                  + `${b.value === 0 ? ' chart-bar-zero' : ''}`}
+                // Ноль рисуем серой чёрточкой на оси, а не пустотой и не обычным
+                // столбиком: пустота неотличима от «данных нет», а цветной обрубок
+                // читается как «кто-то всё же был» — ровно наоборот смыслу.
+                style={{
+                  height: b.value === 0
+                    ? undefined
+                    : grown ? `max(4px, ${(b.value / top) * 100}%)` : '0%',
+                }}
+                onPointerEnter={() => setPicked(i)}
+                onPointerLeave={() => setPicked(null)}
+                onClick={() => { haptic('light'); setPicked(i) }}
+                aria-label={`${b.label}: ${b.value} ${noun}`}
+              >
+                {i === peak && picked === null && <span className="chart-peak">{b.value}</span>}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -140,3 +173,33 @@ function weekly(points: SignupPoint[], metric: ChartMetric['key']): Bar[] {
 }
 
 const perBar = (range: Range) => (range === 30 ? 'за день' : 'за неделю')
+
+/** Больше трёх линий на высоте в сто двадцать пикселей читаются как штриховка. */
+const MaxGridLines = 3
+
+/**
+ * Значения горизонтальных линий сетки: кратные круглому шагу, строго ниже пика.
+ *
+ * Шаг берём наименьший из лестницы 1/2/5, который сам укладывается в лимит линий.
+ * Подбирать шаг «около трети пика», а потом обрезать лишнее, нельзя: у пика 10
+ * так выходило 2, 4, 6 — верхняя треть шкалы оставалась без единой отметки.
+ *
+ * Дробные шаги в лестницу не берём: мы считаем людей, и «2.5 игрока» на подписи —
+ * шкала, которой нельзя верить.
+ */
+function gridLines(max: number): number[] {
+  if (max < 2) return []
+
+  for (let pow = 1; pow <= max; pow *= 10) {
+    for (const s of [1, 2, 5]) {
+      const step = s * pow
+      // Линии стоят на step, 2*step, … строго ниже пика — отсюда и их число.
+      if (Math.ceil(max / step) - 1 > MaxGridLines) continue
+
+      const out: number[] = []
+      for (let v = step; v < max; v += step) out.push(v)
+      return out
+    }
+  }
+  return []
+}

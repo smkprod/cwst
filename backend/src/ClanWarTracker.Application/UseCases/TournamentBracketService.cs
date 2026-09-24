@@ -25,6 +25,20 @@ public record MatchOutcome(
 public class TournamentBracketService
 {
     /// <summary>
+    /// Сколько побед нужно в этом матче. У финала формат может быть свой.
+    ///
+    /// Финал опознаём по отсутствию следующего матча, причём сразу по двум признакам.
+    /// NextMatchId пуст и у ещё не сохранённой сетки, где связь держится навигацией,
+    /// а NextMatch пуст, когда её просто не подгрузили из базы; вместе они дают
+    /// «дальше идти некуда» и не путают финал с матчем, чью связь не загрузили.
+    /// </summary>
+    public static int WinsNeeded(Tournament tournament, TournamentMatch match) =>
+        match.NextMatchId is null && match.NextMatch is null
+            ? tournament.FinalBestOf ?? tournament.BestOf
+            : tournament.BestOf;
+
+
+    /// <summary>
     /// Строит сетку с нуля по текущему списку активных участников. Вызывающий код должен
     /// сам очистить t.Matches перед вызовом, если перестраивает уже существующую сетку.
     /// </summary>
