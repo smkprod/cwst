@@ -28,6 +28,7 @@ namespace ClanWarTracker.Infrastructure.Migrations
                         .Annotation("Sqlite:Autoincrement", true),
                     TelegramUsername = table.Column<string>(type: "TEXT", maxLength: 32, nullable: false),
                     TelegramUserId = table.Column<long>(type: "INTEGER", nullable: true),
+                    Permissions = table.Column<int>(type: "INTEGER", nullable: false, defaultValue: 0),
                     Note = table.Column<string>(type: "TEXT", maxLength: 200, nullable: true),
                     AddedAtUtc = table.Column<System.DateTime>(type: "TEXT", nullable: false),
                     AddedByTelegramUserId = table.Column<long>(type: "INTEGER", nullable: false),

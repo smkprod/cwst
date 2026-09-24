@@ -1,4 +1,5 @@
 using ClanWarTracker.Domain.Entities;
+using ClanWarTracker.Domain.Enums;
 using ClanWarTracker.Domain.Interfaces;
 
 namespace ClanWarTracker.Application.Security;
@@ -9,10 +10,10 @@ public enum ServiceRole
     /// <summary>Обычный игрок. Панели не видит.</summary>
     None = 0,
 
-    /// <summary>Видит панель и может заходить в любой клан, но только смотреть.</summary>
+    /// <summary>Видит панель. Что именно ему там можно — решают права.</summary>
     Moderator = 1,
 
-    /// <summary>Может всё.</summary>
+    /// <summary>Может всё, и права ему не выдают: он их выдаёт.</summary>
     Owner = 2,
 }
 
@@ -34,6 +35,22 @@ public record ServiceAccessOptions(long OwnerTelegramUserId)
         OwnerTelegramUserId != 0 && telegramUserId == OwnerTelegramUserId;
 }
 
+/// <summary>Кто вошедший для сервиса и что ему можно.</summary>
+public record ServiceIdentity(ServiceRole Role, ServicePermission Permissions)
+{
+    public static readonly ServiceIdentity Nobody = new(ServiceRole.None, ServicePermission.None);
+
+    /// <summary>
+    /// Владелец проходит любую проверку, не сверяясь с флагами: ему их никто не
+    /// выдавал и выдать не может — он источник всех остальных прав.
+    /// </summary>
+    public bool Can(ServicePermission permission) =>
+        Role == ServiceRole.Owner || (Permissions & permission) == permission;
+
+    /// <summary>Видит ли панель вообще.</summary>
+    public bool HasPanel => Role != ServiceRole.None;
+}
+
 /// <summary>
 /// Единственное место, где решается «кто ты для сервиса».
 ///
@@ -50,13 +67,14 @@ public class ServiceAccess(IServiceModeratorRepository moderators, ServiceAccess
     /// Юзернейм вошедшего, если Telegram его прислал. Нужен только чтобы узнать
     /// модератора в первый раз — дальше запись опознаётся по числовому id.
     /// </param>
-    public async Task<ServiceRole> ResolveAsync(
+    public async Task<ServiceIdentity> ResolveAsync(
         long telegramUserId, string? username, CancellationToken ct = default)
     {
-        if (IsOwner(telegramUserId)) return ServiceRole.Owner;
+        if (IsOwner(telegramUserId))
+            return new ServiceIdentity(ServiceRole.Owner, ServicePermission.All);
 
         var moderator = await moderators.FindAsync(telegramUserId, username, ct);
-        if (moderator is null) return ServiceRole.None;
+        if (moderator is null) return ServiceIdentity.Nobody;
 
         // Первый вход: закрепляем запись за числовым id. С этого момента юзернейм
         // на доступ не влияет — ни его смена владельцем, ни захват освободившегося
@@ -70,10 +88,6 @@ public class ServiceAccess(IServiceModeratorRepository moderators, ServiceAccess
             await moderators.SaveChangesAsync(ct);
         }
 
-        return ServiceRole.Moderator;
+        return new ServiceIdentity(ServiceRole.Moderator, moderator.Permissions);
     }
-
-    /// <summary>Видит ли панель: владелец и модератор — да, остальные — нет.</summary>
-    public async Task<bool> CanSeePanelAsync(long telegramUserId, string? username, CancellationToken ct = default) =>
-        await ResolveAsync(telegramUserId, username, ct) != ServiceRole.None;
 }

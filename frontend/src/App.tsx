@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { api, ApiError, adminClan } from './lib/api'
 import { haptic } from './lib/telegram'
 import { useT, type Translations } from './lib/i18n'
-import type { ClanStatus, ServiceRole } from './types'
+import type { ClanStatus, ServiceIdentity } from './types'
 import { WarHeader } from './components/WarHeader'
 import { ForecastCard } from './components/ForecastCard'
 import { InsightsCard } from './components/InsightsCard'
@@ -107,7 +107,7 @@ export default function App() {
   // человека нет привязанного тега и клана. То есть панель пропадала ровно у того,
   // кто вышел из клана, — и вернуть её было нечем. Модератору же клан не нужен
   // вовсе, он может вообще не играть.
-  const [role, setRole] = useState<ServiceRole>('none')
+  const [me, setMe] = useState<ServiceIdentity>({ role: 'none', permissions: [] })
   const { t } = useT()
 
   // Сколько подряд неудачных обновлений терпим, прежде чем показать ошибку.
@@ -169,7 +169,7 @@ export default function App() {
   useEffect(() => {
     let alive = true
     api.ownerMe()
-      .then(r => { if (alive) setRole(r.role) })
+      .then(r => { if (alive) setMe(r) })
       .catch(() => { /* обычный игрок, и это нормальный ответ */ })
     return () => { alive = false }
   }, [])
@@ -216,7 +216,7 @@ export default function App() {
     case 'clanless':
       // Админ сервиса без своего клана — не тупик: панель и есть то, зачем он зашёл,
       // а заход в чужой клан из неё вернёт обычные экраны.
-      return role !== 'none' ? <OwnerPanel role={role} /> : <ClanlessView />
+      return me.role !== 'none' ? <OwnerPanel me={me} /> : <ClanlessView />
     case 'notInTelegram':
       return (
         <div className="center">
@@ -252,7 +252,7 @@ export default function App() {
         { id: 'tournament', icon: '🏆', label: t.tabs.tournament },
         { id: 'search', icon: '🔍', label: t.tabs.search },
         { id: 'more', icon: '⚙️', label: t.tabs.more },
-        ...(role !== 'none' ? [{ id: 'owner' as Tab, icon: '📊', label: t.tabs.owner }] : []),
+        ...(me.role !== 'none' ? [{ id: 'owner' as Tab, icon: '📊', label: t.tabs.owner }] : []),
       ]
 
       return (
@@ -342,9 +342,9 @@ export default function App() {
                 onOpenNotifications={() => { haptic('light'); setSettingsOpen(true) }}
               />
             )}
-            {tab === 'owner' && role !== 'none' && (
+            {tab === 'owner' && me.role !== 'none' && (
               <div className="fade-in">
-                <OwnerPanel role={role} />
+                <OwnerPanel me={me} />
               </div>
             )}
           </main>

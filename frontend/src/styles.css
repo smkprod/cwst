@@ -1198,6 +1198,22 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 /* min-width: 0 — длинная заметка иначе растягивает строку и выдавливает кнопку */
 .adm-mod-main { display: grid; gap: 2px; min-width: 0; }
 .adm-mod-name { font-weight: 600; font-size: 14px; }
+.adm-mod-btns { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+.adm-mod-edit { padding: 8px 0 12px; }
+
+.adm-perm-title { margin: 10px 0 6px; }
+.adm-perms { display: grid; gap: 6px; margin-bottom: 12px; }
+.adm-perm {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 7px 9px; border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04); cursor: pointer;
+}
+/* Выключенное право не прячем, а гасим: список прав должен читаться целиком,
+   иначе непонятно, чего именно не хватает у тебя самого. */
+.adm-perm-off { opacity: 0.45; cursor: not-allowed; }
+.adm-perm input { margin-top: 2px; flex-shrink: 0; }
+.adm-perm-text { display: grid; gap: 1px; min-width: 0; }
+.adm-perm-name { font-size: 13px; font-weight: 600; }
 
 .guest-link-card {
   margin-top: 12px; border: 1px solid rgba(82,136,193,0.25);

@@ -1060,21 +1060,51 @@ public class BotUpdateHandler(
     {
         if (msg.Chat.Type == ChatType.Private) return true;
 
-        // Владелец сервиса настраивает бота в любом чате, не выпрашивая админку.
-        // Проверяем до кэша и до похода в Telegram: ответ известен заранее и не
-        // зависит от того, состоит ли он в этом чате вообще.
-        // Модератор сюда не попадает намеренно — у него право только смотреть,
-        // а настройки в чате это действие, причём в чужом чате.
+        // Владелец настраивает бота в любом чате, не выпрашивая админку. Его знаем
+        // из конфига, поэтому отвечаем до кэша и до похода в Telegram.
         if (ownerAccess.IsOwner(msg.From!.Id)) return true;
 
         var key = (msg.Chat.Id, msg.From!.Id);
         if (_adminCache.TryGetValue(key, out var hit) && hit.Until > DateTime.UtcNow)
             return hit.IsAdmin;
 
+        // То же право можно выдать и модератору — отдельной галочкой, не «за компанию»
+        // с доступом к панели. Проверяем после кэша: это поход в базу, а команды в
+        // группах сыплются пачками.
+        if (await HasChatAdminGrantAsync(msg.From.Id, msg.From.Username, ct))
+        {
+            _adminCache[key] = (true, DateTime.UtcNow.AddMinutes(5));
+            return true;
+        }
+
         var member = await bot.GetChatMember(msg.Chat.Id, msg.From.Id, ct);
         var isAdmin = member.Status is ChatMemberStatus.Administrator or ChatMemberStatus.Creator;
         _adminCache[key] = (isAdmin, DateTime.UtcNow.AddMinutes(5));
         return isAdmin;
+    }
+
+    /// <summary>
+    /// Выдано ли этому человеку право настраивать бота в любом чате.
+    ///
+    /// Бот — фоновая служба, а права лежат в базе за scoped-репозиторием, поэтому
+    /// открываем область вручную. Ошибку глотаем: недоступная база не должна
+    /// превращаться в «бот перестал отвечать на команды» — просто останется
+    /// обычная проверка админки чата.
+    /// </summary>
+    private async Task<bool> HasChatAdminGrantAsync(long userId, string? username, CancellationToken ct)
+    {
+        try
+        {
+            using var scope = scopeFactory.CreateScope();
+            var access = scope.ServiceProvider.GetRequiredService<ServiceAccess>();
+            var me = await access.ResolveAsync(userId, username, ct);
+            return me.Can(ServicePermission.ChatAdmin);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Не удалось проверить права модератора для {UserId}", userId);
+            return false;
+        }
     }
 
     /// <summary>

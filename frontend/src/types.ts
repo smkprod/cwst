@@ -254,10 +254,31 @@ export interface ClanStatus {
 /** Уровень доступа к сервису целиком. */
 export type ServiceRole = 'none' | 'moderator' | 'owner'
 
+/**
+ * Права, выдаваемые поимённо. Имена совпадают с флагами на сервере: список ходит
+ * строками, а не числом, чтобы разбор битов не пришлось повторять второй копией
+ * на фронте — две копии правил расходятся всегда.
+ */
+export type ServicePermission =
+  | 'EnterClans'
+  | 'ManageClans'
+  | 'ChatAdmin'
+  | 'Plans'
+  | 'Broadcast'
+  | 'DeleteClans'
+  | 'ManageModerators'
+  | 'Maintenance'
+
+export interface ServiceIdentity {
+  role: ServiceRole
+  permissions: ServicePermission[]
+}
+
 export interface Moderator {
   id: number
   username: string
   note: string | null
+  permissions: ServicePermission[]
   addedAtUtc: string
   firstSeenAtUtc: string | null
   /** false — человек ещё ни разу не заходил, запись держится на юзернейме. */

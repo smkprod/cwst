@@ -1,5 +1,5 @@
 import { initData } from './telegram'
-import type { Moderator, ServiceRole, BroadcastResult, BroadcastTarget, ClanDiscipline, DailyPuzzle, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, TopPlayerRow, TopPlayerDetail, Tournament, TournamentSummary, WarJournal } from '../types'
+import type { Moderator, ServiceIdentity, ServicePermission, BroadcastResult, BroadcastTarget, ClanDiscipline, DailyPuzzle, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, TopPlayerRow, TopPlayerDetail, Tournament, TournamentSummary, WarJournal } from '../types'
 
 // Если мы на Render (production), BASE должен быть пустой строкой '', чтобы запросы шли на тот же домен.
 // Для локальной разработки (Development) оставляем localhost:5000.
@@ -187,14 +187,21 @@ export const api = {
 
   // Панель владельца
   /** Кто я для сервиса. Не требует ни привязанного тега, ни клана. */
-  ownerMe: () => request<{ role: ServiceRole }>('/api/owner/me'),
+  ownerMe: () => request<ServiceIdentity>('/api/owner/me'),
   ownerGetModerators: () => request<Moderator[]>('/api/owner/moderators'),
-  ownerAddModerator: (username: string, note?: string) =>
+  ownerAddModerator: (username: string, note: string | undefined, permissions: ServicePermission[]) =>
     request<{ ok: boolean; username: string }>('/api/owner/moderators', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, note }),
+      body: JSON.stringify({ username, note, permissions }),
     }),
+  ownerSetModeratorPermissions: (id: number, permissions: ServicePermission[]) =>
+    request<{ ok: boolean; permissions: ServicePermission[] }>(
+      `/api/owner/moderators/${id}/permissions`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ permissions }),
+      }),
   ownerRemoveModerator: (id: number) =>
     request<{ ok: boolean }>(`/api/owner/moderators/${id}`, { method: 'DELETE' }),
   ownerHarvestTop: () =>

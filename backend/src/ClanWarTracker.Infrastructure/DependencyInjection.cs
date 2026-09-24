@@ -535,11 +535,17 @@ CREATE TABLE IF NOT EXISTS ""ServiceModerators"" (
     ""Id"" serial PRIMARY KEY,
     ""TelegramUsername"" varchar(32) NOT NULL,
     ""TelegramUserId"" bigint,
+    ""Permissions"" integer NOT NULL DEFAULT 0,
     ""Note"" varchar(200),
     ""AddedAtUtc"" timestamptz NOT NULL,
     ""AddedByTelegramUserId"" bigint NOT NULL,
     ""FirstSeenAtUtc"" timestamptz
 );");
+        // Колонка появилась после первой версии таблицы: CREATE TABLE IF NOT EXISTS
+        // в уже существующую её не дотянет.
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"ServiceModerators\" ADD COLUMN IF NOT EXISTS \"Permissions\" integer NOT NULL DEFAULT 0;");
+
         await db.Database.ExecuteSqlRawAsync(
             "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_ServiceModerators_TelegramUsername\" ON \"ServiceModerators\" (\"TelegramUsername\");");
         // Частичный: у неподтверждённых записей id пуст, и такие не должны мешать друг другу.

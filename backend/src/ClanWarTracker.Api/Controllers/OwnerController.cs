@@ -29,14 +29,21 @@ public class OwnerController(
 {
     public record SetPlanRequest(string Tier, int? Days);
     public record BroadcastRequest(string Text, string Target);
-    public record AddModeratorRequest(string Username, string? Note);
+    public record AddModeratorRequest(string Username, string? Note, string[]? Permissions);
+    public record SetPermissionsRequest(string[] Permissions);
 
     /// <summary>GET /api/owner/me — кто я для сервиса. Фронт по этому решает, показывать ли панель.</summary>
     [HttpGet("me")]
     public async Task<IActionResult> Me(CancellationToken ct)
     {
-        var role = await CurrentRoleAsync(ct);
-        return Ok(new { role = role.ToString().ToLowerInvariant() });
+        var me = await CurrentAsync(ct);
+        return Ok(new
+        {
+            role = me.Role.ToString().ToLowerInvariant(),
+            // Списком строк, а не числом: фронту нужно рисовать галочки, и число
+            // пришлось бы разбирать у него второй, отдельной копией правил.
+            permissions = PermissionNames(me.Permissions),
+        });
     }
 
     /// <summary>GET /api/owner/clans — кланы сервиса: тариф, активность, привязки.</summary>
@@ -64,7 +71,7 @@ public class OwnerController(
     [HttpPost("clans/{id:int}/plan")]
     public async Task<IActionResult> SetPlan(int id, [FromBody] SetPlanRequest req, CancellationToken ct)
     {
-        if (DenyNotOwner() is { } deny) return deny;
+        if (await DenyAsync(ServicePermission.Plans, ct) is { } deny) return deny;
 
         var tier = req.Tier?.ToLowerInvariant() switch
         {
@@ -92,7 +99,7 @@ public class OwnerController(
     [HttpPost("broadcast")]
     public async Task<IActionResult> Broadcast([FromBody] BroadcastRequest req, CancellationToken ct)
     {
-        if (DenyNotOwner() is { } deny) return deny;
+        if (await DenyAsync(ServicePermission.Broadcast, ct) is { } deny) return deny;
 
         var text = req.Text?.Trim();
         if (string.IsNullOrEmpty(text)) return BadRequest(new { error = "empty_text" });
@@ -114,7 +121,7 @@ public class OwnerController(
     [HttpDelete("clans/{id:int}")]
     public async Task<IActionResult> DeleteClan(int id, CancellationToken ct)
     {
-        if (DenyNotOwner() is { } deny) return deny;
+        if (await DenyAsync(ServicePermission.DeleteClans, ct) is { } deny) return deny;
 
         var clan = (await clans.GetAllAsync(ct)).FirstOrDefault(c => c.Id == id);
         if (clan is null) return NotFound(new { error = "clan_not_found" });
@@ -133,7 +140,7 @@ public class OwnerController(
     [HttpPost("top/harvest")]
     public async Task<IActionResult> HarvestTop(CancellationToken ct)
     {
-        if (DenyNotOwner() is { } deny) return deny;
+        if (await DenyAsync(ServicePermission.Maintenance, ct) is { } deny) return deny;
 
         var result = await harvestTop.ExecuteAsync(force: true, ct: ct);
         return Ok(new { rows = result.Rows, problem = result.Skipped });
@@ -143,7 +150,7 @@ public class OwnerController(
     [HttpGet("moderators")]
     public async Task<IActionResult> GetModerators(CancellationToken ct)
     {
-        if (DenyNotOwner() is { } deny) return deny;
+        if (await DenyAsync(ServicePermission.ManageModerators, ct) is { } deny) return deny;
 
         var list = await moderators.GetAllAsync(ct);
         return Ok(list.Select(m => new
@@ -151,6 +158,7 @@ public class OwnerController(
             m.Id,
             username = m.TelegramUsername,
             m.Note,
+            permissions = PermissionNames(m.Permissions),
             m.AddedAtUtc,
             m.FirstSeenAtUtc,
             // Пока пусто — человек ещё ни разу не заходил, и запись держится
@@ -163,7 +171,7 @@ public class OwnerController(
     [HttpPost("moderators")]
     public async Task<IActionResult> AddModerator([FromBody] AddModeratorRequest req, CancellationToken ct)
     {
-        if (DenyNotOwner() is { } deny) return deny;
+        if (await DenyAsync(ServicePermission.ManageModerators, ct) is { } deny) return deny;
 
         var username = ServiceModerator.NormalizeUsername(req.Username ?? "");
         // Правила Telegram: 5–32 знака, латиница, цифры и подчёркивание.
@@ -174,11 +182,15 @@ public class OwnerController(
         if (existing.Any(m => m.TelegramUsername == username))
             return Conflict(new { error = "already_moderator" });
 
+        var granted = await GrantableAsync(req.Permissions, ct);
+        if (granted is null) return StatusCode(403, new { error = "cannot_grant" });
+
         var userId = (long)HttpContext.Items["TelegramUserId"]!;
         await moderators.AddAsync(new ServiceModerator
         {
             TelegramUsername = username,
             Note = string.IsNullOrWhiteSpace(req.Note) ? null : req.Note.Trim(),
+            Permissions = granted.Value,
             AddedAtUtc = DateTime.UtcNow,
             AddedByTelegramUserId = userId,
         }, ct);
@@ -191,7 +203,7 @@ public class OwnerController(
     [HttpDelete("moderators/{id:int}")]
     public async Task<IActionResult> RemoveModerator(int id, CancellationToken ct)
     {
-        if (DenyNotOwner() is { } deny) return deny;
+        if (await DenyAsync(ServicePermission.ManageModerators, ct) is { } deny) return deny;
 
         var target = await moderators.GetByIdAsync(id, ct);
         if (target is null) return NotFound(new { error = "moderator_not_found" });
@@ -201,27 +213,86 @@ public class OwnerController(
         return Ok(new { ok = true });
     }
 
-    private async Task<ServiceRole> CurrentRoleAsync(CancellationToken ct)
+    /// <summary>PUT /api/owner/moderators/{id}/permissions — поменять набор прав.</summary>
+    [HttpPut("moderators/{id:int}/permissions")]
+    public async Task<IActionResult> SetPermissions(
+        int id, [FromBody] SetPermissionsRequest req, CancellationToken ct)
     {
-        var userId = (long)HttpContext.Items["TelegramUserId"]!;
-        var username = HttpContext.Items["TelegramUsername"] as string;
-        return await access.ResolveAsync(userId, username, ct);
+        if (await DenyAsync(ServicePermission.ManageModerators, ct) is { } deny) return deny;
+
+        var target = await moderators.GetByIdAsync(id, ct);
+        if (target is null) return NotFound(new { error = "moderator_not_found" });
+
+        var granted = await GrantableAsync(req.Permissions, ct);
+        if (granted is null) return StatusCode(403, new { error = "cannot_grant" });
+
+        target.Permissions = granted.Value;
+        await moderators.SaveChangesAsync(ct);
+        return Ok(new { ok = true, permissions = PermissionNames(target.Permissions) });
     }
 
-    /// <summary>Отказ, если смотреть нельзя вообще. null — можно.</summary>
-    private async Task<IActionResult?> DenyViewAsync(CancellationToken ct) =>
-        await CurrentRoleAsync(ct) == ServiceRole.None
-            ? StatusCode(403, new { error = "not_owner" })
-            : null;
+    /// <summary>
+    /// Запрошенный набор прав, если выдающий вправе его выдать. null — не вправе.
+    ///
+    /// Выдать больше, чем есть у тебя самого, нельзя. Без этого правила модератор,
+    /// которому доверили назначать других, выписал бы себе рассылку и тарифы за два
+    /// нажатия — право назначать превратилось бы в право на всё сразу.
+    /// Владельца это не касается: у него есть всё, и проверка для него всегда верна.
+    /// </summary>
+    private async Task<ServicePermission?> GrantableAsync(string[]? names, CancellationToken ct)
+    {
+        var wanted = ParsePermissions(names);
+        var me = await CurrentAsync(ct);
+        return me.Can(wanted) ? wanted : null;
+    }
 
     /// <summary>
-    /// Отказ, если действие доступно только владельцу. null — можно.
+    /// Имена прав в набор флагов.
     ///
-    /// Владельца проверяем без похода в базу: он известен из конфига, и лишний
-    /// запрос тут ничего не уточнит.
+    /// Неизвестное имя молча пропускаем, а не падаем: фронт может оказаться старее
+    /// сервера после выката, и в этом случае лучше сохранить то, что он прислал,
+    /// чем отказать целиком и оставить человека вообще без прав.
     /// </summary>
-    private IActionResult? DenyNotOwner() =>
-        access.IsOwner((long)HttpContext.Items["TelegramUserId"]!)
+    private static ServicePermission ParsePermissions(string[]? names)
+    {
+        var result = ServicePermission.None;
+        foreach (var name in names ?? [])
+            if (Enum.TryParse<ServicePermission>(name, ignoreCase: true, out var one)
+                && one != ServicePermission.All && one != ServicePermission.None)
+                result |= one;
+        return result;
+    }
+
+    /// <summary>Набор флагов обратно в имена — по одному на каждый выставленный.</summary>
+    private static string[] PermissionNames(ServicePermission permissions) =>
+        Enum.GetValues<ServicePermission>()
+            .Where(p => p != ServicePermission.None && p != ServicePermission.All)
+            .Where(p => (permissions & p) == p)
+            .Select(p => p.ToString())
+            .ToArray();
+
+    private Task<ServiceIdentity> CurrentAsync(CancellationToken ct) =>
+        access.ResolveAsync(
+            (long)HttpContext.Items["TelegramUserId"]!,
+            HttpContext.Items["TelegramUsername"] as string,
+            ct);
+
+    /// <summary>Отказ, если панель недоступна вовсе. null — можно.</summary>
+    private async Task<IActionResult?> DenyViewAsync(CancellationToken ct) =>
+        (await CurrentAsync(ct)).HasPanel ? null : StatusCode(403, new { error = "not_owner" });
+
+    /// <summary>
+    /// Отказ, если нет конкретного права. null — можно.
+    ///
+    /// Код ошибки отличается от «панели нет вообще»: человек в панель попал, и
+    /// сказать ему нужно не «тебя тут нет», а «этого тебе не выдали».
+    /// </summary>
+    private async Task<IActionResult?> DenyAsync(ServicePermission permission, CancellationToken ct)
+    {
+        var me = await CurrentAsync(ct);
+        if (!me.HasPanel) return StatusCode(403, new { error = "not_owner" });
+        return me.Can(permission)
             ? null
-            : StatusCode(403, new { error = "not_owner" });
+            : StatusCode(403, new { error = "no_permission", message = permission.ToString() });
+    }
 }

@@ -1,3 +1,5 @@
+using ClanWarTracker.Domain.Enums;
+
 namespace ClanWarTracker.Domain.Entities;
 
 /// <summary>
@@ -23,6 +25,14 @@ public class ServiceModerator
     /// совпадении по юзернейму и с этого момента становится единственным признаком.
     /// </summary>
     public long? TelegramUserId { get; set; }
+
+    /// <summary>
+    /// Что этому человеку можно. Набор отмечает владелец при назначении и меняет потом.
+    ///
+    /// Пустой набор — осмысленное состояние, а не недонастроенное: человек видит
+    /// сводку и список кланов, и больше ничего. С этого и начинают.
+    /// </summary>
+    public ServicePermission Permissions { get; set; } = ServicePermission.None;
 
     /// <summary>Заметка владельца: кто это и зачем. Не обязательна.</summary>
     public string? Note { get; set; }
