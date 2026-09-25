@@ -154,7 +154,8 @@ public class ClanController(
         }.Serialize();
         await clans.SaveChangesAsync(ct);
 
-        return Ok(ToDto(NotificationSettings.Parse(clan.NotificationSettingsJson), clan.ReminderHoursBeforeEnd));
+        return Ok(ToDto(NotificationSettings.Parse(clan.NotificationSettingsJson),
+                        clan.ReminderHoursBeforeEnd, clan.AcceptsClanMail));
     }
 
     private static NotificationSettingsDto ToDto(NotificationSettings s, int hours, bool acceptsMail) => new(
