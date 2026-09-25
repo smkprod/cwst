@@ -57,10 +57,12 @@ public class AppController(
         {
             botUsername = username ?? "",
             tabs,
-            backgrounds = SponsorBackground.All,
+            playerBackgrounds = SponsorBackground.ForPlayers,
+            clanBackgrounds = SponsorBackground.ForClans,
             isSponsor,
             sponsorUntil = isSponsor ? me!.SponsorUntilUtc : null,
-            myBackground = isSponsor ? SponsorBackground.Normalize(me!.SponsorBackgroundKey) : null,
+            myBackground = isSponsor ? SponsorBackground.NormalizePlayer(me!.SponsorBackgroundKey) : null,
+            myClanBackground = isSponsor ? SponsorBackground.NormalizeClan(me!.SponsorClanBackgroundKey) : null,
             // Кому писать за спонсорством. Пусто — кнопку не рисуем: ссылка в никуда
             // хуже отсутствующей кнопки.
             sponsorContact = config["Owner:Username"]?.Trim().TrimStart('@') ?? "",

@@ -268,3 +268,18 @@ public interface IServiceSettingRepository
     /// <summary>Записать значение, создав запись при первом сохранении.</summary>
     Task SetAsync(string key, string value, CancellationToken ct = default);
 }
+
+public interface IClanMessageRepository
+{
+    /// <summary>
+    /// Когда этот клан последний раз писал тому. null — ещё не писал.
+    /// По этому времени и держится ограничение «раз в сутки на пару».
+    /// </summary>
+    Task<DateTime?> GetLastSentAtAsync(int fromClanId, int toClanId, CancellationToken ct = default);
+
+    /// <summary>Сколько сообщений клан отправил с указанного момента — защита от веера по всем сразу.</summary>
+    Task<int> CountSentSinceAsync(int fromClanId, DateTime sinceUtc, CancellationToken ct = default);
+
+    Task AddAsync(ClanMessage message, CancellationToken ct = default);
+    Task SaveChangesAsync(CancellationToken ct = default);
+}

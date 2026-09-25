@@ -18,6 +18,7 @@ builder.Services.AddScoped<GetTopMetaUseCase>();
 builder.Services.AddScoped<GetTopPlayersUseCase>();
 builder.Services.AddScoped<GetTopPlayerDetailUseCase>();
 builder.Services.AddScoped<GetHallOfFameUseCase>();
+builder.Services.AddScoped<SendClanMessageUseCase>();
 // Сбор снимка топа живёт в воркере, но владельцу нужна ручка, чтобы запустить его
 // руками и сразу увидеть причину, когда снимок не собирается.
 builder.Services.AddScoped<HarvestTopPlayersUseCase>();

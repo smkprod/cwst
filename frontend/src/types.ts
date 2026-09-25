@@ -268,6 +268,8 @@ export type ServicePermission =
   | 'DeleteClans'
   | 'ManageModerators'
   | 'Maintenance'
+  | 'Sponsors'
+  | 'AppSettings'
 
 export interface ServiceIdentity {
   role: ServiceRole
@@ -683,6 +685,7 @@ export interface NotificationSettings {
   dailyReportEnabled: boolean
   warEndMinuteUtc: number | null   // во сколько заканчивается КВ (минуты от 00:00 UTC), null = 10:00 по умолчанию
   perfectDayEnabled: boolean       // поздравление «900 за день» в чат
+  acceptsClanMail: boolean         // принимать ли сообщения от других кланов
 }
 
 export type BroadcastTarget = 'dm' | 'chats' | 'both'
@@ -984,7 +987,7 @@ export interface LinkedPlayer {
 }
 
 /** Ключи фонов спонсора — совпадают с файлами в public/bg. */
-export type BackgroundKey = 'sky' | 'arena' | 'night' | 'ice'
+export type BackgroundKey = 'sky' | 'arena' | 'night' | 'ice' | 'lava' | 'kingdom' | 'kingdom2'
 
 /** Вкладки нижней панели. Состав задаёт владелец из админки. */
 export type AppTab = 'clan' | 'me' | 'hall' | 'tournament' | 'search' | 'more'
@@ -992,10 +995,13 @@ export type AppTab = 'clan' | 'me' | 'hall' | 'tournament' | 'search' | 'more'
 export interface AppConfig {
   botUsername: string
   tabs: AppTab[]
-  backgrounds: BackgroundKey[]
+  /** Наборы разные: широкие сцены игроку в строку, вертикальные виды клану в блок. */
+  playerBackgrounds: BackgroundKey[]
+  clanBackgrounds: BackgroundKey[]
   isSponsor: boolean
   sponsorUntil: string | null
   myBackground: BackgroundKey | null
+  myClanBackground: BackgroundKey | null
   /** Кому писать за спонсорством. Пусто — кнопку не показываем. */
   sponsorContact: string
 }
@@ -1028,6 +1034,9 @@ export interface HallClan {
 export interface HallOfFame {
   seasonId: number
   clansCounted: number
+  totalPlayers: number
+  /** Своя строка, даже если далеко за сотней. null — игрок не в зачёте. */
+  me: HallPlayer | null
   players: HallPlayer[]
   clans: HallClan[]
 }

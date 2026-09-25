@@ -62,8 +62,16 @@ public class Player
     /// </summary>
     public DateTime? SponsorUntilUtc { get; set; }
 
-    /// <summary>Выбранный спонсором фон: ключ из каталога («sky», «arena», «night», «ice»).</summary>
+    /// <summary>Фон самого спонсора — ключ из набора для игроков.</summary>
     public string? SponsorBackgroundKey { get; set; }
+
+    /// <summary>
+    /// Фон, которым спонсор оформил свой клан, — ключ из набора для кланов.
+    ///
+    /// Отдельным полем, а не тем же самым: наборы разные, и один ключ не может
+    /// одновременно годиться и в узкую строку игрока, и в блок клана.
+    /// </summary>
+    public string? SponsorClanBackgroundKey { get; set; }
 
     /// <summary>Спонсор ли прямо сейчас.</summary>
     public bool IsSponsor(DateTime utcNow) => SponsorUntilUtc is { } until && until > utcNow;

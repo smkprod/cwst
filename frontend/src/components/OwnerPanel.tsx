@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, ApiError, adminClan } from '../lib/api'
-import type { BroadcastTarget, Moderator, OwnerClan, OwnerClanDetail, OwnerStats, ServiceIdentity, ServicePermission } from '../types'
+import type { AppTab, BroadcastTarget, Moderator, OwnerClan, OwnerClanDetail, OwnerSponsor, OwnerStats, ServiceIdentity, ServicePermission } from '../types'
 
 /** «Можно ли мне вот это». Прокидывается вниз, чтобы правила жили в одном месте. */
 type Can = (p: ServicePermission) => boolean
@@ -20,7 +20,7 @@ const ROLE_LABEL: Record<string, string> = {
   elder: '⭐ Старейшина',
 }
 
-type Section = 'overview' | 'clans' | 'broadcast' | 'moderators'
+type Section = 'overview' | 'clans' | 'broadcast' | 'moderators' | 'sponsors' | 'settings'
 type ClanFilter = 'all' | 'pro' | 'free' | 'silent' | 'expiring'
 
 /** Сколько дней назад (для «активность» и «подключён»). null — даты нет. */
@@ -68,7 +68,9 @@ export function OwnerPanel({ me }: { me: ServiceIdentity }) {
     // Рассылка и модераторы — только владельцу. Вкладки, которые всё равно
     // ответят отказом, лучше не рисовать вовсе.
     ...(can('Broadcast') ? [{ key: 'broadcast' as Section, label: '📣 Рассылка' }] : []),
+    ...(can('Sponsors') ? [{ key: 'sponsors' as Section, label: '★ Спонсоры' }] : []),
     ...(can('ManageModerators') ? [{ key: 'moderators' as Section, label: '🛡 Модераторы' }] : []),
+    ...(can('AppSettings') ? [{ key: 'settings' as Section, label: '⚙️ Вкладки' }] : []),
   ]
 
   return (
@@ -94,7 +96,9 @@ export function OwnerPanel({ me }: { me: ServiceIdentity }) {
       {section === 'broadcast' && can('Broadcast') && (
         <BroadcastBox dmCount={stats.usersReachableByDm} chatCount={stats.chatsWithBot} t={t} />
       )}
+      {section === 'sponsors' && can('Sponsors') && <SponsorsSection t={t} />}
       {section === 'moderators' && can('ManageModerators') && <ModeratorsSection can={can} t={t} />}
+      {section === 'settings' && can('AppSettings') && <TabsSection t={t} />}
     </div>
   )
 }
@@ -551,7 +555,8 @@ function BroadcastBox({ dmCount, chatCount, t }: { dmCount: number; chatCount: n
 /** Порядок в списке — от безобидного к опасному: галочки читают сверху вниз. */
 const PERMISSIONS: ServicePermission[] = [
   'EnterClans', 'ManageClans', 'ChatAdmin',
-  'Plans', 'Broadcast', 'DeleteClans', 'Maintenance', 'ManageModerators',
+  'Plans', 'Sponsors', 'Broadcast', 'DeleteClans',
+  'Maintenance', 'AppSettings', 'ManageModerators',
 ]
 
 /**
@@ -768,5 +773,190 @@ function ModeratorRow({ mod, can, onChanged, onRemove, t }: {
         </div>
       )}
     </li>
+  )
+}
+
+/* ---------- Спонсоры ---------- */
+
+/**
+ * Выдача спонсорства по тегу игрока.
+ *
+ * Продление именно продлевает, а не обнуляет остаток — это решено на сервере,
+ * здесь только видно результат: после нажатия в списке стоит новая дата.
+ */
+function SponsorsSection({ t }: { t: Translations }) {
+  const [list, setList] = useState<OwnerSponsor[] | null>(null)
+  const [tag, setTag] = useState('')
+  const [days, setDays] = useState(30)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const load = useCallback(() => {
+    api.ownerGetSponsors().then(setList).catch(() => setList([]))
+  }, [])
+  useEffect(load, [load])
+
+  const grant = async (forDays: number) => {
+    const clean = tag.trim()
+    if (clean.length < 3) { setError(t.owner.sponsorBadTag); return }
+
+    haptic('medium')
+    setBusy(true)
+    setError(null)
+    try {
+      await api.ownerGrantSponsor(clean, forDays)
+      hapticNotify('success')
+      setTag('')
+      load()
+    } catch (e) {
+      hapticNotify('error')
+      setError(e instanceof ApiError && e.code === 'player_not_found'
+        ? t.owner.sponsorNotFound
+        : t.owner.error)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="card">
+      <p className="adm-block-title">{t.owner.sponsorTitle}</p>
+      <p className="muted small">{t.owner.sponsorHint}</p>
+
+      <div className="form-field">
+        <input
+          className="search-input"
+          value={tag}
+          onChange={e => setTag(e.target.value)}
+          placeholder="#ТЕГ игрока"
+          autoCapitalize="characters"
+          autoCorrect="off"
+          spellCheck={false}
+          maxLength={16}
+        />
+      </div>
+
+      <div className="form-field">
+        <label className="muted small">{t.owner.sponsorDays}</label>
+        <select
+          className="rating-select tournament-select"
+          value={days}
+          onChange={e => setDays(Number(e.target.value))}
+        >
+          <option value={30}>30 {t.owner.sponsorDaysUnit}</option>
+          <option value={90}>90 {t.owner.sponsorDaysUnit}</option>
+          <option value={365}>365 {t.owner.sponsorDaysUnit}</option>
+        </select>
+      </div>
+
+      {error && <p className="form-error small">{error}</p>}
+
+      <div className="recruit-actions">
+        <button className="btn" disabled={busy || tag.trim().length < 3} onClick={() => grant(days)}>
+          {busy ? t.owner.saving : t.owner.sponsorGrant}
+        </button>
+        <button className="btn-mini btn-mini-danger" disabled={busy || tag.trim().length < 3} onClick={() => grant(0)}>
+          {t.owner.sponsorRevoke}
+        </button>
+      </div>
+
+      {list === null && <div className="center"><div className="spinner" /></div>}
+      {list !== null && list.length === 0 && (
+        <p className="muted small adm-mod-empty">{t.owner.sponsorEmpty}</p>
+      )}
+
+      <ul className="owner-list adm-mod-list">
+        {(list ?? []).map(sp => (
+          <li key={sp.playerTag} className="adm-mod-row">
+            <div className="adm-mod-main">
+              <span className="adm-mod-name">★ {sp.name}</span>
+              <span className="muted small">{sp.playerTag}{sp.clanName ? ` · ${sp.clanName}` : ''}</span>
+              <span className="muted small">
+                {t.owner.sponsorLeft}: {sp.daysLeft} {t.owner.sponsorDaysUnit}
+                {sp.background ? ` · ${sp.background}` : ''}
+              </span>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+/* ---------- Вкладки ---------- */
+
+/** Все вкладки, какие бывают. Ключи совпадают с теми, что понимает сервер. */
+const ALL_TABS: { key: AppTab; label: string }[] = [
+  { key: 'clan', label: '🏰 Клан' },
+  { key: 'me', label: '👤 Я' },
+  { key: 'hall', label: '🏛 Аллея' },
+  { key: 'tournament', label: '🏆 Турнир' },
+  { key: 'search', label: '🔍 Поиск' },
+  { key: 'more', label: '⚙️ Ещё' },
+]
+
+/**
+ * Выбор нижних вкладок.
+ *
+ * Панель владельца в список не входит: выключив её, ты потерял бы доступ к этому
+ * самому экрану, и включить обратно было бы уже нечем. Пустой набор сервер тоже
+ * не примет — приложение осталось бы вообще без навигации.
+ */
+function TabsSection({ t }: { t: Translations }) {
+  const [picked, setPicked] = useState<AppTab[] | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    api.getAppConfig().then(c => setPicked(c.tabs)).catch(() => setPicked([]))
+  }, [])
+
+  const toggle = (key: AppTab) => {
+    haptic('light')
+    setSaved(false)
+    setPicked(prev => {
+      const cur = prev ?? []
+      return cur.includes(key) ? cur.filter(x => x !== key) : [...cur, key]
+    })
+  }
+
+  const save = async () => {
+    if (!picked || picked.length === 0) return
+    haptic('medium')
+    setBusy(true)
+    try {
+      await api.ownerSetTabs(picked)
+      hapticNotify('success')
+      setSaved(true)
+    } catch {
+      hapticNotify('error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (picked === null) return <div className="center"><div className="spinner" /></div>
+
+  return (
+    <div className="card">
+      <p className="adm-block-title">{t.owner.tabsTitle}</p>
+      <p className="muted small">{t.owner.tabsHint}</p>
+
+      <div className="adm-perms">
+        {ALL_TABS.map(tb => (
+          <label key={tb.key} className="adm-perm">
+            <input type="checkbox" checked={picked.includes(tb.key)} onChange={() => toggle(tb.key)} />
+            <span className="adm-perm-text"><span className="adm-perm-name">{tb.label}</span></span>
+          </label>
+        ))}
+      </div>
+
+      {picked.length === 0 && <p className="form-error small">{t.owner.tabsEmpty}</p>}
+      {saved && <p className="muted small">{t.owner.tabsSaved}</p>}
+
+      <button className="btn" disabled={busy || picked.length === 0} onClick={save}>
+        {busy ? t.owner.saving : t.owner.tabsSave}
+      </button>
+    </div>
   )
 }

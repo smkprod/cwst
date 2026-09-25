@@ -99,11 +99,18 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ key }),
     }),
-  setMyBackground: (key: BackgroundKey | null) =>
+  setMyBackground: (key: BackgroundKey | null, scope: 'player' | 'clan' = 'player') =>
     request<{ key: BackgroundKey | null }>('/api/players/me/background', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key }),
+      body: JSON.stringify({ key, scope }),
+    }),
+  /** Написать другому клану от имени своего. kind: обычное сообщение или вызов. */
+  sendClanMessage: (clanId: number, text: string, kind: 'message' | 'challenge') =>
+    request<{ ok: boolean }>(`/api/hall/clans/${clanId}/message`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, kind }),
     }),
   ownerGrantSponsor: (playerTag: string, days: number) =>
     request<{ playerTag: string; name: string; until: string | null }>('/api/owner/sponsor', {

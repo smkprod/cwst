@@ -29,18 +29,39 @@ public class GetHallOfFameUseCase(
     /// <summary>Сколько строк отдаём. Ниже сотни места уже не мотивируют.</summary>
     private const int Limit = 100;
 
-    public async Task<HallOfFameDto?> ExecuteAsync(CancellationToken ct = default)
+    /// <param name="viewerTag">
+    /// Тег смотрящего — чтобы вернуть его собственную строку. Считается из уже
+    /// готового списка, поэтому персональная часть кэш не ломает: тяжёлый расчёт
+    /// общий на всех, а своё место вырезается из него на каждом запросе.
+    /// </param>
+    public async Task<HallOfFameDto?> ExecuteAsync(string? viewerTag = null, CancellationToken ct = default)
     {
-        var cached = await cache.GetOrCreateAsync("halloffame", async entry =>
+        var data = await cache.GetOrCreateAsync("halloffame", async entry =>
         {
             entry.Size = 1;
             entry.AbsoluteExpirationRelativeToNow = CacheTtl;
             return await BuildAsync(ct);
         });
-        return cached;
+        if (data is null) return null;
+
+        var me = viewerTag is null
+            ? null
+            : data.Players.FirstOrDefault(p =>
+                string.Equals(p.PlayerTag, viewerTag, StringComparison.OrdinalIgnoreCase));
+
+        return new HallOfFameDto(
+            data.SeasonId,
+            data.ClansCounted,
+            data.Players.Count,
+            me,
+            data.Players.Take(Limit).ToList(),
+            data.Clans.Take(Limit).ToList());
     }
 
-    private async Task<HallOfFameDto?> BuildAsync(CancellationToken ct)
+    /// <summary>Посчитанный сезон целиком — из него уже режутся и топ, и своя строка.</summary>
+    private record HallData(int SeasonId, int ClansCounted, List<HallPlayerDto> Players, List<HallClanDto> Clans);
+
+    private async Task<HallData?> BuildAsync(CancellationToken ct)
     {
         var seasonId = await snapshots.GetLatestSeasonIdAnyClanAsync(ct);
         if (seasonId is null) return null;
@@ -74,7 +95,6 @@ public class GetHallOfFameUseCase(
 
         var topPlayers = playerRows
             .OrderByDescending(r => r.Fame)
-            .Take(Limit)
             .Select((r, i) =>
             {
                 byTag.TryGetValue(r.Tag, out var player);
@@ -92,7 +112,7 @@ public class GetHallOfFameUseCase(
                     IsSponsor: sponsor,
                     // Фон показываем только действующему спонсору: истёкшее
                     // спонсорство не должно продолжать красить строку.
-                    BackgroundKey: sponsor ? SponsorBackground.Normalize(player?.SponsorBackgroundKey) : null);
+                    BackgroundKey: sponsor ? SponsorBackground.NormalizePlayer(player?.SponsorBackgroundKey) : null);
             })
             .ToList();
 
@@ -104,7 +124,6 @@ public class GetHallOfFameUseCase(
 
         var topClans = clanRows
             .OrderByDescending(r => r.Fame)
-            .Take(Limit)
             .Select((r, i) =>
             {
                 sponsorsByClan.TryGetValue(r.ClanId, out var clanSponsors);
@@ -121,12 +140,12 @@ public class GetHallOfFameUseCase(
                     // победил»: иначе фон клана прыгал бы от перезагрузки к перезагрузке.
                     BackgroundKey: clanSponsors?
                         .OrderBy(p => p.Id)
-                        .Select(p => SponsorBackground.Normalize(p.SponsorBackgroundKey))
+                        .Select(p => SponsorBackground.NormalizeClan(p.SponsorClanBackgroundKey))
                         .FirstOrDefault(k => k is not null));
             })
             .ToList();
 
-        return new HallOfFameDto(seasonId.Value, clanRows.Count, topPlayers, topClans);
+        return new HallData(seasonId.Value, clanRows.Count, topPlayers, topClans);
     }
 
     private record PlayerRow(string Tag, string Name, string ClanName, string? ClanTag, int Fame, int Weeks);

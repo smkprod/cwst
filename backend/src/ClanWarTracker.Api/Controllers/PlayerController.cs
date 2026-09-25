@@ -95,7 +95,8 @@ public class PlayerController(
     }
 
     public record ShowcaseRequest(string? Key);
-    public record BackgroundRequest(string? Key);
+    /// <param name="Scope">«player» — свой фон, «clan» — фон своему клану.</param>
+    public record BackgroundRequest(string? Key, string? Scope);
 
     /// <summary>
     /// POST /api/players/me/showcase — выставить значок напоказ. Body: { key } или { key: null }.
@@ -143,19 +144,36 @@ public class PlayerController(
         if (player is null) return NotFound(new { error = "player_not_linked" });
         if (!player.IsSponsor(DateTime.UtcNow)) return StatusCode(403, new { error = "not_sponsor" });
 
+        var forClan = string.Equals(req.Scope, "clan", StringComparison.OrdinalIgnoreCase);
+
         // Пустой ключ — сознательный отказ от фона, а не ошибка.
         if (string.IsNullOrWhiteSpace(req.Key))
         {
-            player.SponsorBackgroundKey = null;
+            if (forClan) player.SponsorClanBackgroundKey = null;
+            else player.SponsorBackgroundKey = null;
             await players.SaveChangesAsync(ct);
-            return Ok(new { key = (string?)null });
+            return Ok(new { key = (string?)null, scope = forClan ? "clan" : "player" });
         }
 
-        if (!SponsorBackground.IsKnown(req.Key)) return BadRequest(new { error = "unknown_background" });
+        // Наборы не взаимозаменяемы: широкая арена в блоке клана обрезается по краям,
+        // а вертикальное королевство в строке игрока показывает кусок неба.
+        var ok = forClan
+            ? SponsorBackground.IsClanBackground(req.Key)
+            : SponsorBackground.IsPlayerBackground(req.Key);
+        if (!ok) return BadRequest(new { error = "unknown_background" });
 
-        player.SponsorBackgroundKey = req.Key;
+        if (forClan)
+        {
+            if (player.ClanId is null) return NotFound(new { error = "clan_not_found" });
+            player.SponsorClanBackgroundKey = req.Key;
+        }
+        else
+        {
+            player.SponsorBackgroundKey = req.Key;
+        }
+
         await players.SaveChangesAsync(ct);
-        return Ok(new { key = req.Key });
+        return Ok(new { key = req.Key, scope = forClan ? "clan" : "player" });
     }
 
     /// <summary>GET /api/players/me/stats — детальная статистика по текущему игроку.</summary>

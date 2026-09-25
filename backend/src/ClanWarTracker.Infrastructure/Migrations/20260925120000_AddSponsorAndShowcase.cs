@@ -25,6 +25,8 @@ namespace ClanWarTracker.Infrastructure.Migrations
                 name: "SponsorUntilUtc", table: "Players", type: "TEXT", nullable: true);
             migrationBuilder.AddColumn<string>(
                 name: "SponsorBackgroundKey", table: "Players", type: "TEXT", maxLength: 32, nullable: true);
+            migrationBuilder.AddColumn<string>(
+                name: "SponsorClanBackgroundKey", table: "Players", type: "TEXT", maxLength: 32, nullable: true);
         }
 
         /// <inheritdoc />
@@ -34,6 +36,7 @@ namespace ClanWarTracker.Infrastructure.Migrations
             migrationBuilder.DropColumn(name: "ShowcaseBadgeLevel", table: "Players");
             migrationBuilder.DropColumn(name: "SponsorUntilUtc", table: "Players");
             migrationBuilder.DropColumn(name: "SponsorBackgroundKey", table: "Players");
+            migrationBuilder.DropColumn(name: "SponsorClanBackgroundKey", table: "Players");
         }
     }
 }

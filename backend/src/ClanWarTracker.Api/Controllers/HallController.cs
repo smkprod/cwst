@@ -1,4 +1,6 @@
 using ClanWarTracker.Application.UseCases;
+using ClanWarTracker.Domain.Entities;
+using ClanWarTracker.Domain.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ClanWarTracker.Api.Controllers;
@@ -11,14 +13,58 @@ namespace ClanWarTracker.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/hall")]
-public class HallController(GetHallOfFameUseCase hall) : ControllerBase
+public class HallController(
+    GetHallOfFameUseCase hall,
+    SendClanMessageUseCase sendMessage,
+    IPlayerRepository players) : ControllerBase
 {
-    /// <summary>GET /api/hall — топ игроков и кланов за текущий сезон.</summary>
+    /// <param name="Kind">«challenge» — вызов на бой, иначе обычное сообщение.</param>
+    public record MessageRequest(string Text, string? Kind);
+
+    /// <summary>GET /api/hall — топ игроков и кланов за текущий сезон и своё место в нём.</summary>
     [HttpGet]
     public async Task<IActionResult> Get(CancellationToken ct)
     {
-        var dto = await hall.ExecuteAsync(ct);
+        var userId = (long)HttpContext.Items["TelegramUserId"]!;
+        var me = await players.GetByTelegramIdAsync(userId, ct);
+        var dto = await hall.ExecuteAsync(me?.PlayerTag, ct);
         // Снимков ещё нет — это не ошибка, а «рано»: клиент покажет объяснение.
         return dto is null ? NoContent() : Ok(dto);
+    }
+
+    /// <summary>
+    /// POST /api/hall/clans/{clanId}/message — написать клану от имени своего.
+    ///
+    /// Лежит тут, а не в кланах, потому что точка входа — Аллея: именно там видно
+    /// чужие кланы и именно оттуда по ним нажимают.
+    /// </summary>
+    [HttpPost("clans/{clanId:int}/message")]
+    public async Task<IActionResult> SendMessage(
+        int clanId, [FromBody] MessageRequest req, CancellationToken ct)
+    {
+        var userId = (long)HttpContext.Items["TelegramUserId"]!;
+        var kind = string.Equals(req.Kind, "challenge", StringComparison.OrdinalIgnoreCase)
+            ? ClanMessageKind.Challenge
+            : ClanMessageKind.Message;
+
+        var error = await sendMessage.ExecuteAsync(userId, clanId, req.Text ?? "", kind, ct);
+        if (error is null) return Ok(new { ok = true });
+
+        return error.Value switch
+        {
+            ClanMessageError.PlayerNotLinked => NotFound(new { error = "player_not_linked" }),
+            ClanMessageError.NoClan or ClanMessageError.TargetNotFound
+                => NotFound(new { error = "clan_not_found" }),
+            ClanMessageError.SameClan => BadRequest(new { error = "same_clan" }),
+            ClanMessageError.NotAllowed => StatusCode(403, new { error = "not_allowed" }),
+            ClanMessageError.TargetOptedOut => StatusCode(403, new { error = "target_opted_out" }),
+            ClanMessageError.TargetHasNoChat => BadRequest(new { error = "target_has_no_chat" }),
+            ClanMessageError.TooSoon => StatusCode(429, new { error = "too_soon" }),
+            ClanMessageError.DailyLimit => StatusCode(429, new { error = "daily_limit" }),
+            ClanMessageError.EmptyText => BadRequest(new { error = "empty_text" }),
+            ClanMessageError.TooLong => BadRequest(new { error = "too_long" }),
+            ClanMessageError.ChallengeNeedsSponsor => StatusCode(403, new { error = "needs_sponsor" }),
+            _ => StatusCode(500, new { error = "unknown" }),
+        };
     }
 }

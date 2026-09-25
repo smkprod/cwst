@@ -177,6 +177,7 @@ public class OwnerController(
         {
             player.SponsorUntilUtc = null;
             player.SponsorBackgroundKey = null;
+            player.SponsorClanBackgroundKey = null;
         }
         else
         {

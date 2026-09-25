@@ -125,6 +125,14 @@ export default function App() {
   // Состав нижних вкладок задаёт владелец из панели, поэтому он приезжает с сервера.
   // Пока не приехал — показываем набор по умолчанию, чтобы навигация была сразу.
   const [config, setConfig] = useState<AppConfig | null>(null)
+
+  // Отдельно от остального: конфиг перечитывается после покупки фона, чтобы
+  // выбранное применилось без перезапуска приложения.
+  const loadConfig = useCallback(() => {
+    api.getAppConfig()
+      .then(setConfig)
+      .catch(() => { /* останемся на наборе вкладок по умолчанию */ })
+  }, [])
   const { t } = useT()
 
   // Сколько подряд неудачных обновлений терпим, прежде чем показать ошибку.
@@ -188,11 +196,9 @@ export default function App() {
     api.ownerMe()
       .then(r => { if (alive) setMe(r) })
       .catch(() => { /* обычный игрок, и это нормальный ответ */ })
-    api.getAppConfig()
-      .then(c => { if (alive) setConfig(c) })
-      .catch(() => { /* останемся на наборе вкладок по умолчанию */ })
+    loadConfig()
     return () => { alive = false }
-  }, [])
+  }, [loadConfig])
 
   useEffect(() => {
     load()
@@ -361,7 +367,7 @@ export default function App() {
               />
             )}
             {tab === 'hall' && (
-              <HallOfFame sponsorContact={config?.sponsorContact ?? ''} />
+              <HallOfFame config={config} onConfigChanged={loadConfig} />
             )}
             {tab === 'owner' && me.role !== 'none' && (
               <div className="fade-in">

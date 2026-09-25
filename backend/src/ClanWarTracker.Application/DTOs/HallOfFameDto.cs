@@ -9,9 +9,19 @@ namespace ClanWarTracker.Application.DTOs;
 /// </summary>
 /// <param name="SeasonId">Сезон, за который считали.</param>
 /// <param name="ClansCounted">Сколько кланов попало в зачёт — чтобы место «12 из 16» читалось.</param>
+/// <param name="Me">
+/// Строка самого зрителя — даже если он далеко за сотней.
+///
+/// Нужна не для полноты, а чтобы было куда поставить призыв стать спонсором:
+/// внизу списка его не видит никто, а своё место человек смотрит первым делом,
+/// и смотрит сразу после подиума, где стоят чужие красивые фоны.
+/// </param>
+/// <param name="TotalPlayers">Сколько всего игроков в зачёте — чтобы «#47 из 201» читалось.</param>
 public record HallOfFameDto(
     int SeasonId,
     int ClansCounted,
+    int TotalPlayers,
+    HallPlayerDto? Me,
     List<HallPlayerDto> Players,
     List<HallClanDto> Clans);
 

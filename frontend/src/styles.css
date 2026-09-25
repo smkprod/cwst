@@ -2376,3 +2376,44 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
   text-align: center; text-decoration: none; box-sizing: border-box;
 }
 .hall-sponsor-hint { margin: 6px 2px 0; line-height: 1.4; }
+
+/* --- Своя строка на Аллее: единственное место, где показан призыв купить --- */
+.hall-me {
+  position: relative; overflow: hidden;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 12px; margin-bottom: 10px; border-radius: 12px;
+  background: var(--bg-card); border: 1px solid rgba(255,200,61,0.3);
+  background-size: cover; background-position: center;
+}
+.hall-me > *:not(.hall-row-veil) { position: relative; z-index: 1; }
+.hall-me-body { display: grid; gap: 1px; min-width: 0; }
+.hall-me-rank { font-size: 18px; font-weight: 800; display: flex; align-items: center; gap: 5px; }
+.hall-me-of { font-weight: 400; }
+.hall-me-fame { font-size: 13px; color: var(--gold); font-weight: 700; }
+.hall-me-btn { flex-shrink: 0; text-decoration: none; }
+
+/* --- Клановая строка как кнопка «написать» --- */
+.hall-row-btn {
+  width: 100%; border: none; cursor: pointer; text-align: left;
+  font: inherit; color: inherit;
+}
+.hall-list li { list-style: none; }
+
+/* --- Выбор фона --- */
+.bg-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 6px 0 12px; }
+.bg-tile {
+  height: 64px; border-radius: 10px; border: 2px solid transparent; cursor: pointer;
+  background-size: cover; background-position: center; padding: 0;
+}
+/* Вертикальные виды клана показываем выше: в низкой плитке от них остаётся полоса неба */
+.bg-tile-tall { height: 110px; }
+.bg-tile-on { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(255,200,61,0.35); }
+
+/* --- Общее модальное окно --- */
+.modal-backdrop {
+  position: fixed; inset: 0; z-index: 50;
+  background: rgba(0,0,0,0.6);
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+  overflow-y: auto;
+}
+.modal-card { width: 100%; max-width: 420px; margin: auto; max-height: 90vh; overflow-y: auto; }
