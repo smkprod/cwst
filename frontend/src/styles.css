@@ -2326,8 +2326,27 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 .hall-podium-title { font-size: 14px; font-weight: 700; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.6); }
 .hall-podium-season { font-size: 12px; color: rgba(255,255,255,0.75); }
 
-.hall-podium-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; align-items: end; }
-.hall-step { display: flex; flex-direction: column; align-items: center; gap: 1px; min-width: 0; justify-content: flex-end; }
+.hall-podium-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; align-items: stretch; }
+.hall-step {
+  position: relative; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  min-width: 0; justify-content: flex-end;
+  background-size: cover; background-position: center;
+}
+/* Полоса со своим фоном скругляется сверху — иначе картинка режется прямым углом
+   и читается как сбой вёрстки, а не как оформление. */
+.hall-step-bg { border-radius: 10px 10px 0 0; }
+.hall-step-veil {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(10,10,24,0.25) 0%, rgba(10,10,24,0.62) 100%);
+}
+.hall-step > *:not(.hall-step-veil) { position: relative; z-index: 1; }
+/* Когда полосы свои, общая вуаль подиума не нужна — она гасила бы их поверх своей */
+.hall-podium-bands .hall-podium-veil { background: none; }
+.hall-podium-bands { background: linear-gradient(180deg, #1a2030, #10141f); }
+/* Полосы тянутся на всю высоту подиума: прижатый вниз ряд оставлял над ними
+   пустую тёмную область, и три баннера читались как три случайные картинки. */
+.hall-podium-bands .hall-podium-row { margin-top: 0; flex: 1; }
 .hall-medal { font-size: 22px; line-height: 1; }
 .hall-step-name {
   font-size: 12px; font-weight: 700; color: #fff; text-align: center;

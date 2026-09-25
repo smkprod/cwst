@@ -141,14 +141,24 @@ function Podium({ rows, label, seasonId }: {
 }) {
   if (rows.length === 0) return null
 
-  // Небесный оставлен только сцене: выбрать его игроку нельзя, поэтому он никогда
-  // не совпадёт с фоном первого места и всегда читается как «своего фона нет».
-  const bg = rows.find(r => r.backgroundKey)?.backgroundKey ?? 'sky'
   // Порядок на подиуме: второй, первый, третий — как на настоящем пьедестале.
   const order = [rows[1], rows[0], rows[2]].filter(Boolean)
+  const anyOwn = order.some(r => r.backgroundKey)
 
+  // Своя полоса под каждой ступенью, а не одна картинка на весь подиум.
+  //
+  // Одна картинка бралась у первого места, и второй с третьим не видели своего
+  // фона вообще: двое из трёх платили и не получали ничего. Полосами видно всех
+  // троих, а вертикальным видам клана узкая колонка подходит даже лучше широкой
+  // сцены — пропорции почти совпадают.
+  //
+  // Небесный оставлен сцене: выбрать его нельзя, поэтому он появляется ровно
+  // тогда, когда ни у кого из тройки своего фона нет.
   return (
-    <section className="hall-podium" style={{ backgroundImage: `url(/bg/${bg}.webp)` }}>
+    <section
+      className={`hall-podium ${anyOwn ? 'hall-podium-bands' : ''}`}
+      style={anyOwn ? undefined : { backgroundImage: 'url(/bg/sky.webp)' }}
+    >
       <div className="hall-podium-veil" />
       <div className="hall-podium-head">
         <span className="hall-podium-title">🏛 {label}</span>
@@ -157,7 +167,12 @@ function Podium({ rows, label, seasonId }: {
 
       <div className="hall-podium-row">
         {order.map(r => (
-          <div key={rowKey(r)} className={`hall-step hall-step-${r.rank}`}>
+          <div
+            key={rowKey(r)}
+            className={`hall-step hall-step-${r.rank} ${r.backgroundKey ? 'hall-step-bg' : ''}`}
+            style={r.backgroundKey ? { backgroundImage: `url(/bg/${r.backgroundKey}.webp)` } : undefined}
+          >
+            {r.backgroundKey && <span className="hall-step-veil" />}
             <span className="hall-medal">{r.rank === 1 ? '🥇' : r.rank === 2 ? '🥈' : '🥉'}</span>
             <span className="hall-step-name">
               {displayName(r)}
