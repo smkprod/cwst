@@ -87,6 +87,15 @@ public interface IWarSnapshotRepository
     /// </summary>
     Task<List<PlayerWarSnapshot>> GetPlayersHistoryAsync(IReadOnlyCollection<string> playerTags, int weeks,
         CancellationToken ct = default);
+
+    /// <summary>Самый свежий сезон с данными по всему сервису. null — снимков нет совсем.</summary>
+    Task<int?> GetLatestSeasonIdAnyClanAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Снимки сезона по всем кланам сразу — для Аллеи славы, которая сравнивает
+    /// игроков и кланы между собой, а не внутри одного клана.
+    /// </summary>
+    Task<List<WarSnapshot>> GetSeasonAcrossClansAsync(int seasonId, CancellationToken ct = default);
 }
 
 public interface IWarBattleRepository
@@ -248,5 +257,29 @@ public interface IServiceModeratorRepository
 
     Task AddAsync(ServiceModerator moderator, CancellationToken ct = default);
     Task RemoveAsync(ServiceModerator moderator, CancellationToken ct = default);
+    Task SaveChangesAsync(CancellationToken ct = default);
+}
+
+public interface IServiceSettingRepository
+{
+    /// <summary>Значение по ключу. null — настройку не трогали, действует умолчание.</summary>
+    Task<string?> GetAsync(string key, CancellationToken ct = default);
+
+    /// <summary>Записать значение, создав запись при первом сохранении.</summary>
+    Task SetAsync(string key, string value, CancellationToken ct = default);
+}
+
+public interface IClanMessageRepository
+{
+    /// <summary>
+    /// Когда этот клан последний раз писал тому. null — ещё не писал.
+    /// По этому времени и держится ограничение «раз в сутки на пару».
+    /// </summary>
+    Task<DateTime?> GetLastSentAtAsync(int fromClanId, int toClanId, CancellationToken ct = default);
+
+    /// <summary>Сколько сообщений клан отправил с указанного момента — защита от веера по всем сразу.</summary>
+    Task<int> CountSentSinceAsync(int fromClanId, DateTime sinceUtc, CancellationToken ct = default);
+
+    Task AddAsync(ClanMessage message, CancellationToken ct = default);
     Task SaveChangesAsync(CancellationToken ct = default);
 }

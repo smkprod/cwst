@@ -2301,3 +2301,194 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 }
 .link-hint { margin: 8px 0 0; }
 .link-btn { width: 100%; margin-top: 12px; }
+
+/* --- Аллея славы --- */
+.hall-switch { display: flex; gap: 2px; background: rgba(255,255,255,0.06); border-radius: 8px; padding: 2px; margin-bottom: 10px; }
+.hall-switch .chart-opt { flex: 1; }
+
+.hall-podium {
+  position: relative; overflow: hidden;
+  border-radius: 16px; margin-bottom: 12px; padding: 12px 12px 0;
+  background-size: cover; background-position: center;
+  /* Колонка с прижатым вниз рядом: иначе ступени висели посреди картинки,
+     а под ними оставалась пустая полоса неба в треть высоты блока. */
+  display: flex; flex-direction: column; min-height: 200px;
+}
+/* Вуаль поверх фона: белые облака и белый текст друг друга не переживают */
+.hall-podium-veil {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(10,10,24,0.55) 0%, rgba(10,10,24,0.2) 45%, rgba(10,10,24,0.75) 100%);
+}
+.hall-podium-head, .hall-podium-row { position: relative; z-index: 1; }
+/* Ряд прижат к низу карточки — так ступени стоят на её основании, а не в воздухе */
+.hall-podium-row { margin-top: auto; }
+.hall-podium-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+.hall-podium-title { font-size: 14px; font-weight: 700; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.6); }
+.hall-podium-season { font-size: 12px; color: rgba(255,255,255,0.75); }
+
+.hall-podium-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; align-items: stretch; }
+.hall-step {
+  position: relative; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  min-width: 0; justify-content: flex-end;
+  background-size: cover; background-position: center;
+}
+/* Полоса со своим фоном скругляется сверху — иначе картинка режется прямым углом
+   и читается как сбой вёрстки, а не как оформление. */
+.hall-step-bg { border-radius: 10px 10px 0 0; }
+.hall-step-veil {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(10,10,24,0.25) 0%, rgba(10,10,24,0.62) 100%);
+}
+.hall-step > *:not(.hall-step-veil) { position: relative; z-index: 1; }
+/* Когда полосы свои, общая вуаль подиума не нужна — она гасила бы их поверх своей */
+.hall-podium-bands .hall-podium-veil { background: none; }
+.hall-podium-bands { background: linear-gradient(180deg, #1a2030, #10141f); }
+/* Полосы тянутся на всю высоту подиума: прижатый вниз ряд оставлял над ними
+   пустую тёмную область, и три баннера читались как три случайные картинки. */
+.hall-podium-bands .hall-podium-row { margin-top: 0; flex: 1; }
+.hall-medal { font-size: 22px; line-height: 1; }
+.hall-step-name {
+  font-size: 12px; font-weight: 700; color: #fff; text-align: center;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.7);
+  /* Длинные ники не должны ломать колонки подиума */
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.hall-step-fame { font-size: 12px; color: var(--gold); font-weight: 700; text-shadow: 0 1px 4px rgba(0,0,0,0.7); }
+/* Ступени разной высоты — форма пьедестала читается без подписей */
+.hall-step-block { width: 100%; border-radius: 8px 8px 0 0; margin-top: 3px; }
+.hall-step-1 .hall-step-block { height: 56px; background: linear-gradient(180deg, #ffd75e, #d79a1a); }
+.hall-step-2 .hall-step-block { height: 38px; background: linear-gradient(180deg, #dfe6f0, #9aa6bb); }
+.hall-step-3 .hall-step-block { height: 26px; background: linear-gradient(180deg, #e2a870, #a86a33); }
+
+.hall-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.hall-row {
+  position: relative; overflow: hidden;
+  display: grid; grid-template-columns: 34px minmax(0, 1fr) auto;
+  grid-template-areas: "rank name fame" "rank sub fame";
+  align-items: center; column-gap: 8px;
+  padding: 8px 10px; border-radius: 10px; background: var(--bg-card);
+  background-size: cover; background-position: center;
+}
+/* Не ровная заливка, а уклон: слева, где имя, почти непрозрачно, справа картинка
+   проступает. Ровной вуали не хватало на светлой арене — имя тонуло в флагах. */
+.hall-row-veil {
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, rgba(10,10,24,0.92) 0%, rgba(10,10,24,0.72) 55%, rgba(10,10,24,0.55) 100%);
+}
+.hall-row > *:not(.hall-row-veil) { position: relative; z-index: 1; }
+.hall-rank { grid-area: rank; font-size: 12px; color: var(--muted); font-weight: 700; }
+.hall-row-bg .hall-rank { color: rgba(255,255,255,0.8); }
+.hall-name { grid-area: name; font-size: 14px; font-weight: 600; min-width: 0; display: flex; align-items: center; gap: 4px; }
+.hall-sub { grid-area: sub; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hall-fame { grid-area: fame; font-size: 14px; font-weight: 700; color: var(--gold); }
+
+.hall-badge { font-size: 13px; }
+.badge-bronze { filter: hue-rotate(-12deg) saturate(1.1); }
+.badge-silver { filter: grayscale(0.35) brightness(1.15); }
+.badge-gold { filter: drop-shadow(0 0 3px rgba(255,200,61,0.9)); }
+.hall-sponsor-tag { color: var(--gold); font-size: 13px; }
+
+/* Ссылка, а не кнопка, поэтому подчёркивание и выравнивание задаём сами */
+.hall-sponsor-btn {
+  margin-top: 14px; display: block; width: 100%;
+  text-align: center; text-decoration: none; box-sizing: border-box;
+}
+.hall-sponsor-hint { margin: 6px 2px 0; line-height: 1.4; }
+
+/* --- Своя строка на Аллее: единственное место, где показан призыв купить --- */
+.hall-me {
+  position: relative; overflow: hidden;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 12px; margin-bottom: 10px; border-radius: 12px;
+  background: var(--bg-card); border: 1px solid rgba(255,200,61,0.3);
+  background-size: cover; background-position: center;
+}
+.hall-me > *:not(.hall-row-veil) { position: relative; z-index: 1; }
+.hall-me-body { display: grid; gap: 1px; min-width: 0; }
+.hall-me-rank { font-size: 18px; font-weight: 800; display: flex; align-items: center; gap: 5px; }
+.hall-me-of { font-weight: 400; }
+.hall-me-fame { font-size: 13px; color: var(--gold); font-weight: 700; }
+.hall-me-btn { flex-shrink: 0; text-decoration: none; }
+
+/* --- Клановая строка как кнопка «написать» --- */
+.hall-row-btn {
+  width: 100%; border: none; cursor: pointer; text-align: left;
+  font: inherit; color: inherit;
+}
+.hall-list li { list-style: none; }
+
+/* --- Выбор фона --- */
+.bg-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 6px 0 12px; }
+.bg-tile {
+  height: 64px; border-radius: 10px; border: 2px solid transparent; cursor: pointer;
+  background-size: cover; background-position: center; padding: 0;
+}
+/* Вертикальные виды клана показываем выше: в низкой плитке от них остаётся полоса неба */
+.bg-tile-tall { height: 110px; }
+.bg-tile-on { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(255,200,61,0.35); }
+
+/* --- Общее модальное окно --- */
+.modal-backdrop {
+  position: fixed; inset: 0; z-index: 50;
+  background: rgba(0,0,0,0.6);
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+  overflow-y: auto;
+}
+.modal-card { width: 100%; max-width: 420px; margin: auto; max-height: 90vh; overflow-y: auto; }
+
+/* --- Оформление спонсора в общих списках --- */
+.sponsor-bg {
+  position: relative; overflow: hidden;
+  background-size: cover; background-position: center;
+}
+/* Уклон, а не ровная заливка: слева, где имя, почти непрозрачно, справа картинка
+   проступает. Ровной вуали не хватало на светлых фонах — имя тонуло. */
+.sponsor-bg-veil {
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, rgba(10,10,24,0.92) 0%, rgba(10,10,24,0.74) 55%, rgba(10,10,24,0.56) 100%);
+}
+.sponsor-bg > *:not(.sponsor-bg-veil) { position: relative; z-index: 1; }
+
+/* --- Темы клана ---
+   Спонсор выбирает фон клану, и приложение красится под него.
+
+   Красим фон и карточки, а не только акцент. Первая версия меняла --accent и
+   рисовала подсветку на body::before — проверка показала, что переменные
+   применяются верно, но увидеть это нельзя: акцент на большинстве экранов почти
+   не используется, а подсветку перекрывает любая обёртка со своим фоном. Тема,
+   которой не видно, ничем не отличается от отсутствующей.
+
+   Оттенки остаются тёмными: цвета текста не трогаем совсем, иначе читаемость
+   начинает зависеть от того, что выбрал спонсор. */
+[data-clan-theme="kingdomSun"] {
+  --bg: #171208;
+  --bg-card: #2b2113;
+  --accent: #e8a72e;
+}
+[data-clan-theme="kingdom"] {
+  --bg: #0d131f;
+  --bg-card: #1b2538;
+  --accent: #4f7fd4;
+}
+[data-clan-theme="kingdom2"] {
+  --bg: #120f1f;
+  --bg-card: #221c39;
+  --accent: #7b74e0;
+}
+[data-clan-theme="kingdomFire"] {
+  --bg: #1a0e0a;
+  --bg-card: #2e1a14;
+  --accent: #e0603a;
+}
+
+/* --- Выбор оформления себя --- */
+.looks-badges { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 12px; }
+.looks-badge {
+  display: grid; gap: 1px; justify-items: center;
+  padding: 8px 10px; border-radius: 10px; cursor: pointer;
+  background: rgba(255, 255, 255, 0.05); border: 2px solid transparent;
+}
+.looks-badge-on { border-color: var(--gold); background: rgba(255, 200, 61, 0.12); }
+.looks-badge-icon { font-size: 22px; line-height: 1; }
+.looks-badge-lvl { font-size: 9px; letter-spacing: 1px; }

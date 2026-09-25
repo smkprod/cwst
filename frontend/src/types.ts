@@ -20,6 +20,10 @@ export interface PlayerStatus {
   trophies: number           // кубки игрока (0 — состав клана не отдался)
   dnaLabel?: string          // Pro: архетип ("Тащер 💪" и т.п.), undefined — мало данных/Free
   reliabilityScore: number   // Pro: надёжность 0..100 (0 — нет данных/Free)
+  isSponsor?: boolean        // спонсор — ★ рядом с именем
+  backgroundKey?: BackgroundKey | null  // оформление строки спонсора
+  badgeKey?: string | null   // выставленный напоказ значок
+  badgeLevel?: number        // 1 бронза, 2 серебро, 3 золото
 }
 
 /* --- Дисциплина клана: кто подводит и кого приходится тянуть --- */
@@ -246,6 +250,7 @@ export interface ClanStatus {
   isAdmin?: boolean          // админ ли текущий пользователь в группе клана
   isClanLeader?: boolean     // leader или coLeader в CR-клане
   isOwner?: boolean          // владелец сервиса (видит панель ⚙️)
+  clanBackgroundKey?: BackgroundKey | null  // тема клана, выбранная спонсором
   viewingAsAdmin?: boolean   // это чужой клан, открытый из панели
   adminReadOnly?: boolean    // зашёл модератор: смотреть можно, менять нельзя
   reminderHoursBeforeEnd?: number // за сколько часов до конца дня шлём автонапоминания
@@ -268,6 +273,8 @@ export type ServicePermission =
   | 'DeleteClans'
   | 'ManageModerators'
   | 'Maintenance'
+  | 'Sponsors'
+  | 'AppSettings'
 
 export interface ServiceIdentity {
   role: ServiceRole
@@ -331,6 +338,8 @@ export interface Achievements {
   weeksAnalyzed: number
   /** Ключи наград, открытых с прошлого просмотра. Приходят ровно один раз. */
   justUnlocked: string[]
+  /** Какой значок выставлен напоказ. null — не выбран. */
+  showcaseKey?: string | null
 }
 
 export interface MyStats {
@@ -683,6 +692,7 @@ export interface NotificationSettings {
   dailyReportEnabled: boolean
   warEndMinuteUtc: number | null   // во сколько заканчивается КВ (минуты от 00:00 UTC), null = 10:00 по умолчанию
   perfectDayEnabled: boolean       // поздравление «900 за день» в чат
+  acceptsClanMail: boolean         // принимать ли сообщения от других кланов
 }
 
 export type BroadcastTarget = 'dm' | 'chats' | 'both'
@@ -981,4 +991,76 @@ export interface SearchHistoryItem {
 export interface LinkedPlayer {
   playerTag: string
   name: string
+}
+
+/**
+ * Ключи фонов — совпадают с файлами в public/bg.
+ *
+ * 'sky' в наборы не входит: это оформление самого подиума Аллеи, когда ни у кого
+ * из тройки нет своего фона. Выбрать его нельзя, поэтому в playerBackgrounds и
+ * clanBackgrounds его не будет — но как значение он существует.
+ */
+export type BackgroundKey =
+  | 'sky' | 'arena' | 'sunset' | 'night' | 'ice' | 'lava'
+  | 'kingdomSun' | 'kingdom' | 'kingdom2' | 'kingdomFire'
+
+/** Вкладки нижней панели. Состав задаёт владелец из админки. */
+export type AppTab = 'clan' | 'me' | 'hall' | 'tournament' | 'search' | 'more'
+
+export interface AppConfig {
+  botUsername: string
+  tabs: AppTab[]
+  /** Наборы разные: широкие сцены игроку в строку, вертикальные виды клану в блок. */
+  playerBackgrounds: BackgroundKey[]
+  clanBackgrounds: BackgroundKey[]
+  isSponsor: boolean
+  sponsorUntil: string | null
+  myBackground: BackgroundKey | null
+  myClanBackground: BackgroundKey | null
+  /** Кому писать за спонсорством. Пусто — кнопку не показываем. */
+  sponsorContact: string
+}
+
+export interface HallPlayer {
+  rank: number
+  playerTag: string
+  name: string
+  clanName: string
+  clanTag: string | null
+  seasonFame: number
+  weeksPlayed: number
+  badgeKey: string | null
+  badgeLevel: number
+  isSponsor: boolean
+  backgroundKey: BackgroundKey | null
+}
+
+export interface HallClan {
+  rank: number
+  clanId: number
+  clanTag: string
+  clanName: string
+  seasonFame: number
+  weeksPlayed: number
+  sponsorCount: number
+  backgroundKey: BackgroundKey | null
+}
+
+export interface HallOfFame {
+  seasonId: number
+  clansCounted: number
+  totalPlayers: number
+  /** Своя строка, даже если далеко за сотней. null — игрок не в зачёте. */
+  me: HallPlayer | null
+  players: HallPlayer[]
+  clans: HallClan[]
+}
+
+export interface OwnerSponsor {
+  playerTag: string
+  name: string
+  clanName: string | null
+  until: string
+  background: BackgroundKey | null
+  daysLeft: number
 }

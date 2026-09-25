@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { api, ApiError, adminClan } from './lib/api'
 import { haptic } from './lib/telegram'
 import { useT, type Translations } from './lib/i18n'
-import type { ClanStatus, ServiceIdentity } from './types'
+import type { AppConfig, AppTab, ClanStatus, ServiceIdentity } from './types'
 import { WarHeader } from './components/WarHeader'
 import { ForecastCard } from './components/ForecastCard'
 import { InsightsCard } from './components/InsightsCard'
@@ -19,6 +19,7 @@ import { ClanWorldRankCard } from './components/ClanWorldRankCard'
 import { WarJournalCard } from './components/WarJournalCard'
 import { OwnerPanel } from './components/OwnerPanel'
 import { LinkPrompt } from './components/LinkPrompt'
+import { HallOfFame } from './components/HallOfFame'
 import { PlayerSearchView } from './components/PlayerSearchView'
 import { TournamentView } from './components/TournamentView'
 import { ClanlessView } from './components/ClanlessView'
@@ -54,7 +55,20 @@ const TRANSIENT_TOLERANCE = 3
  * редкое собрано в «Ещё». Панель владельца — пятая и только у владельца: она невидима
  * для остальных, так что места в баре ни у кого не занимает.
  */
-type Tab = 'clan' | 'me' | 'tournament' | 'search' | 'more' | 'owner'
+type Tab = 'clan' | 'me' | 'hall' | 'tournament' | 'search' | 'more' | 'owner'
+
+/** Набор вкладок, пока сервер не ответил. Совпадает с умолчанием на сервере. */
+const DEFAULT_TABS: AppTab[] = ['clan', 'me', 'hall', 'search', 'more']
+
+/** Как выглядит каждая вкладка. Ключи совпадают с теми, что присылает сервер. */
+const TAB_LOOKS = (t: Translations): Record<AppTab, { icon: string; label: string }> => ({
+  clan: { icon: '🏰', label: t.tabs.clan },
+  me: { icon: '👤', label: t.tabs.me },
+  hall: { icon: '🏛', label: t.tabs.hall },
+  tournament: { icon: '🏆', label: t.tabs.tournament },
+  search: { icon: '🔍', label: t.tabs.search },
+  more: { icon: '⚙️', label: t.tabs.more },
+})
 
 /**
  * Внутри «Клана»: война, состав и рейтинг — разные взгляды на один и тот же клан.
@@ -108,6 +122,29 @@ export default function App() {
   // кто вышел из клана, — и вернуть её было нечем. Модератору же клан не нужен
   // вовсе, он может вообще не играть.
   const [me, setMe] = useState<ServiceIdentity>({ role: 'none', permissions: [] })
+  // Состав нижних вкладок задаёт владелец из панели, поэтому он приезжает с сервера.
+  // Пока не приехал — показываем набор по умолчанию, чтобы навигация была сразу.
+  const [config, setConfig] = useState<AppConfig | null>(null)
+
+  // Тема клана: спонсор выбрал фон — приложение красится под него.
+  //
+  // Атрибутом на <html>, а не пропсами по дереву: акцент используют десятки
+  // компонентов, и протаскивать его в каждый значило бы рано или поздно забыть
+  // один, который остался бы синим посреди огненной темы.
+  useEffect(() => {
+    const theme = state.kind === 'ready' ? state.data.clanBackgroundKey : null
+    const root = document.documentElement
+    if (theme) root.setAttribute('data-clan-theme', theme)
+    else root.removeAttribute('data-clan-theme')
+  }, [state])
+
+  // Отдельно от остального: конфиг перечитывается после покупки фона, чтобы
+  // выбранное применилось без перезапуска приложения.
+  const loadConfig = useCallback(() => {
+    api.getAppConfig()
+      .then(setConfig)
+      .catch(() => { /* останемся на наборе вкладок по умолчанию */ })
+  }, [])
   const { t } = useT()
 
   // Сколько подряд неудачных обновлений терпим, прежде чем показать ошибку.
@@ -171,8 +208,9 @@ export default function App() {
     api.ownerMe()
       .then(r => { if (alive) setMe(r) })
       .catch(() => { /* обычный игрок, и это нормальный ответ */ })
+    loadConfig()
     return () => { alive = false }
-  }, [])
+  }, [loadConfig])
 
   useEffect(() => {
     load()
@@ -246,12 +284,10 @@ export default function App() {
       // однажды разойдутся в том, кого короновать.
       const king = weekKing(data.players, data.warLog, data.periodType)
 
-      const tabs: { id: Tab; icon: string; label: string }[] = [
-        { id: 'clan', icon: '🏰', label: t.tabs.clan },
-        { id: 'me', icon: '👤', label: t.tabs.me },
-        { id: 'tournament', icon: '🏆', label: t.tabs.tournament },
-        { id: 'search', icon: '🔍', label: t.tabs.search },
-        { id: 'more', icon: '⚙️', label: t.tabs.more },
+      // Панель владельца всегда последней и всегда вне настраиваемого набора:
+      // выключить её из панели значило бы потерять доступ к самой панели.
+      const tabs = [
+        ...(config?.tabs ?? DEFAULT_TABS).map(id => ({ id: id as Tab, ...TAB_LOOKS(t)[id] })),
         ...(me.role !== 'none' ? [{ id: 'owner' as Tab, icon: '📊', label: t.tabs.owner }] : []),
       ]
 
@@ -341,6 +377,9 @@ export default function App() {
                 isProLeader={isProLeader}
                 onOpenNotifications={() => { haptic('light'); setSettingsOpen(true) }}
               />
+            )}
+            {tab === 'hall' && (
+              <HallOfFame config={config} onConfigChanged={loadConfig} />
             )}
             {tab === 'owner' && me.role !== 'none' && (
               <div className="fade-in">

@@ -23,6 +23,7 @@
     <Content Include="Assets\KingBlue.png" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets\KingRed.png" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets\Trophy.png" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\AchievementBg.jpg" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ClanWarTracker.Application\ClanWarTracker.Application.csproj" />

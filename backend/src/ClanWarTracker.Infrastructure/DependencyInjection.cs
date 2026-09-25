@@ -77,6 +77,8 @@ public static class DependencyInjection
         services.AddScoped<IActivityRepository, ActivityRepository>();
         services.AddScoped<ITopPlayerRepository, TopPlayerRepository>();
         services.AddScoped<IServiceModeratorRepository, ServiceModeratorRepository>();
+        services.AddScoped<IServiceSettingRepository, ServiceSettingRepository>();
+        services.AddScoped<IClanMessageRepository, ClanMessageRepository>();
 
         // Права на сервис — здесь, а не в Program.cs каждого хоста: иначе API и воркер
         // разъехались бы в понимании того, кто владелец, и разошлись бы молча.
@@ -453,6 +455,20 @@ CREATE TABLE IF NOT EXISTS ""WarBattles"" (
         await db.Database.ExecuteSqlRawAsync(
             "ALTER TABLE \"Players\" ADD COLUMN IF NOT EXISTS \"NudgeCount\" integer NOT NULL DEFAULT 0;");
 
+        // Витрина: значок, который игрок выставил напоказ, и его уровень на момент выбора.
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Players\" ADD COLUMN IF NOT EXISTS \"ShowcaseBadgeKey\" varchar(32);");
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Players\" ADD COLUMN IF NOT EXISTS \"ShowcaseBadgeLevel\" integer NOT NULL DEFAULT 0;");
+
+        // Спонсорство: до какого момента действует и какой фон выбран.
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Players\" ADD COLUMN IF NOT EXISTS \"SponsorUntilUtc\" timestamptz;");
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Players\" ADD COLUMN IF NOT EXISTS \"SponsorBackgroundKey\" varchar(32);");
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Players\" ADD COLUMN IF NOT EXISTS \"SponsorClanBackgroundKey\" varchar(32);");
+
         // Эмодзи-аватарки отменены: вместо них состав клана красят градиенты по заслугам.
         // Колонка успела уехать на прод, поэтому убираем её явно, а не молча оставляем.
         await db.Database.ExecuteSqlRawAsync(
@@ -528,6 +544,36 @@ CREATE TABLE IF NOT EXISTS ""TopPlayers"" (
             "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_TopPlayers_DayUtc_Rank\" ON \"TopPlayers\" (\"DayUtc\", \"Rank\");");
         await db.Database.ExecuteSqlRawAsync(
             "CREATE INDEX IF NOT EXISTS \"IX_TopPlayers_DayUtc\" ON \"TopPlayers\" (\"DayUtc\");");
+
+        // Настройки сервиса, которые владелец меняет из панели без передеплоя.
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""ServiceSettings"" (
+    ""Id"" serial PRIMARY KEY,
+    ""Key"" varchar(64) NOT NULL,
+    ""Value"" varchar(2000) NOT NULL,
+    ""UpdatedAtUtc"" timestamptz NOT NULL
+);");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_ServiceSettings_Key\" ON \"ServiceSettings\" (\"Key\");");
+
+        // Сообщения между кланами: хранятся ради ограничения «раз в сутки на пару».
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""ClanMessages"" (
+    ""Id"" serial PRIMARY KEY,
+    ""FromClanId"" integer NOT NULL REFERENCES ""Clans"" (""Id"") ON DELETE CASCADE,
+    ""ToClanId"" integer NOT NULL REFERENCES ""Clans"" (""Id"") ON DELETE CASCADE,
+    ""SentByTelegramUserId"" bigint NOT NULL,
+    ""SentByName"" varchar(64) NOT NULL,
+    ""Kind"" integer NOT NULL DEFAULT 0,
+    ""Text"" varchar(300) NOT NULL,
+    ""SentAtUtc"" timestamptz NOT NULL
+);");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_ClanMessages_Pair\" ON \"ClanMessages\" (\"FromClanId\", \"ToClanId\", \"SentAtUtc\");");
+
+        // Выключатель входящих сообщений у клана.
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Clans\" ADD COLUMN IF NOT EXISTS \"AcceptsClanMail\" boolean NOT NULL DEFAULT TRUE;");
 
         // Модераторы сервиса: кому владелец открыл панель на просмотр.
         await db.Database.ExecuteSqlRawAsync(@"

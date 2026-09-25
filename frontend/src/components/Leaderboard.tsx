@@ -3,6 +3,7 @@ import { api } from '../lib/api'
 import type { ClanStatus, GlobalTop, Plan, PlayerStatus, SeasonArchive, SeasonBreakdown, SeasonPlayer, WarLogWeek } from '../types'
 import { weekKing } from '../lib/king'
 import { fmt } from '../lib/format'
+import { SponsorMarks, rowBackground } from '../lib/sponsorMarks'
 import { haptic } from '../lib/telegram'
 import { useT } from '../lib/i18n'
 import { PlayerInfoModal } from './PlayerInfoModal'
@@ -161,10 +162,12 @@ function WeekBoard({ players, myPlayerTag, onOpen, plan, periodType, warLog }: {
             <button
               key={p.playerTag}
               onClick={() => onOpen(p.playerTag)}
-              className={`podium-spot podium-${i === 1 ? 1 : i === 0 ? 2 : 3} ${p.playerTag === myPlayerTag ? 'podium-me' : ''}`}
+              className={`podium-spot podium-${i === 1 ? 1 : i === 0 ? 2 : 3} ${p.playerTag === myPlayerTag ? 'podium-me' : ''} ${rowBackground(p).className}`}
+              style={rowBackground(p).style}
             >
+              {p.backgroundKey && <span className="sponsor-bg-veil" />}
               <span className="podium-medal">{MEDALS[p.rank - 1] ?? ''}</span>
-              <span className="podium-name">{p.name}</span>
+              <span className="podium-name">{p.name}<SponsorMarks of={p} /></span>
               <span className="podium-fame">{fmt(p.fame)}</span>
               <div className="podium-bar" />
             </button>
@@ -178,13 +181,16 @@ function WeekBoard({ players, myPlayerTag, onOpen, plan, periodType, warLog }: {
         {rest.map(p => (
           <li key={p.playerTag}>
             <button
-              className={`rating-row ${p.playerTag === myPlayerTag ? 'rating-me' : ''}`}
+              className={`rating-row ${p.playerTag === myPlayerTag ? 'rating-me' : ''} ${rowBackground(p).className}`}
+              style={rowBackground(p).style}
               onClick={() => onOpen(p.playerTag)}
             >
+              {p.backgroundKey && <span className="sponsor-bg-veil" />}
               <span className="rating-rank">#{p.rank}</span>
               <span className="rating-name">
                 <span className="rating-name-row">
                   <span className="rating-name-text">{p.name}</span>
+                  <SponsorMarks of={p} />
                   {p.playerTag === myPlayerTag && <span className="me-badge">{t.leaderboard.you}</span>}
                   {plan === 'pro' && p.consecutiveWars >= 3 && (
                     <span className="streak-badge">🔥{p.consecutiveWars}</span>

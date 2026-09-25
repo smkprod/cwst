@@ -4,6 +4,7 @@ import type { LinkedPlayer, MyStats, PlayerHistory, PlayerProfile, PlayerWeekHis
 import { fmt, fmtShort } from '../lib/format'
 import { haptic, shareToTelegram } from '../lib/telegram'
 import { AchievementsCard } from './AchievementsCard'
+import { PlayerLooksCard } from './PlayerLooksCard'
 import { useT, perfLabel, type Translations } from '../lib/i18n'
 import { TournamentHistoryCard } from './TournamentHistoryCard'
 import { PlayerProfileCard } from './PlayerProfileCard'
@@ -189,6 +190,7 @@ export function MyStatsView() {
       {/* Награды сразу под цифрами: они и есть повод сюда заходить, а раньше
           лежали под двумя графиками и сезонной таблицей. */}
       <AchievementsCard />
+      <PlayerLooksCard />
 
       {history && history.weeks.length >= 2 && <WeeklyFameChart weeks={history.weeks} t={t} />}
       {history && history.weeks.length >= 2 && <VsClanChart weeks={history.weeks} t={t} />}

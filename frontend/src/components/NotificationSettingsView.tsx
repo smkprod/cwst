@@ -200,6 +200,18 @@ export function NotificationSettingsView({ onClose }: { onClose: () => void }) {
               />
             </div>
 
+            {/* Входящие от других кланов.
+                Выключатель здесь, а не спрятан: это единственный способ прекратить
+                нежелательные сообщения, не жалуясь на бота — а жалоба ударит по боту. */}
+            <div className="card notif-block">
+              <ToggleRow
+                label={t.notif.clanMailTitle}
+                desc={t.notif.clanMailDesc}
+                on={state.s.acceptsClanMail}
+                onToggle={() => patch({ acceptsClanMail: !state.s.acceptsClanMail })}
+              />
+            </div>
+
             <button className="btn btn-nudge notif-save" disabled={saving} onClick={save}>
               {saving ? t.notif.saving : saved ? t.notif.saved : t.notif.save}
             </button>

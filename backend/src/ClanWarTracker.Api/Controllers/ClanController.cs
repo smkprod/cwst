@@ -62,6 +62,7 @@ public class ClanController(
         return Ok(new { status.ClanTag, status.ClanName, status.PeriodType, status.PeriodIndex,
                         status.DayEndsAtUtc, status.HoursLeft, status.Plan, status.Stats, status.Forecast,
                         status.Race, status.Players, status.Insights, status.WarLog, status.DayLogs,
+                        status.ClanBackgroundKey,
                         myPlayerTag = player.PlayerTag,
                         isAdmin = isAdmin || ActingCanManage,
                         isClanLeader = isClanLeader || ActingCanManage,
@@ -104,7 +105,10 @@ public class ClanController(
         bool DailyReportEnabled,
         int? WarEndMinuteUtc = null,    // во сколько заканчивается КВ (минуты от 00:00 UTC), null = 10:00 по умолчанию
         bool PerfectDayEnabled = true,  // поздравление «900 за день» в чат
-        string Language = "ru");        // язык сообщений бота: ru | uk | en
+        string Language = "ru",         // язык сообщений бота: ru | uk | en
+        // Принимать ли сообщения от других кланов. Выключатель обязан быть заметным:
+        // без него единственный способ прекратить нежелательные — жалоба на бота.
+        bool AcceptsClanMail = true);
 
     /// <summary>GET /api/clans/my/notification-settings — гибкие настройки уведомлений (админ/лидер).</summary>
     [HttpGet("my/notification-settings")]
@@ -115,7 +119,8 @@ public class ClanController(
         if (!await CanManageAsync(clan!, player!, ct))
             return StatusCode(403, new { error = "not_admin", message = "Настройки доступны админу группы или лидеру клана" });
 
-        return Ok(ToDto(NotificationSettings.Parse(clan!.NotificationSettingsJson), clan.ReminderHoursBeforeEnd));
+        return Ok(ToDto(NotificationSettings.Parse(clan!.NotificationSettingsJson),
+                        clan.ReminderHoursBeforeEnd, clan.AcceptsClanMail));
     }
 
     /// <summary>POST /api/clans/my/notification-settings — сохранить настройки уведомлений.</summary>
@@ -135,6 +140,7 @@ public class ClanController(
             return BadRequest(new { error = "bad_time", message = "Время конца дня: 0..1439 минут UTC" });
 
         clan!.ReminderHoursBeforeEnd = dto.ReminderHoursBeforeEnd;
+        clan.AcceptsClanMail = dto.AcceptsClanMail;
         clan.NotificationSettingsJson = new NotificationSettings
         {
             Reminders = new ToggleChannel { Enabled = dto.RemindersEnabled, Channel = NotifyChannelExt.ParseChannel(dto.RemindersChannel) },
@@ -149,10 +155,11 @@ public class ClanController(
         }.Serialize();
         await clans.SaveChangesAsync(ct);
 
-        return Ok(ToDto(NotificationSettings.Parse(clan.NotificationSettingsJson), clan.ReminderHoursBeforeEnd));
+        return Ok(ToDto(NotificationSettings.Parse(clan.NotificationSettingsJson),
+                        clan.ReminderHoursBeforeEnd, clan.AcceptsClanMail));
     }
 
-    private static NotificationSettingsDto ToDto(NotificationSettings s, int hours) => new(
+    private static NotificationSettingsDto ToDto(NotificationSettings s, int hours, bool acceptsMail) => new(
         hours,
         s.Reminders.Enabled, s.Reminders.Channel.ToWire(),
         s.WarStart.Enabled, s.WarStart.Channel.ToWire(),
@@ -160,7 +167,8 @@ public class ClanController(
         s.DailyReport.Enabled,
         s.WarEndMinuteUtc,
         s.PerfectDay.Enabled,
-        BotText.ToWire(s.Lang));
+        BotText.ToWire(s.Lang),
+        acceptsMail);
 
     /// <summary>Управлять настройками может админ группы или лидер/со-лидер клана.</summary>
     private async Task<bool> CanManageAsync(Clan clan, Player player, CancellationToken ct)

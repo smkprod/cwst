@@ -21,6 +21,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ActivityDay> ActivityDays => Set<ActivityDay>();
     public DbSet<TopPlayer> TopPlayers => Set<TopPlayer>();
     public DbSet<ServiceModerator> ServiceModerators => Set<ServiceModerator>();
+    public DbSet<ServiceSetting> ServiceSettings => Set<ServiceSetting>();
+    public DbSet<ClanMessage> ClanMessages => Set<ClanMessage>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -88,6 +90,31 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(t => t.Name).HasMaxLength(64);
             e.Property(t => t.ClanName).HasMaxLength(64);
             e.Property(t => t.DeckCardIds).HasMaxLength(128);
+        });
+
+        mb.Entity<ClanMessage>(e =>
+        {
+            // Ограничение «раз в сутки на пару» читает последнюю запись по паре —
+            // без этого индекса проверка сканировала бы всю переписку сервиса.
+            e.HasIndex(m => new { m.FromClanId, m.ToClanId, m.SentAtUtc });
+            e.Property(m => m.Text).HasMaxLength(300);
+            e.Property(m => m.SentByName).HasMaxLength(64);
+            // Клан удаляют — переписка уходит с ним, она без него не читается.
+            e.HasOne(m => m.FromClan).WithMany().HasForeignKey(m => m.FromClanId)
+                .OnDelete(DeleteBehavior.Cascade);
+            // А вот у получателя каскад поставить нельзя: две каскадные связи на одну
+            // таблицу SQL Server и Postgres считают циклом. Чистим руками при удалении.
+            e.HasOne(m => m.ToClan).WithMany().HasForeignKey(m => m.ToClanId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        mb.Entity<ServiceSetting>(e =>
+        {
+            // Ключ и есть идентичность настройки: две строки на один ключ означали бы,
+            // что прочитанное значение зависит от порядка выборки.
+            e.HasIndex(x => x.Key).IsUnique();
+            e.Property(x => x.Key).HasMaxLength(64);
+            e.Property(x => x.Value).HasMaxLength(2000);
         });
 
         mb.Entity<ServiceModerator>(e =>
