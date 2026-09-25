@@ -66,7 +66,15 @@ export function MyStatsView() {
 
   const switchTo = (next: Section) => { haptic('light'); setSection(next) }
 
+  // Оформление и под-вкладки идут вместе одним узлом.
+  //
+  // Раньше оформление стояло только в основной ветке, а аварийная — для тех, кого
+  // нет в составе текущей войны, — рисовала одни под-вкладки. Такой человек не
+  // видел оформления вообще, хотя именно он мог только что за него заплатить.
+  // Пока это два отдельных места вставки, они разъедутся снова.
   const sectionTabs = (
+    <>
+    <PlayerLooksCard />
     <div className="me-sections">
       <button
         className={`me-section ${section === 'clan' ? 'me-section-on' : ''}`}
@@ -77,6 +85,7 @@ export function MyStatsView() {
         onClick={() => switchTo('game')}
       >{t.me.sectionGame}</button>
     </div>
+    </>
   )
 
   // Профиль, разбор и колоды не зависят от войны — показываем их всегда,
@@ -139,11 +148,6 @@ export function MyStatsView() {
         </div>
         <p className="muted small">{s.clanName} · {t.me.rankOf} #{s.rank} {t.me.of} {s.clanSize}</p>
       </div>
-
-      {/* Оформление сразу под именем, до под-вкладок: за ним приходит тот, кто
-          только что заплатил, и искать его по простыне он не станет. Раньше оно
-          лежало последним блоком, и найти его было нельзя. */}
-      <PlayerLooksCard />
 
       {sectionTabs}
 

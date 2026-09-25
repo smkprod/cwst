@@ -2472,3 +2472,17 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 .looks-badge-on { border-color: var(--gold); background: rgba(255, 200, 61, 0.12); }
 .looks-badge-icon { font-size: 22px; line-height: 1; }
 .looks-badge-lvl { font-size: 9px; letter-spacing: 1px; }
+.looks-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  width: 100%; padding: 0; background: none; border: none; cursor: pointer;
+  color: inherit; font: inherit; text-align: left;
+}
+.looks-head-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.looks-head-badge { font-size: 18px; }
+/* Кусочек выбранного фона вместо слова: показать его короче, чем назвать */
+.looks-head-bg {
+  width: 34px; height: 20px; border-radius: 5px;
+  background-size: cover; background-position: center;
+  border: 1px solid rgba(255, 200, 61, 0.5);
+}
+.looks-head-chev { color: var(--muted); font-size: 13px; }
