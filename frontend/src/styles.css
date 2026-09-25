@@ -2481,3 +2481,14 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
   --bg-card: #2e1a14;
   --accent: #e0603a;
 }
+
+/* --- Выбор оформления себя --- */
+.looks-badges { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 12px; }
+.looks-badge {
+  display: grid; gap: 1px; justify-items: center;
+  padding: 8px 10px; border-radius: 10px; cursor: pointer;
+  background: rgba(255, 255, 255, 0.05); border: 2px solid transparent;
+}
+.looks-badge-on { border-color: var(--gold); background: rgba(255, 200, 61, 0.12); }
+.looks-badge-icon { font-size: 22px; line-height: 1; }
+.looks-badge-lvl { font-size: 9px; letter-spacing: 1px; }

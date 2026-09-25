@@ -607,6 +607,17 @@ const ru = {
     error: 'Не получилось. Попробуй ещё раз.',
   },
 
+  looks: {
+    title: '🎨 Моё оформление',
+    badgeTitle: 'Значок напоказ',
+    badgeHint: 'Виден рядом с именем в рейтинге, составе и на Аллее. Нажми ещё раз, чтобы убрать.',
+    noBadges: 'Наград пока нет — они появятся после первых военных недель.',
+    bgTitle: 'Фоны',
+    bgMine: 'Мой фон',
+    bgClan: 'Фон клана — виден всему клану',
+    notSponsor: 'Фоны доступны спонсорам.',
+  },
+
   hall: {
     title: '🏛 Аллея славы',
     season: 'Аллея славы',
@@ -1656,6 +1667,17 @@ const uk: Translations = {
     error: 'Не вийшло. Спробуй ще раз.',
   },
 
+  looks: {
+    title: '🎨 Моє оформлення',
+    badgeTitle: 'Значок напоказ',
+    badgeHint: 'Видно біля імені в рейтингу, складі та на Алеї. Натисни ще раз, щоб прибрати.',
+    noBadges: 'Нагород поки немає — вони з\'являться після перших воєнних тижнів.',
+    bgTitle: 'Фони',
+    bgMine: 'Мій фон',
+    bgClan: 'Фон клану — видно всьому клану',
+    notSponsor: 'Фони доступні спонсорам.',
+  },
+
   hall: {
     title: '🏛 Алея слави',
     season: 'Алея слави',
@@ -2701,6 +2723,17 @@ const en: Translations = {
     linking: 'Linking…',
     notFound: 'No player with that tag. Check it in the game.',
     error: 'Did not work. Try again.',
+  },
+
+  looks: {
+    title: '🎨 My look',
+    badgeTitle: 'Showcased badge',
+    badgeHint: 'Shown next to your name in the rating, roster and the Hall. Tap again to remove.',
+    noBadges: 'No awards yet — they appear after your first war weeks.',
+    bgTitle: 'Backgrounds',
+    bgMine: 'My background',
+    bgClan: 'Clan background — visible to the whole clan',
+    notSponsor: 'Backgrounds are available to sponsors.',
   },
 
   hall: {

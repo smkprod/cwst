@@ -264,9 +264,9 @@ public class PlayerController(
         // Не при первом заходе: у человека с историей там сразу десяток открытых
         // наград, и чат получил бы десять карточек подряд ни с того ни с сего.
         if (!firstEver && unlocked.Count > 0 && player.IsSponsor(DateTime.UtcNow))
-            await announceAchievement.ExecuteAsync(player, unlocked, ct);
+            await announceAchievement.ExecuteAsync(player, result.Badges, unlocked, ct);
 
-        return Ok(result with { JustUnlocked = unlocked });
+        return Ok(result with { JustUnlocked = unlocked, ShowcaseKey = player.ShowcaseBadgeKey });
     }
 
     /// <summary>

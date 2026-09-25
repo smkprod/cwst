@@ -1,3 +1,4 @@
+using ClanWarTracker.Application.DTOs;
 using ClanWarTracker.Application.Notifications;
 using ClanWarTracker.Domain.Entities;
 using ClanWarTracker.Domain.Interfaces;
@@ -31,8 +32,27 @@ public class AnnounceAchievementUseCase(
         ["boatAttacks"] = ("🚤", "Атаки по лодке"),
     };
 
+    /// <summary>
+    /// Награды, у которых первый уровень уже празднуется отдельно.
+    ///
+    /// Первый идеальный день объявляет SendPerfectDayUseCase — своей карточкой и
+    /// с шуткой. Вторая карточка про то же самое событие читается как сбой бота,
+    /// а не как двойной повод. Поэтому «Идеальный день» подхватываем только с
+    /// пятого и пятнадцатого: там своего объявления нет, и это уже не тот же
+    /// момент, а накопленная веха.
+    /// </summary>
+    private static readonly Dictionary<string, int> AnnouncedElsewhere = new()
+    {
+        ["perfectDays"] = 1,
+    };
+
+    /// <param name="badges">Витрина целиком — из неё берётся уровень открытой награды.</param>
     /// <param name="unlocked">Ключи наград, открытых с прошлого раза.</param>
-    public async Task ExecuteAsync(Player player, IReadOnlyList<string> unlocked, CancellationToken ct = default)
+    public async Task ExecuteAsync(
+        Player player,
+        IReadOnlyList<AchievementDto> badges,
+        IReadOnlyList<string> unlocked,
+        CancellationToken ct = default)
     {
         if (player.ClanId is not int clanId) return;
 
@@ -41,10 +61,15 @@ public class AnnounceAchievementUseCase(
         // выглядят кланы, заведённые ботом автоматически.
         if (clan is null || clan.TelegramChatId == 0) return;
 
+        var levels = badges.ToDictionary(b => b.Key, b => b.Level);
+
         // Объявляем одну, даже если открылось несколько. Три карточки подряд в
         // общем чате читаются как сбой, а не как повод порадоваться.
-        var key = unlocked[0];
-        if (!Badges.TryGetValue(key, out var badge)) return;
+        var key = unlocked.FirstOrDefault(k =>
+            Badges.ContainsKey(k)
+            && !(AnnouncedElsewhere.TryGetValue(k, out var covered)
+                 && levels.GetValueOrDefault(k) == covered));
+        if (key is null || !Badges.TryGetValue(key, out var badge)) return;
 
         // Эмодзи здесь уместен: это текст Telegram, а не рисованная карточка —
         // шрифт ищет клиент, и квадратов не будет.

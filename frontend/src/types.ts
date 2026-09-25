@@ -338,6 +338,8 @@ export interface Achievements {
   weeksAnalyzed: number
   /** Ключи наград, открытых с прошлого просмотра. Приходят ровно один раз. */
   justUnlocked: string[]
+  /** Какой значок выставлен напоказ. null — не выбран. */
+  showcaseKey?: string | null
 }
 
 export interface MyStats {
