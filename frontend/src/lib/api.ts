@@ -1,5 +1,5 @@
 import { initData } from './telegram'
-import type { AppConfig, AppTab, BackgroundKey, HallOfFame, OwnerSponsor, Moderator, ServiceIdentity, ServicePermission, BroadcastResult, BroadcastTarget, ClanDiscipline, DailyPuzzle, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, TopPlayerRow, TopPlayerDetail, Tournament, TournamentSummary, WarJournal } from '../types'
+import type { AppConfig, AppTab, BackgroundKey, HallOfFame, OwnerSponsor, Moderator, ServiceIdentity, ServicePermission, BroadcastResult, BroadcastTarget, ClanDiscipline, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, TopPlayerRow, TopPlayerDetail, Tournament, TournamentSummary, WarJournal } from '../types'
 
 // Если мы на Render (production), BASE должен быть пустой строкой '', чтобы запросы шли на тот же домен.
 // Для локальной разработки (Development) оставляем localhost:5000.
@@ -190,13 +190,6 @@ export const api = {
     return res.json().catch(() => null)
   },
   getRespectStatus: () => request<RespectStatus>('/api/players/me/respect-status'),
-  getDailyPuzzle: () => request<DailyPuzzle>('/api/game/daily'),
-  guessPuzzle: (cardId: number) =>
-    request<DailyPuzzle>('/api/game/daily/guess', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cardId }),
-    }),
 
   /** Ссылка-приглашение для непривязанного игрока (лидер/админ). */
   getClaimLink: (tag: string) =>
