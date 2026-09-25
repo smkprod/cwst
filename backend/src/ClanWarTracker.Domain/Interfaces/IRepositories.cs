@@ -25,8 +25,22 @@ public interface IPlayerRepository
     /// а не завёл вторую строку на тот же тег.
     /// </summary>
     Task<Player?> GetUnclaimedByTagAsync(string playerTag, CancellationToken ct = default);
-    /// <summary>Все игроки, привязавшие Telegram (/link), с загруженным кланом.</summary>
+    /// <summary>
+    /// Все игроки, привязавшие Telegram (/link), с загруженным кланом.
+    ///
+    /// Читается БЕЗ отслеживания: список используют витрины, и держать полсотни
+    /// сущностей в контексте ради чтения незачем. Менять полученные отсюда записи
+    /// нельзя — SaveChanges их не увидит; для изменения бери GetByTagAsync.
+    /// </summary>
     Task<List<Player>> GetAllLinkedAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Игрок по тегу — отслеживаемый, то есть пригодный к изменению.
+    ///
+    /// Нужен отдельно от GetAllLinkedAsync именно поэтому: тот отдаёт отсоединённые
+    /// записи, и правка в них тихо теряется при сохранении.
+    /// </summary>
+    Task<Player?> GetByTagAsync(string playerTag, CancellationToken ct = default);
     Task AddAsync(Player player, CancellationToken ct = default);
     Task SaveChangesAsync(CancellationToken ct = default);
 }

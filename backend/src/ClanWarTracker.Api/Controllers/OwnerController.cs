@@ -167,9 +167,11 @@ public class OwnerController(
         if (tag.Length < 3) return BadRequest(new { error = "bad_tag" });
         if (req.Days is < 0 or > 366) return BadRequest(new { error = "bad_days" });
 
-        var all = await players.GetAllLinkedAsync(ct);
-        var player = all.FirstOrDefault(p =>
-            string.Equals(p.PlayerTag, tag, StringComparison.OrdinalIgnoreCase));
+        // Отслеживаемая запись, а не строка из общего списка: тот читается без
+        // отслеживания, и выданное спонсорство тихо терялось при сохранении —
+        // ручка отвечала «ок» с новой датой, посчитанной в памяти, а в базе не
+        // менялось ничего.
+        var player = await players.GetByTagAsync(tag, ct);
         if (player is null) return NotFound(new { error = "player_not_found" });
 
         var now = DateTime.UtcNow;
