@@ -26,6 +26,14 @@ public record PerfectDayCardModel(
     string PlayerName, string ClanName, int Fame, string BotName, string? ArtUrl);
 
 /// <summary>
+/// Открытая награда спонсора. Подпись приходит готовой: что считать наградой и
+/// на каком языке её называть — не дело рисовалки. Значка в модели нет: рисуется
+/// кубок из ассетов, потому что эмодзи-шрифта в проекте нет.
+/// </summary>
+public record AchievementCardModel(
+    string PlayerName, string ClanName, string Title, string Subtitle, string BotName);
+
+/// <summary>
 /// Итог турнира: кто победил, с каким счётом и над кем.
 /// </summary>
 /// <param name="Roster">Состав команды строкой; пусто в одиночном турнире.</param>
@@ -148,6 +156,67 @@ public class CardRenderer(IWebHostEnvironment env, IHttpClientFactory http, IMem
     });
 
     /// <summary>Колода: восемь карт настоящими артами — ради этого картинки и затевались.</summary>
+    /// <summary>
+    /// Карточка открытой награды — привилегия спонсора.
+    ///
+    /// Рисуется на своей картинке вместо обычного градиента: в том и смысл, что в
+    /// общем чате она видна издалека и отличается от всех остальных сообщений
+    /// бота. Поверх фона кладётся затемнение — без него белый текст тонет в
+    /// закате, и проверять это приходится глазами, а не рассуждением.
+    /// </summary>
+    public byte[] RenderAchievement(AchievementCardModel m)
+    {
+        using var surface = SKSurface.Create(new SKImageInfo(Width, StatHeight));
+        var canvas = surface.Canvas;
+
+        if (_achievementBg is not null)
+            canvas.DrawImage(_achievementBg, new SKRect(0, 0, Width, StatHeight));
+        else
+            Background(canvas, StatHeight);
+
+        using (var veil = new SKPaint { IsAntialias = true })
+        {
+            veil.Shader = SKShader.CreateLinearGradient(
+                new SKPoint(0, 0), new SKPoint(0, StatHeight),
+                [new SKColor(8, 8, 20, 190), new SKColor(8, 8, 20, 120), new SKColor(8, 8, 20, 225)],
+                [0f, 0.45f, 1f], SKShaderTileMode.Clamp);
+            canvas.DrawRect(new SKRect(0, 0, Width, StatHeight), veil);
+        }
+
+        Header(canvas, m.PlayerName, m.ClanName, m.BotName, StatHeight);
+
+        using var paint = new SKPaint { IsAntialias = true };
+
+        // Кубок из ассетов, а не эмодзи.
+        //
+        // Эмодзи-шрифта в проекте нет намеренно — цветной весит десяток мегабайт, —
+        // и Clean() по этой же причине вырезает эмодзи из имён. Нарисуй я тут значок
+        // текстом, вышел бы пустой квадрат: ровно та поломка, от которой Clean и
+        // защищает. Кубок лежит в Assets, используется карточкой чемпиона и рисуется
+        // без шрифта вообще.
+        if (_trophy is not null) Art(canvas, paint, _trophy, Width / 2f, 104, 96, centered: true);
+
+        var titleFont = new SKFont(_display, 40);
+        paint.Color = Gold;
+        canvas.DrawText(m.Title, Width / 2f, 252, SKTextAlign.Center, titleFont, paint);
+
+        var subFont = new SKFont(_regular, 24);
+        paint.Color = Muted;
+        canvas.DrawText(m.Subtitle, Width / 2f, 292, SKTextAlign.Center, subFont, paint);
+
+        using (var line = new SKPaint { IsAntialias = true })
+        {
+            line.Shader = SKShader.CreateLinearGradient(
+                new SKPoint(0, 0), new SKPoint(Width, 0),
+                [Gold, Gold.WithAlpha(0)], [0f, 1f], SKShaderTileMode.Clamp);
+            canvas.DrawRect(new SKRect(0, StatHeight - 5, Width, StatHeight), line);
+        }
+
+        using var image = surface.Snapshot();
+        using var data = image.Encode(SKEncodedImageFormat.Jpeg, 90);
+        return data.ToArray();
+    }
+
     public byte[] RenderDeck(DeckCardModel m)
     {
         // Восемь иконок сразу, а не по одной внутри отрисовки: последовательно они
@@ -426,6 +495,13 @@ public class CardRenderer(IWebHostEnvironment env, IHttpClientFactory http, IMem
     private readonly SKImage? _kingBlue = LoadImage(env, "KingBlue.png");
     private readonly SKImage? _kingRed = LoadImage(env, "KingRed.png");
     private readonly SKImage? _trophy = LoadImage(env, "Trophy.png");
+
+    /// <summary>
+    /// Фон карточки наград спонсора. Лежит готовым под размер карточки, поэтому
+    /// на отрисовке его не масштабируем: 800×360 и есть та рамка, в которую он
+    /// уже обрезан.
+    /// </summary>
+    private readonly SKImage? _achievementBg = LoadImage(env, "AchievementBg.jpg");
 
     /// <summary>
     /// Картинка из Assets. В отличие от шрифта её отсутствие не фатально: карточка

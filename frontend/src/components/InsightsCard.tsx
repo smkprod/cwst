@@ -1,4 +1,5 @@
 import type { ClanInsights, Plan, PlayerStatus, RaceClan, WarDayLog, WarLogWeek } from '../types'
+import { SponsorMarks } from '../lib/sponsorMarks'
 import { fmt } from '../lib/format'
 import { useT } from '../lib/i18n'
 
@@ -148,7 +149,7 @@ export function InsightsCard({ insights, plan, players, dayLogs, warLog, race, p
               {heroes.map((p, i) => (
                 <div key={p.playerTag} className="hero-row">
                   <span>{heroMedals[i]}</span>
-                  <span className="hero-name">{p.name}</span>
+                  <span className="hero-name">{p.name}<SponsorMarks of={p} /></span>
                   <span className="muted small">⚡ {p.avgFamePerAttack.toFixed(0)}</span>
                   <span className="hero-fame">{fmt(p.fame)} 🏅</span>
                 </div>

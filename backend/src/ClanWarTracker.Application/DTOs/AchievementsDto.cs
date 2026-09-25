@@ -17,7 +17,10 @@ public record AchievementsDto(
     string PlayerTag,
     List<AchievementDto> Badges,
     int WeeksAnalyzed,
-    List<string> JustUnlocked);
+    List<string> JustUnlocked,
+    // Какой значок выставлен напоказ. Нужен экрану выбора: без него нельзя
+    // отметить текущий, и человек не видит, что вообще что-то выбрано.
+    string? ShowcaseKey = null);
 
 public record AchievementDto(
     string Key,                  // "streak" | "perfectDays" | "mvpWeeks" | "totalFame" | "warsPlayed" | …

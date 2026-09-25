@@ -1,5 +1,5 @@
 import { initData } from './telegram'
-import type { Moderator, ServiceIdentity, ServicePermission, BroadcastResult, BroadcastTarget, ClanDiscipline, DailyPuzzle, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, TopPlayerRow, TopPlayerDetail, Tournament, TournamentSummary, WarJournal } from '../types'
+import type { AppConfig, AppTab, BackgroundKey, HallOfFame, OwnerSponsor, Moderator, ServiceIdentity, ServicePermission, BroadcastResult, BroadcastTarget, ClanDiscipline, DailyPuzzle, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, TopPlayerRow, TopPlayerDetail, Tournament, TournamentSummary, WarJournal } from '../types'
 
 // Если мы на Render (production), BASE должен быть пустой строкой '', чтобы запросы шли на тот же домен.
 // Для локальной разработки (Development) оставляем localhost:5000.
@@ -90,7 +90,41 @@ export class ApiError extends Error {
 
 export const api = {
   /** Что фронту нужно знать о боте в рантайме (юзернейм для ссылок). */
-  getAppConfig: () => request<{ botUsername: string }>('/api/app/config'),
+  getAppConfig: () => request<AppConfig>('/api/app/config'),
+  /** Аллея славы: топ игроков и кланов сервиса за сезон. */
+  getHallOfFame: () => request<HallOfFame>('/api/hall'),
+  setShowcaseBadge: (key: string | null) =>
+    request<{ key: string | null; level: number }>('/api/players/me/showcase', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key }),
+    }),
+  setMyBackground: (key: BackgroundKey | null, scope: 'player' | 'clan' = 'player') =>
+    request<{ key: BackgroundKey | null }>('/api/players/me/background', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, scope }),
+    }),
+  /** Написать другому клану от имени своего. kind: обычное сообщение или вызов. */
+  sendClanMessage: (clanId: number, text: string, kind: 'message' | 'challenge') =>
+    request<{ ok: boolean }>(`/api/hall/clans/${clanId}/message`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, kind }),
+    }),
+  ownerGrantSponsor: (playerTag: string, days: number) =>
+    request<{ playerTag: string; name: string; until: string | null }>('/api/owner/sponsor', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ playerTag, days }),
+    }),
+  ownerGetSponsors: () => request<OwnerSponsor[]>('/api/owner/sponsors'),
+  ownerSetTabs: (tabs: AppTab[]) =>
+    request<{ tabs: AppTab[] }>('/api/owner/tabs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tabs }),
+    }),
   getMyClanStatus: () => request<ClanStatus>('/api/clans/my/status'),
   getClanStatus: (tag: string) =>
     request<ClanStatus>(`/api/clans/${encodeURIComponent(tag.replace('#', ''))}/status`),

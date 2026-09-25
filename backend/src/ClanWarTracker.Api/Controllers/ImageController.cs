@@ -126,6 +126,55 @@ public class ImageController(
         });
 
     /// <summary>
+    /// GET /api/img/achievement/{token}.jpg — карточка открытой награды спонсора.
+    ///
+    /// Ключ награды едет в самом сегменте пути через «~», а не отдельным
+    /// параметром: адрес собирает общий помощник, который умеет только
+    /// «вид/идентификатор», и городить ради одной карточки второй способ
+    /// сборки адресов — дороже, чем разделить строку здесь.
+    ///
+    /// Без авторизации, как и остальные картинки: их качает Telegram со своих
+    /// серверов. Показываем только имя, клан и название награды — всё это и так
+    /// видно любому в приложении.
+    /// </summary>
+    [HttpGet("achievement/{token}.jpg")]
+    public Task<IActionResult> AchievementCard(string token, CancellationToken ct) =>
+        Serve($"achievement:{token}", CardTtl, async () =>
+        {
+            var parts = token.Split('~', 2);
+            if (parts.Length != 2) return null;
+
+            var playerTag = Normalize(parts[0]);
+            if (!AchievementTitles.TryGetValue(parts[1], out var title)) return null;
+
+            var info = await Try(() => crApi.GetPlayerInfoAsync(playerTag, ct));
+            if (info is null) return null;
+
+            return renderer.RenderAchievement(new AchievementCardModel(
+                info.Name, info.ClanName ?? "без клана",
+                title, "новая награда",
+                await BotNameAsync(ct)));
+        });
+
+    /// <summary>
+    /// Подписи наград. Дублируют те, что в объявлении: карточку рисует API, а
+    /// объявление шлёт другой слой, и общего места у них нет — связывать их
+    /// ради девяти строк значило бы тащить рисовалку в Application.
+    /// </summary>
+    private static readonly Dictionary<string, string> AchievementTitles = new()
+    {
+        ["streak"] = "Недели подряд",
+        ["dailyStreak"] = "Дни подряд",
+        ["perfectDays"] = "Идеальный день",
+        ["mvpWeeks"] = "Лучший недели",
+        ["totalFame"] = "Медали за всё время",
+        ["warsPlayed"] = "Сыграно войн",
+        ["perfectWeeks"] = "Идеальная неделя",
+        ["perfectSeasons"] = "Идеальный сезон",
+        ["boatAttacks"] = "Атаки по лодке",
+    };
+
+    /// <summary>
     /// GET /api/img/champion/{id}.jpg — итог турнира для чата.
     ///
     /// Без авторизации, как и остальные картинки: их качает Telegram со своих серверов.

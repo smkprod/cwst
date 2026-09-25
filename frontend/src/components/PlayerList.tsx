@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { SponsorMarks } from '../lib/sponsorMarks'
 import type { PlayerStatus, PlayStatus } from '../types'
 import { fmt } from '../lib/format'
 import { haptic } from '../lib/telegram'
@@ -162,6 +163,7 @@ export function PlayerList({ players, myPlayerTag, kingTag, canManage = false }:
                     {isMe && <span className="me-badge">{t.leaderboard.you}</span>}
                     {/* Обрезается только само имя: значки рядом не должны съедаться многоточием */}
                     <span className="player-name-text">{p.name}</span>
+                    <SponsorMarks of={p} />
                     {/* Идеальная неделя прямо сейчас: 3600 — потолок, выше не бывает.
                         Считается из уже загруженных медалей, лишних запросов нет. */}
                     {p.fame >= PERFECT_WEEK_FAME && (

@@ -40,6 +40,12 @@ public enum ServicePermission
     /// <summary>Обслуживание: пересобрать снимок мирового топа и тому подобное.</summary>
     Maintenance = 128,
 
+    /// <summary>Выдавать и снимать спонсорство игрокам.</summary>
+    Sponsors = 256,
+
+    /// <summary>Менять настройки приложения: состав нижних вкладок и подобное.</summary>
+    AppSettings = 512,
+
     All = EnterClans | ManageClans | ChatAdmin | Plans | Broadcast
-        | DeleteClans | ManageModerators | Maintenance,
+        | DeleteClans | ManageModerators | Maintenance | Sponsors | AppSettings,
 }

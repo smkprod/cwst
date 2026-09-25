@@ -14,7 +14,11 @@ public record ClanStatusDto(
     List<PlayerStatusDto> Players,
     ClanInsightsDto? Insights,  // Pro: прогноз победы + здоровье клана (null на Free)
     List<WarLogWeekDto> WarLog, // журнал прошлых войн (места кланов и очки)
-    List<WarDayLogDto> DayLogs); // официальный по-дневный лог гонки (periodLogs)
+    List<WarDayLogDto> DayLogs, // официальный по-дневный лог гонки (periodLogs)
+    // Фон, которым спонсор оформил клан. Приложение красится под него: оформление,
+    // которое видно только на Аллее, клан замечает раз в неделю, а тема в своём
+    // клане — каждый день, и именно она снимает ощущение, что всё одинаковое.
+    string? ClanBackgroundKey = null);
 
 /// <summary>Итог дня гонки для нашего клана — официальные данные periodLogs из CR API.</summary>
 public record WarDayLogDto(
@@ -95,7 +99,14 @@ public record PlayerStatusDto(
     string? Role,             // "leader" | "coLeader" | "elder" | null (рядовой); перевод — на фронте
     int Trophies,             // кубки игрока (0 — состав клана не отдался)
     string? DnaLabel,         // Pro: архетип игрока ("Тащер 💪", "Надёжный 🛡" ...), null — мало данных/Free
-    int ReliabilityScore);    // Pro: надёжность 0..100 (0 — нет данных/Free)
+    int ReliabilityScore,     // Pro: надёжность 0..100 (0 — нет данных/Free)
+    // Оформление и статус — то, ради чего спонсорство вообще покупают. Едет вместе
+    // с составом, чтобы показываться и в рейтинге, и в списке, а не только на Аллее:
+    // ярлык, которого нет там, где человека видят каждый день, статусом не работает.
+    bool IsSponsor = false,
+    string? BackgroundKey = null,
+    string? BadgeKey = null,
+    int BadgeLevel = 0);
 
 public record ClanStatsDto(
     int TotalFame,

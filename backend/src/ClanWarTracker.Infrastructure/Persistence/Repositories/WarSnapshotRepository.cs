@@ -100,6 +100,22 @@ public class WarSnapshotRepository(AppDbContext db) : IWarSnapshotRepository
             .ToList();
     }
 
+    public async Task<int?> GetLatestSeasonIdAnyClanAsync(CancellationToken ct = default) =>
+        await db.WarSnapshots.Select(s => (int?)s.SeasonId).MaxAsync(ct);
+
+    /// <summary>
+    /// Весь сезон по всем кланам. Запрос тяжёлый — шестнадцать кланов по десятку
+    /// недель дают десятки тысяч строк игроков, — поэтому вызывающий обязан
+    /// кэшировать результат, а не звать это на каждое открытие вкладки.
+    /// </summary>
+    public Task<List<WarSnapshot>> GetSeasonAcrossClansAsync(int seasonId, CancellationToken ct = default) =>
+        db.WarSnapshots.AsNoTracking()
+            .Include(s => s.Players)
+            .Include(s => s.Clan)
+            .Where(s => s.SeasonId == seasonId)
+            .OrderBy(s => s.ClanId).ThenBy(s => s.SectionIndex).ThenBy(s => s.PeriodIndex)
+            .ToListAsync(ct);
+
     public async Task<int?> GetLatestSeasonIdAsync(int clanId, CancellationToken ct = default) =>
         await db.WarSnapshots
             .Where(s => s.ClanId == clanId)
