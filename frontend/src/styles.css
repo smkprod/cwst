@@ -369,6 +369,19 @@ details.collapse-card[open] > .collapse-summary::after { transform: rotate(180de
 .podium-3 .podium-bar { height: 26px; background: linear-gradient(180deg, #cd8f56, rgba(205, 143, 86, 0.25)); }
 .podium-me .podium-name { color: var(--purple); }
 
+/* Фон спонсора на ступени пьедестала.
+   Общая вуаль из списков идёт слева направо — она рассчитана на широкую строку,
+   где слева имя, а справа пусто. На ступени ширина около ста пикселей, и тот же
+   уклон успевает дойти только до 0.9: картинка почти не проступает. Здесь уклон
+   сверху вниз — вверху видно фон, внизу темно под именем и очками. */
+.podium-spot.sponsor-bg { border-radius: 10px 10px 0 0; padding-top: 4px; }
+.podium-spot.sponsor-bg .sponsor-bg-veil {
+  background: linear-gradient(180deg, rgba(10,10,24,0.14) 0%, rgba(10,10,24,0.40) 45%, rgba(10,10,24,0.78) 100%);
+}
+.podium-spot.sponsor-bg .podium-name,
+.podium-spot.sponsor-bg .podium-fame { text-shadow: 0 1px 3px rgba(0,0,0,0.9); }
+.podium-spot.sponsor-bg .podium-fame { color: #e7e9ef; }
+
 .rating-list { list-style: none; padding: 0; display: grid; gap: 5px; }
 .rating-row {
   display: flex; align-items: center; gap: 10px;
