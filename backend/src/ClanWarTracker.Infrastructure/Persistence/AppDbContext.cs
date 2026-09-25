@@ -21,6 +21,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ActivityDay> ActivityDays => Set<ActivityDay>();
     public DbSet<TopPlayer> TopPlayers => Set<TopPlayer>();
     public DbSet<ServiceModerator> ServiceModerators => Set<ServiceModerator>();
+    public DbSet<ServiceSetting> ServiceSettings => Set<ServiceSetting>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -88,6 +89,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(t => t.Name).HasMaxLength(64);
             e.Property(t => t.ClanName).HasMaxLength(64);
             e.Property(t => t.DeckCardIds).HasMaxLength(128);
+        });
+
+        mb.Entity<ServiceSetting>(e =>
+        {
+            // Ключ и есть идентичность настройки: две строки на один ключ означали бы,
+            // что прочитанное значение зависит от порядка выборки.
+            e.HasIndex(x => x.Key).IsUnique();
+            e.Property(x => x.Key).HasMaxLength(64);
+            e.Property(x => x.Value).HasMaxLength(2000);
         });
 
         mb.Entity<ServiceModerator>(e =>

@@ -982,3 +982,61 @@ export interface LinkedPlayer {
   playerTag: string
   name: string
 }
+
+/** Ключи фонов спонсора — совпадают с файлами в public/bg. */
+export type BackgroundKey = 'sky' | 'arena' | 'night' | 'ice'
+
+/** Вкладки нижней панели. Состав задаёт владелец из админки. */
+export type AppTab = 'clan' | 'me' | 'hall' | 'tournament' | 'search' | 'more'
+
+export interface AppConfig {
+  botUsername: string
+  tabs: AppTab[]
+  backgrounds: BackgroundKey[]
+  isSponsor: boolean
+  sponsorUntil: string | null
+  myBackground: BackgroundKey | null
+  /** Кому писать за спонсорством. Пусто — кнопку не показываем. */
+  sponsorContact: string
+}
+
+export interface HallPlayer {
+  rank: number
+  playerTag: string
+  name: string
+  clanName: string
+  clanTag: string | null
+  seasonFame: number
+  weeksPlayed: number
+  badgeKey: string | null
+  badgeLevel: number
+  isSponsor: boolean
+  backgroundKey: BackgroundKey | null
+}
+
+export interface HallClan {
+  rank: number
+  clanId: number
+  clanTag: string
+  clanName: string
+  seasonFame: number
+  weeksPlayed: number
+  sponsorCount: number
+  backgroundKey: BackgroundKey | null
+}
+
+export interface HallOfFame {
+  seasonId: number
+  clansCounted: number
+  players: HallPlayer[]
+  clans: HallClan[]
+}
+
+export interface OwnerSponsor {
+  playerTag: string
+  name: string
+  clanName: string | null
+  until: string
+  background: BackgroundKey | null
+  daysLeft: number
+}

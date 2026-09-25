@@ -1,6 +1,7 @@
 using ClanWarTracker.Application.DTOs;
 using ClanWarTracker.Application.UseCases;
 using ClanWarTracker.Domain.Enums;
+using ClanWarTracker.Domain.Entities;
 using ClanWarTracker.Domain.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -91,6 +92,70 @@ public class PlayerController(
         return name is null
             ? NotFound(new { error = "player_not_found" })
             : Ok(new { playerTag = LinkPlayerUseCase.Normalize(tag), name });
+    }
+
+    public record ShowcaseRequest(string? Key);
+    public record BackgroundRequest(string? Key);
+
+    /// <summary>
+    /// POST /api/players/me/showcase — выставить значок напоказ. Body: { key } или { key: null }.
+    ///
+    /// Проверяем по настоящей витрине наград: выставить можно только добытое.
+    /// Уровень записываем снимком — состав клана читается при каждом открытии
+    /// приложения, и пересчитывать полгода снимков на каждого там нельзя.
+    /// </summary>
+    [HttpPost("me/showcase")]
+    public async Task<IActionResult> SetShowcase([FromBody] ShowcaseRequest req, CancellationToken ct)
+    {
+        var userId = (long)HttpContext.Items["TelegramUserId"]!;
+        var player = await players.GetByTelegramIdAsync(userId, ct);
+        if (player is null) return NotFound(new { error = "player_not_linked" });
+
+        if (string.IsNullOrWhiteSpace(req.Key))
+        {
+            player.ShowcaseBadgeKey = null;
+            player.ShowcaseBadgeLevel = 0;
+            await players.SaveChangesAsync(ct);
+            return Ok(new { key = (string?)null, level = 0 });
+        }
+
+        if (player.ClanId is null) return NotFound(new { error = "clan_not_found" });
+
+        var earned = await getAchievements.ExecuteAsync(player.ClanId.Value, player.PlayerTag, ct);
+        var badge = earned.Badges.FirstOrDefault(b => b.Key == req.Key && b.Level > 0);
+        if (badge is null) return BadRequest(new { error = "badge_not_earned" });
+
+        player.ShowcaseBadgeKey = badge.Key;
+        player.ShowcaseBadgeLevel = badge.Level;
+        await players.SaveChangesAsync(ct);
+        return Ok(new { key = badge.Key, level = badge.Level });
+    }
+
+    /// <summary>
+    /// POST /api/players/me/background — выбрать фон. Только действующему спонсору:
+    /// фон и есть то, за что платят, и раздавать его бесплатно значит обнулить смысл.
+    /// </summary>
+    [HttpPost("me/background")]
+    public async Task<IActionResult> SetBackground([FromBody] BackgroundRequest req, CancellationToken ct)
+    {
+        var userId = (long)HttpContext.Items["TelegramUserId"]!;
+        var player = await players.GetByTelegramIdAsync(userId, ct);
+        if (player is null) return NotFound(new { error = "player_not_linked" });
+        if (!player.IsSponsor(DateTime.UtcNow)) return StatusCode(403, new { error = "not_sponsor" });
+
+        // Пустой ключ — сознательный отказ от фона, а не ошибка.
+        if (string.IsNullOrWhiteSpace(req.Key))
+        {
+            player.SponsorBackgroundKey = null;
+            await players.SaveChangesAsync(ct);
+            return Ok(new { key = (string?)null });
+        }
+
+        if (!SponsorBackground.IsKnown(req.Key)) return BadRequest(new { error = "unknown_background" });
+
+        player.SponsorBackgroundKey = req.Key;
+        await players.SaveChangesAsync(ct);
+        return Ok(new { key = req.Key });
     }
 
     /// <summary>GET /api/players/me/stats — детальная статистика по текущему игроку.</summary>

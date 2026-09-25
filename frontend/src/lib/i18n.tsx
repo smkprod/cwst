@@ -13,7 +13,8 @@ const ru = {
   dateLocale: 'ru-RU',
 
   tabs: { war: 'Война', rating: 'Рейтинг', me: 'Я', search: 'Поиск', owner: 'Панель',
-          recruit: 'Биржа', tournament: 'Турнир', clan: 'Клан', more: 'Ещё', roster: 'Состав' },
+          recruit: 'Биржа', tournament: 'Турнир', clan: 'Клан', more: 'Ещё', roster: 'Состав',
+          hall: 'Аллея' },
 
   more: {
     back: 'Назад',
@@ -604,6 +605,17 @@ const ru = {
     error: 'Не получилось. Попробуй ещё раз.',
   },
 
+  hall: {
+    title: '🏛 Аллея славы',
+    season: 'Аллея славы',
+    players: '👤 Игроки',
+    clans: '🏰 Кланы',
+    collecting: 'Данных за сезон ещё нет — Аллея заполнится после первой военной недели.',
+    error: 'Не удалось загрузить Аллею',
+    becomeSponsor: '★ Стать спонсором',
+    sponsorHint: 'Спонсор получает ярлык рядом с именем, красивые фоны в списках и на Аллее и может оформить фон своему клану.',
+  },
+
   admin: {
     readOnly: 'только просмотр',
     exit: 'Выйти',
@@ -1004,7 +1016,8 @@ const uk: Translations = {
   dateLocale: 'uk-UA',
 
   tabs: { roster: 'Склад', war: 'Війна', rating: 'Рейтинг', me: 'Я', search: 'Пошук', owner: 'Панель',
-          recruit: 'Біржа', tournament: 'Турнір', clan: 'Клан', more: 'Ще' },
+          recruit: 'Біржа', tournament: 'Турнір', clan: 'Клан', more: 'Ще',
+          hall: 'Алея' },
 
   more: {
     back: 'Назад',
@@ -1595,6 +1608,17 @@ const uk: Translations = {
     error: 'Не вийшло. Спробуй ще раз.',
   },
 
+  hall: {
+    title: '🏛 Алея слави',
+    season: 'Алея слави',
+    players: '👤 Гравці',
+    clans: '🏰 Клани',
+    collecting: 'Даних за сезон ще немає — Алея заповниться після першого воєнного тижня.',
+    error: 'Не вдалося завантажити Алею',
+    becomeSponsor: '★ Стати спонсором',
+    sponsorHint: 'Спонсор отримує ярлик біля імені, красиві фони у списках і на Алеї та може оформити фон своєму клану.',
+  },
+
   admin: {
     readOnly: 'лише перегляд',
     exit: 'Вийти',
@@ -1993,7 +2017,8 @@ const en: Translations = {
   dateLocale: 'en-US',
 
   tabs: { roster: 'Roster', war: 'War', rating: 'Rating', me: 'Me', search: 'Search', owner: 'Panel',
-          recruit: 'Market', tournament: 'Tournament', clan: 'Clan', more: 'More' },
+          recruit: 'Market', tournament: 'Tournament', clan: 'Clan', more: 'More',
+          hall: 'Hall' },
 
   more: {
     back: 'Back',
@@ -2582,6 +2607,17 @@ const en: Translations = {
     linking: 'Linking…',
     notFound: 'No player with that tag. Check it in the game.',
     error: 'Did not work. Try again.',
+  },
+
+  hall: {
+    title: '🏛 Hall of Fame',
+    season: 'Hall of Fame',
+    players: '👤 Players',
+    clans: '🏰 Clans',
+    collecting: 'No season data yet — the Hall fills up after the first war week.',
+    error: 'Could not load the Hall',
+    becomeSponsor: '★ Become a sponsor',
+    sponsorHint: 'Sponsors get a mark next to their name, decorated backgrounds in lists and in the Hall, and can style their clan.',
   },
 
   admin: {

@@ -2301,3 +2301,78 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 }
 .link-hint { margin: 8px 0 0; }
 .link-btn { width: 100%; margin-top: 12px; }
+
+/* --- Аллея славы --- */
+.hall-switch { display: flex; gap: 2px; background: rgba(255,255,255,0.06); border-radius: 8px; padding: 2px; margin-bottom: 10px; }
+.hall-switch .chart-opt { flex: 1; }
+
+.hall-podium {
+  position: relative; overflow: hidden;
+  border-radius: 16px; margin-bottom: 12px; padding: 12px 12px 0;
+  background-size: cover; background-position: center;
+  /* Колонка с прижатым вниз рядом: иначе ступени висели посреди картинки,
+     а под ними оставалась пустая полоса неба в треть высоты блока. */
+  display: flex; flex-direction: column; min-height: 200px;
+}
+/* Вуаль поверх фона: белые облака и белый текст друг друга не переживают */
+.hall-podium-veil {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(10,10,24,0.55) 0%, rgba(10,10,24,0.2) 45%, rgba(10,10,24,0.75) 100%);
+}
+.hall-podium-head, .hall-podium-row { position: relative; z-index: 1; }
+/* Ряд прижат к низу карточки — так ступени стоят на её основании, а не в воздухе */
+.hall-podium-row { margin-top: auto; }
+.hall-podium-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+.hall-podium-title { font-size: 14px; font-weight: 700; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.6); }
+.hall-podium-season { font-size: 12px; color: rgba(255,255,255,0.75); }
+
+.hall-podium-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; align-items: end; }
+.hall-step { display: flex; flex-direction: column; align-items: center; gap: 1px; min-width: 0; justify-content: flex-end; }
+.hall-medal { font-size: 22px; line-height: 1; }
+.hall-step-name {
+  font-size: 12px; font-weight: 700; color: #fff; text-align: center;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.7);
+  /* Длинные ники не должны ломать колонки подиума */
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.hall-step-fame { font-size: 12px; color: var(--gold); font-weight: 700; text-shadow: 0 1px 4px rgba(0,0,0,0.7); }
+/* Ступени разной высоты — форма пьедестала читается без подписей */
+.hall-step-block { width: 100%; border-radius: 8px 8px 0 0; margin-top: 3px; }
+.hall-step-1 .hall-step-block { height: 56px; background: linear-gradient(180deg, #ffd75e, #d79a1a); }
+.hall-step-2 .hall-step-block { height: 38px; background: linear-gradient(180deg, #dfe6f0, #9aa6bb); }
+.hall-step-3 .hall-step-block { height: 26px; background: linear-gradient(180deg, #e2a870, #a86a33); }
+
+.hall-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.hall-row {
+  position: relative; overflow: hidden;
+  display: grid; grid-template-columns: 34px minmax(0, 1fr) auto;
+  grid-template-areas: "rank name fame" "rank sub fame";
+  align-items: center; column-gap: 8px;
+  padding: 8px 10px; border-radius: 10px; background: var(--bg-card);
+  background-size: cover; background-position: center;
+}
+/* Не ровная заливка, а уклон: слева, где имя, почти непрозрачно, справа картинка
+   проступает. Ровной вуали не хватало на светлой арене — имя тонуло в флагах. */
+.hall-row-veil {
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, rgba(10,10,24,0.92) 0%, rgba(10,10,24,0.72) 55%, rgba(10,10,24,0.55) 100%);
+}
+.hall-row > *:not(.hall-row-veil) { position: relative; z-index: 1; }
+.hall-rank { grid-area: rank; font-size: 12px; color: var(--muted); font-weight: 700; }
+.hall-row-bg .hall-rank { color: rgba(255,255,255,0.8); }
+.hall-name { grid-area: name; font-size: 14px; font-weight: 600; min-width: 0; display: flex; align-items: center; gap: 4px; }
+.hall-sub { grid-area: sub; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hall-fame { grid-area: fame; font-size: 14px; font-weight: 700; color: var(--gold); }
+
+.hall-badge { font-size: 13px; }
+.badge-bronze { filter: hue-rotate(-12deg) saturate(1.1); }
+.badge-silver { filter: grayscale(0.35) brightness(1.15); }
+.badge-gold { filter: drop-shadow(0 0 3px rgba(255,200,61,0.9)); }
+.hall-sponsor-tag { color: var(--gold); font-size: 13px; }
+
+/* Ссылка, а не кнопка, поэтому подчёркивание и выравнивание задаём сами */
+.hall-sponsor-btn {
+  margin-top: 14px; display: block; width: 100%;
+  text-align: center; text-decoration: none; box-sizing: border-box;
+}
+.hall-sponsor-hint { margin: 6px 2px 0; line-height: 1.4; }

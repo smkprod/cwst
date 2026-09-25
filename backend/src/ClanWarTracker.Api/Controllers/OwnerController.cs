@@ -25,11 +25,15 @@ public class OwnerController(
     OwnerBroadcastUseCase broadcast,
     HarvestTopPlayersUseCase harvestTop,
     IServiceModeratorRepository moderators,
+    IPlayerRepository players,
+    IServiceSettingRepository settings,
     ServiceAccess access) : ControllerBase
 {
     public record SetPlanRequest(string Tier, int? Days);
     public record BroadcastRequest(string Text, string Target);
     public record AddModeratorRequest(string Username, string? Note, string[]? Permissions);
+    public record GrantSponsorRequest(string PlayerTag, int Days);
+    public record TabsRequest(string[] Tabs);
     public record SetPermissionsRequest(string[] Permissions);
 
     /// <summary>GET /api/owner/me — кто я для сервиса. Фронт по этому решает, показывать ли панель.</summary>
@@ -144,6 +148,89 @@ public class OwnerController(
 
         var result = await harvestTop.ExecuteAsync(force: true, ct: ct);
         return Ok(new { rows = result.Rows, problem = result.Skipped });
+    }
+
+    /// <summary>
+    /// POST /api/owner/sponsor — выдать спонсорство игроку. Body: { playerTag, days }.
+    /// days = 0 снимает.
+    ///
+    /// Продление именно продлевает: если у человека ещё две недели, месяц сверху
+    /// даёт полтора, а не обнуляет остаток. Иначе продлевать выгоднее было бы в
+    /// последний день, и любой, кто заплатил заранее, терял бы своё.
+    /// </summary>
+    [HttpPost("sponsor")]
+    public async Task<IActionResult> GrantSponsor([FromBody] GrantSponsorRequest req, CancellationToken ct)
+    {
+        if (await DenyAsync(ServicePermission.Sponsors, ct) is { } deny) return deny;
+
+        var tag = LinkPlayerUseCase.Normalize(req.PlayerTag ?? "");
+        if (tag.Length < 3) return BadRequest(new { error = "bad_tag" });
+        if (req.Days is < 0 or > 366) return BadRequest(new { error = "bad_days" });
+
+        var all = await players.GetAllLinkedAsync(ct);
+        var player = all.FirstOrDefault(p =>
+            string.Equals(p.PlayerTag, tag, StringComparison.OrdinalIgnoreCase));
+        if (player is null) return NotFound(new { error = "player_not_found" });
+
+        var now = DateTime.UtcNow;
+        if (req.Days == 0)
+        {
+            player.SponsorUntilUtc = null;
+            player.SponsorBackgroundKey = null;
+        }
+        else
+        {
+            var from = player.SponsorUntilUtc is { } until && until > now ? until : now;
+            player.SponsorUntilUtc = from.AddDays(req.Days);
+        }
+
+        await players.SaveChangesAsync(ct);
+        return Ok(new { playerTag = player.PlayerTag, name = player.Name, until = player.SponsorUntilUtc });
+    }
+
+    /// <summary>GET /api/owner/sponsors — действующие спонсоры.</summary>
+    [HttpGet("sponsors")]
+    public async Task<IActionResult> GetSponsors(CancellationToken ct)
+    {
+        if (await DenyViewAsync(ct) is { } deny) return deny;
+
+        var now = DateTime.UtcNow;
+        var all = await players.GetAllLinkedAsync(ct);
+        return Ok(all
+            .Where(p => p.IsSponsor(now))
+            .OrderBy(p => p.SponsorUntilUtc)
+            .Select(p => new
+            {
+                p.PlayerTag,
+                p.Name,
+                clanName = p.Clan?.Name,
+                until = p.SponsorUntilUtc,
+                background = p.SponsorBackgroundKey,
+                daysLeft = (int)Math.Ceiling((p.SponsorUntilUtc!.Value - now).TotalDays),
+            }));
+    }
+
+    /// <summary>
+    /// POST /api/owner/tabs — какие вкладки показывать внизу. Body: { tabs: ["clan", …] }.
+    /// Порядок в списке — порядок на экране.
+    /// </summary>
+    [HttpPost("tabs")]
+    public async Task<IActionResult> SetTabs([FromBody] TabsRequest req, CancellationToken ct)
+    {
+        if (await DenyAsync(ServicePermission.AppSettings, ct) is { } deny) return deny;
+
+        var tabs = (req.Tabs ?? [])
+            .Select(x => x?.Trim().ToLowerInvariant() ?? "")
+            .Where(AppTabs.IsKnown)
+            .Distinct()
+            .ToArray();
+
+        // Пустой набор оставил бы приложение вообще без навигации, и починить это
+        // было бы уже нечем — панель сама живёт на вкладке.
+        if (tabs.Length == 0) return BadRequest(new { error = "no_tabs" });
+
+        await settings.SetAsync(AppTabs.SettingKey, string.Join(',', tabs), ct);
+        return Ok(new { tabs });
     }
 
     /// <summary>GET /api/owner/moderators — список модераторов (видит только владелец).</summary>

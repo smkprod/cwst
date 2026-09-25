@@ -1,3 +1,5 @@
+using ClanWarTracker.Domain.Entities;
+using ClanWarTracker.Domain.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Telegram.Bot;
@@ -6,7 +8,12 @@ namespace ClanWarTracker.Api.Controllers;
 
 [ApiController]
 [Route("api/app")]
-public class AppController(ITelegramBotClient bot, IMemoryCache cache) : ControllerBase
+public class AppController(
+    ITelegramBotClient bot,
+    IMemoryCache cache,
+    IServiceSettingRepository settings,
+    IPlayerRepository players,
+    IConfiguration config) : ControllerBase
 {
     /// <summary>
     /// GET /api/app/config — то, что фронту нужно знать о боте во время работы.
@@ -36,6 +43,27 @@ public class AppController(ITelegramBotClient bot, IMemoryCache cache) : Control
             }
         });
 
-        return Ok(new { botUsername = username ?? "" });
+        // Состав вкладок владелец меняет из панели, поэтому он приезжает сюда, а не
+        // зашит во фронт: иначе на каждую перестановку значка нужен был бы передеплой.
+        var tabs = AppTabs.Parse(await settings.GetAsync(AppTabs.SettingKey, ct));
+
+        // Своё спонсорство фронт спрашивает здесь же: оно решает, показывать ли
+        // выбор фона и рисовать ли ярлык, а отдельный запрос ради двух полей лишний.
+        var userId = (long)HttpContext.Items["TelegramUserId"]!;
+        var me = await players.GetByTelegramIdAsync(userId, ct);
+        var isSponsor = me?.IsSponsor(DateTime.UtcNow) == true;
+
+        return Ok(new
+        {
+            botUsername = username ?? "",
+            tabs,
+            backgrounds = SponsorBackground.All,
+            isSponsor,
+            sponsorUntil = isSponsor ? me!.SponsorUntilUtc : null,
+            myBackground = isSponsor ? SponsorBackground.Normalize(me!.SponsorBackgroundKey) : null,
+            // Кому писать за спонсорством. Пусто — кнопку не рисуем: ссылка в никуда
+            // хуже отсутствующей кнопки.
+            sponsorContact = config["Owner:Username"]?.Trim().TrimStart('@') ?? "",
+        });
     }
 }
