@@ -1,5 +1,4 @@
 using ClanWarTracker.Api.Rendering;
-using ClanWarTracker.Application.Games;
 using ClanWarTracker.Application.UseCases;
 using ClanWarTracker.Domain.Enums;
 using ClanWarTracker.Domain.Interfaces;
@@ -26,9 +25,7 @@ public class ImageController(
     GetClanStatusUseCase getStatus,
     CardRenderer renderer,
     ITelegramBotClient bot,
-    IPuzzleRepository puzzles,
     ITournamentRepository tournaments,
-    IPuzzleSecret puzzleSecret,
     IMemoryCache cache) : ControllerBase
 {
     /// <summary>Столько живёт нарисованная карточка. Война меняется медленнее.</summary>
@@ -216,71 +213,6 @@ public class ImageController(
                 runnerUp?.TeamName ?? runnerUp?.PlayerName ?? "",
                 t.Participants.Count(x => x.Status != TournamentParticipantStatus.Withdrawn),
                 await BotNameAsync(ct)));
-        });
-
-    /// <summary>
-    /// GET /api/img/puzzle/{token}.jpg — фрагмент карты дня.
-    ///
-    /// Без авторизации, как и остальные картинки: их грузит &lt;img&gt;, а заголовок с
-    /// initData туда не подставить. Поэтому в адресе подписанная пара «игрок и день»,
-    /// а НЕ уровень приближения: будь там уровень, любой запросил бы сразу третий,
-    /// увидел почти весь арт и ответил с первой попытки на три очка.
-    ///
-    /// Уровень сервер берёт из базы — из того, сколько попыток человек уже потратил.
-    /// </summary>
-    [HttpGet("puzzle/{token}.jpg")]
-    public async Task<IActionResult> PuzzleFragment(string token, CancellationToken ct)
-    {
-        var pass = PuzzleToken.Verify(token, puzzleSecret.Value);
-        if (pass is not { } id) return NotFound();
-
-        // Загадка сменилась, а страница осталась открытой со вчерашним адресом —
-        // отдавать вчерашний фрагмент нельзя, он уже ничей.
-        var today = DailyCard.DayNumber(DateTime.UtcNow);
-        if (id.Day != today) return NotFound();
-
-        var played = await puzzles.GetAsync(id.PlayerId, today, ct);
-        var level = played is null
-            ? 1
-            : played.Solved || played.Attempts >= DailyPuzzleUseCase.MaxAttempts
-                ? DailyPuzzleUseCase.MaxAttempts        // доиграл — показываем всё
-                : played.Attempts + 1;
-
-        // Кэш общий для всех на одном уровне: картинка зависит от дня и уровня,
-        // а не от игрока, и рисовать её каждому заново незачем.
-        return await Serve($"puzzle:{today}:{level}", CardTtl, async () =>
-        {
-            var catalog = await Try(() => crApi.GetAllCardsAsync(ct));
-            if (catalog is null) return null;
-
-            var card = DailyCard.Pick(catalog.Values.ToList(), today);
-            return card is null ? null : renderer.RenderPuzzle(card.IconUrl, level, DailyCard.Seed($"day:{today}"));
-        });
-    }
-
-    /// <summary>
-    /// GET /api/img/puzzle/sample/{seed}.jpg — лист предпросмотра для настройки игры.
-    ///
-    /// Карты берутся случайные по seed, а НЕ карты ближайших дней: иначе эта ручка
-    /// раздавала бы ответы на будущие загадки всем желающим.
-    /// </summary>
-    [HttpGet("puzzle/sample/{seed:int}.jpg")]
-    public Task<IActionResult> PuzzleSample(int seed, CancellationToken ct) =>
-        Serve($"puzzlesample:{seed}", SlowTtl, async () =>
-        {
-            var catalog = await Try(() => crApi.GetAllCardsAsync(ct));
-            if (catalog is null) return null;
-
-            var all = catalog.Values.OrderBy(c => c.Id).ToList();
-            if (all.Count == 0) return null;
-
-            var rnd = new Random(seed);
-            var cards = Enumerable.Range(0, 4)
-                .Select(_ => all[rnd.Next(all.Count)])
-                .Select(c => (c.Name, c.IconUrl))
-                .ToList();
-
-            return renderer.RenderPuzzleSheet(cards, seed);
         });
 
     /// <summary>
