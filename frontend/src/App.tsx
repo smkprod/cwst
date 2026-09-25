@@ -126,6 +126,18 @@ export default function App() {
   // Пока не приехал — показываем набор по умолчанию, чтобы навигация была сразу.
   const [config, setConfig] = useState<AppConfig | null>(null)
 
+  // Тема клана: спонсор выбрал фон — приложение красится под него.
+  //
+  // Атрибутом на <html>, а не пропсами по дереву: акцент используют десятки
+  // компонентов, и протаскивать его в каждый значило бы рано или поздно забыть
+  // один, который остался бы синим посреди огненной темы.
+  useEffect(() => {
+    const theme = state.kind === 'ready' ? state.data.clanBackgroundKey : null
+    const root = document.documentElement
+    if (theme) root.setAttribute('data-clan-theme', theme)
+    else root.removeAttribute('data-clan-theme')
+  }, [state])
+
   // Отдельно от остального: конфиг перечитывается после покупки фона, чтобы
   // выбранное применилось без перезапуска приложения.
   const loadConfig = useCallback(() => {

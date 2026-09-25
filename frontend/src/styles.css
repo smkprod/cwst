@@ -2436,3 +2436,48 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
   overflow-y: auto;
 }
 .modal-card { width: 100%; max-width: 420px; margin: auto; max-height: 90vh; overflow-y: auto; }
+
+/* --- Оформление спонсора в общих списках --- */
+.sponsor-bg {
+  position: relative; overflow: hidden;
+  background-size: cover; background-position: center;
+}
+/* Уклон, а не ровная заливка: слева, где имя, почти непрозрачно, справа картинка
+   проступает. Ровной вуали не хватало на светлых фонах — имя тонуло. */
+.sponsor-bg-veil {
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, rgba(10,10,24,0.92) 0%, rgba(10,10,24,0.74) 55%, rgba(10,10,24,0.56) 100%);
+}
+.sponsor-bg > *:not(.sponsor-bg-veil) { position: relative; z-index: 1; }
+
+/* --- Темы клана ---
+   Спонсор выбирает фон клану, и приложение красится под него.
+
+   Красим фон и карточки, а не только акцент. Первая версия меняла --accent и
+   рисовала подсветку на body::before — проверка показала, что переменные
+   применяются верно, но увидеть это нельзя: акцент на большинстве экранов почти
+   не используется, а подсветку перекрывает любая обёртка со своим фоном. Тема,
+   которой не видно, ничем не отличается от отсутствующей.
+
+   Оттенки остаются тёмными: цвета текста не трогаем совсем, иначе читаемость
+   начинает зависеть от того, что выбрал спонсор. */
+[data-clan-theme="kingdomSun"] {
+  --bg: #171208;
+  --bg-card: #2b2113;
+  --accent: #e8a72e;
+}
+[data-clan-theme="kingdom"] {
+  --bg: #0d131f;
+  --bg-card: #1b2538;
+  --accent: #4f7fd4;
+}
+[data-clan-theme="kingdom2"] {
+  --bg: #120f1f;
+  --bg-card: #221c39;
+  --accent: #7b74e0;
+}
+[data-clan-theme="kingdomFire"] {
+  --bg: #1a0e0a;
+  --bg-card: #2e1a14;
+  --accent: #e0603a;
+}

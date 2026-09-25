@@ -1,3 +1,4 @@
+using ClanWarTracker.Domain.Entities;
 using ClanWarTracker.Application.DTOs;
 using ClanWarTracker.Domain.Enums;
 using ClanWarTracker.Domain.Interfaces;
@@ -27,6 +28,13 @@ public class GetClanStatusUseCase(
 
         var clan = await clans.GetByTagAsync(clanTag, ct);
         var clanPlayers = clan is null ? [] : await players.GetByClanIdAsync(clan.Id, ct);
+
+        // Привязанные по тегу — оформление и значок берутся отсюда. Словарь, а не
+        // поиск по списку на каждого: состав до пятидесяти человек, и линейный
+        // проход по каждому превратил бы это в две с половиной тысячи сравнений.
+        var byTag = clanPlayers
+            .GroupBy(p => p.PlayerTag, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
         var linked = clanPlayers
             .Where(p => p.TelegramUserId is not null)
@@ -129,7 +137,13 @@ public class GetClanStatusUseCase(
                 Role: RoleLabel(memberRoles.GetValueOrDefault(x.Participant.PlayerTag)),
                 Trophies: members.TryGetValue(x.Participant.PlayerTag, out var mi) ? mi.Trophies : 0,
                 DnaLabel: history.TryGetValue(x.Participant.PlayerTag, out var h2) ? h2.DnaLabel : null,
-                ReliabilityScore: history.TryGetValue(x.Participant.PlayerTag, out var h3) ? h3.Reliability : 0))
+                ReliabilityScore: history.TryGetValue(x.Participant.PlayerTag, out var h3) ? h3.Reliability : 0,
+                IsSponsor: byTag.TryGetValue(x.Participant.PlayerTag, out var lp) && lp.IsSponsor(now),
+                BackgroundKey: byTag.TryGetValue(x.Participant.PlayerTag, out var lp2) && lp2.IsSponsor(now)
+                    ? SponsorBackground.NormalizePlayer(lp2.SponsorBackgroundKey)
+                    : null,
+                BadgeKey: byTag.TryGetValue(x.Participant.PlayerTag, out var lp3) ? lp3.ShowcaseBadgeKey : null,
+                BadgeLevel: byTag.TryGetValue(x.Participant.PlayerTag, out var lp4) ? lp4.ShowcaseBadgeLevel : 0))
             // в основном списке UI хочет видеть не сыгравших сверху
             .OrderBy(p => p.Status == "played" ? 1 : p.Status == "timeLeft" ? 0 : -1)
             .ThenByDescending(p => p.Fame)
@@ -211,7 +225,15 @@ public class GetClanStatusUseCase(
             WarLog: warLog,
             DayLogs: war.DayLogs
                 .Select(d => new WarDayLogDto(d.DayIndex, d.PointsEarned, d.EndOfDayRank, d.NumOfDefensesRemaining, d.WeekOffset))
-                .ToList());
+                .ToList(),
+            // Тему клана задаёт его спонсор. Несколько спонсоров с разным выбором —
+            // берём первого по порядку, а не «последнего победившего»: иначе тема
+            // прыгала бы от перезагрузки к перезагрузке.
+            ClanBackgroundKey: clanPlayers
+                .Where(p => p.IsSponsor(now))
+                .OrderBy(p => p.Id)
+                .Select(p => SponsorBackground.NormalizeClan(p.SponsorClanBackgroundKey))
+                .FirstOrDefault(k => k is not null));
     }
 
     /// <summary>

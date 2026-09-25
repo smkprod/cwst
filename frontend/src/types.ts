@@ -20,6 +20,10 @@ export interface PlayerStatus {
   trophies: number           // кубки игрока (0 — состав клана не отдался)
   dnaLabel?: string          // Pro: архетип ("Тащер 💪" и т.п.), undefined — мало данных/Free
   reliabilityScore: number   // Pro: надёжность 0..100 (0 — нет данных/Free)
+  isSponsor?: boolean        // спонсор — ★ рядом с именем
+  backgroundKey?: BackgroundKey | null  // оформление строки спонсора
+  badgeKey?: string | null   // выставленный напоказ значок
+  badgeLevel?: number        // 1 бронза, 2 серебро, 3 золото
 }
 
 /* --- Дисциплина клана: кто подводит и кого приходится тянуть --- */
@@ -246,6 +250,7 @@ export interface ClanStatus {
   isAdmin?: boolean          // админ ли текущий пользователь в группе клана
   isClanLeader?: boolean     // leader или coLeader в CR-клане
   isOwner?: boolean          // владелец сервиса (видит панель ⚙️)
+  clanBackgroundKey?: BackgroundKey | null  // тема клана, выбранная спонсором
   viewingAsAdmin?: boolean   // это чужой клан, открытый из панели
   adminReadOnly?: boolean    // зашёл модератор: смотреть можно, менять нельзя
   reminderHoursBeforeEnd?: number // за сколько часов до конца дня шлём автонапоминания
