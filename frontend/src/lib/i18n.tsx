@@ -639,7 +639,7 @@ const ru = {
     errDailyLimit: 'На сегодня лимит: не больше трёх кланов в день.',
     errOptedOut: 'Этот клан выключил приём сообщений.',
     errNoChat: 'У этого клана нет привязанного чата — доставить некуда.',
-    errNotAllowed: 'Писать от имени клана могут глава, сорук и спонсор.',
+    errNotAllowed: 'Писать от имени клана могут глава и спонсор.',
     errNeedsSponsor: 'Вызовы доступны кланам, в которых есть спонсор.',
   },
 
@@ -1688,7 +1688,7 @@ const uk: Translations = {
     errDailyLimit: 'На сьогодні ліміт: не більше трьох кланів на день.',
     errOptedOut: 'Цей клан вимкнув приймання повідомлень.',
     errNoChat: "У цього клану немає прив'язаного чату — доставити нікуди.",
-    errNotAllowed: 'Писати від імені клану можуть голова, сокерівник і спонсор.',
+    errNotAllowed: 'Писати від імені клану можуть голова і спонсор.',
     errNeedsSponsor: 'Виклики доступні кланам, у яких є спонсор.',
   },
 
@@ -2735,7 +2735,7 @@ const en: Translations = {
     errDailyLimit: 'Daily limit reached: at most three clans a day.',
     errOptedOut: 'This clan turned off incoming messages.',
     errNoChat: 'This clan has no linked chat — nowhere to deliver.',
-    errNotAllowed: 'Only the leader, co-leader or a sponsor can message on behalf of the clan.',
+    errNotAllowed: 'Only the leader or a sponsor can message on behalf of the clan.',
     errNeedsSponsor: 'Challenges are available to clans that have a sponsor.',
   },
 

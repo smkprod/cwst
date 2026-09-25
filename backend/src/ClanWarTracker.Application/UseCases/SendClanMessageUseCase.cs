@@ -72,9 +72,9 @@ public class SendClanMessageUseCase(
         var now = DateTime.UtcNow;
         var sponsor = player.IsSponsor(now);
 
-        // Писать вправе те, кто и так говорит от имени клана, плюс спонсор: за это
-        // он и платит. Рядовой участник от имени клана не пишет — иначе «сообщение
-        // клана» перестаёт что-либо значить.
+        // Только глава и спонсор. Со-руководителей намеренно нет: их в клане бывает
+        // до четырёх, и «сообщение от клана» при таком числе отправителей перестаёт
+        // быть словом клана — становится словом любого, кому дали соруком.
         if (!sponsor && !await IsClanLeaderAsync(from, player, ct)) return ClanMessageError.NotAllowed;
 
         // Вызов — возможность клана со спонсором, а не любого желающего.
@@ -118,7 +118,7 @@ public class SendClanMessageUseCase(
         try
         {
             var role = await crApi.GetPlayerClanRoleAsync(clan.ClanTag, player.PlayerTag, ct);
-            return role is "leader" or "coLeader";
+            return role is "leader";
         }
         catch
         {

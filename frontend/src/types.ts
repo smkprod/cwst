@@ -999,7 +999,7 @@ export interface LinkedPlayer {
  * clanBackgrounds его не будет — но как значение он существует.
  */
 export type BackgroundKey =
-  | 'sky' | 'arena' | 'night' | 'ice' | 'lava'
+  | 'sky' | 'arena' | 'sunset' | 'night' | 'ice' | 'lava'
   | 'kingdomSun' | 'kingdom' | 'kingdom2' | 'kingdomFire'
 
 /** Вкладки нижней панели. Состав задаёт владелец из админки. */

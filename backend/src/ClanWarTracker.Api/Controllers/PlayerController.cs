@@ -22,6 +22,7 @@ public class PlayerController(
     GiveRespectUseCase giveRespect,
     SuggestDecksUseCase suggestDecks,
     LinkPlayerUseCase linkPlayer,
+    AnnounceAchievementUseCase announceAchievement,
     IRespectRepository respects) : ControllerBase
 {
     /// <summary>
@@ -249,11 +250,21 @@ public class PlayerController(
         // с теми, что человек видел в прошлый раз, и тут же запоминаем новые —
         // иначе поздравление повторялось бы при каждом открытии приложения.
         var (unlocked, snapshot) = GetAchievementsUseCase.Diff(result.Badges, player.SeenAchievementsJson);
-        if (unlocked.Count > 0 || player.SeenAchievementsJson is null)
+        var firstEver = player.SeenAchievementsJson is null;
+        if (unlocked.Count > 0 || firstEver)
         {
             player.SeenAchievementsJson = snapshot;
             await players.SaveChangesAsync(ct);
         }
+
+        // Награда спонсора уходит в чат клана карточкой. Только спонсора и только
+        // новая: это и есть та привилегия, за которую платят, и обесценить её
+        // проще всего, объявляя в чат всё подряд.
+        //
+        // Не при первом заходе: у человека с историей там сразу десяток открытых
+        // наград, и чат получил бы десять карточек подряд ни с того ни с сего.
+        if (!firstEver && unlocked.Count > 0 && player.IsSponsor(DateTime.UtcNow))
+            await announceAchievement.ExecuteAsync(player, unlocked, ct);
 
         return Ok(result with { JustUnlocked = unlocked });
     }

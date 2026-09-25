@@ -26,6 +26,7 @@ public static class SponsorBackground
     public const string Night = "night";
     public const string Ice = "ice";
     public const string Lava = "lava";
+    public const string Sunset = "sunset";
 
     public const string Kingdom = "kingdom";
     public const string Kingdom2 = "kingdom2";
@@ -33,7 +34,7 @@ public static class SponsorBackground
     public const string KingdomFire = "kingdomFire";
 
     /// <summary>Фоны игрока. Небесного тут нет намеренно — см. <see cref="Sky"/>.</summary>
-    public static readonly string[] ForPlayers = [Arena, Night, Ice, Lava];
+    public static readonly string[] ForPlayers = [Arena, Sunset, Night, Ice, Lava];
 
     /// <summary>Фоны клана. Порядок — от светлых к тёмным, как их и выбирают взглядом.</summary>
     public static readonly string[] ForClans = [KingdomSun, Kingdom, Kingdom2, KingdomFire];
