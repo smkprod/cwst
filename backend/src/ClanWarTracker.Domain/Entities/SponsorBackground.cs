@@ -24,12 +24,14 @@ public static class SponsorBackground
 
     public const string Kingdom = "kingdom";
     public const string Kingdom2 = "kingdom2";
+    public const string KingdomSun = "kingdomSun";
+    public const string KingdomFire = "kingdomFire";
 
     /// <summary>Фоны игрока.</summary>
     public static readonly string[] ForPlayers = [Sky, Arena, Night, Ice, Lava];
 
-    /// <summary>Фоны клана.</summary>
-    public static readonly string[] ForClans = [Kingdom, Kingdom2];
+    /// <summary>Фоны клана. Порядок — от светлых к тёмным, как их и выбирают взглядом.</summary>
+    public static readonly string[] ForClans = [KingdomSun, Kingdom, Kingdom2, KingdomFire];
 
     public static bool IsPlayerBackground(string? key) =>
         key is not null && Array.IndexOf(ForPlayers, key) >= 0;

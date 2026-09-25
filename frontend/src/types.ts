@@ -987,7 +987,9 @@ export interface LinkedPlayer {
 }
 
 /** Ключи фонов спонсора — совпадают с файлами в public/bg. */
-export type BackgroundKey = 'sky' | 'arena' | 'night' | 'ice' | 'lava' | 'kingdom' | 'kingdom2'
+export type BackgroundKey =
+  | 'sky' | 'arena' | 'night' | 'ice' | 'lava'
+  | 'kingdomSun' | 'kingdom' | 'kingdom2' | 'kingdomFire'
 
 /** Вкладки нижней панели. Состав задаёт владелец из админки. */
 export type AppTab = 'clan' | 'me' | 'hall' | 'tournament' | 'search' | 'more'
