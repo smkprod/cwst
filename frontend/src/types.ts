@@ -986,7 +986,13 @@ export interface LinkedPlayer {
   name: string
 }
 
-/** Ключи фонов спонсора — совпадают с файлами в public/bg. */
+/**
+ * Ключи фонов — совпадают с файлами в public/bg.
+ *
+ * 'sky' в наборы не входит: это оформление самого подиума Аллеи, когда ни у кого
+ * из тройки нет своего фона. Выбрать его нельзя, поэтому в playerBackgrounds и
+ * clanBackgrounds его не будет — но как значение он существует.
+ */
 export type BackgroundKey =
   | 'sky' | 'arena' | 'night' | 'ice' | 'lava'
   | 'kingdomSun' | 'kingdom' | 'kingdom2' | 'kingdomFire'

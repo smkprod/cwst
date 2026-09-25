@@ -14,7 +14,12 @@ namespace ClanWarTracker.Domain.Entities;
 /// </summary>
 public static class SponsorBackground
 {
-    /// <summary>Небесный — им же оформлен подиум Аллеи по умолчанию.</summary>
+    /// <summary>
+    /// Небесный. Игроку не выдаётся: это оформление самого подиума Аллеи, когда
+    /// ни у кого из тройки нет своего фона. Отдай его в набор игроков — и у
+    /// первого места фон совпадёт с фоном сцены, то есть перестанет читаться
+    /// как выбор вообще.
+    /// </summary>
     public const string Sky = "sky";
 
     public const string Arena = "arena";
@@ -27,8 +32,8 @@ public static class SponsorBackground
     public const string KingdomSun = "kingdomSun";
     public const string KingdomFire = "kingdomFire";
 
-    /// <summary>Фоны игрока.</summary>
-    public static readonly string[] ForPlayers = [Sky, Arena, Night, Ice, Lava];
+    /// <summary>Фоны игрока. Небесного тут нет намеренно — см. <see cref="Sky"/>.</summary>
+    public static readonly string[] ForPlayers = [Arena, Night, Ice, Lava];
 
     /// <summary>Фоны клана. Порядок — от светлых к тёмным, как их и выбирают взглядом.</summary>
     public static readonly string[] ForClans = [KingdomSun, Kingdom, Kingdom2, KingdomFire];

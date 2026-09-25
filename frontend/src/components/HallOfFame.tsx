@@ -141,6 +141,8 @@ function Podium({ rows, label, seasonId }: {
 }) {
   if (rows.length === 0) return null
 
+  // Небесный оставлен только сцене: выбрать его игроку нельзя, поэтому он никогда
+  // не совпадёт с фоном первого места и всегда читается как «своего фона нет».
   const bg = rows.find(r => r.backgroundKey)?.backgroundKey ?? 'sky'
   // Порядок на подиуме: второй, первый, третий — как на настоящем пьедестале.
   const order = [rows[1], rows[0], rows[2]].filter(Boolean)
