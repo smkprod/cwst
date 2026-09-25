@@ -59,6 +59,14 @@ public class PlayerRepository(AppDbContext db) : IPlayerRepository
             .Where(p => p.TelegramUserId != null || p.TelegramUsername != null)
             .ToListAsync(ct);
 
+    public Task<Player?> GetByTagAsync(string playerTag, CancellationToken ct = default) =>
+        db.Players
+            .Include(p => p.Clan)
+            // Без учёта регистра: прежний поиск по списку сравнивал именно так, и
+            // запись, заведённая до нормализации тегов, иначе просто не нашлась бы.
+            // Таблица в сотни строк, потеря индекса тут ничего не стоит.
+            .FirstOrDefaultAsync(p => p.PlayerTag.ToUpper() == playerTag.ToUpper(), ct);
+
     public async Task AddAsync(Player player, CancellationToken ct = default) =>
         await db.Players.AddAsync(player, ct);
 
