@@ -21,6 +21,11 @@ export function PlayerLooksCard() {
   const [showcase, setShowcase] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
+  // Свёрнуто по умолчанию: развёрнутый выбор — это девять плиток фонов, и он
+  // отжимал бы статистику на экран вниз при каждом открытии вкладки. Заголовок
+  // сверху виден всегда, а искать оформление приходят один раз — после покупки.
+  const [open, setOpen] = useState(false)
+
   const loadConfig = useCallback(() => {
     api.getAppConfig().then(setConfig).catch(() => { /* останемся без выбора фона */ })
   }, [])
@@ -67,8 +72,23 @@ export function PlayerLooksCard() {
 
   return (
     <section className="card">
-      <div className="card-title">{t.looks.title}</div>
+      <button className="looks-head" onClick={() => { haptic('light'); setOpen(o => !o) }}>
+        <span className="card-title">{t.looks.title}</span>
+        <span className="looks-head-right">
+          {/* Что выбрано сейчас — видно, не разворачивая */}
+          {showcase && <span className="looks-head-badge">{BADGE_ICONS[showcase] ?? '🏅'}</span>}
+          {isSponsor && config?.myBackground && (
+            <span
+              className="looks-head-bg"
+              style={{ backgroundImage: `url(/bg/${config.myBackground}.webp)` }}
+            />
+          )}
+          <span className="looks-head-chev">{open ? '▾' : '▸'}</span>
+        </span>
+      </button>
 
+      {!open ? null : (
+      <>
       <p className="adm-block-title">{t.looks.badgeTitle}</p>
       {badges.length === 0 ? (
         <p className="muted small">{t.looks.noBadges}</p>
@@ -138,6 +158,8 @@ export function PlayerLooksCard() {
             </a>
           )}
         </>
+      )}
+      </>
       )}
     </section>
   )
