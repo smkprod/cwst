@@ -17,7 +17,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<WarBattle> WarBattles => Set<WarBattle>();
     public DbSet<Respect> Respects => Set<Respect>();
     public DbSet<SentNotification> SentNotifications => Set<SentNotification>();
-    public DbSet<PuzzleResult> PuzzleResults => Set<PuzzleResult>();
     public DbSet<ActivityDay> ActivityDays => Set<ActivityDay>();
     public DbSet<TopPlayer> TopPlayers => Set<TopPlayer>();
     public DbSet<ServiceModerator> ServiceModerators => Set<ServiceModerator>();
@@ -136,14 +135,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             // Сводка считает по дням сразу по всем игрокам
             e.HasIndex(a => a.DayUtc);
             e.Property(a => a.DayUtc).HasMaxLength(10);
-        });
-
-        mb.Entity<PuzzleResult>(e =>
-        {
-            // Одна запись на игрока в день: она же защита от переигровки после промаха
-            e.HasIndex(r => new { r.PlayerId, r.Day }).IsUnique();
-            // Серия считается обходом дней игрока назад — нужен порядок по дню
-            e.HasIndex(r => new { r.PlayerId, r.Day, r.Solved });
         });
 
         mb.Entity<Respect>(e =>

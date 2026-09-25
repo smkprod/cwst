@@ -9,7 +9,6 @@ import { useT, perfLabel, type Translations } from '../lib/i18n'
 import { TournamentHistoryCard } from './TournamentHistoryCard'
 import { PlayerProfileCard } from './PlayerProfileCard'
 import { DecksButton } from './DecksButton'
-import { DailyPuzzleCard } from './DailyPuzzleCard'
 
 type State =
   | { kind: 'loading' }
@@ -84,9 +83,6 @@ export function MyStatsView() {
   // когда известен тег. Раньше отсутствие в составе войны делало вкладку тупиком.
   const gameSection = (
     <div className="fade-in">
-      {/* Игра стоит первой: за ней приходят ежедневно, а профиль смотрят раз в пару
-          недель. Внизу простыни её просто не находили бы. */}
-      <DailyPuzzleCard />
       {profile && playerTag ? (
         <>
           <DecksButton playerTag={playerTag} />
@@ -144,6 +140,11 @@ export function MyStatsView() {
         <p className="muted small">{s.clanName} · {t.me.rankOf} #{s.rank} {t.me.of} {s.clanSize}</p>
       </div>
 
+      {/* Оформление сразу под именем, до под-вкладок: за ним приходит тот, кто
+          только что заплатил, и искать его по простыне он не станет. Раньше оно
+          лежало последним блоком, и найти его было нельзя. */}
+      <PlayerLooksCard />
+
       {sectionTabs}
 
       {section === 'game' ? gameSection : (
@@ -190,7 +191,6 @@ export function MyStatsView() {
       {/* Награды сразу под цифрами: они и есть повод сюда заходить, а раньше
           лежали под двумя графиками и сезонной таблицей. */}
       <AchievementsCard />
-      <PlayerLooksCard />
 
       {history && history.weeks.length >= 2 && <WeeklyFameChart weeks={history.weeks} t={t} />}
       {history && history.weeks.length >= 2 && <VsClanChart weeks={history.weeks} t={t} />}
