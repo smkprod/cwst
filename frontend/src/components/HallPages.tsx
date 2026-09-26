@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, ApiError } from '../lib/api'
-import type { ClanDesignKey, ClanPage, PlayerPage, SeasonWeek } from '../types'
+import type { ClanDesignKey, ClanPage, PlayerPage, PageWeek } from '../types'
 import { fmt } from '../lib/format'
 import { haptic, hapticNotify } from '../lib/telegram'
 import { useT, type Translations } from '../lib/i18n'
@@ -250,7 +250,7 @@ export function PlayerPageView({ playerTag, onOpenClan, onBack }: {
  * здесь график читают, но не трогают — одна лишняя тень, и столбик начинает
  * выглядеть нажимаемым.
  */
-function WeekBars({ weeks, t }: { weeks: SeasonWeek[]; t: Translations }) {
+function WeekBars({ weeks, t }: { weeks: PageWeek[]; t: Translations }) {
   const max = Math.max(...weeks.map(w => w.fame), 1)
   return (
     <div className="week-bars">

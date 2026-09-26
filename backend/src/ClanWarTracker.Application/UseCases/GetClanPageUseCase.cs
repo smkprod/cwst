@@ -56,7 +56,7 @@ public class GetClanPageUseCase(
                     BackgroundKey: p.BackgroundKey))
                 .ToList();
 
-        List<SeasonWeekDto> weeks = data is null ? [] : await WeeksAsync(clanId, data.SeasonId, ct);
+        List<PageWeekDto> weeks = data is null ? [] : await WeeksAsync(clanId, data.SeasonId, ct);
 
         var now = DateTime.UtcNow;
         var clanPlayers = await players.GetByClanIdAsync(clanId, ct);
@@ -105,12 +105,12 @@ public class GetClanPageUseCase(
     /// Финал недели считается так же, как в зачёте: слава за неделю только растёт,
     /// значит максимум и есть итог.
     /// </summary>
-    private async Task<List<SeasonWeekDto>> WeeksAsync(int clanId, int seasonId, CancellationToken ct)
+    private async Task<List<PageWeekDto>> WeeksAsync(int clanId, int seasonId, CancellationToken ct)
     {
         var season = await snapshots.GetBySeasonAsync(clanId, seasonId, ct);
         return season
             .GroupBy(s => s.SectionIndex)
-            .Select(g => new SeasonWeekDto(g.Key, g.Max(s => s.TotalFame)))
+            .Select(g => new PageWeekDto(g.Key, g.Max(s => s.TotalFame)))
             .Where(w => w.Fame > 0)
             .OrderBy(w => w.SectionIndex)
             .ToList();

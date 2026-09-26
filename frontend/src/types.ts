@@ -1038,7 +1038,7 @@ export type ClanDesignKey =
   | 'plain' | 'royal' | 'gold' | 'neon' | 'stone' | 'blood' | 'frost'
 
 /** Слава за одну военную неделю сезона — точка на маленьком графике страницы. */
-export interface SeasonWeek {
+export interface PageWeek {
   sectionIndex: number
   fame: number
 }
@@ -1078,7 +1078,7 @@ export interface ClanPage {
   /** Что зритель вправе выбрать. Пусто — настраивать не его дело. */
   availableDesigns: ClanDesignKey[]
   members: ClanPageMember[]
-  weeks: SeasonWeek[]
+  weeks: PageWeek[]
 }
 
 export interface PlayerPageBadge {
@@ -1106,7 +1106,7 @@ export interface PlayerPage {
   showcaseLevel: number
   isMe: boolean
   badges: PlayerPageBadge[]
-  weeks: SeasonWeek[]
+  weeks: PageWeek[]
 }
 
 export interface OwnerSponsor {

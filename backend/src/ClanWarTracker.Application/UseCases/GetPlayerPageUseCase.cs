@@ -80,13 +80,13 @@ public class GetPlayerPageUseCase(
     /// внутри сезона начинается заново. Без фильтра первая неделя нового сезона
     /// легла бы поверх первой недели прошлого и выдала бы на графике максимум из двух.
     /// </summary>
-    private async Task<List<SeasonWeekDto>> WeeksAsync(string playerTag, int seasonId, CancellationToken ct)
+    private async Task<List<PageWeekDto>> WeeksAsync(string playerTag, int seasonId, CancellationToken ct)
     {
         var history = await snapshots.GetPlayerHistoryAsync(playerTag, WeeksWindow, ct);
         return history
             .Where(h => h.Snapshot is not null && h.Snapshot.SeasonId == seasonId)
             .GroupBy(h => h.Snapshot!.SectionIndex)
-            .Select(g => new SeasonWeekDto(g.Key, g.Max(h => h.Fame)))
+            .Select(g => new PageWeekDto(g.Key, g.Max(h => h.Fame)))
             .Where(w => w.Fame > 0)
             .OrderBy(w => w.SectionIndex)
             .ToList();

@@ -30,7 +30,7 @@ public record PlayerPageDto(
     int ShowcaseLevel,
     bool IsMe,
     IReadOnlyList<PlayerPageBadgeDto> Badges,
-    IReadOnlyList<SeasonWeekDto> Weeks);
+    IReadOnlyList<PageWeekDto> Weeks);
 
 /// <param name="Level">1 бронза, 2 серебро, 3 золото.</param>
 public record PlayerPageBadgeDto(string Key, int Level, int Value);

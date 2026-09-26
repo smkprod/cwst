@@ -34,7 +34,7 @@ public record ClanPageDto(
     bool CanEdit,
     IReadOnlyList<string> AvailableDesigns,
     IReadOnlyList<ClanPageMemberDto> Members,
-    IReadOnlyList<SeasonWeekDto> Weeks);
+    IReadOnlyList<PageWeekDto> Weeks);
 
 /// <param name="HallRank">Место игрока на Аллее — то же число, что в общем списке.</param>
 public record ClanPageMemberDto(
@@ -50,4 +50,4 @@ public record ClanPageMemberDto(
     string? BackgroundKey);
 
 /// <param name="SectionIndex">Номер военной недели внутри сезона, с нуля.</param>
-public record SeasonWeekDto(int SectionIndex, int Fame);
+public record PageWeekDto(int SectionIndex, int Fame);
