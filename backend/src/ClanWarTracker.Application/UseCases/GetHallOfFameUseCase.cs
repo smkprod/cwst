@@ -26,8 +26,15 @@ public class GetHallOfFameUseCase(
     /// </summary>
     private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(5);
 
-    /// <summary>Сколько строк отдаём. Ниже сотни места уже не мотивируют.</summary>
-    private const int Limit = 100;
+    /// <summary>
+    /// Сколько строк отдаём.
+    ///
+    /// Было сто. Сотня мотивирует того, кто в неё попал, и ровно ничего не говорит
+    /// остальным: игроков в зачёте уже вдвое больше, и человеку на сто двадцатом
+    /// месте список сообщал только то, что его в нём нет. Две сотни покрывают
+    /// почти весь зачёт, а вес выдачи при этом остаётся в пределах сотни килобайт.
+    /// </summary>
+    private const int Limit = 200;
 
     /// <param name="viewerTag">
     /// Тег смотрящего — чтобы вернуть его собственную строку. Считается из уже
@@ -36,12 +43,7 @@ public class GetHallOfFameUseCase(
     /// </param>
     public async Task<HallOfFameDto?> ExecuteAsync(string? viewerTag = null, CancellationToken ct = default)
     {
-        var data = await cache.GetOrCreateAsync("halloffame", async entry =>
-        {
-            entry.Size = 1;
-            entry.AbsoluteExpirationRelativeToNow = CacheTtl;
-            return await BuildAsync(ct);
-        });
+        var data = await LoadAsync(ct);
         if (data is null) return null;
 
         var me = viewerTag is null
@@ -58,8 +60,23 @@ public class GetHallOfFameUseCase(
             data.Clans.Take(Limit).ToList());
     }
 
+    /// <summary>
+    /// Весь посчитанный сезон, без обрезки по <see cref="Limit"/>.
+    ///
+    /// Нужен страницам клана и игрока: у них вопрос не «кто в топе», а «какое место
+    /// вот у этого», и ответ обязан находиться и для двухсотпятидесятого. Считать
+    /// ради этого второй раз нечего — расчёт один и тот же, и кэш тоже один.
+    /// </summary>
+    public Task<HallData?> LoadAsync(CancellationToken ct = default) =>
+        cache.GetOrCreateAsync("halloffame", async entry =>
+        {
+            entry.Size = 1;
+            entry.AbsoluteExpirationRelativeToNow = CacheTtl;
+            return await BuildAsync(ct);
+        });
+
     /// <summary>Посчитанный сезон целиком — из него уже режутся и топ, и своя строка.</summary>
-    private record HallData(int SeasonId, int ClansCounted, List<HallPlayerDto> Players, List<HallClanDto> Clans);
+    public record HallData(int SeasonId, int ClansCounted, List<HallPlayerDto> Players, List<HallClanDto> Clans);
 
     private async Task<HallData?> BuildAsync(CancellationToken ct)
     {

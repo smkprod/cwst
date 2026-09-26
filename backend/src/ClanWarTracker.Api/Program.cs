@@ -17,6 +17,9 @@ builder.Services.AddScoped<GetTopMetaUseCase>();
 builder.Services.AddScoped<GetTopPlayersUseCase>();
 builder.Services.AddScoped<GetTopPlayerDetailUseCase>();
 builder.Services.AddScoped<GetHallOfFameUseCase>();
+builder.Services.AddScoped<GetClanPageUseCase>();
+builder.Services.AddScoped<GetPlayerPageUseCase>();
+builder.Services.AddScoped<SetClanPageUseCase>();
 builder.Services.AddScoped<SendClanMessageUseCase>();
 builder.Services.AddScoped<AnnounceAchievementUseCase>();
 // Сбор снимка топа живёт в воркере, но владельцу нужна ручка, чтобы запустить его

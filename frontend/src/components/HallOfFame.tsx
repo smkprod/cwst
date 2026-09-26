@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { api, ApiError } from '../lib/api'
+import { api } from '../lib/api'
 import type { AppConfig, BackgroundKey, HallClan, HallOfFame as Hall, HallPlayer } from '../types'
 import { fmt } from '../lib/format'
 import { haptic, hapticNotify } from '../lib/telegram'
 import { useT, type Translations } from '../lib/i18n'
+import { ClanPageView, PlayerPageView, type HallTarget } from './HallPages'
 
 type Board = 'players' | 'clans'
 
@@ -36,8 +37,15 @@ export function HallOfFame({ config, onConfigChanged }: {
   const [board, setBoard] = useState<Board>('players')
   const [data, setData] = useState<Hall | null>(null)
   const [state, setState] = useState<'loading' | 'ready' | 'empty' | 'error'>('loading')
-  const [messageTo, setMessageTo] = useState<HallClan | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
+
+  // Страница открывается поверх Аллеи, а не рядом с ней: список остаётся
+  // смонтированным, поэтому возврат не перезагружает сезон заново.
+  const [target, setTarget] = useState<HallTarget | null>(null)
+  const openClan = (clanId: number) => { haptic('light'); setTarget({ kind: 'clan', clanId }) }
+  const openPlayer = (playerTag: string) => { haptic('light'); setTarget({ kind: 'player', playerTag }) }
+  const openRow = (r: HallPlayer | HallClan) =>
+    'playerTag' in r ? openPlayer(r.playerTag) : openClan(r.clanId)
 
   useEffect(() => {
     let alive = true
@@ -50,6 +58,27 @@ export function HallOfFame({ config, onConfigChanged }: {
       .catch(() => { if (alive) setState('error') })
     return () => { alive = false }
   }, [])
+
+  // Страницы отвечают раньше состояний самой Аллеи: на них попадают и тогда,
+  // когда список ещё грузится после возврата.
+  if (target?.kind === 'clan') {
+    return (
+      <ClanPageView
+        clanId={target.clanId}
+        onOpenPlayer={openPlayer}
+        onBack={() => setTarget(null)}
+      />
+    )
+  }
+  if (target?.kind === 'player') {
+    return (
+      <PlayerPageView
+        playerTag={target.playerTag}
+        onOpenClan={openClan}
+        onBack={() => setTarget(null)}
+      />
+    )
+  }
 
   if (state === 'loading') return <div className="center" style={{ marginTop: 24 }}><div className="spinner" /></div>
   if (state === 'error') return <p className="center muted" style={{ marginTop: 16 }}>{t.hall.error}</p>
@@ -80,7 +109,7 @@ export function HallOfFame({ config, onConfigChanged }: {
         >{t.hall.clans}</button>
       </div>
 
-      <Podium rows={top3} label={t.hall.season} seasonId={data.seasonId} />
+      <Podium rows={top3} label={t.hall.season} seasonId={data.seasonId} onOpen={openRow} />
 
       {/* Своя строка сразу под подиумом.
           Внизу списка её не видит никто: до сотого места долистывают единицы,
@@ -99,23 +128,9 @@ export function HallOfFame({ config, onConfigChanged }: {
 
       <ul className="hall-list">
         {rest.map(r => (
-          <Row
-            key={rowKey(r)}
-            row={r}
-            board={board}
-            onPick={board === 'clans' ? () => { haptic('light'); setMessageTo(r as HallClan) } : undefined}
-          />
+          <Row key={rowKey(r)} row={r} board={board} onPick={() => openRow(r)} />
         ))}
       </ul>
-
-      {messageTo && (
-        <ClanMessageModal
-          clan={messageTo}
-          canChallenge={isSponsor}
-          onClose={() => setMessageTo(null)}
-          t={t}
-        />
-      )}
 
       {pickerOpen && config && (
         <BackgroundPicker
@@ -136,8 +151,9 @@ export function HallOfFame({ config, onConfigChanged }: {
  * остальные. Нет фона — рисуем небесный по умолчанию, чтобы экран не выглядел
  * недоделанным у клана без спонсора.
  */
-function Podium({ rows, label, seasonId }: {
+function Podium({ rows, label, seasonId, onOpen }: {
   rows: (HallPlayer | HallClan)[]; label: string; seasonId: number
+  onOpen: (row: HallPlayer | HallClan) => void
 }) {
   if (rows.length === 0) return null
 
@@ -166,11 +182,15 @@ function Podium({ rows, label, seasonId }: {
       </div>
 
       <div className="hall-podium-row">
+        {/* Ступень — кнопка. Пока ею не была, первые три строки списка оставались
+            единственными, по которым нельзя нажать: они не лежат в списке, они
+            стоят здесь. То есть закрыты были ровно верхние клан и игрок. */}
         {order.map(r => (
-          <div
+          <button
             key={rowKey(r)}
             className={`hall-step hall-step-${r.rank} ${r.backgroundKey ? 'hall-step-bg' : ''}`}
             style={r.backgroundKey ? { backgroundImage: `url(/bg/${r.backgroundKey}.webp)` } : undefined}
+            onClick={() => onOpen(r)}
           >
             {r.backgroundKey && <span className="hall-step-veil" />}
             <span className="hall-medal">{r.rank === 1 ? '🥇' : r.rank === 2 ? '🥈' : '🥉'}</span>
@@ -180,7 +200,7 @@ function Podium({ rows, label, seasonId }: {
             </span>
             <span className="hall-step-fame">{fmt(r.seasonFame)}</span>
             <div className="hall-step-block" />
-          </div>
+          </button>
         ))}
       </div>
     </section>
@@ -243,8 +263,9 @@ function Row({ row, board, onPick }: {
   const cls = `hall-row ${row.backgroundKey ? 'hall-row-bg' : ''}`
   const style = row.backgroundKey ? { backgroundImage: `url(/bg/${row.backgroundKey}.webp)` } : undefined
 
-  // У кланов строка кликабельна — это вход в «написать клану». У игроков нажимать
-  // не на что, и делать её кнопкой значило бы обещать действие, которого нет.
+  // Нажимаются теперь обе таблицы: у клана открывается его страница, у игрока —
+  // его. Раньше кнопкой была только строка клана, и то потому, что на ней висело
+  // «написать»; страницы сняли этот перекос — смотреть есть на что у обоих.
   return onPick
     ? <li><button className={`${cls} hall-row-btn`} style={style} onClick={onPick}>{inner}</button></li>
     : <li className={cls} style={style}>{inner}</li>
@@ -265,82 +286,6 @@ function Marks({ row }: { row: HallPlayer | HallClan }) {
       {player?.isSponsor && <span className="hall-sponsor-tag">★</span>}
       {clan && clan.sponsorCount > 0 && <span className="hall-sponsor-tag">★</span>}
     </>
-  )
-}
-
-/** Окно «написать клану». Вызов доступен только спонсору. */
-function ClanMessageModal({ clan, canChallenge, onClose, t }: {
-  clan: HallClan; canChallenge: boolean; onClose: () => void; t: Translations
-}) {
-  const [text, setText] = useState('')
-  const [kind, setKind] = useState<'message' | 'challenge'>('message')
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [sent, setSent] = useState(false)
-
-  const send = async () => {
-    haptic('medium')
-    setBusy(true)
-    setError(null)
-    try {
-      await api.sendClanMessage(clan.clanId, text.trim(), kind)
-      hapticNotify('success')
-      setSent(true)
-    } catch (e) {
-      hapticNotify('error')
-      setError(e instanceof ApiError ? messageError(e.code, t) : t.hall.msgError)
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="card modal-card" onClick={e => e.stopPropagation()}>
-        <div className="card-title">{t.hall.msgTitle} {clan.clanName}</div>
-
-        {sent ? (
-          <>
-            <p className="muted small">{t.hall.msgSent}</p>
-            <button className="btn" onClick={onClose}>{t.hall.close}</button>
-          </>
-        ) : (
-          <>
-            {canChallenge && (
-              <div className="hall-switch">
-                <button
-                  className={`chart-opt ${kind === 'message' ? 'chart-opt-on' : ''}`}
-                  onClick={() => { haptic('light'); setKind('message') }}
-                >{t.hall.msgKindMessage}</button>
-                <button
-                  className={`chart-opt ${kind === 'challenge' ? 'chart-opt-on' : ''}`}
-                  onClick={() => { haptic('light'); setKind('challenge') }}
-                >{t.hall.msgKindChallenge}</button>
-              </div>
-            )}
-
-            <textarea
-              className="recruit-note"
-              value={text}
-              onChange={e => setText(e.target.value)}
-              placeholder={kind === 'challenge' ? t.hall.msgChallengePlaceholder : t.hall.msgPlaceholder}
-              maxLength={300}
-              rows={4}
-            />
-            <p className="muted small">{t.hall.msgLimit}</p>
-
-            {error && <p className="form-error small">{error}</p>}
-
-            <div className="recruit-actions">
-              <button className="btn" disabled={busy || text.trim().length < 3} onClick={send}>
-                {busy ? t.hall.msgSending : t.hall.msgSend}
-              </button>
-              <button className="btn-mini" disabled={busy} onClick={onClose}>{t.hall.close}</button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
   )
 }
 
@@ -406,18 +351,6 @@ function BackgroundPicker({ config, onClose, onSaved, t }: {
       </div>
     </div>
   )
-}
-
-function messageError(code: string, t: Translations): string {
-  switch (code) {
-    case 'too_soon': return t.hall.errTooSoon
-    case 'daily_limit': return t.hall.errDailyLimit
-    case 'target_opted_out': return t.hall.errOptedOut
-    case 'target_has_no_chat': return t.hall.errNoChat
-    case 'not_allowed': return t.hall.errNotAllowed
-    case 'needs_sponsor': return t.hall.errNeedsSponsor
-    default: return t.hall.msgError
-  }
 }
 
 const rowKey = (r: HallPlayer | HallClan) => ('playerTag' in r ? r.playerTag : `c${r.clanId}`)

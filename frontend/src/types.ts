@@ -1033,6 +1033,82 @@ export interface HallOfFame {
   clans: HallClan[]
 }
 
+/** Оформление страницы клана. plain доступен всем, остальные — клану со спонсором. */
+export type ClanDesignKey =
+  | 'plain' | 'royal' | 'gold' | 'neon' | 'stone' | 'blood' | 'frost'
+
+/** Слава за одну военную неделю сезона — точка на маленьком графике страницы. */
+export interface SeasonWeek {
+  sectionIndex: number
+  fame: number
+}
+
+export interface ClanPageMember {
+  rank: number
+  /** Место этого игрока на Аллее целиком, а не только внутри клана. */
+  hallRank: number
+  playerTag: string
+  name: string
+  seasonFame: number
+  weeksPlayed: number
+  badgeKey: string | null
+  badgeLevel: number
+  isSponsor: boolean
+  backgroundKey: BackgroundKey | null
+}
+
+export interface ClanPage {
+  clanId: number
+  clanTag: string
+  clanName: string
+  motto: string | null
+  /** 0 — клан ещё не попал в зачёт сезона. */
+  rank: number
+  clansCounted: number
+  seasonId: number
+  seasonFame: number
+  weeksPlayed: number
+  membersInSeason: number
+  sponsorCount: number
+  backgroundKey: BackgroundKey | null
+  designKey: ClanDesignKey
+  acceptsMail: boolean
+  isMine: boolean
+  canEdit: boolean
+  /** Что зритель вправе выбрать. Пусто — настраивать не его дело. */
+  availableDesigns: ClanDesignKey[]
+  members: ClanPageMember[]
+  weeks: SeasonWeek[]
+}
+
+export interface PlayerPageBadge {
+  key: string
+  level: number
+  value: number
+}
+
+export interface PlayerPage {
+  rank: number
+  totalPlayers: number
+  seasonId: number
+  playerTag: string
+  name: string
+  clanName: string
+  clanTag: string | null
+  /** null — клана нет в боте, переходить некуда. */
+  clanId: number | null
+  seasonFame: number
+  weeksPlayed: number
+  bestWeekFame: number
+  isSponsor: boolean
+  backgroundKey: BackgroundKey | null
+  showcaseKey: string | null
+  showcaseLevel: number
+  isMe: boolean
+  badges: PlayerPageBadge[]
+  weeks: SeasonWeek[]
+}
+
 export interface OwnerSponsor {
   playerTag: string
   name: string

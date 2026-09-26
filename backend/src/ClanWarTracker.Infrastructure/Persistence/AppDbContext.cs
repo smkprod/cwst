@@ -35,6 +35,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasIndex(c => c.TelegramChatId).IsUnique().HasFilter("\"TelegramChatId\" <> 0");
             e.HasIndex(c => c.ClanTag).IsUnique();
             e.Property(c => c.ClanTag).HasMaxLength(16);
+            e.Property(c => c.PageDesignKey).HasMaxLength(32);
+            // 160, а не 120: предел девиза задаёт ClanPageDesign, а колонка держит
+            // запас — иначе поднятие предела превратится в миграцию базы.
+            e.Property(c => c.Motto).HasMaxLength(160);
         });
 
         mb.Entity<WarSnapshot>(e =>
