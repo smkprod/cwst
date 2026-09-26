@@ -11,6 +11,21 @@
   --yellow: #f0a821;
   --purple: #9c6bff;
   --gold: #ffc83d;
+
+  /* Шкала скруглений.
+     Раньше каждый блок выбирал радиус сам: карточка 16, кнопка 10, мелкая кнопка
+     8, плитка 12, строка гонки 12. На одном экране это читается как несколько
+     разных интерфейсов рядом. Три значения на всё: карточка, элемент управления,
+     пилюля. Новому блоку выбирать больше не из чего. */
+  --r-card: 16px;
+  --r-ctl: 12px;
+  --r-chip: 999px;
+
+  /* Граница карточки. Фон приложения и фон карточки различаются на глаз едва, и
+     без неё карточки на длинном экране сливаются в одно полотно. */
+  --line: rgba(255, 255, 255, 0.07);
+
+  --shadow-btn: 0 2px 8px rgba(0, 0, 0, 0.28);
 }
 
 * { box-sizing: border-box; margin: 0; }
@@ -48,11 +63,12 @@ main.with-tabbar { padding-bottom: 80px; }
 /* --- Карточки --- */
 .card {
   background: var(--bg-card);
-  border-radius: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
   padding: 14px;
   margin-bottom: 10px;
 }
-.card-title { font-size: 14px; font-weight: 700; }
+.card-title { font-size: 15px; font-weight: 700; }
 .card-title-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
 
 .section-title { font-size: 17px; font-weight: 700; margin: 4px 4px 12px; }
@@ -119,7 +135,8 @@ main.with-tabbar { padding-bottom: 80px; }
 /* --- Полоска статов клана --- */
 .stats-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; }
 .stat-chip {
-  background: var(--bg-card); border-radius: 12px; padding: 8px 4px;
+  background: var(--bg-card); border: 1px solid var(--line);
+  border-radius: var(--r-ctl); padding: 9px 4px;
   display: grid; gap: 1px; justify-items: center; text-align: center;
 }
 .stat-chip-icon { font-size: 14px; }
@@ -354,16 +371,29 @@ details.collapse-card[open] > .collapse-summary::after { transform: rotate(180de
 }
 
 .podium { display: flex; align-items: flex-end; gap: 8px; margin-bottom: 16px; padding: 0 4px; }
+/* Ступень — цельный блок: тело с именем и приросшая снизу цветная подставка.
+   Раньше подставка была отдельной полосой через отступ, и у игрока без фона
+   спонсора она висела в воздухе под именем — читалось как недорисованный экран,
+   а не как пьедестал. */
 .podium-spot {
-  flex: 1; display: grid; justify-items: center; gap: 3px; min-width: 0;
+  flex: 1; min-width: 0;
+  display: grid; justify-items: center; align-content: end; gap: 2px;
+  background: var(--bg-card); border: 1px solid var(--line); border-bottom: none;
+  border-radius: var(--r-ctl) var(--r-ctl) 0 0;
+  padding: 8px 4px 0; overflow: hidden;
 }
+/* Пустая ступень бывает, когда в зачёте меньше трёх человек: рисовать ей
+   карточку не надо, иначе на экране появляется пустая плашка ниоткуда. */
+.podium-spot:empty { background: none; border: none; padding: 0; }
 .podium-medal { font-size: 26px; }
 .podium-name {
   font-size: 12px; font-weight: 700; max-width: 100%;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .podium-fame { font-size: 11px; color: var(--muted); }
-.podium-bar { width: 100%; border-radius: 8px 8px 0 0; }
+/* Выходит за горизонтальные отступы ступени: подставка, не доходящая до её
+   краёв, читается как полоска внутри карточки, а не как основание. */
+.podium-bar { width: calc(100% + 8px); margin: 6px -4px 0; }
 .podium-1 .podium-bar { height: 56px; background: linear-gradient(180deg, var(--gold), rgba(255, 200, 61, 0.25)); }
 .podium-2 .podium-bar { height: 38px; background: linear-gradient(180deg, #c0c8d4, rgba(192, 200, 212, 0.25)); }
 .podium-3 .podium-bar { height: 26px; background: linear-gradient(180deg, #cd8f56, rgba(205, 143, 86, 0.25)); }
@@ -374,7 +404,7 @@ details.collapse-card[open] > .collapse-summary::after { transform: rotate(180de
    где слева имя, а справа пусто. На ступени ширина около ста пикселей, и тот же
    уклон успевает дойти только до 0.9: картинка почти не проступает. Здесь уклон
    сверху вниз — вверху видно фон, внизу темно под именем и очками. */
-.podium-spot.sponsor-bg { border-radius: 10px 10px 0 0; padding-top: 4px; }
+.podium-spot.sponsor-bg { border-color: transparent; }
 .podium-spot.sponsor-bg .sponsor-bg-veil {
   background: linear-gradient(180deg, rgba(10,10,24,0.14) 0%, rgba(10,10,24,0.40) 45%, rgba(10,10,24,0.78) 100%);
 }
@@ -446,19 +476,35 @@ details.collapse-card[open] > .collapse-summary::after { transform: rotate(180de
 }
 .me-stat-accent .me-stat-value { color: var(--purple); }
 
-/* --- Кнопки --- */
+/* --- Кнопки ---
+   Один язык на все: радиус --r-ctl, отклик на нажатие, тень. До этого кнопка,
+   мелкая кнопка и кнопка приглашения отличались радиусом, высотой и наличием
+   отклика — три разных поведения в одном приложении. */
 .btn {
   background: var(--accent); color: #fff; border: none;
-  border-radius: 10px; padding: 10px 20px; font-size: 15px; font-weight: 600;
-  cursor: pointer;
+  border-radius: var(--r-ctl); padding: 11px 20px; font-size: 15px; font-weight: 600;
+  cursor: pointer; box-shadow: var(--shadow-btn);
+  transition: transform 0.08s ease, filter 0.15s ease;
 }
-.btn:disabled { opacity: 0.6; }
+.btn:active:not(:disabled) { transform: scale(0.98); }
+.btn:disabled { opacity: 0.55; cursor: default; box-shadow: none; }
 
-.btn-share { width: 100%; padding: 13px; border-radius: 12px; }
+.btn-share { width: 100%; padding: 13px; }
+
+/* Нейтральная кнопка: то же тело, но без «сделай это». Была нужна давно — без
+   неё второстепенное действие приходилось рисовать либо главным синим, либо
+   мелкой пилюлей, и оно оказывалось то слишком громким, то незаметным. */
+.btn-ghost {
+  background: rgba(255, 255, 255, 0.08); color: var(--text);
+  box-shadow: none;
+}
 
 .btn-nudge {
-  width: 100%; margin-bottom: 10px; padding: 12px; border-radius: 12px;
-  background: linear-gradient(135deg, #e53935, #c62828);
+  width: 100%; margin-bottom: 10px; padding: 12px;
+  /* Приглушён намеренно: это главное действие главы, а не авария. Чистый алый
+     во всю ширину читался как ошибка приложения. */
+  background: linear-gradient(180deg, #d9504e, #ab2b2b);
+  box-shadow: 0 4px 16px rgba(170, 40, 40, 0.30), inset 0 1px 0 rgba(255, 255, 255, 0.20);
 }
 
 .nudge-result {
@@ -559,9 +605,11 @@ details.collapse-card[open] > .collapse-summary::after { transform: rotate(180de
 .owner-actions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
 .btn-mini {
   background: rgba(82, 136, 193, 0.2); color: #7fb2e5; border: none;
-  border-radius: 8px; padding: 7px 11px; font-size: 13px; font-weight: 600; cursor: pointer;
+  border-radius: 10px; padding: 8px 12px; font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: transform 0.08s ease;
 }
-.btn-mini:disabled { opacity: 0.5; }
+.btn-mini:active:not(:disabled) { transform: scale(0.97); }
+.btn-mini:disabled { opacity: 0.5; cursor: default; }
 .btn-mini-danger { background: rgba(229, 57, 53, 0.16); color: #ff7a76; }
 .btn-back {
   background: none; border: none; cursor: pointer; padding: 10px 0 6px;
@@ -851,9 +899,11 @@ button.race-row {
 }
 .btn-invite {
   background: var(--tg-theme-button-color, #6e8fff); color: var(--tg-theme-button-text-color, #fff);
-  border: none; border-radius: 10px; padding: 10px 12px;
+  border: none; border-radius: var(--r-ctl); padding: 11px 12px;
   font-size: 14px; font-weight: 700; cursor: pointer; width: 100%;
+  box-shadow: var(--shadow-btn); transition: transform 0.08s ease;
 }
+.btn-invite:active:not(:disabled) { transform: scale(0.98); }
 .btn-invite:disabled { opacity: 0.6; cursor: default; }
 .btn-invite-ghost { background: rgba(255, 255, 255, 0.10); color: var(--text); }
 .invite-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -1032,7 +1082,11 @@ button.race-row {
 .rating-list button.rating-row {
   width: 100%; border: none; font: inherit; color: inherit; text-align: left; cursor: pointer;
 }
-button.podium-spot { background: none; border: none; font: inherit; color: inherit; cursor: pointer; padding: 0; }
+/* Снимаем только то, что браузер рисует кнопке сам. Фон, рамку и отступы НЕ
+   трогаем: они и есть тело ступени. Раньше здесь стояло background: none, и оно
+   перебивало по специфичности (0,1,1 против 0,1,0) — у игрока без фона спонсора
+   ступень оставалась прозрачной, а подставка висела под ней в пустоте. */
+button.podium-spot { font: inherit; color: inherit; cursor: pointer; }
 
 /* --- Сезонная карточка в «Я» --- */
 .season-card { margin-top: 0; }
@@ -1574,7 +1628,7 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
 
 /* --- Респект 👏 (социальная награда) --- */
 .btn-respect {
-  width: 100%; margin-top: 10px; padding: 11px 14px; border: none; border-radius: 12px;
+  width: 100%; margin-top: 10px; padding: 11px 14px; border: none; border-radius: var(--r-ctl);
   font-size: 15px; font-weight: 600; cursor: pointer;
   background: var(--accent, #8774e1); color: #fff; transition: transform 0.12s ease, opacity 0.2s ease;
 }
@@ -2360,9 +2414,13 @@ button.podium-spot { background: none; border: none; font: inherit; color: inher
   display: grid; grid-template-columns: 34px minmax(0, 1fr) auto;
   grid-template-areas: "rank name fame" "rank sub fame";
   align-items: center; column-gap: 8px;
-  padding: 8px 10px; border-radius: 10px; background: var(--bg-card);
+  padding: 8px 10px; border-radius: var(--r-ctl); background: var(--bg-card);
   background-size: cover; background-position: center;
 }
+/* Внутри карточки фон строки совпадал с фоном самой карточки, и строки без
+   оформления спонсора пропадали: между украшенными оставались просто пустоты.
+   Здесь строке нужен свой тон, а не общий цвет карточки. */
+.card .hall-row { background-color: rgba(255, 255, 255, 0.045); }
 /* Не ровная заливка, а уклон: слева, где имя, почти непрозрачно, справа картинка
    проступает. Ровной вуали не хватало на светлой арене — имя тонуло в флагах. */
 .hall-row-veil {
@@ -2555,36 +2613,46 @@ button.hall-step {
 }
 
 .page-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 6px; }
+/* Та же плитка, что и в полоске статов на экране войны: одна цифра с подписью
+   выглядит одинаково везде, на каком бы экране ни стояла. */
 .page-stat {
-  background: var(--bg-card); border-radius: 10px; padding: 9px 6px;
+  background: var(--bg-card); border: 1px solid var(--line);
+  border-radius: var(--r-ctl); padding: 10px 6px;
   display: grid; gap: 1px; justify-items: center; text-align: center; min-width: 0;
 }
-.page-stat-val { font-size: 15px; font-weight: 700; }
+.page-stat-val { font-size: 16px; font-weight: 700; }
 .page-stat-label { font-size: 11px; }
 
 .page-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.page-actions .btn { flex: 1; min-width: 0; }
+/* Обе кнопки одной высоты и делят ширину поровну. Отступы по бокам меньше
+   обычных: с полными двадцатью «Написать клану» и «Оформить страницу» на 390
+   пикселях обе переносились на две строки. */
+.page-actions .btn { flex: 1; min-width: 0; padding-left: 10px; padding-right: 10px; }
 
 /* Столбики по неделям. Своя разметка, а не общая чартовая: тут не выбирают
    период и не наводят — график читают. */
-.week-bars { display: flex; align-items: flex-end; gap: 6px; height: 120px; }
+.week-bars { display: flex; align-items: flex-end; gap: 10px; height: 128px; padding-top: 2px; }
 .week-bar-col {
   flex: 1; min-width: 0; height: 100%;
   display: grid; grid-template-rows: auto 1fr auto; gap: 3px; justify-items: center;
 }
 .week-bar-val { font-size: 10px; color: var(--muted); }
-.week-bar-track { width: 100%; height: 100%; display: flex; align-items: flex-end; }
+/* Столбик уже колонки: на четырёх неделях заливка во всю ширину складывалась в
+   сплошную золотую стену, по которой разницу между неделями не прочесть. */
+.week-bar-track { width: 100%; height: 100%; display: flex; align-items: flex-end; justify-content: center; }
 .week-bar-fill {
-  width: 100%; border-radius: 5px 5px 0 0; min-height: 3px;
+  width: 72%; max-width: 46px; border-radius: 6px 6px 0 0; min-height: 3px;
   background: linear-gradient(180deg, var(--gold), rgba(255, 200, 61, 0.30));
 }
 .week-bar-label { font-size: 10px; }
 
-.page-badges { display: flex; flex-wrap: wrap; gap: 8px; }
+/* Сетка, а не перенос по ширине. Шесть значков во flex-wrap ложились пятью в
+   ряд и одним под ними — коллекция выглядела оборванной на середине. */
+.page-badges { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .page-badge {
-  display: grid; justify-items: center; gap: 1px;
-  background: var(--bg); border-radius: 10px; padding: 8px 10px; min-width: 58px;
-  border: 1px solid transparent;
+  display: grid; justify-items: center; gap: 1px; min-width: 0;
+  background: var(--bg); border-radius: var(--r-ctl); padding: 9px 6px;
+  border: 1px solid var(--line);
 }
 .page-badge.badge-bronze { border-color: rgba(205, 143, 86, 0.55); }
 .page-badge.badge-silver { border-color: rgba(192, 200, 212, 0.55); }
@@ -2652,3 +2720,26 @@ button.hall-step {
 .design-tile.design-stone { border: 2px solid rgba(150, 158, 172, 0.55); border-radius: 6px; color: #dfe4ec; letter-spacing: 1px; }
 .design-tile.design-blood { border-color: rgba(214, 58, 58, 0.7); color: #ffc9c9; box-shadow: inset 0 0 18px rgba(150, 20, 20, 0.5); }
 .design-tile.design-frost { border-color: rgba(124, 200, 255, 0.65); color: #d6f0ff; box-shadow: inset 0 0 18px rgba(30, 90, 160, 0.5); }
+
+/* Медальон места на странице игрока. Тройка получает свой металл, остальные -
+   нейтральный круг: разница между четвёртым и сороковым местом не такая, чтобы
+   её стоило красить, а разница между первым и четвёртым - такая. */
+.page-hero-split { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.page-hero-left { display: grid; gap: 3px; min-width: 0; }
+
+.rank-medal {
+  flex: none; width: 76px; height: 76px; border-radius: 50%;
+  display: grid; justify-items: center; align-content: center; gap: 0;
+  background: rgba(10, 10, 24, 0.55);
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+}
+.rank-medal-num { font-size: 26px; font-weight: 800; line-height: 1; color: #fff; }
+.rank-medal-of { font-size: 9px; color: rgba(255, 255, 255, 0.7); margin-top: 3px; text-align: center; }
+
+.rank-medal-1 { border-color: var(--gold); box-shadow: 0 0 18px rgba(255, 200, 61, 0.45); }
+.rank-medal-1 .rank-medal-num { color: var(--gold); }
+.rank-medal-2 { border-color: #c0c8d4; box-shadow: 0 0 16px rgba(192, 200, 212, 0.35); }
+.rank-medal-2 .rank-medal-num { color: #dde3ec; }
+.rank-medal-3 { border-color: #cd8f56; box-shadow: 0 0 16px rgba(205, 143, 86, 0.35); }
+.rank-medal-3 .rank-medal-num { color: #e8ab74; }

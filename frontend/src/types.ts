@@ -1105,6 +1105,8 @@ export interface PlayerPage {
   showcaseKey: string | null
   showcaseLevel: number
   isMe: boolean
+  /** Оформление берётся у клана: своего у игрока нет. */
+  designKey: ClanDesignKey
   badges: PlayerPageBadge[]
   weeks: PageWeek[]
 }

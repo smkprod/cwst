@@ -12,6 +12,13 @@ namespace ClanWarTracker.Application.DTOs;
 /// <param name="ClanId">Клан игрока, если он есть в боте — чтобы с его страницы уйти на клан.</param>
 /// <param name="Badges">Все выбитые значки, а не только выставленный напоказ.</param>
 /// <param name="ShowcaseKey">Значок, который игрок поставил рядом с именем.</param>
+/// <param name="DesignKey">
+/// Оформление страницы — берётся у клана игрока.
+///
+/// Своего у игрока нет намеренно. Клановый дизайн покупается один раз на клан, и
+/// чем в большем числе мест он виден, тем он осмысленнее; а два независимых
+/// оформления рядом (фон игрока и его же рамка) начали бы спорить друг с другом.
+/// </param>
 public record PlayerPageDto(
     int Rank,
     int TotalPlayers,
@@ -29,6 +36,7 @@ public record PlayerPageDto(
     string? ShowcaseKey,
     int ShowcaseLevel,
     bool IsMe,
+    string DesignKey,
     IReadOnlyList<PlayerPageBadgeDto> Badges,
     IReadOnlyList<PageWeekDto> Weeks);
 

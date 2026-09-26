@@ -1,4 +1,5 @@
 using ClanWarTracker.Application.DTOs;
+using ClanWarTracker.Domain.Entities;
 using ClanWarTracker.Domain.Interfaces;
 
 namespace ClanWarTracker.Application.UseCases;
@@ -69,6 +70,7 @@ public class GetPlayerPageUseCase(
             ShowcaseLevel: row.BadgeLevel,
             IsMe: viewer is not null
                   && string.Equals(viewer.PlayerTag, row.PlayerTag, StringComparison.OrdinalIgnoreCase),
+            DesignKey: ClanPageDesign.Normalize(clan?.PageDesignKey),
             Badges: badges,
             Weeks: weeks);
     }

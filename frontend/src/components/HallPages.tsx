@@ -52,21 +52,28 @@ export function ClanPageView({ clanId, onOpenPlayer, onBack }: {
         style={page.backgroundKey ? { backgroundImage: `url(/bg/${page.backgroundKey}.webp)` } : undefined}
       >
         <span className="page-hero-veil" />
-        <div className="page-hero-body">
-          <span className="page-hero-crest">🏰</span>
-          <h2 className="page-hero-name">
-            {page.clanName}
-            {page.sponsorCount > 0 && <span className="hall-sponsor-tag">★</span>}
-          </h2>
-          <span className="page-hero-tag">{page.clanTag}</span>
-          {page.motto && <p className="page-hero-motto">«{page.motto}»</p>}
-
-          <div className="page-hero-rank">
-            {page.rank > 0
-              ? <><span className="page-rank-num">#{page.rank}</span>
-                  <span className="muted small"> {t.hall.outOf} {page.clansCounted}</span></>
-              : <span className="muted small">{t.hallPage.notRanked}</span>}
+        <div className="page-hero-body page-hero-split">
+          <div className="page-hero-left">
+            <span className="page-hero-crest">🏰</span>
+            <h2 className="page-hero-name">
+              {page.clanName}
+              {page.sponsorCount > 0 && <span className="hall-sponsor-tag">★</span>}
+            </h2>
+            <span className="page-hero-tag">{page.clanTag}</span>
+            {page.motto && <p className="page-hero-motto">«{page.motto}»</p>}
+            {page.rank === 0 && <span className="muted small">{t.hallPage.notRanked}</span>}
           </div>
+
+          {/* Тот же медальон, что и у игрока: место — главное на обеих страницах,
+              и если рисовать его двумя разными способами, они перестают читаться
+              как один раздел. Клана вне зачёта нет и медальона: ноль в круге
+              выглядел бы как место, которого нет. */}
+          {page.rank > 0 && (
+            <div className={`rank-medal ${page.rank <= 3 ? `rank-medal-${page.rank}` : ''}`}>
+              <span className="rank-medal-num">{page.rank}</span>
+              <span className="rank-medal-of">{t.hall.outOf} {page.clansCounted}</span>
+            </div>
+          )}
         </div>
       </header>
 
@@ -86,7 +93,7 @@ export function ClanPageView({ clanId, onOpenPlayer, onBack }: {
             : <p className="muted small">{t.hallPage.mailOff}</p>
         )}
         {page.canEdit && (
-          <button className="btn-mini" onClick={() => { haptic('light'); setEditing(true) }}>
+          <button className="btn btn-ghost" onClick={() => { haptic('light'); setEditing(true) }}>
             {t.hallPage.design}
           </button>
         )}
@@ -173,8 +180,14 @@ export function PlayerPageView({ playerTag, onOpenClan, onBack }: {
   if (state === 'loading') return <Loading onBack={onBack} t={t} />
   if (state === 'error' || !page) return <Failed text={t.hallPage.playerNotFound} onBack={onBack} t={t} />
 
+  // Место — главное, что есть на этой странице, и до перестройки оно стояло
+  // мелкой строкой под именем, ниже картинки. Медальон выносит его вправо от
+  // имени: на страницу приходят посмотреть, какой человек по счёту, а не
+  // перечитывать его ник.
+  const medal = page.rank <= 3 ? `rank-medal-${page.rank}` : ''
+
   return (
-    <div className="fade-in page-sheet">
+    <div className={`fade-in page-sheet design-${page.designKey}`}>
       <BackBar onBack={onBack} t={t} />
 
       <header
@@ -182,30 +195,32 @@ export function PlayerPageView({ playerTag, onOpenClan, onBack }: {
         style={page.backgroundKey ? { backgroundImage: `url(/bg/${page.backgroundKey}.webp)` } : undefined}
       >
         <span className="page-hero-veil" />
-        <div className="page-hero-body">
-          {page.showcaseKey && page.showcaseLevel > 0 && (
-            <span className={`page-hero-crest hall-badge ${LEVEL_CLS[page.showcaseLevel] ?? ''}`}>
-              {BADGE_ICONS[page.showcaseKey] ?? '🏅'}
-            </span>
-          )}
-          <h2 className="page-hero-name">
-            {page.name}
-            {page.isSponsor && <span className="hall-sponsor-tag">★</span>}
-          </h2>
-          <span className="page-hero-tag">{page.playerTag}</span>
+        <div className="page-hero-body page-hero-split">
+          <div className="page-hero-left">
+            {page.showcaseKey && page.showcaseLevel > 0 && (
+              <span className={`page-hero-crest hall-badge ${LEVEL_CLS[page.showcaseLevel] ?? ''}`}>
+                {BADGE_ICONS[page.showcaseKey] ?? '🏅'}
+              </span>
+            )}
+            <h2 className="page-hero-name">
+              {page.name}
+              {page.isSponsor && <span className="hall-sponsor-tag">★</span>}
+            </h2>
+            <span className="page-hero-tag">{page.playerTag}</span>
 
-          {page.clanId !== null ? (
-            <button
-              className="page-hero-clan"
-              onClick={() => { haptic('light'); onOpenClan(page.clanId!) }}
-            >🏰 {page.clanName}</button>
-          ) : (
-            <span className="page-hero-motto">🏰 {page.clanName}</span>
-          )}
+            {page.clanId !== null ? (
+              <button
+                className="page-hero-clan"
+                onClick={() => { haptic('light'); onOpenClan(page.clanId!) }}
+              >🏰 {page.clanName}</button>
+            ) : (
+              <span className="page-hero-motto">🏰 {page.clanName}</span>
+            )}
+          </div>
 
-          <div className="page-hero-rank">
-            <span className="page-rank-num">#{page.rank}</span>
-            <span className="muted small"> {t.hall.outOf} {page.totalPlayers}</span>
+          <div className={`rank-medal ${medal}`}>
+            <span className="rank-medal-num">{page.rank}</span>
+            <span className="rank-medal-of">{t.hall.outOf} {page.totalPlayers}</span>
           </div>
         </div>
       </header>
