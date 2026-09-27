@@ -2778,3 +2778,12 @@ button.hall-step {
 .adm-trace-line { display: grid; gap: 2px; padding: 6px 0; }
 .adm-trace-line + .adm-trace-line { border-top: 1px solid var(--line); }
 .adm-trace-outcome { word-break: break-word; }
+
+/* Воронка кампаний */
+.adm-camp { display: grid; gap: 6px; padding: 10px 0; }
+.adm-camp + .adm-camp { border-top: 1px solid var(--line); }
+.adm-camp-funnel { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 13px; }
+/* Кланы — главная цифра воронки, её видно первой */
+.adm-camp-key { color: var(--gold); }
+.adm-camp .btn-mini { justify-self: start; }
+.adm-camp-warn { margin: 0; color: #ff7a76; }
