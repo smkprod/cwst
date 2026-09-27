@@ -11,10 +11,8 @@ namespace ClanWarTracker.Application.DTOs;
 /// Соперник такого о себе не видит: данные собираются из его же публичного журнала войн.
 /// </summary>
 public record RaceScoutDto(
-    bool IsPro,
     int WeeksAnalyzed,                  // сколько завершённых недель удалось разобрать
     List<ScoutClanDto> Clans,           // в порядке текущих мест в гонке
-    string? FreeTeaser,                 // код дразнилки для Free; null — дразнить нечем
     string? RealRivalTag);              // с кем реально идёт борьба; null — не определился
 
 /// <summary>

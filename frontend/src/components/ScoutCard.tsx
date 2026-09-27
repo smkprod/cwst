@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
-import type { Plan, RaceScout, ScoutClan } from '../types'
+import type { RaceScout, ScoutClan } from '../types'
 import { fmt } from '../lib/format'
 import { haptic } from '../lib/telegram'
 import { useT, type Translations } from '../lib/i18n'
@@ -11,24 +11,15 @@ type State =
   | { kind: 'error' }
   | { kind: 'ready'; data: RaceScout }
 
-interface Props {
-  plan: Plan
-}
-
 /**
- * «Разведка гонки» (Pro).
+ * «Разведка гонки».
  *
  * Таблица гонки отвечает, кто впереди сейчас. К четвергу этот ответ бесполезен:
  * клан, вырвавшийся в среду, может оказаться слабее того, кто раскачивается
  * к воскресенью. Здесь — чего соперники стоят вообще: обычный результат,
  * стабильность, дисциплина и то, идут ли они сейчас выше или ниже себя самих.
- *
- * На Free карточка показывает то же, что и таблица гонки (имена и места), и одну
- * честную строчку о том, что разведка нашла. Дразнилка приходит с сервера кодом:
- * обещать в ней можно только посчитанное, иначе человек купит Pro и не найдёт
- * внутри того, что ему показали.
  */
-export function ScoutCard({ plan }: Props) {
+export function ScoutCard() {
   const openClan = useOpenClan()
   const { t } = useT()
   const [state, setState] = useState<State>({ kind: 'loading' })
@@ -61,58 +52,29 @@ export function ScoutCard({ plan }: Props) {
   }
 
   const { data } = state
-  const locked = !data.isPro
-
-  const teaser = data.freeTeaser === 'rivalBelowUsual' ? t.scout.teaserBelowUsual
-    : data.freeTeaser === 'rivalUnstable' ? t.scout.teaserUnstable
-    : data.freeTeaser === 'weAreStronger' ? t.scout.teaserStronger
-    : data.freeTeaser === 'generic' ? t.scout.teaserGeneric
-    : null
 
   return (
-    <section className={`card scout-card ${locked ? 'forecast-locked' : ''}`}>
-      <div className="card-title-row">
-        <div className="card-title">{t.scout.title}</div>
-        <span className="pro-chip">PRO</span>
-      </div>
+    <section className="card scout-card">
+      <div className="card-title">{t.scout.title}</div>
 
-      {locked ? (
-        <>
-          <p className="muted small">{t.scout.lockedNote}</p>
-          {teaser && <p className="scout-teaser">🔒 {teaser}</p>}
-          <ul className="scout-list scout-list-locked">
-            {data.clans.map(c => (
-              <li key={c.tag} className={`scout-row ${c.isOurClan ? 'scout-row-ours' : ''}`}
-                  onClick={() => openClan(c.tag, c.name)}>
-                <span className="scout-place">{c.position}</span>
-                <span className="scout-name">{c.name}</span>
-                <span className="muted small">{fmt(c.currentFame)} 🏅</span>
-              </li>
-            ))}
-          </ul>
-        </>
-      ) : (
-        <>
-          <p className="muted small scout-hint">
-            {data.weeksAnalyzed > 0
-              ? `${t.scout.basedOn} ${data.weeksAnalyzed} ${t.scout.weeks}`
-              : t.scout.noHistory}
-          </p>
+      <p className="muted small scout-hint">
+        {data.weeksAnalyzed > 0
+          ? `${t.scout.basedOn} ${data.weeksAnalyzed} ${t.scout.weeks}`
+          : t.scout.noHistory}
+      </p>
 
-          <ul className="scout-list">
-            {data.clans.map(c => (
-              <ScoutRow
-                key={c.tag}
-                clan={c}
-                isRealRival={c.tag === data.realRivalTag}
-                open={openTag === c.tag}
-                onToggle={() => { haptic('light'); setOpenTag(openTag === c.tag ? null : c.tag) }}
-                t={t}
-              />
-            ))}
-          </ul>
-        </>
-      )}
+      <ul className="scout-list">
+        {data.clans.map(c => (
+          <ScoutRow
+            key={c.tag}
+            clan={c}
+            isRealRival={c.tag === data.realRivalTag}
+            open={openTag === c.tag}
+            onToggle={() => { haptic('light'); setOpenTag(openTag === c.tag ? null : c.tag) }}
+            t={t}
+          />
+        ))}
+      </ul>
     </section>
   )
 }

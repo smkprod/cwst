@@ -5,7 +5,7 @@ import { useT } from '../lib/i18n'
 
 type NudgeState = 'idle' | 'sending' | 'done' | 'cooldown'
 
-export function NudgeButton({ notPlayedCount, isPro }: { notPlayedCount: number; isPro: boolean }) {
+export function NudgeButton({ notPlayedCount }: { notPlayedCount: number }) {
   const [state, setState] = useState<NudgeState>('idle')
   const [resultText, setResultText] = useState('')
   const { t } = useT()
@@ -45,7 +45,7 @@ export function NudgeButton({ notPlayedCount, isPro }: { notPlayedCount: number;
     <button className="btn btn-nudge" onClick={nudge} disabled={state === 'sending'}>
       {state === 'sending'
         ? t.nudge.sending
-        : `👊 ${t.nudge.label} (${notPlayedCount})${!isPro && notPlayedCount > 5 ? t.nudge.freeLimit : ''}`}
+        : `👊 ${t.nudge.label} (${notPlayedCount})`}
     </button>
   )
 }

@@ -30,7 +30,6 @@ public class GetOwnerDashboardUseCase(
         var month = now.AddDays(-30);
 
         var active = allClans.Count(c => lastSeen.TryGetValue(c.Id, out var t) && t >= week);
-        var proClans = allClans.Count(c => c.EffectivePlan(now) == PlanTier.Pro);
 
         // Рост считаем только по записям с известной датой: у подключённых до появления
         // поля даты нет, и записывать их в «новые» или в «старые» одинаково неверно.
@@ -41,8 +40,6 @@ public class GetOwnerDashboardUseCase(
 
         return new OwnerStatsDto(
             TotalClans: allClans.Count,
-            ProClans: proClans,
-            FreeClans: allClans.Count - proClans,
             ChatsWithBot: allClans.Count(c => c.TelegramChatId != 0),
             ActiveClans7d: active,
             SilentClans: allClans.Count - active,
@@ -62,16 +59,6 @@ public class GetOwnerDashboardUseCase(
             NewUsers30d: usersDated.Count(p => p.CreatedAtUtc >= month),
             ClansWithKnownDate: clansDated.Count,
             UsersWithKnownDate: usersDated.Count,
-
-            ProExpiring7d: allClans.Count(c =>
-                c.EffectivePlan(now) == PlanTier.Pro &&
-                c.PlanExpiresAtUtc is not null &&
-                c.PlanExpiresAtUtc <= now.AddDays(7)),
-            ProExpired: allClans.Count(c =>
-                c.PlanTier == PlanTier.Pro &&
-                c.PlanExpiresAtUtc is not null &&
-                c.PlanExpiresAtUtc <= now),
-            ProForever: allClans.Count(c => c.PlanTier == PlanTier.Pro && c.PlanExpiresAtUtc is null),
 
             Respects7d: respects7d,
             AvgLinkedPerClan: allClans.Count == 0
@@ -142,7 +129,6 @@ public class GetOwnerDashboardUseCase(
         return allClans
             .Select(c =>
             {
-                var isPro = c.EffectivePlan(now) == PlanTier.Pro;
                 lastSeen.TryGetValue(c.Id, out var seen);
                 var last = seen == default ? (DateTime?)null : seen;
 
@@ -150,20 +136,14 @@ public class GetOwnerDashboardUseCase(
                     Id: c.Id,
                     ClanTag: c.ClanTag,
                     Name: c.Name,
-                    Plan: isPro ? "pro" : "free",
-                    PlanExpiresAtUtc: c.PlanExpiresAtUtc,
-                    DaysLeft: isPro && c.PlanExpiresAtUtc is DateTime exp
-                        ? Math.Max(0, (int)Math.Ceiling((exp - now).TotalDays))
-                        : null,
                     LinkedPlayers: linkedByClan.GetValueOrDefault(c.Id),
                     HasChat: c.TelegramChatId != 0,
                     CreatedAtUtc: c.CreatedAtUtc,
                     LastActivityUtc: last,
                     IsActive: last is not null && last >= now - ActiveWindow);
             })
-            // Сначала те, кем стоит заняться: истекающий Pro, потом молчащие, потом остальные
-            .OrderBy(c => c.DaysLeft ?? int.MaxValue)
-            .ThenBy(c => c.IsActive)
+            // Сначала те, кем стоит заняться: молчащие, потом остальные
+            .OrderBy(c => c.IsActive)
             .ThenByDescending(c => c.LinkedPlayers)
             .ToList();
     }

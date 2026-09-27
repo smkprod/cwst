@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
-import type { ClanDiscipline, DisciplinePlayer, Plan } from '../types'
+import type { ClanDiscipline, DisciplinePlayer } from '../types'
 import { haptic } from '../lib/telegram'
 import { useT, type Translations } from '../lib/i18n'
 
@@ -11,10 +11,6 @@ type State =
 
 type Section = 'skippers' | 'nudged' | 'late'
 
-interface Props {
-  plan: Plan
-}
-
 /**
  * «Дисциплина клана» — что пришло на смену шансу победы.
  *
@@ -23,31 +19,18 @@ interface Props {
  * человека и подсказывает разговор: этот не доигрывает, этого приходится пинать
  * каждую войну, а этот отыгрывает за час до конца и однажды не успеет.
  */
-export function DisciplineCard({ plan }: Props) {
+export function DisciplineCard() {
   const { t } = useT()
   const [state, setState] = useState<State>({ kind: 'loading' })
   const [section, setSection] = useState<Section>('skippers')
 
   useEffect(() => {
-    if (plan !== 'pro') return
     let alive = true
     api.getClanDiscipline()
       .then(data => { if (alive) setState({ kind: 'ready', data }) })
       .catch(() => { if (alive) setState({ kind: 'error' }) })
     return () => { alive = false }
-  }, [plan])
-
-  if (plan !== 'pro') {
-    return (
-      <section className="card forecast-locked">
-        <div className="card-title-row">
-          <div className="card-title">{t.discipline.title}</div>
-          <span className="pro-chip">PRO</span>
-        </div>
-        <p className="muted small">{t.discipline.lockedNote}</p>
-      </section>
-    )
-  }
+  }, [])
 
   if (state.kind === 'loading') {
     return (

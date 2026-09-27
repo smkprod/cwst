@@ -79,7 +79,7 @@ public class RecruitmentController(
 
     /// <summary>
     /// GET /api/recruitment/candidates — список кандидатов с реальной КВ-статистикой.
-    /// Только для лидера/сорука клана с Pro-тарифом.
+    /// Только для лидера/сорука клана.
     /// </summary>
     [HttpGet("candidates")]
     public async Task<IActionResult> Candidates(CancellationToken ct)
@@ -90,10 +90,6 @@ public class RecruitmentController(
 
         var clan = player.ClanId.HasValue ? await clans.GetByIdAsync(player.ClanId.Value, ct) : null;
         if (clan is null) return NotFound(new { error = "clan_not_found" });
-
-        // Проверяем что тариф Pro
-        if (clan.EffectivePlan(DateTime.UtcNow) != PlanTier.Pro)
-            return StatusCode(403, new { error = "pro_required", message = "Биржа доступна только на тарифе Pro" });
 
         // Проверяем что лидер или сорук
         var crRole = await crApi.GetPlayerClanRoleAsync(clan.ClanTag, player.PlayerTag, ct);

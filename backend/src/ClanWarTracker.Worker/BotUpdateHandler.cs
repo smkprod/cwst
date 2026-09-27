@@ -776,9 +776,8 @@ public class BotUpdateHandler(
                     var nudgeRepo = sp.GetRequiredService<IClanRepository>();
                     var nudgeClan = await nudgeRepo.GetByChatIdAsync(msg.Chat.Id, ct);
                     if (nudgeClan is null) { await Reply(msg, t.ClanNotLinked, ct); return; }
-                    var isProNudge = nudgeClan.EffectivePlan(DateTime.UtcNow) == PlanTier.Pro;
                     var nudgeResult = await sp.GetRequiredService<NudgePlayersUseCase>()
-                        .ExecuteAsync(nudgeClan.Id, isProNudge, ct);
+                        .ExecuteAsync(nudgeClan.Id, ct);
                     if (nudgeResult is null) { await Reply(msg, t.NudgeNoWarDay, ct); return; }
                     if (nudgeResult.TaggableCount == 0 && nudgeResult.UnlinkedCount == 0)
                         await Reply(msg, t.NudgeAllPlayed, ct);

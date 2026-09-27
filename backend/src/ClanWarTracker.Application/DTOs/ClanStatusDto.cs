@@ -7,12 +7,11 @@ public record ClanStatusDto(
     int PeriodIndex,
     DateTime DayEndsAtUtc,
     int HoursLeft,
-    string Plan,              // "free" | "pro"
     ClanStatsDto Stats,
-    ClanForecastDto? Forecast, // null на Free-тарифе
+    ClanForecastDto? Forecast,
     List<RaceClanDto> Race,   // все кланы гонки, отсортированы по месту
     List<PlayerStatusDto> Players,
-    ClanInsightsDto? Insights,  // Pro: прогноз победы + здоровье клана (null на Free)
+    ClanInsightsDto? Insights,  // прогноз победы + здоровье клана
     List<WarLogWeekDto> WarLog, // журнал прошлых войн (места кланов и очки)
     List<WarDayLogDto> DayLogs, // официальный по-дневный лог гонки (periodLogs)
     // Фон, которым спонсор оформил клан. Приложение красится под него: оформление,
@@ -53,7 +52,7 @@ public record WarLogPlayerDto(string PlayerTag, string Name, int Fame, int Decks
 /// <summary>Один фактор здоровья клана (0..100).</summary>
 public record HealthFactorDto(string Name, int Score);
 
-/// <summary>Pro-аналитика: шанс победы в гонке и «здоровье» клана.</summary>
+/// <summary>Аналитика: шанс победы в гонке и «здоровье» клана.</summary>
 public record ClanInsightsDto(
     int? WinChance,              // % победы в гонке недели; null — тренировка
     int? WinChanceIfSlackersOut, // тот же %, если не доигравшие так и не сыграют
@@ -95,11 +94,11 @@ public record PlayerStatusDto(
     int Rank,                 // место в клане по медалям
     string Status,            // "played" | "timeLeft" | "notPlayed"
     bool IsLinked,
-    int ConsecutiveWars,      // Pro: сколько недель подряд участвовал (0 на Free)
+    int ConsecutiveWars,      // сколько недель подряд участвовал
     string? Role,             // "leader" | "coLeader" | "elder" | null (рядовой); перевод — на фронте
     int Trophies,             // кубки игрока (0 — состав клана не отдался)
-    string? DnaLabel,         // Pro: архетип игрока ("Тащер 💪", "Надёжный 🛡" ...), null — мало данных/Free
-    int ReliabilityScore,     // Pro: надёжность 0..100 (0 — нет данных/Free)
+    string? DnaLabel,         // архетип игрока ("Тащер 💪", "Надёжный 🛡" ...), null — мало данных
+    int ReliabilityScore,     // надёжность 0..100 (0 — нет данных)
     // Оформление и статус — то, ради чего спонсорство вообще покупают. Едет вместе
     // с составом, чтобы показываться и в рейтинге, и в списке, а не только на Аллее:
     // ярлык, которого нет там, где человека видят каждый день, статусом не работает.
@@ -212,4 +211,4 @@ public record MyStatsDto(
     int ContributionPercent,  // % личного вклада в общую славу клана
     string PerformanceLabel,  // "топ", "выше среднего", "средне", "ниже среднего"
     double ClanAvgFamePerAttack,
-    MySeasonDto? Season);     // null — нет данных сезона или Free-тариф
+    MySeasonDto? Season);     // null — нет данных сезона
