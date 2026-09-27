@@ -25,8 +25,23 @@ public class PlayerController(
     AnnounceAchievementUseCase announceAchievement,
     IServiceSettingRepository settings,
     IRespectRepository respects,
-    GetBattleAnalysisUseCase battleAnalysis) : ControllerBase
+    GetBattleAnalysisUseCase battleAnalysis,
+    GetPlayerSheetUseCase playerSheet) : ControllerBase
 {
+    /// <summary>GET /api/players/{tag}/sheet — единая карточка игрока для любого экрана.</summary>
+    [HttpGet("{tag}/sheet")]
+    public async Task<IActionResult> Sheet(string tag, CancellationToken ct)
+    {
+        var playerTag = "#" + tag.TrimStart('#').ToUpperInvariant();
+        PlayerSheetDto? dto;
+        try { dto = await playerSheet.ExecuteAsync(playerTag, ct); }
+        catch (HttpRequestException ex) when ((int)(ex.StatusCode ?? 0) is >= 500 or 429)
+            { return StatusCode(503, new { error = "cr_api_unavailable", message = ex.Message }); }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("CR API"))
+            { return StatusCode(503, new { error = "cr_api_token_invalid", message = ex.Message }); }
+        return dto is null ? NotFound(new { error = "player_not_found" }) : Ok(dto);
+    }
+
     /// <summary>
     /// GET /api/players/me/battles?tz=180 — личный разбор боёв.
     /// tz — смещение местного времени от UTC в минутах: «вечером» считается по

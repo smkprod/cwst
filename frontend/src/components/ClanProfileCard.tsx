@@ -5,6 +5,7 @@ import { fmt } from '../lib/format'
 import { haptic } from '../lib/telegram'
 import { useT, roleLabel, type Translations } from '../lib/i18n'
 import { WarLogWeeks } from './WarLogCard'
+import { usePlayerSheet } from '../lib/playerSheet'
 
 const ROLE_ICON: Record<string, string> = { leader: '👑', coLeader: '⚜️', elder: '⭐' }
 
@@ -70,6 +71,7 @@ export function ClanProfileCard({ clan }: { clan: ClanOverview }) {
 
 /** Состав клана. Свёрнут до десятки: полсотни строк сразу — это стена. */
 function MembersCard({ clan, t }: { clan: ClanOverview; t: Translations }) {
+  const openSheet = usePlayerSheet()
   const [all, setAll] = useState(false)
   const members = clan.members ?? []
   const shown = all ? members : members.slice(0, 10)
@@ -85,7 +87,7 @@ function MembersCard({ clan, t }: { clan: ClanOverview; t: Translations }) {
         {shown.map(m => {
           const role = roleLabel(m.role, t)
           return (
-            <li key={m.playerTag} className="clan-member-row">
+            <li key={m.playerTag} className="clan-member-row row-tap" onClick={() => openSheet(m.playerTag)}>
               {role && (
                 <span className={`role-badge role-${m.role}`}>{ROLE_ICON[m.role]} {role}</span>
               )}

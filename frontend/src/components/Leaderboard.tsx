@@ -6,7 +6,7 @@ import { fmt } from '../lib/format'
 import { SponsorMarks, rowBackground } from '../lib/sponsorMarks'
 import { haptic } from '../lib/telegram'
 import { useT } from '../lib/i18n'
-import { PlayerInfoModal } from './PlayerInfoModal'
+import { usePlayerSheet } from '../lib/playerSheet'
 import { HistoryCard } from './HistoryCard'
 
 interface Props {
@@ -45,7 +45,7 @@ export function Leaderboard({ players, myPlayerTag, periodType, warLog, canManag
   const [breakdown, setBreakdown] = useState<BreakdownState>({ kind: 'idle' })
   const [global, setGlobal] = useState<GlobalState>({ kind: 'idle' })
   const [archive, setArchive] = useState<ArchiveState>({ kind: 'idle' })
-  const [selected, setSelected] = useState<PlayerStatus | null>(null)
+  const openSheet = usePlayerSheet()
   const { t } = useT()
 
   useEffect(() => {
@@ -72,12 +72,11 @@ export function Leaderboard({ players, myPlayerTag, periodType, warLog, canManag
       .catch(() => setArchive({ kind: 'empty' }))
   }, [sel, archive.kind])
 
+  // Карточка открывается по любому тегу: тем, кто в текущем составе, сразу
+  // отдаём их строку КВ, остальным карточка дозапросит всё сама.
   const openByTag = (tag: string) => {
     const p = players.find(x => x.playerTag === tag)
-    if (p) {
-      haptic('light')
-      setSelected(p)
-    }
+    openSheet(tag, p ? { warRow: p, isMe: tag === myPlayerTag, canManage } : { isMe: tag === myPlayerTag })
   }
 
   const onPick = (value: string) => {
@@ -116,14 +115,6 @@ export function Leaderboard({ players, myPlayerTag, periodType, warLog, canManag
         </>
       )}
 
-      {selected && (
-        <PlayerInfoModal
-          player={selected}
-          isMe={selected.playerTag === myPlayerTag}
-          canManage={canManage}
-          onClose={() => setSelected(null)}
-        />
-      )}
     </div>
   )
 }
@@ -207,6 +198,7 @@ function WeekBoard({ players, myPlayerTag, onOpen, periodType, warLog }: {
 }
 
 function GlobalBoard({ state }: { state: GlobalState }) {
+  const openSheet = usePlayerSheet()
   const { t } = useT()
 
   if (state.kind === 'loading' || state.kind === 'idle') {
@@ -235,7 +227,7 @@ function GlobalBoard({ state }: { state: GlobalState }) {
       <ul className="rating-list">
         {data.players.map(p => (
           <li key={p.playerTag}>
-            <div className={`rating-row ${p.isMe ? 'rating-me' : ''}`}>
+            <div className={`rating-row row-tap ${p.isMe ? 'rating-me' : ''}`} onClick={() => openSheet(p.playerTag, { isMe: p.isMe })}>
               <span className="rating-rank">{p.rank <= 3 ? MEDALS[p.rank - 1] : `#${p.rank}`}</span>
               <span className="rating-name">
                 <span className="rating-name-row">

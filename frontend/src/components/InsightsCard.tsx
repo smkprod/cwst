@@ -2,6 +2,7 @@ import type { ClanInsights, PlayerStatus, RaceClan, WarDayLog, WarLogWeek } from
 import { SponsorMarks } from '../lib/sponsorMarks'
 import { fmt } from '../lib/format'
 import { useT } from '../lib/i18n'
+import { usePlayerSheet } from '../lib/playerSheet'
 
 interface Props {
   insights: ClanInsights | null
@@ -24,6 +25,7 @@ interface Props {
  */
 export function InsightsCard({ insights, players, dayLogs, warLog, race, periodType, periodIndex, hoursLeft }: Props) {
   const { t } = useT()
+  const openSheet = usePlayerSheet()
 
   if (!insights) return null
 
@@ -133,7 +135,7 @@ export function InsightsCard({ insights, players, dayLogs, warLog, race, periodT
             <div className="heroes-block">
               <span className="insights-sub">{t.insights.heroes}</span>
               {heroes.map((p, i) => (
-                <div key={p.playerTag} className="hero-row">
+                <div key={p.playerTag} className="hero-row row-tap" onClick={() => openSheet(p.playerTag, { warRow: p })}>
                   <span>{heroMedals[i]}</span>
                   <span className="hero-name">{p.name}<SponsorMarks of={p} /></span>
                   <span className="muted small">⚡ {p.avgFamePerAttack.toFixed(0)}</span>

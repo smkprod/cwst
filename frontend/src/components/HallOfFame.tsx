@@ -4,7 +4,8 @@ import type { AppConfig, BackgroundKey, HallClan, HallOfFame as Hall, HallPlayer
 import { fmt } from '../lib/format'
 import { haptic, hapticNotify } from '../lib/telegram'
 import { useT, type Translations } from '../lib/i18n'
-import { ClanPageView, PlayerPageView, type HallTarget } from './HallPages'
+import { ClanPageView, type HallTarget } from './HallPages'
+import { usePlayerSheet } from '../lib/playerSheet'
 import { SponsorBuyButton } from './SponsorBuyButton'
 
 type Board = 'players' | 'clans'
@@ -44,7 +45,9 @@ export function HallOfFame({ config, onConfigChanged }: {
   // смонтированным, поэтому возврат не перезагружает сезон заново.
   const [target, setTarget] = useState<HallTarget | null>(null)
   const openClan = (clanId: number) => { haptic('light'); setTarget({ kind: 'clan', clanId }) }
-  const openPlayer = (playerTag: string) => { haptic('light'); setTarget({ kind: 'player', playerTag }) }
+  // Игрок открывается единой карточкой — той же, что в КВ, поиске и топе.
+  const openSheet = usePlayerSheet()
+  const openPlayer = (playerTag: string) => openSheet(playerTag)
   const openRow = (r: HallPlayer | HallClan) =>
     'playerTag' in r ? openPlayer(r.playerTag) : openClan(r.clanId)
 
@@ -71,15 +74,6 @@ export function HallOfFame({ config, onConfigChanged }: {
       <ClanPageView
         clanId={target.clanId}
         onOpenPlayer={openPlayer}
-        onBack={() => setTarget(null)}
-      />
-    )
-  }
-  if (target?.kind === 'player') {
-    return (
-      <PlayerPageView
-        playerTag={target.playerTag}
-        onOpenClan={openClan}
         onBack={() => setTarget(null)}
       />
     )

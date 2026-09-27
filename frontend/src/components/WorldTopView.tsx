@@ -5,7 +5,7 @@ import { fmt } from '../lib/format'
 import { haptic } from '../lib/telegram'
 import { useT, type Translations } from '../lib/i18n'
 import { DeckStrip } from './DeckStrip'
-import { TopPlayerModal } from './TopPlayerModal'
+import { usePlayerSheet } from '../lib/playerSheet'
 import { MetaDecksView } from './MetaDecksView'
 import { CardDecksModal } from './CardDecksModal'
 
@@ -27,7 +27,7 @@ export function WorldTopView() {
   const [meta, setMeta] = useState<TopMeta | null>(null)
   const [state, setState] = useState<'loading' | 'ready' | 'empty' | 'error'>('loading')
   const [section, setSection] = useState<Section>('decks')
-  const [openTag, setOpenTag] = useState<string | null>(null)
+  const openSheet = usePlayerSheet()
 
   useEffect(() => {
     let alive = true
@@ -98,9 +98,8 @@ export function WorldTopView() {
 
       {section === 'decks' && <MetaDecksView t={t} />}
       {section === 'meta' && <MetaCards meta={meta} t={t} />}
-      {section === 'list' && <TopList t={t} onOpen={setOpenTag} />}
+      {section === 'list' && <TopList t={t} onOpen={tag => openSheet(tag)} />}
 
-      {openTag && <TopPlayerModal tag={openTag} onClose={() => setOpenTag(null)} />}
     </div>
   )
 }

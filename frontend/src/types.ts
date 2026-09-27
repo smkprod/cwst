@@ -620,6 +620,61 @@ export interface MetaDecks {
   profileDecks?: TopProfileDeck[] | null
 }
 
+/* --- Единая карточка игрока --- */
+export interface SheetBattle {
+  timeUtc: string
+  type: string
+  /** 1 — победа, 0 — ничья, -1 — поражение. */
+  result: number
+  crownsFor: number
+  crownsAgainst: number
+  opponentName: string | null
+  opponentTag: string | null
+  trophyChange: number | null
+  myDeck: MetaCard[]
+  opponentDeck: MetaCard[]
+}
+
+export interface PlayerSheet {
+  playerTag: string
+  name: string
+  expLevel: number
+  clanName: string | null
+  clanTag: string | null
+  role: string | null
+  arenaName: string | null
+  trophies: number
+  bestTrophies: number
+  /** Рейтинг Пути легенд в текущем сезоне; null — не играл. */
+  rating: number | null
+  ratingLeague: number | null
+  ratingRank: number | null
+  bestRating: number | null
+  wins: number
+  losses: number
+  threeCrownWins: number
+  battleCount: number
+  warDayWins: number
+  clanWarTrophies: number
+  currentStreak: number
+  favouriteCard: MetaCard | null
+  /** Место в мировом топе по последнему снимку; null — не в топе. */
+  worldRank: number | null
+  inBot: boolean
+  isSponsor: boolean
+  backgroundKey: BackgroundKey | null
+  badgeKey: string | null
+  badgeLevel: number
+  deck: MetaCard[]
+  deckElixir: number
+  deckLink: string | null
+  battles: SheetBattle[]
+  /** Боёв за 30 дней, сохранённых ботом (только у тех, кто в боте). */
+  games30: number
+  winPercent30: number
+  royaleApiUrl: string
+}
+
 /* --- Личный разбор боёв --- */
 export interface ElixirLeak {
   avgLeakWins: number

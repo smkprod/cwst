@@ -4,7 +4,7 @@ import type { PlayerStatus, PlayStatus } from '../types'
 import { fmt } from '../lib/format'
 import { haptic } from '../lib/telegram'
 import { useT, roleLabel } from '../lib/i18n'
-import { PlayerInfoModal } from './PlayerInfoModal'
+import { usePlayerSheet } from '../lib/playerSheet'
 
 const STATUS_META: Record<PlayStatus, { icon: string; cls: string }> = {
   played: { icon: '✅', cls: 'row-played' },
@@ -55,7 +55,7 @@ interface Props {
 const PERFECT_WEEK_FAME = 3600
 
 export function PlayerList({ players, myPlayerTag, kingTag, canManage = false }: Props) {
-  const [selected, setSelected] = useState<PlayerStatus | null>(null)
+  const openSheet = usePlayerSheet()
   const [sort, setSort] = useState<SortKey>('status')
   const [filter, setFilter] = useState<FilterKey>('all')
   const [query, setQuery] = useState('')
@@ -65,10 +65,8 @@ export function PlayerList({ players, myPlayerTag, kingTag, canManage = false }:
     return <p className="center muted">{t.players.empty}</p>
   }
 
-  const open = (p: PlayerStatus) => {
-    haptic('light')
-    setSelected(p)
-  }
+  const open = (p: PlayerStatus) =>
+    openSheet(p.playerTag, { warRow: p, isMe: p.playerTag === myPlayerTag, canManage })
 
   // Кубки приходят из состава клана; если он не отдался, они нулевые —
   // тогда сортировать по ним нечего и вариант прячем, чтобы не обманывать.
@@ -194,14 +192,6 @@ export function PlayerList({ players, myPlayerTag, kingTag, canManage = false }:
         })}
       </ul>
 
-      {selected && (
-        <PlayerInfoModal
-          player={selected}
-          isMe={selected.playerTag === myPlayerTag}
-          canManage={canManage}
-          onClose={() => setSelected(null)}
-        />
-      )}
     </>
   )
 }

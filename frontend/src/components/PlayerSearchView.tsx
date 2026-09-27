@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { api, ApiError } from '../lib/api'
-import type { ClanOverview, PlayerProfile, SearchHistoryItem } from '../types'
+import type { ClanOverview, PlayerSheet, SearchHistoryItem } from '../types'
 import { haptic } from '../lib/telegram'
 import { useT } from '../lib/i18n'
-import { PlayerProfileCard } from './PlayerProfileCard'
+import { PlayerSheetBody } from './PlayerSheet'
+import { usePlayerSheet } from '../lib/playerSheet'
 import { ClanProfileCard } from './ClanProfileCard'
 import { readHistory, pushHistory, clearHistory } from '../lib/searchHistory'
 
@@ -13,7 +14,7 @@ type SearchState =
   | { kind: 'idle' }
   | { kind: 'loading' }
   | { kind: 'error'; message: string }
-  | { kind: 'player'; data: PlayerProfile }
+  | { kind: 'player'; data: PlayerSheet }
   | { kind: 'clan'; data: ClanOverview }
 
 /** Теги CR пишут по-разному: с решёткой, в нижнем регистре, с лишними пробелами. */
@@ -27,6 +28,7 @@ export function PlayerSearchView() {
   const [tag, setTag] = useState('')
   const [state, setState] = useState<SearchState>({ kind: 'idle' })
   const [history, setHistory] = useState<SearchHistoryItem[]>([])
+  const openSheet = usePlayerSheet()
 
   useEffect(() => { setHistory(readHistory()) }, [])
 
@@ -41,7 +43,7 @@ export function PlayerSearchView() {
 
     try {
       if (searchKind === 'player') {
-        const data = await api.getPlayerProfile('#' + clean)
+        const data = await api.getPlayerSheet('#' + clean)
         setState({ kind: 'player', data })
         setHistory(pushHistory({ kind: 'player', tag: clean, name: data.name }))
       } else {
@@ -126,7 +128,11 @@ export function PlayerSearchView() {
       {state.kind === 'error' && (
         <p className="center muted" style={{ marginTop: 16 }}>{state.message}</p>
       )}
-      {state.kind === 'player' && <PlayerProfileCard profile={state.data} />}
+      {state.kind === 'player' && (
+        <section className="card">
+          <PlayerSheetBody tag={state.data.playerTag} preloaded={state.data} onOpenPlayer={tag => openSheet(tag)} />
+        </section>
+      )}
       {state.kind === 'clan' && <ClanProfileCard clan={state.data} />}
     </div>
   )
