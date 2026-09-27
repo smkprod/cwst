@@ -29,6 +29,17 @@ public class TelegramNotificationSender(ITelegramBotClient bot) : INotificationS
         }
     }
 
+    public async Task<bool> TrySendToUserAsync(long telegramUserId, string text, CancellationToken ct = default)
+    {
+        try
+        {
+            await SendAsync(telegramUserId, text, threadId: null, html: false, ct);
+            return true;
+        }
+        catch (ApiRequestException) { return false; }
+        catch (HttpRequestException) { return false; }
+    }
+
     public Task SendToChatAsync(
         long chatId, string text, int? threadId = null, bool html = false, CancellationToken ct = default) =>
         SendAsync(chatId, text, threadId, html, ct);

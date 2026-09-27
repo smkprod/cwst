@@ -365,6 +365,56 @@ public interface ISponsorPaymentRepository
 
     /// <summary>Все оплаты — для воронки кампаний: кто из пришедших по ним заплатил.</summary>
     Task<List<SponsorPayment>> GetAllAsync(CancellationToken ct = default);
+
+    /// <summary>Платёж по номеру — отслеживаемый, для отметки о возврате. null — такого нет.</summary>
+    Task<SponsorPayment?> GetByChargeAsync(string telegramChargeId, CancellationToken ct = default);
+
+    Task SaveChangesAsync(CancellationToken ct = default);
+}
+
+public interface IEntitlementRepository
+{
+    /// <summary>
+    /// До какого момента у человека есть доступ к товару: самый поздний срок среди
+    /// не отозванных выдач. null — выдач не было вовсе.
+    /// </summary>
+    Task<DateTime?> UntilAsync(long telegramUserId, string sku, CancellationToken ct = default);
+
+    /// <summary>Последняя не отозванная выдача — чтобы сказать, откуда доступ (триал, покупка).</summary>
+    Task<Entitlement?> LatestAsync(long telegramUserId, string sku, CancellationToken ct = default);
+
+    /// <summary>Был ли уже триал у этого аккаунта или у этого тега.</summary>
+    Task<bool> HadTrialAsync(long telegramUserId, string? playerTag, string sku, CancellationToken ct = default);
+
+    Task AddAsync(Entitlement entitlement, CancellationToken ct = default);
+
+    /// <summary>Выдачи по номеру платежа — отслеживаемые, для отзыва при возврате.</summary>
+    Task<List<Entitlement>> GetByChargeAsync(string chargeId, CancellationToken ct = default);
+
+    /// <summary>У кого доступ действует прямо сейчас.</summary>
+    Task<List<long>> ActiveUsersAsync(string sku, DateTime nowUtc, CancellationToken ct = default);
+
+    /// <summary>Последние выдачи, свежие первыми — для панели владельца.</summary>
+    Task<List<Entitlement>> GetRecentAsync(int limit, CancellationToken ct = default);
+
+    /// <summary>Все выдачи товара — для статистики продаж и конверсии триала.</summary>
+    Task<List<Entitlement>> GetAllAsync(string sku, CancellationToken ct = default);
+
+    Task SaveChangesAsync(CancellationToken ct = default);
+}
+
+public interface IPlayerAlertPrefsRepository
+{
+    /// <summary>Настройки человека — отслеживаемые. null — он их ещё не трогал.</summary>
+    Task<PlayerAlertPrefs?> GetAsync(long telegramUserId, CancellationToken ct = default);
+
+    /// <summary>Настройки человека, заведённые при первом обращении. Отслеживаемые.</summary>
+    Task<PlayerAlertPrefs> GetOrCreateAsync(long telegramUserId, CancellationToken ct = default);
+
+    /// <summary>Кто явно включил «Стоп-тильт» — нужны, когда платный доступ выключен владельцем.</summary>
+    Task<List<long>> OptedInAsync(CancellationToken ct = default);
+
+    Task SaveChangesAsync(CancellationToken ct = default);
 }
 
 public interface IClanMessageRepository

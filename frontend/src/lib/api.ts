@@ -1,5 +1,5 @@
 import { initData } from './telegram'
-import type { AppConfig, AppTab, BackgroundKey, ClanDesignKey, ClanPage, PlayerPage, HallOfFame, OwnerSponsor, Moderator, ServiceIdentity, ServicePermission, BroadcastResult, BroadcastTarget, TopStatus, SponsorSales, CampaignFunnel, ClanDiscipline, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, MetaDecks, BattleAnalysis, PlayerSheet, TopPlayerRow, TopPlayerDetail, Tournament, TournamentSummary, WarJournal } from '../types'
+import type { AppConfig, AppTab, BackgroundKey, ClanDesignKey, ClanPage, PlayerPage, HallOfFame, OwnerSponsor, Moderator, ServiceIdentity, ServicePermission, BroadcastResult, BroadcastTarget, TopStatus, SponsorSales, CampaignFunnel, ClanDiscipline, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, MetaDecks, BattleAnalysis, PlayerSheet, PlusStatus, OwnerPlus, TopPlayerRow, TopPlayerDetail, Tournament, TournamentSummary, WarJournal } from '../types'
 
 // Если мы на Render (production), BASE должен быть пустой строкой '', чтобы запросы шли на тот же домен.
 // Для локальной разработки (Development) оставляем localhost:5000.
@@ -163,6 +163,40 @@ export const api = {
   getPlayerProfile: (tag: string) =>
     request<PlayerProfile>(`/api/players/${encodeURIComponent(tag.replace('#', ''))}/profile`),
   getMe: () => request<LinkedPlayer>('/api/players/me'),
+  /** «Clanify Плюс»: статус, цены, оповещения. */
+  getPlus: () => request<PlusStatus>('/api/plus'),
+  /** Счёт на пропуск Плюса (7 или 30 дней) — ссылка для openInvoice. */
+  createPlusInvoice: (days: number) =>
+    request<{ link: string }>('/api/plus/invoice', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ days }),
+    }),
+  setTiltAlerts: (enabled: boolean) =>
+    request<{ tiltAlerts: boolean }>('/api/plus/alerts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled }),
+    }),
+  ownerGetPlus: () => request<OwnerPlus>('/api/owner/plus'),
+  ownerSetPlus: (paywall: boolean, price7: number, price30: number, trialDays: number) =>
+    request<{ paywall: boolean }>('/api/owner/plus/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paywall, price7, price30, trialDays }),
+    }),
+  ownerGrantPlus: (playerTag: string, days: number) =>
+    request<{ playerTag: string; name: string; until: string }>('/api/owner/plus/grant', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ playerTag, days }),
+    }),
+  ownerRefund: (chargeId: string) =>
+    request<{ refunded: boolean }>('/api/owner/payments/refund', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chargeId }),
+    }),
   /** Единая карточка игрока — одна на весь бот. */
   getPlayerSheet: (tag: string) =>
     request<PlayerSheet>(`/api/players/${encodeURIComponent(tag.replace('#', ''))}/sheet`),

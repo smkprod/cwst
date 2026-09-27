@@ -347,6 +347,22 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
                 logger.LogError(ex, "Top players harvest failed");
             }
 
+            try
+            {
+                // «Стоп-тильт» для Плюса: журнал таких игроков читаем каждые 10 минут,
+                // иначе серия поражений закончится раньше, чем мы о ней узнаем.
+                using var scope = scopeFactory.CreateScope();
+                var tilt = scope.ServiceProvider.GetRequiredService<TiltWatchUseCase>();
+                var s = await tilt.ExecuteAsync(stoppingToken);
+                if (s.Alerts > 0 || s.Undelivered > 0)
+                    logger.LogInformation("Stop-tilt: watched {Watched}, sent {Sent}, undelivered {Undelivered}",
+                        s.Watched, s.Alerts, s.Undelivered);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Stop-tilt watch failed");
+            }
+
             if (DateTime.UtcNow - _lastBattleSyncUtc >= BattleSyncInterval)
             {
                 _lastBattleSyncUtc = DateTime.UtcNow;

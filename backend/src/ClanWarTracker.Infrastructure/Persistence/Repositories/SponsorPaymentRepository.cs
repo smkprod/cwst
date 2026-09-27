@@ -23,4 +23,9 @@ public class SponsorPaymentRepository(AppDbContext db) : ISponsorPaymentReposito
 
     public Task<List<SponsorPayment>> GetAllAsync(CancellationToken ct = default) =>
         db.SponsorPayments.AsNoTracking().ToListAsync(ct);
+
+    public Task<SponsorPayment?> GetByChargeAsync(string telegramChargeId, CancellationToken ct = default) =>
+        db.SponsorPayments.FirstOrDefaultAsync(p => p.TelegramChargeId == telegramChargeId, ct);
+
+    public Task SaveChangesAsync(CancellationToken ct = default) => db.SaveChangesAsync(ct);
 }

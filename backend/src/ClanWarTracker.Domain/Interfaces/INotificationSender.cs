@@ -4,6 +4,12 @@ public interface INotificationSender
 {
     Task SendToUserAsync(long telegramUserId, string text, CancellationToken ct = default);
 
+    /// <summary>
+    /// Личное сообщение с ответом, дошло ли оно. false - человек не запускал бота
+    /// или заблокировал его: вызывающий запоминает это и перестаёт пытаться.
+    /// </summary>
+    Task<bool> TrySendToUserAsync(long telegramUserId, string text, CancellationToken ct = default);
+
     /// <param name="threadId">ID темы (Topic) форума группы — если клан настроен через /setup
     /// внутри темы, сообщение нужно слать туда, а не в общий чат. Null — общий чат/группа без тем.</param>
     /// <param name="html">Текст уже содержит HTML-разметку (например, &lt;a href="tg://user?id=..."&gt;

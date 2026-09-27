@@ -33,6 +33,11 @@ builder.Services.AddScoped<BindPlayerUseCase>();
 builder.Services.AddScoped<SetupClanUseCase>();
 // Оплата спонсорства звёздами: подтверждение и выдача приходят боту, то есть сюда
 builder.Services.AddScoped<ProcessSponsorPaymentUseCase>();
+builder.Services.AddScoped<PlusAccess>();
+builder.Services.AddScoped<ProcessPlusPaymentUseCase>();
+builder.Services.AddScoped<TiltWatchUseCase>();
+builder.Services.AddScoped<GetMetaDecksUseCase>();
+builder.Services.AddScoped<GetBattleAnalysisUseCase>();
 // Откуда пришёл человек (реклама, реферал) — пишется при /start
 builder.Services.AddScoped<TrackStartUseCase>();
 
