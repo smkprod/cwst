@@ -949,8 +949,15 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
             // рейтинг по кубкам отвечает 200 с пустым списком: после перехода игры на
             // Path of Legends Supercell перестал его заполнять, и снимок не собирался
             // ни разу, хотя с виду запрос проходил успешно.
+            // Первым - рейтинг Пути легенд: топ соревнуется именно там, и его
+            // рейтинг (3000+) - то, что игроки называют «трофеями» топа. Новый
+            // /leaderboards отдавал какой-то другой рейтинг с очками вроде «41».
+            var (polPlayers, polReport) = await FetchPathOfLegendAsync(capped, ct);
+            if (polPlayers.Count > 0) return CrGlobalRanking.Ok(polPlayers, polReport);
+
             var (players, report) = await FetchLeaderboardAsync(capped, ct);
-            if (players.Count > 0) return CrGlobalRanking.Ok(players);
+            report = $"{polReport} | {report}";
+            if (players.Count > 0) return CrGlobalRanking.Ok(players, report);
 
             // Запасной путь - прежний рейтинг: вдруг его вернут, а новый сломается.
             var legacyPath = $"locations/global/rankings/players?limit={capped}";
@@ -968,7 +975,7 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
                         ClanName = p.Clan?.Name,
                     })
                     .ToList();
-                if (legacy.Count > 0) return CrGlobalRanking.Ok(legacy);
+                if (legacy.Count > 0) return CrGlobalRanking.Ok(legacy, $"{report} | {legacyPath}");
             }
 
             // Причина пишется целиком, с куском сырого ответа нового рейтинга: его
@@ -1037,25 +1044,7 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
             {
                 using var doc = JsonDocument.Parse(body);
                 foreach (var e in Items(doc.RootElement))
-                {
-                    var tag = ReadString(e, "tag");
-                    if (string.IsNullOrEmpty(tag)) continue;
-                    players.Add(new CrRankedPlayer
-                    {
-                        Tag = tag,
-                        Name = ReadString(e, "name") ?? tag,
-                        Rank = ReadInt(e, "rank") ?? players.Count + 1,
-                        // Очки у рейтинга Path of Legends - не кубки; как поле назовут,
-                        // заранее неизвестно, поэтому перебираем вероятные имена.
-                        // «score» здесь оказался не рейтингом (у первого места 41), поэтому
-                        // он последний; настоящий рейтинг снимок берёт из профиля.
-                        Trophies = ReadInt(e, "eloRating") ?? ReadInt(e, "rating")
-                                   ?? ReadInt(e, "trophies") ?? ReadInt(e, "score") ?? ReadInt(e, "points") ?? 0,
-                        ClanName = e.TryGetProperty("clan", out var clan) && clan.ValueKind == JsonValueKind.Object
-                            ? ReadString(clan, "name")
-                            : ReadString(e, "clanName"),
-                    });
-                }
+                    if (RankedPlayer(e, players.Count + 1) is { } p) players.Add(p);
                 if (doc.RootElement.ValueKind == JsonValueKind.Object
                     && doc.RootElement.TryGetProperty("paging", out var paging)
                     && paging.ValueKind == JsonValueKind.Object
@@ -1074,7 +1063,52 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
             if (string.IsNullOrEmpty(after)) break;
         }
 
-        return (players, $"рейтинг {board.Id} «{board.Name}»: {players.Count} игроков");
+        var others = string.Join(", ", boards.Where(b => b.Id != board.Id).Select(b => $"{b.Id} «{b.Name}»"));
+        return (players, $"рейтинг {board.Id} «{board.Name}»: {players.Count} игроков"
+                         + (others.Length > 0 ? $"; ещё есть: {others}" : ""));
+    }
+
+    /// <summary>Глобальный рейтинг Пути легенд текущего сезона.</summary>
+    private async Task<(List<CrRankedPlayer> Players, string Report)> FetchPathOfLegendAsync(int limit, CancellationToken ct)
+    {
+        var path = $"locations/global/pathoflegend/players?limit={limit}";
+        var resp = await http.GetAsync(path, ct);
+        var body = await ReadBodyAsync(resp, ct);
+        if (!resp.IsSuccessStatusCode)
+            return (new List<CrRankedPlayer>(), $"GET {path} → HTTP {(int)resp.StatusCode}");
+
+        var players = new List<CrRankedPlayer>();
+        try
+        {
+            using var doc = JsonDocument.Parse(body);
+            foreach (var e in Items(doc.RootElement))
+                if (RankedPlayer(e, players.Count + 1) is { } p) players.Add(p);
+        }
+        catch (JsonException) { /* ниже: пусто */ }
+
+        return players.Count > 0
+            ? (players, $"Путь легенд: {players.Count} игроков")
+            : (players, $"GET {path} → 200, пусто");
+    }
+
+    /// <summary>Игрок из строки любого из рейтингов: поля у них называются по-разному.</summary>
+    private static CrRankedPlayer? RankedPlayer(JsonElement e, int fallbackRank)
+    {
+        var tag = ReadString(e, "tag");
+        if (string.IsNullOrEmpty(tag)) return null;
+        return new CrRankedPlayer
+        {
+            Tag = tag,
+            Name = ReadString(e, "name") ?? tag,
+            Rank = ReadInt(e, "rank") ?? fallbackRank,
+            // «score» нового лидерборда оказался не рейтингом (41 у первого места),
+            // поэтому он последний; рейтинг Пути легенд называется eloRating.
+            Trophies = ReadInt(e, "eloRating") ?? ReadInt(e, "rating")
+                       ?? ReadInt(e, "trophies") ?? ReadInt(e, "score") ?? ReadInt(e, "points") ?? 0,
+            ClanName = e.TryGetProperty("clan", out var clan) && clan.ValueKind == JsonValueKind.Object
+                ? ReadString(clan, "name")
+                : ReadString(e, "clanName"),
+        };
     }
 
     private static IEnumerable<JsonElement> Items(JsonElement root)
