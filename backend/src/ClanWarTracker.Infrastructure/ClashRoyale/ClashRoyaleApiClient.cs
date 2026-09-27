@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using ClanWarTracker.Domain.Entities;
 using ClanWarTracker.Domain.Interfaces;
@@ -888,16 +889,17 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
             entry.Size = 1;
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(12);
 
-            var resp = await http.GetAsync($"locations/global/rankings/players?limit={capped}", ct);
-            if (!resp.IsSuccessStatusCode)
+            // Из того же рейтинга, что и мировой топ: старый по кубкам приходит пустым,
+            // и подбор колод «как у топа» молча не находил ни одной колоды.
+            var (top, _) = await FetchLeaderboardAsync(capped, ct);
+            if (top.Count == 0)
             {
                 entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
                 return new List<CrTopDeck>();
             }
 
-            var data = await resp.Content.ReadFromJsonAsync<PlayerRankingsResponse>(cancellationToken: ct);
             var decks = new List<CrTopDeck>();
-            foreach (var p in data?.Items ?? [])
+            foreach (var p in top)
             {
                 if (ct.IsCancellationRequested) break;
                 CrPlayerInfo? info;
@@ -911,7 +913,7 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
                     PlayerTag = p.Tag,
                     Rank = p.Rank,
                     Trophies = p.Trophies,
-                    ClanName = p.Clan?.Name,
+                    ClanName = p.ClanName,
                     Cards = info.CurrentDeck,
                 });
             }
@@ -929,47 +931,177 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
     public async Task<CrGlobalRanking> GetGlobalRankingAsync(int limit = 1000, CancellationToken ct = default)
     {
         var capped = Math.Clamp(limit, 1, 1000);
-        var path = $"locations/global/rankings/players?limit={capped}";
         var result = await cache.GetOrCreateAsync($"globalranking:{capped}", async entry =>
         {
             entry.Size = 1;
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30);
 
-            var resp = await http.GetAsync(path, ct);
-            if (!resp.IsSuccessStatusCode)
+            // Основной источник - новые глобальные рейтинги (/leaderboards). Старый
+            // рейтинг по кубкам отвечает 200 с пустым списком: после перехода игры на
+            // Path of Legends Supercell перестал его заполнять, и снимок не собирался
+            // ни разу, хотя с виду запрос проходил успешно.
+            var (players, report) = await FetchLeaderboardAsync(capped, ct);
+            if (players.Count > 0) return CrGlobalRanking.Ok(players);
+
+            // Запасной путь - прежний рейтинг: вдруг его вернут, а новый сломается.
+            var legacyPath = $"locations/global/rankings/players?limit={capped}";
+            var resp = await http.GetAsync(legacyPath, ct);
+            if (resp.IsSuccessStatusCode)
             {
-                // Тело ответа CR API содержит reason и message — без них «не пришло»
-                // не отличить от «ключ не тот» и от «эндпоинта больше нет».
-                var body = await SafeBodyAsync(resp, ct);
-                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
-                return CrGlobalRanking.Failed($"GET {path} → HTTP {(int)resp.StatusCode} {body}");
+                var data = await resp.Content.ReadFromJsonAsync<PlayerRankingsResponse>(cancellationToken: ct);
+                var legacy = (data?.Items ?? [])
+                    .Select(p => new CrRankedPlayer
+                    {
+                        Rank = p.Rank,
+                        Tag = p.Tag,
+                        Name = p.Name,
+                        Trophies = p.Trophies,
+                        ClanName = p.Clan?.Name,
+                    })
+                    .ToList();
+                if (legacy.Count > 0) return CrGlobalRanking.Ok(legacy);
             }
 
-            var data = await resp.Content.ReadFromJsonAsync<PlayerRankingsResponse>(cancellationToken: ct);
-            var players = (data?.Items ?? [])
-                .Select(p => new CrRankedPlayer
-                {
-                    Rank = p.Rank,
-                    Tag = p.Tag,
-                    Name = p.Name,
-                    Trophies = p.Trophies,
-                    ClanName = p.Clan?.Name,
-                })
-                .ToList();
-
-            // 200 с пустым items — отдельный случай, и самый коварный: повторять его
-            // бессмысленно, а выглядит он ровно как временный сбой. Держим недолго,
-            // чтобы починка на стороне игры подхватилась сама.
-            if (players.Count == 0)
-            {
-                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
-                return CrGlobalRanking.Failed($"GET {path} → HTTP 200, но список мест пуст");
-            }
-
-            return CrGlobalRanking.Ok(players);
+            // Причина пишется целиком, с куском сырого ответа нового рейтинга: его
+            // формат отсюда не проверить, и по этой строке в панели видно, что поправить.
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
+            return CrGlobalRanking.Failed($"{report} | запасной {legacyPath} → HTTP {(int)resp.StatusCode}, пусто");
         });
         return result ?? CrGlobalRanking.Failed("рейтинг не пришёл и причина неизвестна");
     }
+
+    /// <summary>
+    /// Игроки нового глобального рейтинга: сперва список рейтингов, потом нужный из них.
+    ///
+    /// Разбор нарочно гибкий. Формат ответа /leaderboards отсюда не проверить -
+    /// доступа к API у разработки нет, - поэтому поля ищутся по нескольким именам,
+    /// а при неудаче в отчёт кладётся кусок сырого ответа. Одна такая строка в
+    /// панели владельца сразу показывает, как на самом деле называются поля.
+    /// </summary>
+    /// <returns>Игроки и строка-отчёт: откуда взяли или почему не вышло.</returns>
+    private async Task<(List<CrRankedPlayer> Players, string Report)> FetchLeaderboardAsync(int limit, CancellationToken ct)
+    {
+        var listResp = await http.GetAsync("leaderboards", ct);
+        var listBody = await ReadBodyAsync(listResp, ct);
+        if (!listResp.IsSuccessStatusCode)
+            return (new List<CrRankedPlayer>(), $"GET leaderboards → HTTP {(int)listResp.StatusCode} {Cut(listBody)}");
+
+        var boards = new List<(string Id, string Name)>();
+        try
+        {
+            using var doc = JsonDocument.Parse(listBody);
+            foreach (var e in Items(doc.RootElement))
+            {
+                var id = ReadString(e, "id");
+                if (!string.IsNullOrEmpty(id)) boards.Add((id, ReadString(e, "name") ?? ""));
+            }
+        }
+        catch (JsonException) { /* разбор ниже скажет, что список пуст */ }
+        if (boards.Count == 0)
+            return (new List<CrRankedPlayer>(), $"GET leaderboards → 200, рейтингов не разобрано: {Cut(listBody)}");
+
+        // Главный рейтинг - Path of Legends: там соревнуется топ. Узнаём его по
+        // названию, а если названия не подошли - берём первый и пишем, какой.
+        var board = boards.FirstOrDefault(b =>
+            b.Name.Contains("legend", StringComparison.OrdinalIgnoreCase)
+            || b.Name.Contains("ranked", StringComparison.OrdinalIgnoreCase)
+            || b.Name.Contains("path", StringComparison.OrdinalIgnoreCase));
+        if (string.IsNullOrEmpty(board.Id)) board = boards[0];
+
+        var players = new List<CrRankedPlayer>();
+        string? after = null;
+        for (var page = 0; page < 20 && players.Count < limit; page++)
+        {
+            var url = $"leaderboard/{Uri.EscapeDataString(board.Id)}?limit={limit - players.Count}"
+                    + (after is null ? "" : $"&after={Uri.EscapeDataString(after)}");
+            var resp = await http.GetAsync(url, ct);
+            var body = await ReadBodyAsync(resp, ct);
+            if (!resp.IsSuccessStatusCode)
+            {
+                if (players.Count > 0) break;   // половина рейтинга лучше, чем ничего
+                return (new List<CrRankedPlayer>(), $"GET {url} → HTTP {(int)resp.StatusCode} {Cut(body)}");
+            }
+
+            var before = players.Count;
+            after = null;
+            try
+            {
+                using var doc = JsonDocument.Parse(body);
+                foreach (var e in Items(doc.RootElement))
+                {
+                    var tag = ReadString(e, "tag");
+                    if (string.IsNullOrEmpty(tag)) continue;
+                    players.Add(new CrRankedPlayer
+                    {
+                        Tag = tag,
+                        Name = ReadString(e, "name") ?? tag,
+                        Rank = ReadInt(e, "rank") ?? players.Count + 1,
+                        // Очки у рейтинга Path of Legends - не кубки; как поле назовут,
+                        // заранее неизвестно, поэтому перебираем вероятные имена.
+                        Trophies = ReadInt(e, "score") ?? ReadInt(e, "eloRating") ?? ReadInt(e, "rating")
+                                   ?? ReadInt(e, "trophies") ?? ReadInt(e, "points") ?? 0,
+                        ClanName = e.TryGetProperty("clan", out var clan) && clan.ValueKind == JsonValueKind.Object
+                            ? ReadString(clan, "name")
+                            : ReadString(e, "clanName"),
+                    });
+                }
+                if (doc.RootElement.ValueKind == JsonValueKind.Object
+                    && doc.RootElement.TryGetProperty("paging", out var paging)
+                    && paging.ValueKind == JsonValueKind.Object
+                    && paging.TryGetProperty("cursors", out var cursors)
+                    && cursors.ValueKind == JsonValueKind.Object)
+                    after = ReadString(cursors, "after");
+            }
+            catch (JsonException) { /* ниже: ничего не разобрали */ }
+
+            if (players.Count == before)
+            {
+                if (players.Count == 0)
+                    return (new List<CrRankedPlayer>(), $"GET {url} (рейтинг «{board.Name}») → 200, игроков не разобрано: {Cut(body)}");
+                break;
+            }
+            if (string.IsNullOrEmpty(after)) break;
+        }
+
+        return (players, $"рейтинг {board.Id} «{board.Name}»: {players.Count} игроков");
+    }
+
+    private static IEnumerable<JsonElement> Items(JsonElement root)
+    {
+        if (root.ValueKind == JsonValueKind.Array) return root.EnumerateArray().ToList();
+        if (root.ValueKind == JsonValueKind.Object
+            && root.TryGetProperty("items", out var items)
+            && items.ValueKind == JsonValueKind.Array)
+            return items.EnumerateArray().ToList();
+        return [];
+    }
+
+    private static string? ReadString(JsonElement e, string name)
+    {
+        if (e.ValueKind != JsonValueKind.Object || !e.TryGetProperty(name, out var v)) return null;
+        return v.ValueKind switch
+        {
+            JsonValueKind.String => v.GetString(),
+            JsonValueKind.Number => v.GetRawText(),   // id рейтинга может прийти числом
+            _ => null,
+        };
+    }
+
+    private static int? ReadInt(JsonElement e, string name)
+    {
+        if (e.ValueKind != JsonValueKind.Object || !e.TryGetProperty(name, out var v)) return null;
+        if (v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out var i)) return i;
+        if (v.ValueKind == JsonValueKind.String && int.TryParse(v.GetString(), out var j)) return j;
+        return null;
+    }
+
+    private static async Task<string> ReadBodyAsync(HttpResponseMessage resp, CancellationToken ct)
+    {
+        try { return (await resp.Content.ReadAsStringAsync(ct)).Trim(); }
+        catch { return ""; }
+    }
+
+    private static string Cut(string text) => text.Length <= 300 ? text : text[..300] + "…";
 
     /// <summary>
     /// Кусочек тела ответа для лога. Целиком не берём: у CR API это пара строк JSON,
