@@ -603,11 +603,21 @@ export interface MetaDeckRow {
   copyLink: string | null
 }
 
+export interface TopProfileDeck {
+  cards: MetaCard[]
+  /** Сколько игроков топа держат эту колоду сейчас. */
+  players: number
+  bestRank: number
+  copyLink: string | null
+}
+
 export interface MetaDecks {
   fromDayUtc: string
   toDayUtc: string
   battles: number
   decks: MetaDeckRow[]
+  /** Только в выборке по карте: колоды из профилей топа. */
+  profileDecks?: TopProfileDeck[] | null
 }
 
 export interface TopPlayerRow {
@@ -644,6 +654,8 @@ export interface TopPlayerDetail {
   rank: number | null
   currentDeck: TopDeckCard[]
   battles: TopBattle[]
+  /** Рейтинг Пути легенд в текущем сезоне; null — не играл. */
+  rating?: number | null
 }
 
 /* --- Панель владельца --- */

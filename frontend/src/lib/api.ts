@@ -212,6 +212,15 @@ export const api = {
     if (res.status === 204) return null
     return res.json()
   },
+  // 204 — ни в мете, ни в профилях топа колод с картой нет.
+  getCardDecks: async (cardId: number): Promise<MetaDecks | null> => {
+    const res = await fetch(`${BASE}/api/top/cards/${cardId}/decks`, {
+      headers: { 'X-Telegram-Init-Data': window.Telegram?.WebApp?.initData ?? '' },
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    if (res.status === 204) return null
+    return res.json()
+  },
   getTopPlayers: (skip = 0, take = 50) =>
     request<TopPlayerRow[]>(`/api/top/players?skip=${skip}&take=${take}`),
   getTopPlayerDetail: (tag: string) =>

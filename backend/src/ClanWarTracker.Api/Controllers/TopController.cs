@@ -35,6 +35,14 @@ public class TopController(
         return dto is null ? NoContent() : Ok(dto);
     }
 
+    /// <summary>GET /api/top/cards/{id}/decks — колоды топа с этой картой.</summary>
+    [HttpGet("cards/{id:int}/decks")]
+    public async Task<IActionResult> CardDecks(int id, CancellationToken ct)
+    {
+        var dto = await decks.ForCardAsync(id, ct);
+        return dto is null ? NoContent() : Ok(dto);
+    }
+
     /// <summary>GET /api/top/players?skip=0&amp;take=50 — страница списка топа.</summary>
     [HttpGet("players")]
     public async Task<IActionResult> Players([FromQuery] int skip = 0, [FromQuery] int take = 50,
