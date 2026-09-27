@@ -21,6 +21,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<TopPlayer> TopPlayers => Set<TopPlayer>();
     public DbSet<MetaDeckDay> MetaDeckDays => Set<MetaDeckDay>();
     public DbSet<MetaMatchupDay> MetaMatchupDays => Set<MetaMatchupDay>();
+    public DbSet<PlayerBattle> PlayerBattles => Set<PlayerBattle>();
     public DbSet<ServiceModerator> ServiceModerators => Set<ServiceModerator>();
     public DbSet<ServiceSetting> ServiceSettings => Set<ServiceSetting>();
     public DbSet<ClanMessage> ClanMessages => Set<ClanMessage>();
@@ -106,6 +107,17 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasIndex(d => new { d.DayUtc, d.DeckKey }).IsUnique();
             e.Property(d => d.DayUtc).HasMaxLength(10);
             e.Property(d => d.DeckKey).HasMaxLength(128);
+        });
+
+        mb.Entity<PlayerBattle>(e =>
+        {
+            // Один бой игрока - одна строка: повторное чтение журнала не удваивает
+            e.HasIndex(b => new { b.PlayerTag, b.BattleTimeUtc }).IsUnique();
+            e.HasIndex(b => b.BattleTimeUtc);   // по нему чистим старое
+            e.Property(b => b.PlayerTag).HasMaxLength(16);
+            e.Property(b => b.Type).HasMaxLength(48);
+            e.Property(b => b.DeckKey).HasMaxLength(128);
+            e.Property(b => b.OppDeckKey).HasMaxLength(128);
         });
 
         mb.Entity<MetaMatchupDay>(e =>

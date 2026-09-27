@@ -76,6 +76,7 @@ public static class DependencyInjection
         services.AddScoped<IActivityRepository, ActivityRepository>();
         services.AddScoped<ITopPlayerRepository, TopPlayerRepository>();
         services.AddScoped<IMetaRepository, MetaRepository>();
+        services.AddScoped<IPlayerBattleRepository, PlayerBattleRepository>();
         services.AddScoped<IServiceModeratorRepository, ServiceModeratorRepository>();
         services.AddScoped<IServiceSettingRepository, ServiceSettingRepository>();
         services.AddScoped<IClanMessageRepository, ClanMessageRepository>();
@@ -614,6 +615,26 @@ CREATE TABLE IF NOT EXISTS ""MetaMatchupDays"" (
 );");
         await db.Database.ExecuteSqlRawAsync(
             "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_MetaMatchupDays_DayUtc_CardKey_OppCardKey\" ON \"MetaMatchupDays\" (\"DayUtc\", \"CardKey\", \"OppCardKey\");");
+
+        // Бои привязанных игроков для личного разбора: API хранит только 25 последних.
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""PlayerBattles"" (
+    ""Id"" serial PRIMARY KEY,
+    ""PlayerTag"" varchar(16) NOT NULL,
+    ""BattleTimeUtc"" timestamptz NOT NULL,
+    ""Type"" varchar(48) NOT NULL,
+    ""Result"" integer NOT NULL DEFAULT 0,
+    ""CrownsFor"" integer NOT NULL DEFAULT 0,
+    ""CrownsAgainst"" integer NOT NULL DEFAULT 0,
+    ""DeckKey"" varchar(128) NOT NULL,
+    ""OppDeckKey"" varchar(128) NOT NULL,
+    ""ElixirLeaked"" double precision,
+    ""TrophyChange"" integer
+);");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_PlayerBattles_PlayerTag_BattleTimeUtc\" ON \"PlayerBattles\" (\"PlayerTag\", \"BattleTimeUtc\");");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_PlayerBattles_BattleTimeUtc\" ON \"PlayerBattles\" (\"BattleTimeUtc\");");
 
         // Настройки сервиса, которые владелец меняет из панели без передеплоя.
         await db.Database.ExecuteSqlRawAsync(@"
