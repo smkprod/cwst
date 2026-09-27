@@ -1003,9 +1003,21 @@ export interface AppConfig {
 }
 
 /** Условия продажи и журнал оплат — для панели владельца. */
+/** Один шаг последней оплаты: когда, по какому счёту и чем кончился. */
+export interface PaymentTraceEntry {
+  atUtc: string
+  payload: string
+  chargeId: string | null
+  outcome: string
+}
+
 export interface SponsorSales {
   stars: number
   days: number
+  /** «Можно списывать?» — последний запрос. null — ни одного не приходило. */
+  lastCheckout: PaymentTraceEntry | null
+  /** «Списано» — последнее подтверждение и что с ним сделали. */
+  lastPaid: PaymentTraceEntry | null
   totalStars: number
   payments: {
     playerTag: string

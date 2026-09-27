@@ -208,60 +208,127 @@ public class BotUpdateHandler(
             problem = "Не получилось проверить оплату — попробуй через минуту.";
         }
 
+        // Сначала ответ, потом след: на ответ у бота десять секунд, на след — сколько угодно
         // errorMessage null — «списывайте», иначе — отказ с этим текстом плательщику
         await bot.AnswerPreCheckoutQuery(q.Id, problem, cancellationToken: ct);
         if (problem is not null)
             logger.LogWarning("Pre-checkout rejected: {Problem} ({Payload})", problem, q.InvoicePayload);
+
+        await TraceAsync(PaymentTrace.CheckoutKey, q.InvoicePayload, null, problem ?? "ok — разрешено списать", ct);
     }
 
     /// <summary>
     /// Звёзды списаны — выдаём спонсорство и говорим об этом человеку.
     ///
-    /// Повторная доставка того же платежа — штатный случай: запись с этим номером
-    /// уже есть, продление не повторяется, а сообщение не дублируется.
+    /// Каждый исход пишется в след для панели и каждый сбой сообщается плательщику
+    /// с номером платежа. Первая версия молчала: любую ошибку сохранения она
+    /// принимала за повторную доставку и писала в лог как штатное событие, так что
+    /// у человека звёзды списывались, а дальше не происходило ничего — ни звезды,
+    /// ни сообщения, ни записи в журнале.
     /// </summary>
     private async Task ProcessSuccessfulPaymentAsync(
         Message msg, Telegram.Bot.Types.Payments.SuccessfulPayment paid, CancellationToken ct)
     {
-        ProcessSponsorPaymentUseCase.Applied? applied;
+        var charge = paid.TelegramPaymentChargeId;
+        var payload = paid.InvoicePayload;
+
+        // Раньше всего остального: если дальше упадёт, по следу будет видно, что
+        // подтверждение до бота дошло, и искать надо в выдаче, а не в доставке.
+        await TraceAsync(PaymentTrace.PaidKey, payload, charge, "получено, выдаю…", ct);
+
+        ProcessSponsorPaymentUseCase.Applied? applied = null;
+        Exception? failure = null;
         try
         {
             using var scope = scopeFactory.CreateScope();
             var payments = scope.ServiceProvider.GetRequiredService<ProcessSponsorPaymentUseCase>();
-            applied = await payments.ApplyAsync(
-                msg.From?.Id ?? msg.Chat.Id, paid.InvoicePayload, paid.TotalAmount,
-                paid.TelegramPaymentChargeId, ct);
+            applied = await payments.ApplyAsync(msg.From?.Id ?? msg.Chat.Id, payload, paid.TotalAmount, charge, ct);
         }
-        catch (DbUpdateException)
+        catch (Exception ex)
         {
-            // Две доставки одного платежа обработались одновременно: вторая упёрлась
-            // в уникальный номер, и её продление откатилось вместе с записью. Выдача
-            // уже прошла в первой — сообщать второй раз нечего.
-            logger.LogInformation("Duplicate payment {Charge} ignored", paid.TelegramPaymentChargeId);
+            failure = ex;
+        }
+
+        // Повтором считаем, только если платёж с этим номером действительно уже в
+        // журнале. Проверка в новом контексте: прежний после упавшего сохранения
+        // держит несохранённые записи и повторил бы ту же ошибку.
+        if (failure is DbUpdateException && await PaymentRecordedAsync(charge, ct))
+        {
+            logger.LogInformation("Duplicate payment {Charge} ignored", charge);
+            await TraceAsync(PaymentTrace.PaidKey, payload, charge, "повторная доставка — уже выдано", ct);
             return;
         }
 
-        if (applied is null)
+        if (failure is not null || applied is null)
         {
-            logger.LogError("Successful payment NOT applied: charge {Charge}, payload {Payload}",
-                paid.TelegramPaymentChargeId, paid.InvoicePayload);
-            await bot.SendMessage(msg.Chat.Id,
+            var reason = failure is null
+                ? "счёт не разобран или игрок не найден"
+                : $"{failure.GetType().Name}: {Flatten(failure)}";
+            logger.LogError(failure, "Successful payment NOT applied: charge {Charge}, payload {Payload}, reason {Reason}",
+                charge, payload, reason);
+            await TraceAsync(PaymentTrace.PaidKey, payload, charge, "НЕ ВЫДАНО — " + reason, ct);
+            await TellAsync(msg.Chat.Id,
                 "Оплата прошла, но выдать спонсорство автоматически не получилось. " +
-                "Напиши владельцу бота и перешли это сообщение — номер платежа:\n" +
-                paid.TelegramPaymentChargeId,
-                cancellationToken: ct);
+                "Напиши владельцу бота и перешли это сообщение — по номеру платежа он выдаст " +
+                "спонсорство вручную:\n" + charge, ct);
             return;
         }
 
-        if (applied.Duplicate) return;
+        if (applied.Duplicate)
+        {
+            await TraceAsync(PaymentTrace.PaidKey, payload, charge, "повторная доставка — уже выдано", ct);
+            return;
+        }
 
         logger.LogInformation("Sponsor paid: {Name} +{Days}d for {Stars} XTR, charge {Charge}",
-            applied.PlayerName, applied.Days, paid.TotalAmount, paid.TelegramPaymentChargeId);
+            applied.PlayerName, applied.Days, paid.TotalAmount, charge);
+        await TraceAsync(PaymentTrace.PaidKey, payload, charge,
+            $"ok — {applied.PlayerName} спонсор до {applied.Until:dd.MM.yyyy}", ct);
 
-        await bot.SendMessage(msg.Chat.Id,
+        await TellAsync(msg.Chat.Id,
             $"★ Спасибо! Спонсорство для {applied.PlayerName} активно до {applied.Until:dd.MM.yyyy}.\n\n" +
-            "Фон себе и клану выбираются во вкладке «Я» → «Моё оформление».",
-            cancellationToken: ct);
+            "Фон себе и клану выбираются во вкладке «Я» → «Моё оформление».", ct);
+    }
+
+    /// <summary>След оплаты для панели — в своём контексте, чтобы упавшая выдача его не утянула.</summary>
+    private async Task TraceAsync(string key, string payload, string? charge, string outcome, CancellationToken ct)
+    {
+        try
+        {
+            using var scope = scopeFactory.CreateScope();
+            var settings = scope.ServiceProvider.GetRequiredService<IServiceSettingRepository>();
+            await PaymentTrace.RecordAsync(settings, key, payload, charge, outcome, ct);
+        }
+        catch (Exception ex) { logger.LogWarning(ex, "Payment trace not written"); }
+    }
+
+    private async Task<bool> PaymentRecordedAsync(string charge, CancellationToken ct)
+    {
+        try
+        {
+            using var scope = scopeFactory.CreateScope();
+            var repo = scope.ServiceProvider.GetRequiredService<ISponsorPaymentRepository>();
+            return await repo.ExistsAsync(charge, ct);
+        }
+        catch { return false; }
+    }
+
+    /// <summary>Сообщение плательщику. Он мог заблокировать бота — это не повод ронять обработку.</summary>
+    private async Task TellAsync(long chatId, string text, CancellationToken ct)
+    {
+        try { await bot.SendMessage(chatId, text, cancellationToken: ct); }
+        catch (Exception ex) { logger.LogWarning(ex, "Could not message payer {Chat}", chatId); }
+    }
+
+    /// <summary>
+    /// Текст ошибки вместе с вложенными. У ошибки сохранения своё сообщение пустое
+    /// («see the inner exception»), а настоящая причина — во вложенной ошибке базы.
+    /// </summary>
+    private static string Flatten(Exception ex)
+    {
+        var parts = new List<string>();
+        for (var e = ex; e is not null; e = e.InnerException) parts.Add(e.Message);
+        return string.Join(" → ", parts);
     }
 
     private async Task ProcessInlineQueryAsync(InlineQuery inline, CancellationToken ct)

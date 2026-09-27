@@ -1106,6 +1106,17 @@ function SponsorSalesCard({ t }: { t: Translations }) {
       </button>
       {note && <p className="small adm-top-run">{note}</p>}
 
+      {/* Где остановилась последняя оплата. Если запрос «можно списывать?» есть,
+          а подтверждения нет — оно не доходит до бота; если подтверждение есть с
+          ошибкой — сломалась выдача, и текст ошибки здесь дословно. */}
+      {sales && (sales.lastCheckout || sales.lastPaid) && (
+        <div className="adm-trace">
+          <p className="adm-block-title">{t.owner.traceTitle}</p>
+          <TraceLine label={t.owner.traceCheckout} entry={sales.lastCheckout} none={t.owner.traceNone} />
+          <TraceLine label={t.owner.tracePaid} entry={sales.lastPaid} none={t.owner.traceNone} />
+        </div>
+      )}
+
       {sales && (
         <>
           <div className="adm-kv">
@@ -1129,6 +1140,26 @@ function SponsorSalesCard({ t }: { t: Translations }) {
             </ul>
           )}
         </>
+      )}
+    </div>
+  )
+}
+
+function TraceLine({ label, entry, none }: {
+  label: string; entry: SponsorSales['lastCheckout']; none: string
+}) {
+  const bad = entry && /НЕ ВЫДАНО|Exception|ошибк/i.test(entry.outcome)
+  return (
+    <div className="adm-trace-line">
+      <span className="muted small">{label}</span>
+      {entry ? (
+        <>
+          <span className="muted small">{new Date(entry.atUtc).toLocaleString()} · {entry.payload}</span>
+          <span className={`small adm-trace-outcome ${bad ? 'form-error' : ''}`}>{entry.outcome}</span>
+          {entry.chargeId && <span className="adm-pay-charge muted small">{entry.chargeId}</span>}
+        </>
+      ) : (
+        <span className="small">{none}</span>
       )}
     </div>
   )

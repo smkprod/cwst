@@ -627,13 +627,18 @@ CREATE TABLE IF NOT EXISTS ""SponsorPayments"" (
     ""PlayerTag"" varchar(16) NOT NULL,
     ""Stars"" integer NOT NULL,
     ""Days"" integer NOT NULL,
-    ""TelegramChargeId"" varchar(128) NOT NULL,
+    ""TelegramChargeId"" text NOT NULL,
     ""PaidAtUtc"" timestamptz NOT NULL
 );");
         await db.Database.ExecuteSqlRawAsync(
             "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_SponsorPayments_TelegramChargeId\" ON \"SponsorPayments\" (\"TelegramChargeId\");");
         await db.Database.ExecuteSqlRawAsync(
             "CREATE INDEX IF NOT EXISTS \"IX_SponsorPayments_PaidAtUtc\" ON \"SponsorPayments\" (\"PaidAtUtc\");");
+        // Номер платежа без ограничения длины. Был varchar(128), а номера платежей
+        // звёздами длинные: вставка падала, и оплаченное спонсорство не выдавалось.
+        // SQLite длину не проверяет, поэтому локально это не всплывало вовсе.
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"SponsorPayments\" ALTER COLUMN \"TelegramChargeId\" TYPE text;");
 
         // Страница клана на Аллее: оформление и девиз.
         await db.Database.ExecuteSqlRawAsync(

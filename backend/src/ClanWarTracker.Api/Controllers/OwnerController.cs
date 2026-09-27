@@ -240,6 +240,10 @@ public class OwnerController(
         {
             stars = offer.Stars,
             days = offer.Days,
+            // След последней оплаты: где именно она остановилась, если звёзды
+            // списались, а спонсорства нет. Без него причину знал только лог воркера.
+            lastCheckout = await PaymentTrace.ReadAsync(settings, PaymentTrace.CheckoutKey, ct),
+            lastPaid = await PaymentTrace.ReadAsync(settings, PaymentTrace.PaidKey, ct),
             totalStars = await sponsorPayments.TotalStarsAsync(ct),
             payments = recent.Select(p => new
             {
