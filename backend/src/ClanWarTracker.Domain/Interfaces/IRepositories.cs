@@ -275,6 +275,34 @@ public interface IServiceSettingRepository
     Task SetAsync(string key, string value, CancellationToken ct = default);
 }
 
+public interface IAcquisitionRepository
+{
+    /// <summary>Откуда пришёл этот человек. null — пришёл без метки.</summary>
+    Task<Acquisition?> GetAsync(long telegramUserId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Записать источник, если у человека его ещё нет. Первый источник выигрывает.
+    /// Сохраняет сам.
+    /// </summary>
+    /// <returns>true — записано, false — источник уже был.</returns>
+    Task<bool> AddIfNewAsync(Acquisition acquisition, CancellationToken ct = default);
+
+    /// <summary>Отметить шаг «привязал тег». Нет записи или уже отмечено — ничего не делает.</summary>
+    Task MarkLinkedAsync(long telegramUserId, CancellationToken ct = default);
+
+    /// <summary>Отметить шаг «подключил клан». Нет записи или уже отмечено — ничего не делает.</summary>
+    Task MarkClanConnectedAsync(long telegramUserId, CancellationToken ct = default);
+
+    Task<List<Acquisition>> GetAllAsync(CancellationToken ct = default);
+}
+
+public interface ICampaignRepository
+{
+    Task<List<Campaign>> GetAllAsync(CancellationToken ct = default);
+    Task<bool> CodeExistsAsync(string code, CancellationToken ct = default);
+    Task AddAsync(Campaign campaign, CancellationToken ct = default);
+}
+
 public interface ISponsorPaymentRepository
 {
     /// <summary>Этот платёж уже учтён — повторная доставка от Telegram.</summary>
@@ -287,6 +315,9 @@ public interface ISponsorPaymentRepository
 
     /// <summary>Сколько звёзд пришло за всё время.</summary>
     Task<long> TotalStarsAsync(CancellationToken ct = default);
+
+    /// <summary>Все оплаты — для воронки кампаний: кто из пришедших по ним заплатил.</summary>
+    Task<List<SponsorPayment>> GetAllAsync(CancellationToken ct = default);
 }
 
 public interface IClanMessageRepository

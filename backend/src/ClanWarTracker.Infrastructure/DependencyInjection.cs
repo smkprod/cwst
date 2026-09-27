@@ -79,6 +79,8 @@ public static class DependencyInjection
         services.AddScoped<IServiceSettingRepository, ServiceSettingRepository>();
         services.AddScoped<IClanMessageRepository, ClanMessageRepository>();
         services.AddScoped<ISponsorPaymentRepository, SponsorPaymentRepository>();
+        services.AddScoped<IAcquisitionRepository, AcquisitionRepository>();
+        services.AddScoped<ICampaignRepository, CampaignRepository>();
 
         // Права на сервис — здесь, а не в Program.cs каждого хоста: иначе API и воркер
         // разъехались бы в понимании того, кто владелец, и разошлись бы молча.
@@ -617,6 +619,33 @@ CREATE TABLE IF NOT EXISTS ""ClanMessages"" (
         // Выключатель входящих сообщений у клана.
         await db.Database.ExecuteSqlRawAsync(
             "ALTER TABLE \"Clans\" ADD COLUMN IF NOT EXISTS \"AcceptsClanMail\" boolean NOT NULL DEFAULT TRUE;");
+
+        // Откуда пришли люди и докуда дошли - воронка рекламных кампаний и рефералов.
+        // Длины с запасом относительно того, что пропускает код: колонка, упавшая на
+        // длине, однажды уже молча съела оплату.
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""Acquisitions"" (
+    ""Id"" serial PRIMARY KEY,
+    ""TelegramUserId"" bigint NOT NULL,
+    ""Source"" varchar(64) NOT NULL,
+    ""ReferrerTelegramUserId"" bigint,
+    ""StartedAtUtc"" timestamptz NOT NULL,
+    ""LinkedAtUtc"" timestamptz,
+    ""ClanConnectedAtUtc"" timestamptz
+);");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_Acquisitions_TelegramUserId\" ON \"Acquisitions\" (\"TelegramUserId\");");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_Acquisitions_Source\" ON \"Acquisitions\" (\"Source\");");
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""Campaigns"" (
+    ""Id"" serial PRIMARY KEY,
+    ""Code"" varchar(64) NOT NULL,
+    ""Name"" varchar(200) NOT NULL,
+    ""CreatedAtUtc"" timestamptz NOT NULL
+);");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_Campaigns_Code\" ON \"Campaigns\" (\"Code\");");
 
         // Оплаты спонсорства звёздами. Уникальный номер платежа - защита от двойной
         // выдачи при повторной доставке от Telegram.

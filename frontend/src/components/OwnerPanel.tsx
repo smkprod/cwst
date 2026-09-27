@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, ApiError, adminClan } from '../lib/api'
-import type { AppTab, BroadcastTarget, Moderator, OwnerClan, OwnerClanDetail, OwnerSponsor, OwnerStats, ServiceIdentity, ServicePermission, SponsorSales, TopStatus } from '../types'
+import type { AppTab, BroadcastTarget, Moderator, OwnerClan, OwnerClanDetail, OwnerSponsor, OwnerStats, ServiceIdentity, ServicePermission, SponsorSales, TopStatus, CampaignFunnel } from '../types'
 
 /** «Можно ли мне вот это». Прокидывается вниз, чтобы правила жили в одном месте. */
 type Can = (p: ServicePermission) => boolean
-import { haptic, hapticNotify, openExternalLink } from '../lib/telegram'
+import { botStartLink, copyText, haptic, hapticNotify, openExternalLink } from '../lib/telegram'
 import { useT, type Translations } from '../lib/i18n'
 import { SignupsChart } from './SignupsChart'
 
@@ -20,7 +20,7 @@ const ROLE_LABEL: Record<string, string> = {
   elder: '⭐ Старейшина',
 }
 
-type Section = 'overview' | 'clans' | 'broadcast' | 'moderators' | 'sponsors' | 'settings' | 'top'
+type Section = 'overview' | 'clans' | 'broadcast' | 'moderators' | 'sponsors' | 'settings' | 'top' | 'campaigns'
 type ClanFilter = 'all' | 'pro' | 'free' | 'silent' | 'expiring'
 
 /** Сколько дней назад (для «активность» и «подключён»). null — даты нет. */
@@ -72,6 +72,7 @@ export function OwnerPanel({ me }: { me: ServiceIdentity }) {
     ...(can('ManageModerators') ? [{ key: 'moderators' as Section, label: '🛡 Модераторы' }] : []),
     ...(can('AppSettings') ? [{ key: 'settings' as Section, label: '⚙️ Вкладки' }] : []),
     ...(can('Maintenance') ? [{ key: 'top' as Section, label: '🌍 Топ' }] : []),
+    ...(can('AppSettings') ? [{ key: 'campaigns' as Section, label: '📈 Кампании' }] : []),
   ]
 
   return (
@@ -101,6 +102,7 @@ export function OwnerPanel({ me }: { me: ServiceIdentity }) {
       {section === 'moderators' && can('ManageModerators') && <ModeratorsSection can={can} t={t} />}
       {section === 'settings' && can('AppSettings') && <TabsSection t={t} />}
       {section === 'top' && can('Maintenance') && <TopSection t={t} />}
+      {section === 'campaigns' && can('AppSettings') && <CampaignsSection t={t} />}
     </div>
   )
 }
@@ -1160,6 +1162,108 @@ function TraceLine({ label, entry, none }: {
         </>
       ) : (
         <span className="small">{none}</span>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Рекламные кампании и их воронка.
+ *
+ * Главная колонка — подключённые кланы, а не пришедшие: один глава приводит
+ * полсотни человек, а случайный игрок из рекламы бота в чат клана не добавит.
+ * Реклама, давшая сотню стартов и ни одного клана, по кликам выглядит успешной,
+ * а по делу — нет.
+ */
+function CampaignsSection({ t }: { t: Translations }) {
+  const [rows, setRows] = useState<CampaignFunnel[] | null>(null)
+  const [code, setCode] = useState('')
+  const [name, setName] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [note, setNote] = useState<string | null>(null)
+  const [copied, setCopied] = useState<string | null>(null)
+
+  const load = useCallback(() => {
+    api.ownerGetCampaigns().then(setRows).catch(() => setRows([]))
+  }, [])
+  useEffect(load, [load])
+
+  const create = async () => {
+    const c = code.trim().toLowerCase()
+    if (!/^[a-z0-9_-]{1,32}$/.test(c)) { setNote(t.owner.campBadCode); return }
+    if (name.trim().length < 1) { setNote(t.owner.campBadName); return }
+    haptic('medium')
+    setBusy(true)
+    setNote(null)
+    try {
+      await api.ownerCreateCampaign(c, name.trim())
+      hapticNotify('success')
+      setCode(''); setName('')
+      load()
+    } catch (e) {
+      hapticNotify('error')
+      setNote(e instanceof ApiError && e.code === 'code_taken' ? t.owner.campTaken : t.owner.error)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const copy = async (c: string) => {
+    haptic('light')
+    if (await copyText(botStartLink('ad_' + c))) { setCopied(c); setTimeout(() => setCopied(null), 1500) }
+  }
+
+  const pct = (part: number, whole: number) => whole > 0 ? ` · ${Math.round(part * 100 / whole)}%` : ''
+
+  return (
+    <div className="card">
+      <p className="adm-block-title">{t.owner.campTitle}</p>
+      <p className="muted small">{t.owner.campHint}</p>
+
+      <div className="adm-sales-row">
+        <div className="form-field">
+          <label className="muted small">{t.owner.campCode}</label>
+          <input className="search-input" value={code} placeholder="ua_cr1" maxLength={32}
+            autoCapitalize="none" autoCorrect="off" spellCheck={false}
+            onChange={e => setCode(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ''))} />
+        </div>
+        <div className="form-field">
+          <label className="muted small">{t.owner.campName}</label>
+          <input className="search-input" value={name} placeholder={t.owner.campNamePh} maxLength={60}
+            onChange={e => setName(e.target.value)} />
+        </div>
+      </div>
+      <button className="btn" disabled={busy} onClick={create}>
+        {busy ? t.owner.saving : t.owner.campCreate}
+      </button>
+      {note && <p className="small adm-top-run">{note}</p>}
+
+      {rows === null && <div className="center"><div className="spinner" /></div>}
+      {rows !== null && (
+        <ul className="owner-list adm-mod-list">
+          {rows.map(r => (
+            <li key={r.source} className="adm-camp">
+              <div className="adm-camp-head">
+                <b>{r.code === null ? t.owner.campRefs : r.name}</b>
+                {r.code !== null && r.name !== r.code && <span className="muted small"> · {r.code}</span>}
+              </div>
+              {/* Отдельной строкой: у .form-error блочный фон, и в строке заголовка он
+                  наезжал на соседний текст */}
+              {!r.known && <p className="small adm-camp-warn">{t.owner.campUnknown}</p>}
+              <div className="adm-camp-funnel">
+                <span><b>{r.started}</b> {t.owner.campStarted}</span>
+                <span><b>{r.linked}</b> {t.owner.campLinked}<span className="muted">{pct(r.linked, r.started)}</span></span>
+                <span className="adm-camp-key"><b>{r.clansConnected}</b> {t.owner.campClans}</span>
+                <span><b>{r.payers}</b> {t.owner.campPayers}{r.stars > 0 && <span className="muted"> · {r.stars} ⭐</span>}</span>
+              </div>
+              {r.code !== null && r.known && (
+                <button className="btn-mini" onClick={() => copy(r.code!)}>
+                  {copied === r.code ? t.owner.campCopied : t.owner.campCopy}
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   )

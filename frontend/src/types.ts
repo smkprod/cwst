@@ -1003,6 +1003,22 @@ export interface AppConfig {
 }
 
 /** Условия продажи и журнал оплат — для панели владельца. */
+/** Строка воронки: рекламная кампания, код из ссылки с опечаткой или рефералы. */
+export interface CampaignFunnel {
+  source: string
+  /** null — строка рефералов. */
+  code: string | null
+  name: string
+  /** false — кампании с таким кодом нет: ссылка с опечаткой. */
+  known: boolean
+  createdAtUtc: string | null
+  started: number
+  linked: number
+  clansConnected: number
+  payers: number
+  stars: number
+}
+
 /** Один шаг последней оплаты: когда, по какому счёту и чем кончился. */
 export interface PaymentTraceEntry {
   atUtc: string

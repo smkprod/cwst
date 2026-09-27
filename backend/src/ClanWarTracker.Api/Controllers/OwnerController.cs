@@ -26,6 +26,8 @@ public class OwnerController(
     HarvestTopPlayersUseCase harvestTop,
     ITopPlayerRepository topPlayers,
     ISponsorPaymentRepository sponsorPayments,
+    ICampaignRepository campaigns,
+    GetCampaignFunnelUseCase campaignFunnel,
     IServiceModeratorRepository moderators,
     IPlayerRepository players,
     IServiceSettingRepository settings,
@@ -221,6 +223,37 @@ public class OwnerController(
     }
 
     public record SponsorSalesRequest(int Stars, int Days);
+    public record CampaignRequest(string Code, string Name);
+
+    /// <summary>
+    /// GET /api/owner/campaigns — воронка по рекламным кампаниям и рефералам:
+    /// пришли, привязали тег, подключили клан, заплатили.
+    /// </summary>
+    [HttpGet("campaigns")]
+    public async Task<IActionResult> GetCampaigns(CancellationToken ct)
+    {
+        if (await DenyAsync(ServicePermission.AppSettings, ct) is { } deny) return deny;
+        return Ok(await campaignFunnel.ExecuteAsync(ct));
+    }
+
+    /// <summary>
+    /// POST /api/owner/campaigns — завести кампанию. Body: { code, name }.
+    /// Ссылка для неё — t.me/&lt;бот&gt;?start=ad_&lt;code&gt;, её собирает панель.
+    /// </summary>
+    [HttpPost("campaigns")]
+    public async Task<IActionResult> CreateCampaign([FromBody] CampaignRequest req, CancellationToken ct)
+    {
+        if (await DenyAsync(ServicePermission.AppSettings, ct) is { } deny) return deny;
+
+        var code = (req.Code ?? "").Trim().ToLowerInvariant();
+        var name = (req.Name ?? "").Trim();
+        if (!Campaign.IsValidCode(code)) return BadRequest(new { error = "bad_code" });
+        if (name.Length is < 1 or > 60) return BadRequest(new { error = "bad_name" });
+        if (await campaigns.CodeExistsAsync(code, ct)) return Conflict(new { error = "code_taken" });
+
+        await campaigns.AddAsync(new Campaign { Code = code, Name = name, CreatedAtUtc = DateTime.UtcNow }, ct);
+        return Ok(new { code, name });
+    }
 
     /// <summary>
     /// GET /api/owner/sponsor/sales — цена, срок и последние оплаты звёздами.

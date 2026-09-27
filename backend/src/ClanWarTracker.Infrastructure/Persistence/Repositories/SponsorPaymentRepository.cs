@@ -20,4 +20,7 @@ public class SponsorPaymentRepository(AppDbContext db) : ISponsorPaymentReposito
 
     public async Task<long> TotalStarsAsync(CancellationToken ct = default) =>
         await db.SponsorPayments.AsNoTracking().SumAsync(p => (long)p.Stars, ct);
+
+    public Task<List<SponsorPayment>> GetAllAsync(CancellationToken ct = default) =>
+        db.SponsorPayments.AsNoTracking().ToListAsync(ct);
 }

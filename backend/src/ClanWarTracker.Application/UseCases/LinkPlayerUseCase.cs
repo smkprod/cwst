@@ -5,7 +5,8 @@ using ClanWarTracker.Domain.Interfaces;
 namespace ClanWarTracker.Application.UseCases;
 
 public class LinkPlayerUseCase(
-    IClashRoyaleApi crApi, IClanRepository clans, IPlayerRepository players, INotificationSender notifier)
+    IClashRoyaleApi crApi, IClanRepository clans, IPlayerRepository players, INotificationSender notifier,
+    IAcquisitionRepository acquisitions)
 {
     /// <param name="chatId">ID группового чата клана, или null если вызов из ЛС.</param>
     /// <param name="referrerTelegramUserId">Telegram ID пригласившего (из реф-ссылки), или null.</param>
@@ -16,6 +17,11 @@ public class LinkPlayerUseCase(
         playerTag = Normalize(playerTag);
         var name = await crApi.GetPlayerNameAsync(playerTag, ct);
         if (name is null) return null;
+
+        // Пригласившего берём из базы, если вызывающий его не передал. Раньше он
+        // жил только в памяти воркера: терялся при каждом деплое, а при привязке
+        // из приложения - всегда, потому что приложение в другом контейнере.
+        referrerTelegramUserId ??= (await acquisitions.GetAsync(telegramUserId, ct))?.ReferrerTelegramUserId;
 
         // Если вызов из группы — ищем клан, из ЛС — clan остаётся null
         Clan? clan = null;
@@ -34,6 +40,7 @@ public class LinkPlayerUseCase(
             // Обновляем клан только если привязываем из группы
             if (clan is not null) existing.ClanId = clan.Id;
             await players.SaveChangesAsync(ct);
+            await MarkLinkedAsync(telegramUserId, ct);
             return name;
         }
 
@@ -59,6 +66,7 @@ public class LinkPlayerUseCase(
             if (unclaimed.ReferrerTelegramUserId is null && referrer is not null)
                 unclaimed.ReferrerTelegramUserId = referrerTelegramUserId;
             await players.SaveChangesAsync(ct);
+            await MarkLinkedAsync(telegramUserId, ct);
 
             await NotifyReferrerAsync(referrer, name, ct);
             return name;
@@ -75,9 +83,17 @@ public class LinkPlayerUseCase(
             CreatedAtUtc = DateTime.UtcNow,
         }, ct);
         await players.SaveChangesAsync(ct);
+        await MarkLinkedAsync(telegramUserId, ct);
 
         await NotifyReferrerAsync(referrer, name, ct);
         return name;
+    }
+
+    /// <summary>Шаг воронки. Сбой отметки не должен отменять саму привязку.</summary>
+    private async Task MarkLinkedAsync(long telegramUserId, CancellationToken ct)
+    {
+        try { await acquisitions.MarkLinkedAsync(telegramUserId, ct); }
+        catch { /* воронка — статистика, привязка важнее */ }
     }
 
     /// <summary>

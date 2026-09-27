@@ -23,6 +23,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ServiceSetting> ServiceSettings => Set<ServiceSetting>();
     public DbSet<ClanMessage> ClanMessages => Set<ClanMessage>();
     public DbSet<SponsorPayment> SponsorPayments => Set<SponsorPayment>();
+    public DbSet<Acquisition> Acquisitions => Set<Acquisition>();
+    public DbSet<Campaign> Campaigns => Set<Campaign>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -94,6 +96,21 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(t => t.Name).HasMaxLength(64);
             e.Property(t => t.ClanName).HasMaxLength(64);
             e.Property(t => t.DeckCardIds).HasMaxLength(128);
+        });
+
+        mb.Entity<Acquisition>(e =>
+        {
+            // Один источник на человека: уникальность и есть правило «первый выигрывает»
+            e.HasIndex(a => a.TelegramUserId).IsUnique();
+            e.HasIndex(a => a.Source);
+            e.Property(a => a.Source).HasMaxLength(64);
+        });
+
+        mb.Entity<Campaign>(e =>
+        {
+            e.HasIndex(c => c.Code).IsUnique();
+            e.Property(c => c.Code).HasMaxLength(64);
+            e.Property(c => c.Name).HasMaxLength(200);
         });
 
         mb.Entity<SponsorPayment>(e =>
