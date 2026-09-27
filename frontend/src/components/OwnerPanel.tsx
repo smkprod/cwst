@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, ApiError, adminClan } from '../lib/api'
-import type { AppTab, BroadcastTarget, Moderator, OwnerClan, OwnerClanDetail, OwnerSponsor, OwnerStats, ServiceIdentity, ServicePermission, TopStatus } from '../types'
+import type { AppTab, BroadcastTarget, Moderator, OwnerClan, OwnerClanDetail, OwnerSponsor, OwnerStats, ServiceIdentity, ServicePermission, SponsorSales, TopStatus } from '../types'
 
 /** «Можно ли мне вот это». Прокидывается вниз, чтобы правила жили в одном месте. */
 type Can = (p: ServicePermission) => boolean
@@ -97,7 +97,7 @@ export function OwnerPanel({ me }: { me: ServiceIdentity }) {
       {section === 'broadcast' && can('Broadcast') && (
         <BroadcastBox dmCount={stats.usersReachableByDm} chatCount={stats.chatsWithBot} t={t} />
       )}
-      {section === 'sponsors' && can('Sponsors') && <SponsorsSection t={t} />}
+      {section === 'sponsors' && can('Sponsors') && <><SponsorSalesCard t={t} /><SponsorsSection t={t} /></>}
       {section === 'moderators' && can('ManageModerators') && <ModeratorsSection can={can} t={t} />}
       {section === 'settings' && can('AppSettings') && <TabsSection t={t} />}
       {section === 'top' && can('Maintenance') && <TopSection t={t} />}
@@ -1039,5 +1039,97 @@ function TopSection({ t }: { t: Translations }) {
 
       {run && <p className="small adm-top-run">{run}</p>}
     </section>
+  )
+}
+
+/**
+ * Продажа спонсорства звёздами: цена, срок и журнал оплат.
+ *
+ * Журнал здесь, а не только баланс у BotFather: на «я заплатил, где звезда?»
+ * отвечают по конкретной записи с номером платежа — по нему же делается возврат.
+ */
+function SponsorSalesCard({ t }: { t: Translations }) {
+  const [sales, setSales] = useState<SponsorSales | null>(null)
+  const [stars, setStars] = useState('')
+  const [days, setDays] = useState('30')
+  const [busy, setBusy] = useState(false)
+  const [note, setNote] = useState<string | null>(null)
+
+  const load = useCallback(() => {
+    api.ownerGetSponsorSales()
+      .then(s => { setSales(s); setStars(String(s.stars)); setDays(String(s.days)) })
+      .catch(() => setSales(null))
+  }, [])
+  useEffect(load, [load])
+
+  const save = async () => {
+    const st = Number(stars), d = Number(days)
+    if (!Number.isInteger(st) || st < 0 || !Number.isInteger(d) || d < 1) {
+      setNote(t.owner.salesBad); return
+    }
+    haptic('medium')
+    setBusy(true)
+    setNote(null)
+    try {
+      await api.ownerSetSponsorSales(st, d)
+      hapticNotify('success')
+      setNote(st > 0 ? t.owner.salesOn : t.owner.salesOff)
+      load()
+    } catch {
+      hapticNotify('error')
+      setNote(t.owner.error)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="card">
+      <p className="adm-block-title">{t.owner.salesTitle}</p>
+      <p className="muted small">{t.owner.salesHint}</p>
+
+      <div className="adm-sales-row">
+        <div className="form-field">
+          <label className="muted small">{t.owner.salesStars}</label>
+          <input className="search-input" inputMode="numeric" value={stars}
+            onChange={e => setStars(e.target.value.replace(/\D/g, ''))} maxLength={6} />
+        </div>
+        <div className="form-field">
+          <label className="muted small">{t.owner.salesDays}</label>
+          <input className="search-input" inputMode="numeric" value={days}
+            onChange={e => setDays(e.target.value.replace(/\D/g, ''))} maxLength={3} />
+        </div>
+      </div>
+
+      <button className="btn" disabled={busy} onClick={save}>
+        {busy ? t.owner.saving : t.owner.salesSave}
+      </button>
+      {note && <p className="small adm-top-run">{note}</p>}
+
+      {sales && (
+        <>
+          <div className="adm-kv">
+            <span className="muted small">{t.owner.salesTotal}</span>
+            <b>{sales.totalStars} ⭐</b>
+          </div>
+          {sales.payments.length === 0 ? (
+            <p className="muted small">{t.owner.salesEmpty}</p>
+          ) : (
+            <ul className="owner-list adm-mod-list">
+              {sales.payments.map(p => (
+                <li key={p.telegramChargeId} className="adm-pay">
+                  <span className="adm-pay-main">
+                    <b>{p.playerTag}</b>
+                    <span className="muted small"> · {p.days} {t.owner.sponsorDaysUnit} · {new Date(p.paidAtUtc).toLocaleDateString()}</span>
+                  </span>
+                  <span className="adm-pay-stars">{p.stars} ⭐</span>
+                  <span className="adm-pay-charge muted small">{p.telegramChargeId}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+    </div>
   )
 }

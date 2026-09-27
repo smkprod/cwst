@@ -2756,3 +2756,19 @@ button.hall-step {
 .adm-top-run { color: var(--muted); margin-bottom: 0; }
 /* Кнопка не должна липнуть к подписи над ней */
 .adm-kv ~ .btn, .adm-top-problem ~ .btn, .card > p + .btn { margin-top: 10px; }
+
+/* --- Продажа спонсорства --- */
+.adm-sales-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.adm-pay { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 8px 0; }
+.adm-pay + .adm-pay { border-top: 1px solid var(--line); }
+.adm-pay-stars { font-weight: 700; color: var(--gold); }
+/* Номер платежа нужен для возврата - его копируют целиком, поэтому не режем */
+.adm-pay-charge { grid-column: 1 / -1; font-family: ui-monospace, monospace; font-size: 11px; word-break: break-all; }
+
+/* Срок спонсорства в «Моём оформлении» */
+.looks-until {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+  padding: 10px 12px; margin: 6px 0 10px; border-radius: var(--r-ctl);
+  background: rgba(255, 200, 61, 0.10); border: 1px solid rgba(255, 200, 61, 0.28);
+}
+.looks-until-text { font-weight: 700; color: var(--gold); font-size: 14px; }

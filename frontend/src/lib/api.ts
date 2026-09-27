@@ -1,5 +1,5 @@
 import { initData } from './telegram'
-import type { AppConfig, AppTab, BackgroundKey, ClanDesignKey, ClanPage, PlayerPage, HallOfFame, OwnerSponsor, Moderator, ServiceIdentity, ServicePermission, BroadcastResult, BroadcastTarget, TopStatus, ClanDiscipline, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, TopPlayerRow, TopPlayerDetail, Tournament, TournamentSummary, WarJournal } from '../types'
+import type { AppConfig, AppTab, BackgroundKey, ClanDesignKey, ClanPage, PlayerPage, HallOfFame, OwnerSponsor, Moderator, ServiceIdentity, ServicePermission, BroadcastResult, BroadcastTarget, TopStatus, SponsorSales, ClanDiscipline, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, TopPlayerRow, TopPlayerDetail, Tournament, TournamentSummary, WarJournal } from '../types'
 
 // Если мы на Render (production), BASE должен быть пустой строкой '', чтобы запросы шли на тот же домен.
 // Для локальной разработки (Development) оставляем localhost:5000.
@@ -116,6 +116,16 @@ export const api = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
+    }),
+  /** Счёт на спонсорство в звёздах — ссылка для Telegram.WebApp.openInvoice. */
+  createSponsorInvoice: () =>
+    request<{ link: string }>('/api/sponsor/invoice', { method: 'POST' }),
+  ownerGetSponsorSales: () => request<SponsorSales>('/api/owner/sponsor/sales'),
+  ownerSetSponsorSales: (stars: number, days: number) =>
+    request<{ stars: number; days: number }>('/api/owner/sponsor/sales', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stars, days }),
     }),
   /** Написать другому клану от имени своего. kind: обычное сообщение или вызов. */
   sendClanMessage: (clanId: number, text: string, kind: 'message' | 'challenge') =>

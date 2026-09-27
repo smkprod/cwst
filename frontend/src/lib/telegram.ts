@@ -11,7 +11,10 @@ interface TelegramWebApp {
   }
   openTelegramLink?(url: string): void
   openLink?(url: string): void
+  openInvoice?(url: string, callback?: (status: InvoiceStatus) => void): void
 }
+
+export type InvoiceStatus = 'paid' | 'cancelled' | 'failed' | 'pending'
 
 declare global {
   interface Window { Telegram?: { WebApp: TelegramWebApp } }
@@ -107,4 +110,19 @@ export function shareToTelegram(text: string, linkUrl: string = botStartLink()) 
   const url = `https://t.me/share/url?url=${encodeURIComponent(share)}&text=${encodeURIComponent(text)}`
   if (tg?.openTelegramLink) tg.openTelegramLink(url)
   else window.open(url, '_blank')
+}
+
+/**
+ * Открыть счёт Telegram и дождаться, чем кончилось.
+ *
+ * 'paid' значит только «Telegram списал звёзды». Выдачу делает бот, получив
+ * подтверждение отдельным сообщением, поэтому после 'paid' спонсорство может
+ * появиться не мгновенно — вызывающий обязан переспросить сервер, а не рисовать
+ * звезду по одному лишь ответу этого окна.
+ */
+export function openInvoice(url: string): Promise<InvoiceStatus> {
+  return new Promise(resolve => {
+    if (!tg?.openInvoice) { resolve('failed'); return }
+    tg.openInvoice(url, status => resolve(status))
+  })
 }

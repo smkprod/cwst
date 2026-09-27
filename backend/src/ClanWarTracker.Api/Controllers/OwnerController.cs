@@ -25,6 +25,7 @@ public class OwnerController(
     OwnerBroadcastUseCase broadcast,
     HarvestTopPlayersUseCase harvestTop,
     ITopPlayerRepository topPlayers,
+    ISponsorPaymentRepository sponsorPayments,
     IServiceModeratorRepository moderators,
     IPlayerRepository players,
     IServiceSettingRepository settings,
@@ -214,7 +215,50 @@ public class OwnerController(
         }
 
         await players.SaveChangesAsync(ct);
+        // Иначе выданный фон появится на Аллее только через пять минут кэша
+        await HallCache.BumpAsync(settings, ct);
         return Ok(new { playerTag = player.PlayerTag, name = player.Name, until = player.SponsorUntilUtc });
+    }
+
+    public record SponsorSalesRequest(int Stars, int Days);
+
+    /// <summary>
+    /// GET /api/owner/sponsor/sales — цена, срок и последние оплаты звёздами.
+    ///
+    /// Оплаты показываются здесь, а не только в балансе бота у BotFather: на
+    /// вопрос «я заплатил, где спонсорство?» надо отвечать по журналу с номером
+    /// платежа, а не по общей сумме на балансе.
+    /// </summary>
+    [HttpGet("sponsor/sales")]
+    public async Task<IActionResult> GetSponsorSales(CancellationToken ct)
+    {
+        if (await DenyAsync(ServicePermission.Sponsors, ct) is { } deny) return deny;
+
+        var offer = await SponsorSales.ReadAsync(settings, ct);
+        var recent = await sponsorPayments.GetRecentAsync(30, ct);
+        return Ok(new
+        {
+            stars = offer.Stars,
+            days = offer.Days,
+            totalStars = await sponsorPayments.TotalStarsAsync(ct),
+            payments = recent.Select(p => new
+            {
+                p.PlayerTag, p.Stars, p.Days, p.PaidAtUtc, p.TelegramChargeId,
+            }),
+        });
+    }
+
+    /// <summary>POST /api/owner/sponsor/sales — поставить цену в звёздах и срок. 0 звёзд — продажа выключена.</summary>
+    [HttpPost("sponsor/sales")]
+    public async Task<IActionResult> SetSponsorSales([FromBody] SponsorSalesRequest req, CancellationToken ct)
+    {
+        if (await DenyAsync(ServicePermission.Sponsors, ct) is { } deny) return deny;
+        if (req.Stars is < 0 or > SponsorSales.MaxStars) return BadRequest(new { error = "bad_stars" });
+        if (req.Days is < 1 or > SponsorSales.MaxDays) return BadRequest(new { error = "bad_days" });
+
+        await settings.SetAsync(SponsorSales.PriceKey, req.Stars.ToString(), ct);
+        await settings.SetAsync(SponsorSales.DaysKey, req.Days.ToString(), ct);
+        return Ok(new { stars = req.Stars, days = req.Days });
     }
 
     /// <summary>GET /api/owner/sponsors — действующие спонсоры.</summary>
