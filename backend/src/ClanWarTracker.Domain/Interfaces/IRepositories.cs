@@ -172,6 +172,9 @@ public interface ITopPlayerRepository
 
     /// <summary>Даты снимков, новые первыми — для выбора «неделю назад».</summary>
     Task<List<string>> DaysAsync(int limit, CancellationToken ct = default);
+
+    /// <summary>Строка игрока в снимке за день. null — в тот день его в топе не было.</summary>
+    Task<TopPlayer?> FindAsync(string dayUtc, string playerTag, CancellationToken ct = default);
 }
 
 public interface IPlayerBattleRepository

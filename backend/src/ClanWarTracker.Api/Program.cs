@@ -29,6 +29,7 @@ builder.Services.AddScoped<HarvestTopPlayersUseCase>();
 builder.Services.AddScoped<CollectPlayerBattlesUseCase>();
 builder.Services.AddScoped<GetMetaDecksUseCase>();
 builder.Services.AddScoped<GetBattleAnalysisUseCase>();
+builder.Services.AddScoped<GetPlayerSheetUseCase>();
 builder.Services.AddScoped<GetRaceScoutUseCase>();
 builder.Services.AddScoped<GetPlayerStatsUseCase>();
 builder.Services.AddScoped<GetClanHistoryUseCase>();

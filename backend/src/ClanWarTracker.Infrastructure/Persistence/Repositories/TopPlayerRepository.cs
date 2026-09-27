@@ -30,6 +30,10 @@ public class TopPlayerRepository(AppDbContext db) : ITopPlayerRepository
             .Select(t => t.DayUtc)
             .FirstOrDefaultAsync(ct);
 
+    public Task<TopPlayer?> FindAsync(string dayUtc, string playerTag, CancellationToken ct = default) =>
+        db.TopPlayers.AsNoTracking()
+            .FirstOrDefaultAsync(t => t.DayUtc == dayUtc && t.PlayerTag == playerTag, ct);
+
     public async Task<List<string>> DaysAsync(int limit, CancellationToken ct = default) =>
         await db.TopPlayers.AsNoTracking()
             .Select(t => t.DayUtc)
