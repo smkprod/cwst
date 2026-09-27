@@ -75,6 +75,7 @@ public static class DependencyInjection
         services.AddScoped<IRespectRepository, RespectRepository>();
         services.AddScoped<IActivityRepository, ActivityRepository>();
         services.AddScoped<ITopPlayerRepository, TopPlayerRepository>();
+        services.AddScoped<IMetaRepository, MetaRepository>();
         services.AddScoped<IServiceModeratorRepository, ServiceModeratorRepository>();
         services.AddScoped<IServiceSettingRepository, ServiceSettingRepository>();
         services.AddScoped<IClanMessageRepository, ClanMessageRepository>();
@@ -589,6 +590,30 @@ CREATE TABLE IF NOT EXISTS ""TopPlayers"" (
             "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_TopPlayers_DayUtc_Rank\" ON \"TopPlayers\" (\"DayUtc\", \"Rank\");");
         await db.Database.ExecuteSqlRawAsync(
             "CREATE INDEX IF NOT EXISTS \"IX_TopPlayers_DayUtc\" ON \"TopPlayers\" (\"DayUtc\");");
+
+        // Мета дня из боёв топа: колоды с итогами и пары «карта против карты».
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""MetaDeckDays"" (
+    ""Id"" serial PRIMARY KEY,
+    ""DayUtc"" varchar(10) NOT NULL,
+    ""DeckKey"" varchar(128) NOT NULL,
+    ""Games"" integer NOT NULL DEFAULT 0,
+    ""Wins"" integer NOT NULL DEFAULT 0,
+    ""Draws"" integer NOT NULL DEFAULT 0
+);");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_MetaDeckDays_DayUtc_DeckKey\" ON \"MetaDeckDays\" (\"DayUtc\", \"DeckKey\");");
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""MetaMatchupDays"" (
+    ""Id"" serial PRIMARY KEY,
+    ""DayUtc"" varchar(10) NOT NULL,
+    ""CardKey"" integer NOT NULL,
+    ""OppCardKey"" integer NOT NULL,
+    ""Games"" integer NOT NULL DEFAULT 0,
+    ""Wins"" integer NOT NULL DEFAULT 0
+);");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_MetaMatchupDays_DayUtc_CardKey_OppCardKey\" ON \"MetaMatchupDays\" (\"DayUtc\", \"CardKey\", \"OppCardKey\");");
 
         // Настройки сервиса, которые владелец меняет из панели без передеплоя.
         await db.Database.ExecuteSqlRawAsync(@"

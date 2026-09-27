@@ -952,7 +952,7 @@ function TopSection({ t }: { t: Translations }) {
     try {
       const r = await api.ownerHarvestTop()
       hapticNotify(r.problem ? 'error' : 'success')
-      setRun(r.problem ?? t.owner.topRunOk.replace('{n}', String(r.rows)))
+      setRun(r.problem ?? [t.owner.topRunOk.replace('{n}', String(r.rows)), r.meta].filter(Boolean).join('\n'))
       load()
     } catch (e) {
       hapticNotify('error')
@@ -989,6 +989,8 @@ function TopSection({ t }: { t: Translations }) {
         : status.lastAttemptAtUtc && (
             <p className="muted small">{t.owner.topLastOk.replace('{n}', String(status.lastRows))}</p>
           )}
+
+      {status.lastMeta && <p className="muted small">{status.lastMeta}</p>}
 
       <p className="muted small">{t.owner.topHint}</p>
 

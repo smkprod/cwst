@@ -569,6 +569,47 @@ export interface TopMeta {
   cards: TopCard[]
 }
 
+/* --- Мета дня: колоды топа по боям --- */
+export interface MetaCard {
+  cardId: number
+  name: string
+  iconUrl: string
+  /** Эволюция — иконка тогда эволюционная. */
+  evo: boolean
+  elixir: number
+}
+
+export interface MetaCounter {
+  card: MetaCard
+  /** Процент побед колоды, когда у соперника есть эта карта. */
+  winPercent: number
+  /** На сколько пунктов ниже обычного для колоды (отрицательное). */
+  deltaPercent: number
+  games: number
+}
+
+export interface MetaDeckRow {
+  cards: MetaCard[]
+  games: number
+  wins: number
+  draws: number
+  losses: number
+  winPercent: number
+  usagePercent: number
+  avgElixir: number
+  /** Четыре самые дешёвые карты — полный цикл. */
+  cycleElixir: number
+  counters: MetaCounter[]
+  copyLink: string | null
+}
+
+export interface MetaDecks {
+  fromDayUtc: string
+  toDayUtc: string
+  battles: number
+  decks: MetaDeckRow[]
+}
+
 export interface TopPlayerRow {
   rank: number
   playerTag: string
@@ -1150,6 +1191,8 @@ export interface TopStatus {
   lastRows: number
   /** Почему не вышло. null — вышло. */
   lastProblem: string | null
+  /** Итог сбора меты по боям: сколько боёв и колод или почему нет. */
+  lastMeta?: string | null
 }
 
 export interface OwnerSponsor {

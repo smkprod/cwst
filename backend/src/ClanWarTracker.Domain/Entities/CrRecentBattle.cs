@@ -32,4 +32,13 @@ public class CrRecentBattle
 
     public List<CrDeckCard> MyDeck { get; set; } = [];
     public List<CrDeckCard> OpponentDeck { get; set; } = [];
+
+    /// <summary>
+    /// Сколько эликсира утекло у своей стороны за бой (стоял на десяти и не тратился).
+    /// null — API поле не прислал: в старых режимах и не во всех типах боёв его нет.
+    /// </summary>
+    public double? ElixirLeaked { get; set; }
+
+    /// <summary>Изменение кубков или рейтинга за бой. null — режим без счёта.</summary>
+    public int? TrophyChange { get; set; }
 }

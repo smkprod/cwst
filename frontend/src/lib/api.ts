@@ -1,5 +1,5 @@
 import { initData } from './telegram'
-import type { AppConfig, AppTab, BackgroundKey, ClanDesignKey, ClanPage, PlayerPage, HallOfFame, OwnerSponsor, Moderator, ServiceIdentity, ServicePermission, BroadcastResult, BroadcastTarget, TopStatus, SponsorSales, CampaignFunnel, ClanDiscipline, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, TopPlayerRow, TopPlayerDetail, Tournament, TournamentSummary, WarJournal } from '../types'
+import type { AppConfig, AppTab, BackgroundKey, ClanDesignKey, ClanPage, PlayerPage, HallOfFame, OwnerSponsor, Moderator, ServiceIdentity, ServicePermission, BroadcastResult, BroadcastTarget, TopStatus, SponsorSales, CampaignFunnel, ClanDiscipline, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, MetaDecks, TopPlayerRow, TopPlayerDetail, Tournament, TournamentSummary, WarJournal } from '../types'
 
 // Если мы на Render (production), BASE должен быть пустой строкой '', чтобы запросы шли на тот же домен.
 // Для локальной разработки (Development) оставляем localhost:5000.
@@ -203,6 +203,15 @@ export const api = {
     if (!res.ok || res.status === 204) return null
     return res.json().catch(() => null)
   },
+  // 204 — меты по боям ещё нет. Пустое тело, поэтому не парсим.
+  getMetaDecks: async (): Promise<MetaDecks | null> => {
+    const res = await fetch(`${BASE}/api/top/decks`, {
+      headers: { 'X-Telegram-Init-Data': window.Telegram?.WebApp?.initData ?? '' },
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    if (res.status === 204) return null
+    return res.json()
+  },
   getTopPlayers: (skip = 0, take = 50) =>
     request<TopPlayerRow[]>(`/api/top/players?skip=${skip}&take=${take}`),
   getTopPlayerDetail: (tag: string) =>
@@ -261,7 +270,7 @@ export const api = {
   ownerRemoveModerator: (id: number) =>
     request<{ ok: boolean }>(`/api/owner/moderators/${id}`, { method: 'DELETE' }),
   ownerHarvestTop: () =>
-    request<{ rows: number; problem: string | null }>('/api/owner/top/harvest', { method: 'POST' }),
+    request<{ rows: number; problem: string | null; meta?: string | null }>('/api/owner/top/harvest', { method: 'POST' }),
   /** Что со снимками мирового топа — без запуска тысячи запросов к API игры. */
   ownerTopStatus: () => request<TopStatus>('/api/owner/top/status'),
   ownerGetStats: () => request<OwnerStats>('/api/owner/stats'),
