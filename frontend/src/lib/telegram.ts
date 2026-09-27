@@ -1,7 +1,7 @@
 // Минимальная типизация Telegram WebApp SDK (только то, что используем)
 interface TelegramWebApp {
   initData: string
-  initDataUnsafe: { user?: { id: number; first_name: string; username?: string } }
+  initDataUnsafe: { user?: { id: number; first_name: string; username?: string }; start_param?: string }
   ready(): void
   expand(): void
   colorScheme: 'light' | 'dark'
@@ -12,6 +12,7 @@ interface TelegramWebApp {
   openTelegramLink?(url: string): void
   openLink?(url: string): void
   openInvoice?(url: string, callback?: (status: InvoiceStatus) => void): void
+  requestWriteAccess?(callback?: (allowed: boolean) => void): void
 }
 
 export type InvoiceStatus = 'paid' | 'cancelled' | 'failed' | 'pending'
@@ -30,6 +31,29 @@ export function initTelegram() {
 /** initData для заголовка авторизации. Пустая строка вне Telegram (dev-режим). */
 export const initData = tg?.initData ?? ''
 export const tgUser = tg?.initDataUnsafe?.user
+
+/**
+ * С чем открыли приложение: ссылка t.me/бот?startapp=review|plus|meta. Бот ставит
+ * её под своими сообщениями, чтобы кнопка «Открыть разбор» вела в разбор, а не
+ * на первый экран. Запасной путь — параметр адреса: так его передают старые клиенты.
+ */
+export const startParam: string =
+  tg?.initDataUnsafe?.start_param
+  ?? new URLSearchParams(window.location.search).get('tgWebAppStartParam')
+  ?? ''
+
+/**
+ * Попросить разрешение писать в личку — для «Стоп-тильта». Без него бот не может
+ * написать тому, кто открыл приложение, но ни разу не нажал «Старт» в чате с ним.
+ * Старый Telegram метода не знает — тогда просто пробуем писать.
+ */
+export function requestWriteAccess(): Promise<boolean> {
+  return new Promise(resolve => {
+    if (!tg?.requestWriteAccess) { resolve(true); return }
+    try { tg.requestWriteAccess(allowed => resolve(Boolean(allowed))) }
+    catch { resolve(true) }
+  })
+}
 
 /**
  * Username бота (без @). Значение из сборки — лишь стартовое: если переменную

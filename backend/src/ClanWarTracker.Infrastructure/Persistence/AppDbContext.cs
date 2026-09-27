@@ -22,6 +22,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<MetaDeckDay> MetaDeckDays => Set<MetaDeckDay>();
     public DbSet<MetaMatchupDay> MetaMatchupDays => Set<MetaMatchupDay>();
     public DbSet<PlayerBattle> PlayerBattles => Set<PlayerBattle>();
+    public DbSet<Entitlement> Entitlements => Set<Entitlement>();
+    public DbSet<PlayerAlertPrefs> PlayerAlertPrefs => Set<PlayerAlertPrefs>();
     public DbSet<ServiceModerator> ServiceModerators => Set<ServiceModerator>();
     public DbSet<ServiceSetting> ServiceSettings => Set<ServiceSetting>();
     public DbSet<ClanMessage> ClanMessages => Set<ClanMessage>();
@@ -151,6 +153,24 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             // Длину номера платежа не ограничиваем: номера звёзд длинные, и
             // varchar(128) ронял вставку оплаченного платежа.
             e.Property(p => p.PlayerTag).HasMaxLength(16);
+            e.Property(p => p.Kind).HasMaxLength(16).HasDefaultValue(SponsorPayment.Kinds.Sponsor);
+        });
+
+        mb.Entity<Entitlement>(e =>
+        {
+            e.HasIndex(x => new { x.TelegramUserId, x.Sku });
+            e.HasIndex(x => x.ChargeId);
+            e.HasIndex(x => x.PlayerTag);
+            e.Property(x => x.Sku).HasMaxLength(24);
+            e.Property(x => x.Source).HasMaxLength(16);
+            e.Property(x => x.PlayerTag).HasMaxLength(16);
+        });
+
+        mb.Entity<PlayerAlertPrefs>(e =>
+        {
+            // Одни настройки на человека
+            e.HasIndex(x => x.TelegramUserId).IsUnique();
+            e.Property(x => x.AlertDay).HasMaxLength(10);
         });
 
         mb.Entity<ClanMessage>(e =>

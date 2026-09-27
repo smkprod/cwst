@@ -273,6 +273,76 @@ public sealed class BotText
     public required string QuickFooter { get; init; }
     public required string QuickShareText { get; init; }
     public required string QuickShareButton { get; init; }
+    /// <summary>«Стоп-тильт»: первая строка, {0} - поражений подряд.</summary>
+    public required string TiltAlertHead { get; init; }
+    /// <summary>Личная статистика: {0} - % побед после двух поражений, {1} - обычный %.</summary>
+    public required string TiltAlertStats { get; init; }
+    /// <summary>Когда личной статистики мало.</summary>
+    public required string TiltAlertGeneric { get; init; }
+    /// <summary>Совет и как выключить.</summary>
+    public required string TiltAlertTail { get; init; }
+    /// <summary>Мини-разбор после привязки: первая строка, {0} - имя.</summary>
+    public required string LinkedHead { get; init; }
+    /// <summary>{0} боёв, {1}% побед, {2} побед, {3} поражений.</summary>
+    public required string LinkedStats { get; init; }
+    /// <summary>{0} - карта, {1}% побед, {2} боёв.</summary>
+    public required string LinkedTough { get; init; }
+    /// <summary>{0}% побед после двух поражений подряд.</summary>
+    public required string LinkedTilt { get; init; }
+    /// <summary>Триал выдан: {0} - дней.</summary>
+    public required string LinkedTrial { get; init; }
+    /// <summary>Боёв для разбора пока нет.</summary>
+    public required string LinkedNoBattles { get; init; }
+    /// <summary>Призыв открыть приложение.</summary>
+    public required string LinkedTail { get; init; }
+    /// <summary>Строка для игрока без клана.</summary>
+    public required string LinkedNoClanLine { get; init; }
+    /// <summary>Кнопка открыть приложение.</summary>
+    public required string OpenAppButton { get; init; }
+    /// <summary>Кнопка открыть разбор.</summary>
+    public required string OpenReviewButton { get; init; }
+    /// <summary>Чужой тег: {0} - имя, {1} - тег.</summary>
+    public required string ForeignTagHead { get; init; }
+    /// <summary>{0} - текущий тег.</summary>
+    public required string ForeignTagLinkedAs { get; init; }
+    /// <summary>Кнопка «это мой аккаунт».</summary>
+    public required string ForeignTagRelinkButton { get; init; }
+    /// <summary>{0} - имя после перепривязки.</summary>
+    public required string RelinkDone { get; init; }
+    /// <summary>Не вышло перепривязать.</summary>
+    public required string RelinkFailed { get; init; }
+    /// <summary>Справка /help.</summary>
+    public required string HelpText { get; init; }
+    /// <summary>Команде нужен привязанный тег.</summary>
+    public required string NotLinkedYet { get; init; }
+    /// <summary>{0} - средний эликсир, {1} - карты.</summary>
+    public required string DeckHead { get; init; }
+    /// <summary>Колоды нет.</summary>
+    public required string DeckNone { get; init; }
+    /// <summary>Кнопка открыть колоду в игре.</summary>
+    public required string DeckOpenButton { get; init; }
+    /// <summary>{0} - боёв в окне.</summary>
+    public required string MetaHead { get; init; }
+    /// <summary>{0} - место, {1}% побед, {2} игр, {3} - карты.</summary>
+    public required string MetaRow { get; init; }
+    /// <summary>Меты ещё нет.</summary>
+    public required string MetaEmpty { get; init; }
+    /// <summary>Что даёт Плюс; {0} - строка статуса.</summary>
+    public required string PlusInfo { get; init; }
+    /// <summary>{0} - до какой даты.</summary>
+    public required string PlusActiveLine { get; init; }
+    /// <summary>{0} - цена 7 дней, {1} - цена 30 дней.</summary>
+    public required string PlusOfferLine { get; init; }
+    /// <summary>Платное выключено.</summary>
+    public required string PlusFreeLine { get; init; }
+    /// <summary>Кнопка открыть Плюс.</summary>
+    public required string PlusButton { get; init; }
+    /// <summary>Помощь с оплатой; {0} - кому писать.</summary>
+    public required string PaySupport { get; init; }
+    /// <summary>Если контакт владельца не задан.</summary>
+    public required string PaySupportOwnerFallback { get; init; }
+    /// <summary>Условия.</summary>
+    public required string Terms { get; init; }
 
     /* --- Inline-режим: карточка в любом чате Telegram --- */
     public required string InlineWarTitle { get; init; }
@@ -406,15 +476,7 @@ public sealed class BotText
         BriefSlackerRow = "• {0} — {1}/4",
         BriefNudgeHint = "👉 Открой Mini App → кнопка «Пнуть» разошлёт им напоминание.",
 
-        StartPrivate = "⚔️ Clanify — статистика войны Clash Royale\n\n"
-                     + "Отправь свой тег аккаунта CR прямо сюда — например:\n"
-                     + "#2VUPLPU0R\n\n"
-                     + "Я сразу покажу:\n"
-                     + "• кто не атакует в войне твоего клана\n"
-                     + "• твой личный счёт и место в рейтинге\n"
-                     + "• сколько часов осталось до конца дня\n\n"
-                     + "Работает для всех участников — не только лидеров.\n\n"
-                     + "Или открой Mini App кнопкой в меню ниже 👇",
+        StartPrivate = "⚔️ Clanify — твой помощник в Clash Royale\n\nПришли свой тег — например #2VUPLPU0R. Клан не нужен.\n\nЧто я сделаю:\n• запомню твои бои и покажу, против каких карт ты проседаешь\n• посчитаю тильт, утечку эликсира и лучшее время для игры\n• покажу, чем сейчас выигрывает топ-500 мира\n\nА если ты в клане — напомню про колоды КВ и посчитаю вклад каждого 🏰\n\nВсе команды: /help",
         GroupJoined = "👋 Привет! Я Clanify, бот для клановых войн Clash Royale.\n\n"
                     + "Я открываюсь как приложение прямо в Telegram, устанавливать ничего не нужно.\n\n"
                     + "Осталось два шага:\n\n"
@@ -535,6 +597,41 @@ public sealed class BotText
         QuickFooter = "Полная статистика — в Mini App: история, прогнозы, рейтинг 👇",
         QuickShareText = "⚔️ Слежу за Clan War через этот бот — отправь свой тег CR и сразу увидишь статистику войны своего клана",
         QuickShareButton = "📤 Поделиться с кланом",
+        TiltAlertHead = "🧊 Стоп-тильт: поражений подряд — {0}.",
+        TiltAlertStats = "По твоим же боям после двух поражений подряд ты выигрываешь {0}%, а обычно — {1}%.",
+        TiltAlertGeneric = "После серии поражений легко заиграться и слить ещё — дай голове остыть.",
+        TiltAlertTail = "Пауза 10–15 минут: вода, пара минут без телефона — и назад с холодной головой.\n\nВыключить: «Я» → «⚔️ Разбор боёв».",
+        LinkedHead = "✅ Привязал: {0}",
+        LinkedStats = "⚔️ Последние {0} боёв: {1}% побед ({2}–{3})",
+        LinkedTough = "🎯 Сложнее всего против «{0}»: {1}% побед в {2} боях",
+        LinkedTilt = "🧊 После двух поражений подряд: {0}% побед",
+        LinkedTrial = "🎁 Включил тебе Плюс на {0} дн. бесплатно: полный разбор и «Стоп-тильт» — напишу, когда пора сделать паузу.",
+        LinkedNoBattles = "Боёв 1 на 1 в журнале пока нет — сыграй пару боёв, и я начну разбор.",
+        LinkedTail = "Полный разбор — в приложении: против чего проигрываешь, когда играешь лучше, мета топа 👇",
+        LinkedNoClanLine = "Ты не в клане — война недоступна, но разбор боёв работает и без клана.",
+        OpenAppButton = "🎮 Открыть приложение",
+        OpenReviewButton = "📊 Открыть разбор",
+        ForeignTagHead = "👤 {0} · {1}",
+        ForeignTagLinkedAs = "Ты привязан как {0}. Если это твой второй аккаунт — нажми кнопку, и привязка переедет на него. Посмотреть игрока подробнее можно в приложении → «Поиск».",
+        ForeignTagRelinkButton = "🔗 Это мой аккаунт",
+        RelinkDone = "✅ Теперь ты привязан как {0}.",
+        RelinkFailed = "Не получилось перепривязать — пришли тег ещё раз.",
+        HelpText = "📖 Что я умею\n\nПришли свой тег (например #2VUPLPU0R) — привяжу и разберу твои бои. Клан не нужен.\n\n/me — короткий разбор твоих боёв\n/deck — твоя колода из последнего боя\n/meta — лучшие колоды топа за неделю\n/plus — Clanify Плюс\n/paysupport — помощь с оплатой\n/terms — условия\n\nВ группе клана: /setup #ТЕГ_КЛАНА — подключить войну, /status — кто не доиграл.",
+        NotLinkedYet = "Сначала пришли свой тег — например #2VUPLPU0R.",
+        DeckHead = "🃏 Твоя колода из последнего боя (💧{0}):\n{1}",
+        DeckNone = "Не нашёл боёв 1 на 1 в журнале — сыграй бой, и я покажу колоду.",
+        DeckOpenButton = "🃏 Открыть в игре",
+        MetaHead = "🔥 Лучшие колоды топа за неделю (боёв: {0})",
+        MetaRow = "{0}. {1}% побед · {2} игр\n{3}",
+        MetaEmpty = "Мета топа ещё собирается — загляни завтра.",
+        PlusInfo = "💎 Clanify Плюс\n\n• полный разбор: все карты, против которых ты проседаешь, контры к каждой твоей колоде по боям топа, дни недели\n• «Стоп-тильт»: напишу, когда начнёшь сливать серию подряд\n\n{0}",
+        PlusActiveLine = "✅ Плюс активен до {0}.",
+        PlusOfferLine = "7 дней — {0}⭐ · 30 дней — {1}⭐. Разовый пропуск, без автопродления. Купить — в приложении 👇",
+        PlusFreeLine = "Сейчас всё открыто бесплатно — пользуйся 🙂",
+        PlusButton = "💎 Открыть Плюс",
+        PaySupport = "💬 Помощь с оплатой\n\nЗвёзды списались, а Плюс или спонсорство не включились? Хочешь вернуть звёзды? Напиши {0} и перешли сообщение об оплате — в нём номер платежа. По нему всё включат вручную или вернут звёзды.",
+        PaySupportOwnerFallback = "владельцу бота",
+        Terms = "📄 Условия\n\nClanify — неофициальный фан-проект, не связан с Supercell и не одобрен ею. Данные — из официального Clash Royale API.\n\nПлюс и спонсорство — разовые цифровые пропуска на указанный срок, без автопродления. Оплата — звёздами Telegram. Если что-то не работает — /paysupport: включим вручную или вернём звёзды.\n\nМы храним твой тег, бои за 30 дней и настройки уведомлений — только для работы бота.",
         InlineWarTitle = "⚔️ Моя война",
         InlineWarDesc = "Медали, место в клане и колоды за сегодня",
         InlineWarText = "⚔️ {0} · {1}\n🏅 {2} медалей · {3} место в клане\n🃏 {4}/4 колод сегодня",
@@ -654,15 +751,7 @@ public sealed class BotText
         BriefSlackerRow = "• {0} — {1}/4",
         BriefNudgeHint = "👉 Відкрий Mini App → кнопка «Розштовхати» надішле їм нагадування.",
 
-        StartPrivate = "⚔️ Clanify — статистика війни Clash Royale\n\n"
-                     + "Надішли свій тег акаунта CR прямо сюди — наприклад:\n"
-                     + "#2VUPLPU0R\n\n"
-                     + "Я одразу покажу:\n"
-                     + "• хто не атакує у війні твого клану\n"
-                     + "• твій особистий рахунок і місце в рейтингу\n"
-                     + "• скільки годин лишилось до кінця дня\n\n"
-                     + "Працює для всіх учасників — не лише для лідерів.\n\n"
-                     + "Або відкрий Mini App кнопкою в меню нижче 👇",
+        StartPrivate = "⚔️ Clanify — твій помічник у Clash Royale\n\nНадішли свій тег — наприклад #2VUPLPU0R. Клан не потрібен.\n\nЩо я зроблю:\n• запам’ятаю твої бої й покажу, проти яких карт ти просідаєш\n• порахую тільт, витік еліксиру й найкращий час для гри\n• покажу, чим зараз виграє топ-500 світу\n\nА якщо ти в клані — нагадаю про колоди КВ і порахую внесок кожного 🏰\n\nУсі команди: /help",
         GroupJoined = "👋 Привіт! Я Clanify, бот для кланових воєн Clash Royale.\n\n"
                     + "Я відкриваюся як застосунок прямо в Telegram, встановлювати нічого не треба.\n\n"
                     + "Лишилося два кроки:\n\n"
@@ -783,6 +872,41 @@ public sealed class BotText
         QuickFooter = "Повна статистика — у Mini App: історія, прогнози, рейтинг 👇",
         QuickShareText = "⚔️ Стежу за Clan War через цього бота — надішли свій тег CR і одразу побачиш статистику війни свого клану",
         QuickShareButton = "📤 Поділитися з кланом",
+        TiltAlertHead = "🧊 Стоп-тільт: поразок поспіль — {0}.",
+        TiltAlertStats = "За твоїми ж боями після двох поразок поспіль ти виграєш {0}%, а зазвичай — {1}%.",
+        TiltAlertGeneric = "Після серії поразок легко загратися й програти ще — дай голові охолонути.",
+        TiltAlertTail = "Пауза 10–15 хвилин: вода, пара хвилин без телефона — і назад з холодною головою.\n\nВимкнути: «Я» → «⚔️ Розбір боїв».",
+        LinkedHead = "✅ Прив’язав: {0}",
+        LinkedStats = "⚔️ Останні {0} боїв: {1}% перемог ({2}–{3})",
+        LinkedTough = "🎯 Найважче проти «{0}»: {1}% перемог у {2} боях",
+        LinkedTilt = "🧊 Після двох поразок поспіль: {0}% перемог",
+        LinkedTrial = "🎁 Увімкнув тобі Плюс на {0} дн. безкоштовно: повний розбір і «Стоп-тільт» — напишу, коли час зробити паузу.",
+        LinkedNoBattles = "Боїв 1 на 1 у журналі поки немає — зіграй кілька боїв, і я почну розбір.",
+        LinkedTail = "Повний розбір — у застосунку: проти чого програєш, коли граєш краще, мета топу 👇",
+        LinkedNoClanLine = "Ти не в клані — війна недоступна, але розбір боїв працює і без клану.",
+        OpenAppButton = "🎮 Відкрити застосунок",
+        OpenReviewButton = "📊 Відкрити розбір",
+        ForeignTagHead = "👤 {0} · {1}",
+        ForeignTagLinkedAs = "Ти прив’язаний як {0}. Якщо це твій другий акаунт — натисни кнопку, і прив’язка переїде на нього. Подивитися гравця детальніше можна в застосунку → «Пошук».",
+        ForeignTagRelinkButton = "🔗 Це мій акаунт",
+        RelinkDone = "✅ Тепер ти прив’язаний як {0}.",
+        RelinkFailed = "Не вдалося перепривʼязати — надішли тег ще раз.",
+        HelpText = "📖 Що я вмію\n\nНадішли свій тег (наприклад #2VUPLPU0R) — прив’яжу й розберу твої бої. Клан не потрібен.\n\n/me — короткий розбір твоїх боїв\n/deck — твоя колода з останнього бою\n/meta — найкращі колоди топу за тиждень\n/plus — Clanify Плюс\n/paysupport — допомога з оплатою\n/terms — умови\n\nУ групі клану: /setup #ТЕГ_КЛАНУ — підключити війну, /status — хто не дограв.",
+        NotLinkedYet = "Спершу надішли свій тег — наприклад #2VUPLPU0R.",
+        DeckHead = "🃏 Твоя колода з останнього бою (💧{0}):\n{1}",
+        DeckNone = "Не знайшов боїв 1 на 1 у журналі — зіграй бій, і я покажу колоду.",
+        DeckOpenButton = "🃏 Відкрити в грі",
+        MetaHead = "🔥 Найкращі колоди топу за тиждень (боїв: {0})",
+        MetaRow = "{0}. {1}% перемог · {2} ігор\n{3}",
+        MetaEmpty = "Мета топу ще збирається — зазирни завтра.",
+        PlusInfo = "💎 Clanify Плюс\n\n• повний розбір: усі карти, проти яких ти просідаєш, контри до кожної твоєї колоди за боями топу, дні тижня\n• «Стоп-тільт»: напишу, коли почнеш програвати серію поспіль\n\n{0}",
+        PlusActiveLine = "✅ Плюс активний до {0}.",
+        PlusOfferLine = "7 днів — {0}⭐ · 30 днів — {1}⭐. Разова перепустка, без автопродовження. Купити — у застосунку 👇",
+        PlusFreeLine = "Зараз усе відкрито безкоштовно — користуйся 🙂",
+        PlusButton = "💎 Відкрити Плюс",
+        PaySupport = "💬 Допомога з оплатою\n\nЗірки списалися, а Плюс чи спонсорство не увімкнулися? Хочеш повернути зірки? Напиши {0} і перешли повідомлення про оплату — у ньому номер платежу. За ним усе увімкнуть вручну або повернуть зірки.",
+        PaySupportOwnerFallback = "власнику бота",
+        Terms = "📄 Умови\n\nClanify — неофіційний фан-проєкт, не пов’язаний із Supercell і не схвалений нею. Дані — з офіційного Clash Royale API.\n\nПлюс і спонсорство — разові цифрові перепустки на вказаний строк, без автопродовження. Оплата — зірками Telegram. Якщо щось не працює — /paysupport: увімкнемо вручну або повернемо зірки.\n\nМи зберігаємо твій тег, бої за 30 днів і налаштування сповіщень — лише для роботи бота.",
         InlineWarTitle = "⚔️ Моя війна",
         InlineWarDesc = "Медалі, місце в клані та колоди за сьогодні",
         InlineWarText = "⚔️ {0} · {1}\n🏅 {2} медалей · {3} місце в клані\n🃏 {4}/4 колод сьогодні",
@@ -902,15 +1026,7 @@ public sealed class BotText
         BriefSlackerRow = "• {0} — {1}/4",
         BriefNudgeHint = "👉 Open the Mini App → the \"Nudge\" button sends them a reminder.",
 
-        StartPrivate = "⚔️ Clanify — Clash Royale war stats\n\n"
-                     + "Send your CR account tag right here — for example:\n"
-                     + "#2VUPLPU0R\n\n"
-                     + "I'll show you straight away:\n"
-                     + "• who isn't attacking in your clan's war\n"
-                     + "• your own score and place in the rating\n"
-                     + "• how many hours are left in the day\n\n"
-                     + "Works for every member — not just leaders.\n\n"
-                     + "Or open the Mini App with the menu button below 👇",
+        StartPrivate = "⚔️ Clanify — your Clash Royale sidekick\n\nSend your tag — e.g. #2VUPLPU0R. No clan needed.\n\nWhat I'll do:\n• remember your battles and show which cards you struggle against\n• measure your tilt, elixir leak and best time to play\n• show what the world's top 500 are winning with right now\n\nAnd if you're in a clan — I'll remind you about war decks and track everyone's contribution 🏰\n\nAll commands: /help",
         GroupJoined = "👋 Hi! I'm Clanify, a bot for Clash Royale clan wars.\n\n"
                     + "I open as an app right inside Telegram, nothing to install.\n\n"
                     + "Two steps left:\n\n"
@@ -1031,6 +1147,41 @@ public sealed class BotText
         QuickFooter = "Full stats — in the Mini App: history, forecasts, rating 👇",
         QuickShareText = "⚔️ I track Clan War with this bot — send your CR tag and you'll see your clan's war stats right away",
         QuickShareButton = "📤 Share with the clan",
+        TiltAlertHead = "🧊 Stop-tilt: {0} losses in a row.",
+        TiltAlertStats = "Your own battles say: after two losses in a row you win {0}%, usually {1}%.",
+        TiltAlertGeneric = "After a losing streak it's easy to keep chasing and lose more — let your head cool down.",
+        TiltAlertTail = "Take 10–15 minutes: some water, a few minutes off the phone — then come back with a clear head.\n\nTurn off: «Me» → «⚔️ Battle review».",
+        LinkedHead = "✅ Linked: {0}",
+        LinkedStats = "⚔️ Last {0} battles: {1}% wins ({2}–{3})",
+        LinkedTough = "🎯 Hardest matchup: «{0}» — {1}% wins in {2} battles",
+        LinkedTilt = "🧊 After two losses in a row: {0}% wins",
+        LinkedTrial = "🎁 You get Plus free for {0} days: the full review and Stop-tilt — I'll message you when it's time for a break.",
+        LinkedNoBattles = "No 1v1 battles in your log yet — play a couple and I'll start the review.",
+        LinkedTail = "Full review in the app: what you lose to, when you play best, the top meta 👇",
+        LinkedNoClanLine = "You're not in a clan — war isn't available, but the battle review works without one.",
+        OpenAppButton = "🎮 Open the app",
+        OpenReviewButton = "📊 Open the review",
+        ForeignTagHead = "👤 {0} · {1}",
+        ForeignTagLinkedAs = "You're linked as {0}. If this is your second account, tap the button and the link moves to it. For details on this player, use the app → «Search».",
+        ForeignTagRelinkButton = "🔗 This is my account",
+        RelinkDone = "✅ You're now linked as {0}.",
+        RelinkFailed = "Couldn't relink — send the tag again.",
+        HelpText = "📖 What I can do\n\nSend your tag (e.g. #2VUPLPU0R) — I'll link you and review your battles. No clan needed.\n\n/me — a short review of your battles\n/deck — your deck from the last battle\n/meta — the top's best decks this week\n/plus — Clanify Plus\n/paysupport — payment help\n/terms — terms\n\nIn a clan group: /setup #CLAN_TAG — connect the war, /status — who hasn't played.",
+        NotLinkedYet = "Send your tag first — e.g. #2VUPLPU0R.",
+        DeckHead = "🃏 Your deck from the last battle (💧{0}):\n{1}",
+        DeckNone = "No 1v1 battles in your log — play one and I'll show the deck.",
+        DeckOpenButton = "🃏 Open in game",
+        MetaHead = "🔥 The top's best decks this week ({0} battles)",
+        MetaRow = "{0}. {1}% wins · {2} games\n{3}",
+        MetaEmpty = "The top meta is still being collected — check back tomorrow.",
+        PlusInfo = "💎 Clanify Plus\n\n• the full review: every card you struggle against, counters to each of your decks from top battles, weekdays\n• Stop-tilt: I'll message you when a losing streak starts\n\n{0}",
+        PlusActiveLine = "✅ Plus is active until {0}.",
+        PlusOfferLine = "7 days — {0}⭐ · 30 days — {1}⭐. One-time pass, no auto-renewal. Buy it in the app 👇",
+        PlusFreeLine = "Everything is free right now — enjoy 🙂",
+        PlusButton = "💎 Open Plus",
+        PaySupport = "💬 Payment help\n\nStars were charged but Plus or sponsorship didn't turn on? Want your stars back? Message {0} and forward the payment message — it has the payment number. We'll switch it on manually or refund the stars.",
+        PaySupportOwnerFallback = "the bot owner",
+        Terms = "📄 Terms\n\nClanify is an unofficial fan project, not affiliated with or endorsed by Supercell. Data comes from the official Clash Royale API.\n\nPlus and sponsorship are one-time digital passes for the stated period, with no auto-renewal. Payment is in Telegram Stars. If something doesn't work — /paysupport: we'll switch it on manually or refund the stars.\n\nWe store your tag, 30 days of battles and notification settings — only to run the bot.",
         InlineWarTitle = "⚔️ My war",
         InlineWarDesc = "Medals, place in the clan and decks today",
         InlineWarText = "⚔️ {0} · {1}\n🏅 {2} medals · #{3} in the clan\n🃏 {4}/4 decks today",

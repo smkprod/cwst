@@ -129,6 +129,46 @@ public static class BattleAnalyzer
         return new TiltStats(after2, after2Wins, afterWin, afterWinWins, longest);
     }
 
+    /// <param name="Alert">Писать сейчас.</param>
+    /// <param name="LastBattleUtc">Последний бой захода - запоминается, чтобы не писать про ту же серию снова.</param>
+    /// <param name="LossStreak">Поражений подряд в конце захода.</param>
+    public record TiltCheck(bool Alert, DateTime? LastBattleUtc, int LossStreak);
+
+    /// <summary>
+    /// Пора ли написать «Стоп-тильт»: игрок прямо сейчас в заходе и слил два боя
+    /// подряд, а в этом заходе мы ещё не писали.
+    ///
+    /// «Прямо сейчас» - последний бой не старше <paramref name="freshness"/>: писать
+    /// про серию, после которой человек уже час как не играет, бессмысленно и
+    /// раздражает. Один заход - одно сообщение: вторая серия в том же заходе значит,
+    /// что первый совет не услышали, и третий не поможет.
+    /// </summary>
+    public static TiltCheck ShouldAlertTilt(
+        IReadOnlyList<PlayerBattle> battles, DateTime nowUtc, DateTime? lastAlertBattleUtc, TimeSpan freshness)
+    {
+        if (battles.Count == 0) return new TiltCheck(false, null, 0);
+
+        var last = battles[^1];
+        if (nowUtc - last.BattleTimeUtc > freshness) return new TiltCheck(false, last.BattleTimeUtc, 0);
+
+        // Начало захода: идём назад, пока бои идут без больших перерывов.
+        var start = battles.Count - 1;
+        while (start > 0 && battles[start].BattleTimeUtc - battles[start - 1].BattleTimeUtc <= SessionGap)
+            start--;
+        var sessionStart = battles[start].BattleTimeUtc;
+
+        // Поражения подряд в конце захода; ничьи пропускаем, победа обрывает счёт.
+        var streak = 0;
+        for (var i = battles.Count - 1; i >= start; i--)
+        {
+            if (battles[i].Result > 0) break;
+            if (battles[i].Result < 0) streak++;
+        }
+
+        var alreadyThisSession = lastAlertBattleUtc is { } la && la >= sessionStart;
+        return new TiltCheck(streak >= 2 && !alreadyThisSession, last.BattleTimeUtc, streak);
+    }
+
     public record DeckUse(string Key, int Games, int Wins);
 
     /// <summary>Свои колоды по числу игр.</summary>
@@ -146,8 +186,11 @@ public static class BattleAnalyzer
     /// Сравниваем с собой, а не с 50%: игроку, который выигрывает 40%, «40% против
     /// Хога» ничего не говорит, а «25% против Хога» - говорит.
     /// </summary>
-    /// <param name="minGames">Меньше встреч - это случайность, а не слабое место.</param>
-    public static List<Tough> ToughCards(IReadOnlyList<PlayerBattle> battles, int minGames = 4, int take = 3)
+    /// <param name="minGames">
+    /// Меньше встреч - это случайность, а не слабое место. Было 4, но на четырёх боях
+    /// одно невезение превращало любую карту в «контру», и совет выходил шумом.
+    /// </param>
+    public static List<Tough> ToughCards(IReadOnlyList<PlayerBattle> battles, int minGames = 5, int take = 3)
     {
         var decided = battles.Where(b => b.Result != 0).ToList();
         if (decided.Count == 0) return [];

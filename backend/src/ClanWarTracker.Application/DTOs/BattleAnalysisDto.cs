@@ -35,6 +35,26 @@ public record TiltDto(
 /// <summary>Карта соперника, против которой у тебя плохо получается.</summary>
 public record ToughCardDto(MetaCardDto Card, int Games, double WinPercent, double DeltaPercent);
 
+/// <summary>Доступ к полному разбору.</summary>
+/// <param name="Unlocked">Полный разбор открыт: Плюс есть или платное выключено.</param>
+/// <param name="TrialStarted">Триал выдан только что, этим самым открытием разбора.</param>
+public record ReviewAccessDto(
+    bool Paywall,
+    bool Unlocked,
+    bool Active,
+    string? Until,
+    string? Source,
+    bool TrialStarted,
+    bool TrialUsed,
+    int TrialDays,
+    int TrialMinBattles);
+
+/// <summary>
+/// Что спрятано за Плюсом - цифрами самого игрока. «Найдено 4 карты, против которых
+/// ты проседаешь» продаёт лучше, чем абстрактное «больше аналитики».
+/// </summary>
+public record ReviewLockedDto(int ToughCards, int Decks, int Counters, bool Weekdays);
+
 /// <param name="Games">Сколько боёв вошло в разбор (1 на 1, без дружеских и тренировок).</param>
 /// <param name="SinceUtc">С какого боя копим. null - боёв нет.</param>
 public record BattleAnalysisDto(
@@ -51,4 +71,6 @@ public record BattleAnalysisDto(
     List<TimeSlotDto> Weekdays,
     TiltDto? Tilt,
     List<ToughCardDto> ToughCards,
-    int MetaBattles);
+    int MetaBattles,
+    ReviewAccessDto Access,
+    ReviewLockedDto? Locked);

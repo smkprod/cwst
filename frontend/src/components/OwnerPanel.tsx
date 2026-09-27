@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, ApiError, adminClan } from '../lib/api'
-import type { AppTab, BroadcastTarget, Moderator, OwnerClan, OwnerClanDetail, OwnerSponsor, OwnerStats, ServiceIdentity, ServicePermission, SponsorSales, TopStatus, CampaignFunnel } from '../types'
+import type { AppTab, BroadcastTarget, Moderator, OwnerClan, OwnerClanDetail, OwnerPlus, OwnerSponsor, OwnerStats, ServiceIdentity, ServicePermission, SponsorSales, TopStatus, CampaignFunnel } from '../types'
 
 /** «Можно ли мне вот это». Прокидывается вниз, чтобы правила жили в одном месте. */
 type Can = (p: ServicePermission) => boolean
@@ -20,7 +20,7 @@ const ROLE_LABEL: Record<string, string> = {
   elder: '⭐ Старейшина',
 }
 
-type Section = 'overview' | 'clans' | 'broadcast' | 'moderators' | 'sponsors' | 'settings' | 'top' | 'campaigns'
+type Section = 'overview' | 'clans' | 'broadcast' | 'moderators' | 'plus' | 'sponsors' | 'settings' | 'top' | 'campaigns'
 type ClanFilter = 'all' | 'silent'
 
 /** Сколько дней назад (для «активность» и «подключён»). null — даты нет. */
@@ -68,6 +68,7 @@ export function OwnerPanel({ me }: { me: ServiceIdentity }) {
     // Рассылка и модераторы — только владельцу. Вкладки, которые всё равно
     // ответят отказом, лучше не рисовать вовсе.
     ...(can('Broadcast') ? [{ key: 'broadcast' as Section, label: '📣 Рассылка' }] : []),
+    ...(can('Sponsors') ? [{ key: 'plus' as Section, label: '💎 Плюс' }] : []),
     ...(can('Sponsors') ? [{ key: 'sponsors' as Section, label: '★ Спонсоры' }] : []),
     ...(can('ManageModerators') ? [{ key: 'moderators' as Section, label: '🛡 Модераторы' }] : []),
     ...(can('AppSettings') ? [{ key: 'settings' as Section, label: '⚙️ Вкладки' }] : []),
@@ -98,6 +99,7 @@ export function OwnerPanel({ me }: { me: ServiceIdentity }) {
       {section === 'broadcast' && can('Broadcast') && (
         <BroadcastBox dmCount={stats.usersReachableByDm} chatCount={stats.chatsWithBot} t={t} />
       )}
+      {section === 'plus' && can('Sponsors') && <PlusSection t={t} />}
       {section === 'sponsors' && can('Sponsors') && <><SponsorSalesCard t={t} /><SponsorsSection t={t} /></>}
       {section === 'moderators' && can('ManageModerators') && <ModeratorsSection can={can} t={t} />}
       {section === 'settings' && can('AppSettings') && <TabsSection t={t} />}
@@ -1106,13 +1108,16 @@ function SponsorSalesCard({ t }: { t: Translations }) {
           ) : (
             <ul className="owner-list adm-mod-list">
               {sales.payments.map(p => (
-                <li key={p.telegramChargeId} className="adm-pay">
+                <li key={p.telegramChargeId} className={`adm-pay ${p.refundedAtUtc ? 'adm-pay-refunded' : ''}`}>
                   <span className="adm-pay-main">
-                    <b>{p.playerTag}</b>
-                    <span className="muted small"> · {p.days} {t.owner.sponsorDaysUnit} · {new Date(p.paidAtUtc).toLocaleDateString()}</span>
+                    <b>{p.kind === 'plus' ? '💎' : '★'} {p.playerTag || '—'}</b>
+                    <span className="muted small"> · {p.kind === 'plus' ? t.owner.kindPlus : t.owner.kindSponsor} · {p.days} {t.owner.sponsorDaysUnit} · {new Date(p.paidAtUtc).toLocaleDateString()}</span>
                   </span>
                   <span className="adm-pay-stars">{p.stars} ⭐</span>
                   <span className="adm-pay-charge muted small">{p.telegramChargeId}</span>
+                  {p.refundedAtUtc
+                    ? <span className="muted small">↩ {t.owner.refunded}</span>
+                    : <RefundButton chargeId={p.telegramChargeId} stars={p.stars} onDone={load} t={t} />}
                 </li>
               ))}
             </ul>
@@ -1120,6 +1125,197 @@ function SponsorSalesCard({ t }: { t: Translations }) {
         </>
       )}
     </div>
+  )
+}
+
+/**
+ * Возврат звёзд за платёж. Спрашиваем подтверждение: возврат не отменить, а
+ * вместе со звёздами у человека пропадает купленное.
+ */
+function RefundButton({ chargeId, stars, onDone, t }: {
+  chargeId: string; stars: number; onDone: () => void; t: Translations
+}) {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const refund = async () => {
+    if (!window.confirm(t.owner.refundConfirm.replace('{stars}', String(stars)))) return
+    haptic('medium')
+    setBusy(true)
+    setError(null)
+    try {
+      await api.ownerRefund(chargeId)
+      hapticNotify('success')
+      onDone()
+    } catch (e) {
+      hapticNotify('error')
+      setError(t.owner.refundFailed.replace('{msg}', e instanceof ApiError ? e.message : ''))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <>
+      <button className="btn-mini adm-refund" disabled={busy} onClick={refund}>↩ {t.owner.refund}</button>
+      {error && <span className="small form-error">{error}</span>}
+    </>
+  )
+}
+
+/**
+ * Плюс: цены, триал, аварийный выключатель, как продаётся и ручная выдача.
+ * Главная цифра — звёзды за неделю: по ней видно, работает ли платное вообще.
+ */
+function PlusSection({ t }: { t: Translations }) {
+  const o = t.owner
+  const [data, setData] = useState<OwnerPlus | null>(null)
+  const [paywall, setPaywall] = useState(true)
+  const [price7, setPrice7] = useState('')
+  const [price30, setPrice30] = useState('')
+  const [trialDays, setTrialDays] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [note, setNote] = useState<string | null>(null)
+  const [grantTag, setGrantTag] = useState('')
+  const [grantDays, setGrantDays] = useState('30')
+  const [grantNote, setGrantNote] = useState<string | null>(null)
+
+  const load = useCallback(() => {
+    api.ownerGetPlus()
+      .then(d => {
+        setData(d)
+        setPaywall(d.paywall)
+        setPrice7(String(d.price7))
+        setPrice30(String(d.price30))
+        setTrialDays(String(d.trialDays))
+      })
+      .catch(() => setData(null))
+  }, [])
+  useEffect(load, [load])
+
+  const save = async () => {
+    const p7 = Number(price7), p30 = Number(price30), td = Number(trialDays)
+    if (!(p7 >= 1 && p30 >= 1 && td >= 0 && td <= 30)) { setNote(o.salesBad); return }
+    haptic('medium')
+    setBusy(true)
+    setNote(null)
+    try {
+      await api.ownerSetPlus(paywall, p7, p30, td)
+      hapticNotify('success')
+      setNote(o.plusSaved)
+      load()
+    } catch {
+      hapticNotify('error')
+      setNote(o.error)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const grant = async () => {
+    const days = Number(grantDays)
+    if (!grantTag.trim() || !(days >= 1)) return
+    haptic('medium')
+    setGrantNote(null)
+    try {
+      const r = await api.ownerGrantPlus(grantTag.trim(), days)
+      hapticNotify('success')
+      setGrantNote(`${r.name}: ${o.plusGranted.replace('{date}', new Date(r.until).toLocaleDateString())}`)
+      setGrantTag('')
+      load()
+    } catch (e) {
+      hapticNotify('error')
+      setGrantNote(e instanceof ApiError && e.code === 'player_not_linked' ? o.plusGrantNotLinked
+        : e instanceof ApiError && e.code === 'player_not_found' ? o.plusGrantNotFound
+        : o.error)
+    }
+  }
+
+  const src = (s: string) => s === 'purchase' ? o.srcPurchase : s === 'trial' ? o.srcTrial : s === 'gift' ? o.srcGift : o.srcGrant
+
+  return (
+    <>
+      <div className="card">
+        <p className="adm-block-title">{o.plusTitle}</p>
+        <p className="muted small">{o.plusHint}</p>
+
+        {data && (
+          <div className="adm-plus-stats">
+            <div className="adm-kv"><span className="muted small">{o.plusStarsWeek}</span><b>{data.starsWeek} ⭐</b></div>
+            <div className="adm-kv"><span className="muted small">{o.plusStars}</span><b>{data.stars} ⭐</b></div>
+            <div className="adm-kv"><span className="muted small">{o.plusActive}</span><b>{data.active}</b></div>
+            <div className="adm-kv"><span className="muted small">{o.plusBuyers}</span><b>{data.buyers}</b></div>
+            <div className="adm-kv"><span className="muted small">{o.plusTrials}</span><b>{data.trials}</b></div>
+            <div className="adm-kv">
+              <span className="muted small">{o.plusTrialsPaid}</span>
+              <b>{data.trialsPaid}{data.trials > 0 ? ` · ${Math.round((data.trialsPaid / data.trials) * 100)}%` : ''}</b>
+            </div>
+          </div>
+        )}
+
+        <label className="adm-switch-row">
+          <input type="checkbox" checked={paywall} onChange={e => setPaywall(e.target.checked)} />
+          <span>{o.plusPaywall}</span>
+        </label>
+
+        <div className="adm-sales-row">
+          <div className="form-field">
+            <label className="muted small">{o.plusPrice7}</label>
+            <input className="search-input" inputMode="numeric" value={price7}
+              onChange={e => setPrice7(e.target.value.replace(/\D/g, ''))} maxLength={5} />
+          </div>
+          <div className="form-field">
+            <label className="muted small">{o.plusPrice30}</label>
+            <input className="search-input" inputMode="numeric" value={price30}
+              onChange={e => setPrice30(e.target.value.replace(/\D/g, ''))} maxLength={5} />
+          </div>
+          <div className="form-field">
+            <label className="muted small">{o.plusTrialDays}</label>
+            <input className="search-input" inputMode="numeric" value={trialDays}
+              onChange={e => setTrialDays(e.target.value.replace(/\D/g, ''))} maxLength={2} />
+          </div>
+        </div>
+
+        <button className="btn" disabled={busy} onClick={save}>{busy ? o.saving : o.plusSave}</button>
+        {note && <p className="small adm-top-run">{note}</p>}
+      </div>
+
+      <div className="card">
+        <p className="adm-block-title">{o.plusGrantTitle}</p>
+        <div className="adm-sales-row">
+          <div className="form-field">
+            <label className="muted small">{o.plusGrantTag}</label>
+            <input className="search-input" value={grantTag} placeholder="#ABC123"
+              onChange={e => setGrantTag(e.target.value)} autoCapitalize="characters" />
+          </div>
+          <div className="form-field">
+            <label className="muted small">{o.plusGrantDays}</label>
+            <input className="search-input" inputMode="numeric" value={grantDays}
+              onChange={e => setGrantDays(e.target.value.replace(/\D/g, ''))} maxLength={3} />
+          </div>
+        </div>
+        <button className="btn" onClick={grant}>{o.plusGrantBtn}</button>
+        {grantNote && <p className="small adm-top-run">{grantNote}</p>}
+      </div>
+
+      {data && data.recent.length > 0 && (
+        <div className="card">
+          <p className="adm-block-title">{o.plusRecent}</p>
+          <ul className="owner-list adm-mod-list">
+            {data.recent.map((r, i) => (
+              <li key={i} className={`adm-pay ${r.revoked ? 'adm-pay-refunded' : ''}`}>
+                <span className="adm-pay-main">
+                  <b>{r.playerTag || r.telegramUserId}</b>
+                  <span className="muted small"> · {src(r.source)} · {r.days} {o.sponsorDaysUnit} · {new Date(r.createdAtUtc).toLocaleDateString()}</span>
+                </span>
+                {r.stars > 0 && <span className="adm-pay-stars">{r.stars} ⭐</span>}
+                <span className="muted small">→ {new Date(r.untilUtc).toLocaleDateString()}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </>
   )
 }
 

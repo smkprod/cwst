@@ -2887,3 +2887,69 @@ button.hall-step {
 /* Любая строка с игроком открывает его единую карточку */
 .row-tap { cursor: pointer; }
 .row-tap:active { opacity: 0.75; }
+
+/* ===== Clanify Плюс ===== */
+.plus-sheet { padding-top: 6px; }
+.plus-hero {
+  position: relative; border-radius: 16px; padding: 18px 16px 16px; margin-bottom: 12px;
+  background: linear-gradient(135deg, rgba(156, 107, 255, 0.45), rgba(255, 122, 69, 0.28)), var(--bg-card);
+}
+.plus-close { position: absolute; top: 10px; right: 10px; }
+.plus-title { font-size: 22px; font-weight: 800; color: #fff; }
+.plus-tagline { font-size: 13px; color: rgba(255, 255, 255, 0.85); margin-top: 4px; }
+.plus-features { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 10px; }
+.plus-feature { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 12px; background: var(--bg-card); }
+.plus-feature b { font-size: 14px; }
+.plus-offer { display: flex; flex-direction: column; gap: 6px; }
+.plus-status { margin: 0; font-size: 14px; font-weight: 700; }
+.plus-status-ok { color: var(--green); }
+.plus-trial-note { margin: 0; }
+.plus-buttons { display: grid; gap: 8px; }
+.plus-buy { position: relative; width: 100%; font-weight: 800; }
+.plus-best {
+  position: absolute; top: -8px; right: 10px; padding: 2px 8px; border-radius: 999px;
+  font-size: 10px; font-weight: 800; background: #ffd54a; color: #1c1210;
+}
+.plus-fine { margin: 12px 0 0; text-align: center; line-height: 1.4; }
+.plus-cta { width: 100%; margin: 4px 0 12px; font-weight: 800; }
+
+/* Строка доступа в шапке разбора */
+.ba-access {
+  display: block; width: 100%; text-align: left; margin: 10px 0 0; padding: 8px 10px; border-radius: 10px;
+  font-size: 13px; line-height: 1.35; border: none; color: var(--text); background: rgba(255, 255, 255, 0.05);
+}
+.ba-access-gift { background: rgba(80, 200, 120, 0.15); }
+.ba-access-plus { cursor: pointer; background: rgba(156, 107, 255, 0.18); font-weight: 700; }
+
+/* «Стоп-тильт»: переключатель */
+.ba-alerts { border: 1px solid rgba(156, 107, 255, 0.35); }
+.ba-alerts-locked { background: linear-gradient(135deg, rgba(156, 107, 255, 0.12), transparent), var(--bg-card); }
+.ba-alerts-row { display: flex; align-items: center; gap: 12px; }
+.ba-alerts-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ba-switch {
+  position: relative; flex-shrink: 0; width: 48px; height: 28px; border-radius: 999px; border: none;
+  background: rgba(255, 255, 255, 0.15); cursor: pointer; transition: background 0.2s;
+}
+.ba-switch-on { background: var(--green); }
+.ba-switch-knob {
+  position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%;
+  background: #fff; transition: transform 0.2s;
+}
+.ba-switch-on .ba-switch-knob { transform: translateX(20px); }
+
+/* Замок с цифрой игрока */
+.ba-locked {
+  display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 8px; padding: 9px 10px;
+  border-radius: 10px; border: 1px dashed rgba(156, 107, 255, 0.5); background: rgba(156, 107, 255, 0.08);
+  color: var(--text); text-align: left; cursor: pointer; font-size: 13px;
+}
+.ba-locked-text { flex: 1; min-width: 0; }
+.ba-locked-arrow { color: var(--muted); }
+
+/* Панель: Плюс и возвраты */
+.adm-plus-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; margin: 8px 0; }
+.adm-switch-row { display: flex; align-items: center; gap: 8px; margin: 10px 0; font-weight: 700; font-size: 14px; }
+.adm-switch-row input { width: 18px; height: 18px; accent-color: var(--accent); }
+.adm-pay-refunded { opacity: 0.5; }
+.adm-pay-refunded .adm-pay-stars { text-decoration: line-through; }
+.adm-refund { margin-top: 4px; }
