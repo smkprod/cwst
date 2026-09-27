@@ -996,6 +996,24 @@ export interface AppConfig {
   myClanBackground: BackgroundKey | null
   /** Кому писать за спонсорством. Пусто — кнопку не показываем. */
   sponsorContact: string
+  /** Цена в звёздах Telegram. 0 — продажа выключена, остаётся кнопка «написать». */
+  sponsorPriceStars: number
+  /** На сколько дней продаётся. */
+  sponsorDays: number
+}
+
+/** Условия продажи и журнал оплат — для панели владельца. */
+export interface SponsorSales {
+  stars: number
+  days: number
+  totalStars: number
+  payments: {
+    playerTag: string
+    stars: number
+    days: number
+    paidAtUtc: string
+    telegramChargeId: string
+  }[]
 }
 
 export interface HallPlayer {
@@ -1109,6 +1127,18 @@ export interface PlayerPage {
   designKey: ClanDesignKey
   badges: PlayerPageBadge[]
   weeks: PageWeek[]
+}
+
+/** Состояние снимков мирового топа. Видно только владельцу и модератору. */
+export interface TopStatus {
+  /** Самый свежий день со снимком, 'YYYY-MM-DD'. null — снимков нет вообще. */
+  latestDay: string | null
+  daysStored: number
+  /** Когда воркер (или панель) последний раз пытался собрать. null — попыток не было. */
+  lastAttemptAtUtc: string | null
+  lastRows: number
+  /** Почему не вышло. null — вышло. */
+  lastProblem: string | null
 }
 
 export interface OwnerSponsor {

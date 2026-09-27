@@ -267,6 +267,20 @@ public interface IServiceSettingRepository
     Task SetAsync(string key, string value, CancellationToken ct = default);
 }
 
+public interface ISponsorPaymentRepository
+{
+    /// <summary>Этот платёж уже учтён — повторная доставка от Telegram.</summary>
+    Task<bool> ExistsAsync(string telegramChargeId, CancellationToken ct = default);
+
+    Task AddAsync(SponsorPayment payment, CancellationToken ct = default);
+
+    /// <summary>Последние оплаты, свежие первыми — для панели владельца.</summary>
+    Task<List<SponsorPayment>> GetRecentAsync(int limit, CancellationToken ct = default);
+
+    /// <summary>Сколько звёзд пришло за всё время.</summary>
+    Task<long> TotalStarsAsync(CancellationToken ct = default);
+}
+
 public interface IClanMessageRepository
 {
     /// <summary>

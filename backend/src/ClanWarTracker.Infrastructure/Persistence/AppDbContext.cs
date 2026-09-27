@@ -22,6 +22,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ServiceModerator> ServiceModerators => Set<ServiceModerator>();
     public DbSet<ServiceSetting> ServiceSettings => Set<ServiceSetting>();
     public DbSet<ClanMessage> ClanMessages => Set<ClanMessage>();
+    public DbSet<SponsorPayment> SponsorPayments => Set<SponsorPayment>();
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -93,6 +94,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(t => t.Name).HasMaxLength(64);
             e.Property(t => t.ClanName).HasMaxLength(64);
             e.Property(t => t.DeckCardIds).HasMaxLength(128);
+        });
+
+        mb.Entity<SponsorPayment>(e =>
+        {
+            // Уникальность номера платежа - это и есть защита от двойной выдачи:
+            // повторная доставка того же платежа упрётся сюда и откатит продление.
+            e.HasIndex(p => p.TelegramChargeId).IsUnique();
+            e.HasIndex(p => p.PaidAtUtc);
+            e.Property(p => p.TelegramChargeId).HasMaxLength(128);
+            e.Property(p => p.PlayerTag).HasMaxLength(16);
         });
 
         mb.Entity<ClanMessage>(e =>

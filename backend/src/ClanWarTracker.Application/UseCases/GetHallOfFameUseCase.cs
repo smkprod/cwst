@@ -15,6 +15,7 @@ namespace ClanWarTracker.Application.UseCases;
 public class GetHallOfFameUseCase(
     IWarSnapshotRepository snapshots,
     IPlayerRepository players,
+    IServiceSettingRepository settings,
     IMemoryCache cache)
 {
     /// <summary>
@@ -67,13 +68,18 @@ public class GetHallOfFameUseCase(
     /// вот у этого», и ответ обязан находиться и для двухсотпятидесятого. Считать
     /// ради этого второй раз нечего — расчёт один и тот же, и кэш тоже один.
     /// </summary>
-    public Task<HallData?> LoadAsync(CancellationToken ct = default) =>
-        cache.GetOrCreateAsync("halloffame", async entry =>
+    public async Task<HallData?> LoadAsync(CancellationToken ct = default)
+    {
+        // Версия входит в ключ: сменилась — старая запись просто перестаёт
+        // находиться и доживает свои пять минут никем не прочитанной.
+        var version = await settings.GetAsync(HallCache.VersionKey, ct) ?? "0";
+        return await cache.GetOrCreateAsync($"halloffame:{version}", async entry =>
         {
             entry.Size = 1;
             entry.AbsoluteExpirationRelativeToNow = CacheTtl;
             return await BuildAsync(ct);
         });
+    }
 
     /// <summary>Посчитанный сезон целиком — из него уже режутся и топ, и своя строка.</summary>
     public record HallData(int SeasonId, int ClansCounted, List<HallPlayerDto> Players, List<HallClanDto> Clans);
@@ -216,4 +222,21 @@ public class GetHallOfFameUseCase(
 
         return agg.Values.Where(r => r.Fame > 0).ToList();
     }
+}
+
+/// <summary>
+/// Сброс кэша Аллеи из любого процесса.
+///
+/// Кэш живёт в памяти API, а спонсорство после оплаты выдаёт воркер — другой
+/// контейнер, который до чужой памяти не дотягивается. Без этого человек платил,
+/// открывал Аллею и до пяти минут видел себя без фона: ровно в тот момент, когда
+/// он проверяет, за что заплатил. Версия лежит в общей таблице настроек; поднял
+/// её кто угодно — API на следующем запросе считает Аллею заново.
+/// </summary>
+public static class HallCache
+{
+    public const string VersionKey = "hall.version";
+
+    public static Task BumpAsync(IServiceSettingRepository settings, CancellationToken ct = default) =>
+        settings.SetAsync(VersionKey, DateTime.UtcNow.Ticks.ToString(), ct);
 }

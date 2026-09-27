@@ -78,6 +78,7 @@ public static class DependencyInjection
         services.AddScoped<IServiceModeratorRepository, ServiceModeratorRepository>();
         services.AddScoped<IServiceSettingRepository, ServiceSettingRepository>();
         services.AddScoped<IClanMessageRepository, ClanMessageRepository>();
+        services.AddScoped<ISponsorPaymentRepository, SponsorPaymentRepository>();
 
         // Права на сервис — здесь, а не в Program.cs каждого хоста: иначе API и воркер
         // разъехались бы в понимании того, кто владелец, и разошлись бы молча.
@@ -553,6 +554,23 @@ CREATE TABLE IF NOT EXISTS ""ClanMessages"" (
         // Выключатель входящих сообщений у клана.
         await db.Database.ExecuteSqlRawAsync(
             "ALTER TABLE \"Clans\" ADD COLUMN IF NOT EXISTS \"AcceptsClanMail\" boolean NOT NULL DEFAULT TRUE;");
+
+        // Оплаты спонсорства звёздами. Уникальный номер платежа - защита от двойной
+        // выдачи при повторной доставке от Telegram.
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""SponsorPayments"" (
+    ""Id"" serial PRIMARY KEY,
+    ""PayerTelegramUserId"" bigint NOT NULL,
+    ""PlayerTag"" varchar(16) NOT NULL,
+    ""Stars"" integer NOT NULL,
+    ""Days"" integer NOT NULL,
+    ""TelegramChargeId"" varchar(128) NOT NULL,
+    ""PaidAtUtc"" timestamptz NOT NULL
+);");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_SponsorPayments_TelegramChargeId\" ON \"SponsorPayments\" (\"TelegramChargeId\");");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_SponsorPayments_PaidAtUtc\" ON \"SponsorPayments\" (\"PaidAtUtc\");");
 
         // Страница клана на Аллее: оформление и девиз.
         await db.Database.ExecuteSqlRawAsync(

@@ -2743,3 +2743,32 @@ button.hall-step {
 .rank-medal-2 .rank-medal-num { color: #dde3ec; }
 .rank-medal-3 { border-color: #cd8f56; box-shadow: 0 0 16px rgba(205, 143, 86, 0.35); }
 .rank-medal-3 .rank-medal-num { color: #e8ab74; }
+
+/* --- Состояние мирового топа в панели --- */
+.adm-kv { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 6px 0; }
+.adm-kv + .adm-kv { border-top: 1px solid var(--line); }
+/* Причина приходит текстом от API игры — её не переносим и не сокращаем: ровно
+   она и нужна, чтобы понять, что случилось. */
+.adm-top-problem, .adm-top-run {
+  margin-top: 8px; padding: 9px 11px; border-radius: var(--r-ctl);
+  background: rgba(255, 255, 255, 0.05); word-break: break-word;
+}
+.adm-top-run { color: var(--muted); margin-bottom: 0; }
+/* Кнопка не должна липнуть к подписи над ней */
+.adm-kv ~ .btn, .adm-top-problem ~ .btn, .card > p + .btn { margin-top: 10px; }
+
+/* --- Продажа спонсорства --- */
+.adm-sales-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.adm-pay { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 8px 0; }
+.adm-pay + .adm-pay { border-top: 1px solid var(--line); }
+.adm-pay-stars { font-weight: 700; color: var(--gold); }
+/* Номер платежа нужен для возврата - его копируют целиком, поэтому не режем */
+.adm-pay-charge { grid-column: 1 / -1; font-family: ui-monospace, monospace; font-size: 11px; word-break: break-all; }
+
+/* Срок спонсорства в «Моём оформлении» */
+.looks-until {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+  padding: 10px 12px; margin: 6px 0 10px; border-radius: var(--r-ctl);
+  background: rgba(255, 200, 61, 0.10); border: 1px solid rgba(255, 200, 61, 0.28);
+}
+.looks-until-text { font-weight: 700; color: var(--gold); font-size: 14px; }

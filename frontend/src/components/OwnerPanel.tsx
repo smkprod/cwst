@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, ApiError, adminClan } from '../lib/api'
-import type { AppTab, BroadcastTarget, Moderator, OwnerClan, OwnerClanDetail, OwnerSponsor, OwnerStats, ServiceIdentity, ServicePermission } from '../types'
+import type { AppTab, BroadcastTarget, Moderator, OwnerClan, OwnerClanDetail, OwnerSponsor, OwnerStats, ServiceIdentity, ServicePermission, SponsorSales, TopStatus } from '../types'
 
 /** «Можно ли мне вот это». Прокидывается вниз, чтобы правила жили в одном месте. */
 type Can = (p: ServicePermission) => boolean
@@ -20,7 +20,7 @@ const ROLE_LABEL: Record<string, string> = {
   elder: '⭐ Старейшина',
 }
 
-type Section = 'overview' | 'clans' | 'broadcast' | 'moderators' | 'sponsors' | 'settings'
+type Section = 'overview' | 'clans' | 'broadcast' | 'moderators' | 'sponsors' | 'settings' | 'top'
 type ClanFilter = 'all' | 'pro' | 'free' | 'silent' | 'expiring'
 
 /** Сколько дней назад (для «активность» и «подключён»). null — даты нет. */
@@ -71,6 +71,7 @@ export function OwnerPanel({ me }: { me: ServiceIdentity }) {
     ...(can('Sponsors') ? [{ key: 'sponsors' as Section, label: '★ Спонсоры' }] : []),
     ...(can('ManageModerators') ? [{ key: 'moderators' as Section, label: '🛡 Модераторы' }] : []),
     ...(can('AppSettings') ? [{ key: 'settings' as Section, label: '⚙️ Вкладки' }] : []),
+    ...(can('Maintenance') ? [{ key: 'top' as Section, label: '🌍 Топ' }] : []),
   ]
 
   return (
@@ -96,9 +97,10 @@ export function OwnerPanel({ me }: { me: ServiceIdentity }) {
       {section === 'broadcast' && can('Broadcast') && (
         <BroadcastBox dmCount={stats.usersReachableByDm} chatCount={stats.chatsWithBot} t={t} />
       )}
-      {section === 'sponsors' && can('Sponsors') && <SponsorsSection t={t} />}
+      {section === 'sponsors' && can('Sponsors') && <><SponsorSalesCard t={t} /><SponsorsSection t={t} /></>}
       {section === 'moderators' && can('ManageModerators') && <ModeratorsSection can={can} t={t} />}
       {section === 'settings' && can('AppSettings') && <TabsSection t={t} />}
+      {section === 'top' && can('Maintenance') && <TopSection t={t} />}
     </div>
   )
 }
@@ -957,6 +959,177 @@ function TabsSection({ t }: { t: Translations }) {
       <button className="btn" disabled={busy || picked.length === 0} onClick={save}>
         {busy ? t.owner.saving : t.owner.tabsSave}
       </button>
+    </div>
+  )
+}
+
+/**
+ * Состояние снимков мирового топа.
+ *
+ * Причину, по которой снимок не собрался, код записывал и раньше — но записывал
+ * её воркер к себе в память, а панель живёт в другом контейнере. Про поломку
+ * узнавали от человека, открывшего вкладку и увидевшего вечное «ещё собираем».
+ * Здесь причина лежит текстом ровно в том виде, в каком её вернул API игры.
+ */
+function TopSection({ t }: { t: Translations }) {
+  const [status, setStatus] = useState<TopStatus | null>(null)
+  const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [busy, setBusy] = useState(false)
+  const [run, setRun] = useState<string | null>(null)
+
+  const load = useCallback(() => {
+    setState('loading')
+    api.ownerTopStatus()
+      .then(s => { setStatus(s); setState('ready') })
+      .catch(() => setState('error'))
+  }, [])
+
+  useEffect(load, [load])
+
+  const harvest = async () => {
+    haptic('medium')
+    setBusy(true)
+    setRun(null)
+    try {
+      const r = await api.ownerHarvestTop()
+      hapticNotify(r.problem ? 'error' : 'success')
+      setRun(r.problem ?? t.owner.topRunOk.replace('{n}', String(r.rows)))
+      load()
+    } catch (e) {
+      hapticNotify('error')
+      setRun(e instanceof ApiError ? `${e.code}` : t.owner.topRunFail)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (state === 'loading') return <div className="center"><div className="spinner" /></div>
+  if (state === 'error' || !status) return <p className="center muted">{t.owner.error}</p>
+
+  return (
+    <section className="card">
+      <p className="adm-block-title">{t.owner.topTitle}</p>
+
+      <div className="adm-kv">
+        <span className="muted small">{t.owner.topLatestDay}</span>
+        <b>{status.latestDay ?? t.owner.topNone}</b>
+      </div>
+      <div className="adm-kv">
+        <span className="muted small">{t.owner.topDaysStored}</span>
+        <b>{status.daysStored}</b>
+      </div>
+      <div className="adm-kv">
+        <span className="muted small">{t.owner.topLastAttempt}</span>
+        <b>{status.lastAttemptAtUtc
+          ? new Date(status.lastAttemptAtUtc).toLocaleString()
+          : t.owner.topNever}</b>
+      </div>
+
+      {status.lastProblem
+        ? <p className="form-error small adm-top-problem">{status.lastProblem}</p>
+        : status.lastAttemptAtUtc && (
+            <p className="muted small">{t.owner.topLastOk.replace('{n}', String(status.lastRows))}</p>
+          )}
+
+      <p className="muted small">{t.owner.topHint}</p>
+
+      <button className="btn" disabled={busy} onClick={harvest}>
+        {busy ? t.owner.topRunning : t.owner.topRun}
+      </button>
+
+      {run && <p className="small adm-top-run">{run}</p>}
+    </section>
+  )
+}
+
+/**
+ * Продажа спонсорства звёздами: цена, срок и журнал оплат.
+ *
+ * Журнал здесь, а не только баланс у BotFather: на «я заплатил, где звезда?»
+ * отвечают по конкретной записи с номером платежа — по нему же делается возврат.
+ */
+function SponsorSalesCard({ t }: { t: Translations }) {
+  const [sales, setSales] = useState<SponsorSales | null>(null)
+  const [stars, setStars] = useState('')
+  const [days, setDays] = useState('30')
+  const [busy, setBusy] = useState(false)
+  const [note, setNote] = useState<string | null>(null)
+
+  const load = useCallback(() => {
+    api.ownerGetSponsorSales()
+      .then(s => { setSales(s); setStars(String(s.stars)); setDays(String(s.days)) })
+      .catch(() => setSales(null))
+  }, [])
+  useEffect(load, [load])
+
+  const save = async () => {
+    const st = Number(stars), d = Number(days)
+    if (!Number.isInteger(st) || st < 0 || !Number.isInteger(d) || d < 1) {
+      setNote(t.owner.salesBad); return
+    }
+    haptic('medium')
+    setBusy(true)
+    setNote(null)
+    try {
+      await api.ownerSetSponsorSales(st, d)
+      hapticNotify('success')
+      setNote(st > 0 ? t.owner.salesOn : t.owner.salesOff)
+      load()
+    } catch {
+      hapticNotify('error')
+      setNote(t.owner.error)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="card">
+      <p className="adm-block-title">{t.owner.salesTitle}</p>
+      <p className="muted small">{t.owner.salesHint}</p>
+
+      <div className="adm-sales-row">
+        <div className="form-field">
+          <label className="muted small">{t.owner.salesStars}</label>
+          <input className="search-input" inputMode="numeric" value={stars}
+            onChange={e => setStars(e.target.value.replace(/\D/g, ''))} maxLength={6} />
+        </div>
+        <div className="form-field">
+          <label className="muted small">{t.owner.salesDays}</label>
+          <input className="search-input" inputMode="numeric" value={days}
+            onChange={e => setDays(e.target.value.replace(/\D/g, ''))} maxLength={3} />
+        </div>
+      </div>
+
+      <button className="btn" disabled={busy} onClick={save}>
+        {busy ? t.owner.saving : t.owner.salesSave}
+      </button>
+      {note && <p className="small adm-top-run">{note}</p>}
+
+      {sales && (
+        <>
+          <div className="adm-kv">
+            <span className="muted small">{t.owner.salesTotal}</span>
+            <b>{sales.totalStars} ⭐</b>
+          </div>
+          {sales.payments.length === 0 ? (
+            <p className="muted small">{t.owner.salesEmpty}</p>
+          ) : (
+            <ul className="owner-list adm-mod-list">
+              {sales.payments.map(p => (
+                <li key={p.telegramChargeId} className="adm-pay">
+                  <span className="adm-pay-main">
+                    <b>{p.playerTag}</b>
+                    <span className="muted small"> · {p.days} {t.owner.sponsorDaysUnit} · {new Date(p.paidAtUtc).toLocaleDateString()}</span>
+                  </span>
+                  <span className="adm-pay-stars">{p.stars} ⭐</span>
+                  <span className="adm-pay-charge muted small">{p.telegramChargeId}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
     </div>
   )
 }

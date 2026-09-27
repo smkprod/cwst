@@ -23,6 +23,7 @@ public class PlayerController(
     SuggestDecksUseCase suggestDecks,
     LinkPlayerUseCase linkPlayer,
     AnnounceAchievementUseCase announceAchievement,
+    IServiceSettingRepository settings,
     IRespectRepository respects) : ControllerBase
 {
     /// <summary>
@@ -153,6 +154,7 @@ public class PlayerController(
             if (forClan) player.SponsorClanBackgroundKey = null;
             else player.SponsorBackgroundKey = null;
             await players.SaveChangesAsync(ct);
+            await HallCache.BumpAsync(settings, ct);
             return Ok(new { key = (string?)null, scope = forClan ? "clan" : "player" });
         }
 
@@ -174,6 +176,9 @@ public class PlayerController(
         }
 
         await players.SaveChangesAsync(ct);
+        // Спонсор выбрал фон и сразу идёт смотреть на Аллею - пятиминутный кэш
+        // показал бы ему старый.
+        await HallCache.BumpAsync(settings, ct);
         return Ok(new { key = req.Key, scope = forClan ? "clan" : "player" });
     }
 

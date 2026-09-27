@@ -72,9 +72,17 @@ public class BotUpdateHandler(
             // и молчит. Человек добавил бота, ничего не произошло — и он уходит, так и
             // не поняв, что дальше. Приветствие срабатывало только на ручной /start,
             // которого никто не пишет.
+            //
+            // PreCheckoutQuery — для оплаты звёздами. Без него Telegram не доносит до
+            // бота запрос «можно списывать?», бот на него не отвечает, и каждая оплата
+            // падает через десять секунд ожидания — у плательщика, а не у нас в логах.
             new ReceiverOptions
             {
-                AllowedUpdates = [UpdateType.Message, UpdateType.InlineQuery, UpdateType.MyChatMember],
+                AllowedUpdates =
+                [
+                    UpdateType.Message, UpdateType.InlineQuery, UpdateType.MyChatMember,
+                    UpdateType.PreCheckoutQuery,
+                ],
             },
             stoppingToken);
 
@@ -117,6 +125,38 @@ public class BotUpdateHandler(
             return Task.CompletedTask;
         }
 
+        // Подтверждение оплаты — мимо общей очереди: на ответ у бота десять секунд,
+        // и ждать за медленной командой из чужого чата ему нельзя.
+        if (update.PreCheckoutQuery is { } checkout)
+        {
+            _ = Task.Run(async () =>
+            {
+                try { await ProcessPreCheckoutAsync(checkout, ct); }
+                catch (OperationCanceledException) { /* воркер останавливается */ }
+                catch (Exception ex) { logger.LogError(ex, "Pre-checkout {Id} failed", checkout.Id); }
+            });
+            return Task.CompletedTask;
+        }
+
+        // Сообщение об оплате — ДО фильтра по тексту ниже: текста у него нет, и
+        // фильтр отбросил бы его молча. Звёзды списаны, а спонсорство не выдано.
+        if (update.Message is { SuccessfulPayment: { } paid } payMsg)
+        {
+            _ = Task.Run(async () =>
+            {
+                try { await ProcessSuccessfulPaymentAsync(payMsg, paid, ct); }
+                catch (OperationCanceledException) { /* воркер останавливается */ }
+                catch (Exception ex)
+                {
+                    // Громко и с номером платежа: по нему делается возврат, и без него
+                    // деньги человеку вернуть не по чему.
+                    logger.LogError(ex, "Successful payment NOT applied: charge {Charge}, payload {Payload}",
+                        paid.TelegramPaymentChargeId, paid.InvoicePayload);
+                }
+            });
+            return Task.CompletedTask;
+        }
+
         if (update.Message is not { Text: not null }) return Task.CompletedTask;
 
         _ = Task.Run(async () =>
@@ -147,6 +187,83 @@ public class BotUpdateHandler(
     /// не успели — отдаём карточку-приглашение вместо молчания. Пустой ответ выглядит
     /// как сломанный бот, а это худшая реклама из возможных.
     /// </summary>
+    /// <summary>
+    /// «Можно списывать?» — последний момент, когда оплату ещё можно отклонить.
+    /// Отвечаем всегда, даже на ошибке проверки: молчание Telegram тоже засчитает
+    /// как отказ, но через десять секунд и без объяснения.
+    /// </summary>
+    private async Task ProcessPreCheckoutAsync(
+        Telegram.Bot.Types.Payments.PreCheckoutQuery q, CancellationToken ct)
+    {
+        string? problem;
+        try
+        {
+            using var scope = scopeFactory.CreateScope();
+            var payments = scope.ServiceProvider.GetRequiredService<ProcessSponsorPaymentUseCase>();
+            problem = await payments.ValidateAsync(q.Currency, q.TotalAmount, q.InvoicePayload, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Pre-checkout validation crashed for {Payload}", q.InvoicePayload);
+            problem = "Не получилось проверить оплату — попробуй через минуту.";
+        }
+
+        // errorMessage null — «списывайте», иначе — отказ с этим текстом плательщику
+        await bot.AnswerPreCheckoutQuery(q.Id, problem, cancellationToken: ct);
+        if (problem is not null)
+            logger.LogWarning("Pre-checkout rejected: {Problem} ({Payload})", problem, q.InvoicePayload);
+    }
+
+    /// <summary>
+    /// Звёзды списаны — выдаём спонсорство и говорим об этом человеку.
+    ///
+    /// Повторная доставка того же платежа — штатный случай: запись с этим номером
+    /// уже есть, продление не повторяется, а сообщение не дублируется.
+    /// </summary>
+    private async Task ProcessSuccessfulPaymentAsync(
+        Message msg, Telegram.Bot.Types.Payments.SuccessfulPayment paid, CancellationToken ct)
+    {
+        ProcessSponsorPaymentUseCase.Applied? applied;
+        try
+        {
+            using var scope = scopeFactory.CreateScope();
+            var payments = scope.ServiceProvider.GetRequiredService<ProcessSponsorPaymentUseCase>();
+            applied = await payments.ApplyAsync(
+                msg.From?.Id ?? msg.Chat.Id, paid.InvoicePayload, paid.TotalAmount,
+                paid.TelegramPaymentChargeId, ct);
+        }
+        catch (DbUpdateException)
+        {
+            // Две доставки одного платежа обработались одновременно: вторая упёрлась
+            // в уникальный номер, и её продление откатилось вместе с записью. Выдача
+            // уже прошла в первой — сообщать второй раз нечего.
+            logger.LogInformation("Duplicate payment {Charge} ignored", paid.TelegramPaymentChargeId);
+            return;
+        }
+
+        if (applied is null)
+        {
+            logger.LogError("Successful payment NOT applied: charge {Charge}, payload {Payload}",
+                paid.TelegramPaymentChargeId, paid.InvoicePayload);
+            await bot.SendMessage(msg.Chat.Id,
+                "Оплата прошла, но выдать спонсорство автоматически не получилось. " +
+                "Напиши владельцу бота и перешли это сообщение — номер платежа:\n" +
+                paid.TelegramPaymentChargeId,
+                cancellationToken: ct);
+            return;
+        }
+
+        if (applied.Duplicate) return;
+
+        logger.LogInformation("Sponsor paid: {Name} +{Days}d for {Stars} XTR, charge {Charge}",
+            applied.PlayerName, applied.Days, paid.TotalAmount, paid.TelegramPaymentChargeId);
+
+        await bot.SendMessage(msg.Chat.Id,
+            $"★ Спасибо! Спонсорство для {applied.PlayerName} активно до {applied.Until:dd.MM.yyyy}.\n\n" +
+            "Фон себе и клану выбираются во вкладке «Я» → «Моё оформление».",
+            cancellationToken: ct);
+    }
+
     private async Task ProcessInlineQueryAsync(InlineQuery inline, CancellationToken ct)
     {
         using var scope = scopeFactory.CreateScope();

@@ -4,6 +4,7 @@ import type { Achievement, AppConfig, BackgroundKey } from '../types'
 import { haptic, hapticNotify } from '../lib/telegram'
 import { useT } from '../lib/i18n'
 import { BADGE_ICONS } from '../lib/sponsorMarks'
+import { SponsorBuyButton } from './SponsorBuyButton'
 
 /**
  * Оформление себя: значок напоказ и фоны спонсора.
@@ -115,6 +116,16 @@ export function PlayerLooksCard() {
       <p className="adm-block-title">{t.looks.bgTitle}</p>
       {isSponsor && config ? (
         <>
+          {/* Срок раньше не показывался нигде: сервер его отдавал, а спонсорство
+              кончалось молча, и продлевать было не с чего. */}
+          {config.sponsorUntil && (
+            <div className="looks-until">
+              <span className="looks-until-text">
+                {t.sponsor.until.replace('{date}', new Date(config.sponsorUntil).toLocaleDateString())}
+              </span>
+              <SponsorBuyButton config={config} onBought={loadConfig} className="btn-mini" />
+            </div>
+          )}
           <p className="muted small">{t.looks.bgMine}</p>
           <div className="bg-grid">
             {config.playerBackgrounds.map(k => (
@@ -146,17 +157,7 @@ export function PlayerLooksCard() {
       ) : (
         <>
           <p className="muted small">{t.looks.notSponsor}</p>
-          {config?.sponsorContact && (
-            <a
-              className="btn hall-sponsor-btn"
-              href={`https://t.me/${config.sponsorContact}`}
-              target="_blank"
-              rel="noreferrer"
-              onClick={() => haptic('medium')}
-            >
-              {t.hall.becomeSponsor}
-            </a>
-          )}
+          {config && <SponsorBuyButton config={config} onBought={loadConfig} />}
         </>
       )}
       </>
