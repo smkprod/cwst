@@ -5,6 +5,7 @@ import { fmt } from '../lib/format'
 import { haptic, hapticNotify } from '../lib/telegram'
 import { useT, type Translations } from '../lib/i18n'
 import { ClanPageView, PlayerPageView, type HallTarget } from './HallPages'
+import { SponsorBuyButton } from './SponsorBuyButton'
 
 type Board = 'players' | 'clans'
 
@@ -47,6 +48,10 @@ export function HallOfFame({ config, onConfigChanged }: {
   const openRow = (r: HallPlayer | HallClan) =>
     'playerTag' in r ? openPlayer(r.playerTag) : openClan(r.clanId)
 
+  // Счётчик перезагрузок: после покупки своя строка должна перечитаться, иначе
+  // человек, только что заплативший, видит себя по-прежнему без фона.
+  const [reloadKey, setReloadKey] = useState(0)
+
   useEffect(() => {
     let alive = true
     api.getHallOfFame()
@@ -57,7 +62,7 @@ export function HallOfFame({ config, onConfigChanged }: {
       })
       .catch(() => { if (alive) setState('error') })
     return () => { alive = false }
-  }, [])
+  }, [reloadKey])
 
   // Страницы отвечают раньше состояний самой Аллеи: на них попадают и тогда,
   // когда список ещё грузится после возврата.
@@ -120,7 +125,8 @@ export function HallOfFame({ config, onConfigChanged }: {
           me={data.me}
           total={data.totalPlayers}
           isSponsor={isSponsor}
-          contact={config?.sponsorContact ?? ''}
+          config={config}
+          onBought={() => { onConfigChanged(); setReloadKey(k => k + 1) }}
           onCustomize={() => { haptic('medium'); setPickerOpen(true) }}
           t={t}
         />
@@ -208,9 +214,9 @@ function Podium({ rows, label, seasonId, onOpen }: {
 }
 
 /** Своя строка: место, медали и единственная кнопка покупки на всём экране. */
-function MyRow({ me, total, isSponsor, contact, onCustomize, t }: {
-  me: HallPlayer; total: number; isSponsor: boolean; contact: string
-  onCustomize: () => void; t: Translations
+function MyRow({ me, total, isSponsor, config, onBought, onCustomize, t }: {
+  me: HallPlayer; total: number; isSponsor: boolean; config: AppConfig | null
+  onBought: () => void; onCustomize: () => void; t: Translations
 }) {
   return (
     <section
@@ -229,16 +235,8 @@ function MyRow({ me, total, isSponsor, contact, onCustomize, t }: {
 
       {isSponsor ? (
         <button className="btn-mini hall-me-btn" onClick={onCustomize}>{t.hall.customize}</button>
-      ) : contact ? (
-        <a
-          className="btn-mini btn-mini-primary hall-me-btn"
-          href={`https://t.me/${contact}`}
-          target="_blank"
-          rel="noreferrer"
-          onClick={() => haptic('medium')}
-        >
-          {t.hall.standOut}
-        </a>
+      ) : config ? (
+        <SponsorBuyButton config={config} onBought={onBought} className="btn-mini btn-mini-primary hall-me-btn" />
       ) : null}
     </section>
   )

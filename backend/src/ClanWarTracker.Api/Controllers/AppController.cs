@@ -1,3 +1,4 @@
+using ClanWarTracker.Application.UseCases;
 using ClanWarTracker.Domain.Entities;
 using ClanWarTracker.Domain.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -53,6 +54,9 @@ public class AppController(
         var me = await players.GetByTelegramIdAsync(userId, ct);
         var isSponsor = me?.IsSponsor(DateTime.UtcNow) == true;
 
+        // Цена продажи: ноль - продажа выключена, и фронт оставляет кнопку «написать».
+        var offer = await SponsorSales.ReadAsync(settings, ct);
+
         return Ok(new
         {
             botUsername = username ?? "",
@@ -66,6 +70,8 @@ public class AppController(
             // Кому писать за спонсорством. Пусто — кнопку не рисуем: ссылка в никуда
             // хуже отсутствующей кнопки.
             sponsorContact = config["Owner:Username"]?.Trim().TrimStart('@') ?? "",
+            sponsorPriceStars = offer.OnSale ? offer.Stars : 0,
+            sponsorDays = offer.Days,
         });
     }
 }
