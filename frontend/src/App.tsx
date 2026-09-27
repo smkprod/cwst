@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { api, ApiError, adminClan } from './lib/api'
-import { haptic } from './lib/telegram'
+import { haptic, startParam } from './lib/telegram'
+import { usePlusSheet } from './lib/plusSheet'
 import { useT, type Translations } from './lib/i18n'
 import type { AppConfig, AppTab, ClanStatus, ServiceIdentity } from './types'
 import { WarHeader } from './components/WarHeader'
@@ -22,7 +23,7 @@ import { LinkPrompt } from './components/LinkPrompt'
 import { HallOfFame } from './components/HallOfFame'
 import { PlayerSearchView } from './components/PlayerSearchView'
 import { TournamentView } from './components/TournamentView'
-import { ClanlessView } from './components/ClanlessView'
+import { ClanlessView, type SoloReason } from './components/ClanlessView'
 import { GuestEntry } from './components/GuestEntry'
 import { GuestMyStats } from './components/GuestMyStats'
 import { LeaderCtaCard } from './components/LeaderCtaCard'
@@ -38,9 +39,10 @@ import { weekKing } from './lib/king'
 
 type State =
   | { kind: 'loading' }
+  | { kind: 'link' }
   | { kind: 'guestEntry' }
   | { kind: 'notInTelegram' }
-  | { kind: 'clanless' }
+  | { kind: 'clanless'; reason: SoloReason }
   | { kind: 'error'; message: string }
   | { kind: 'ready'; data: ClanStatus }
   | { kind: 'guest'; data: ClanStatus; myPlayerTag: string }
@@ -110,9 +112,25 @@ function ClanSectionTabs({ value, onChange, t }: {
   )
 }
 
+/**
+ * Куда вести по параметру запуска из бота: «Открыть разбор» — во вкладку «Я» на
+ * разбор, «/meta» — в мировой топ, «/plus» — в окно Плюса. Без параметра — как раньше.
+ */
+const START_TAB: Tab = startParam === 'review' ? 'me' : startParam === 'meta' ? 'more' : 'clan'
+
 export default function App() {
   const [state, setState] = useState<State>({ kind: 'loading' })
-  const [tab, setTab] = useState<Tab>('clan')
+  const [tab, setTab] = useState<Tab>(START_TAB)
+  const openPlus = usePlusSheet()
+
+  // Кнопка «💎 Открыть Плюс» в боте: окно Плюса сразу при запуске, один раз.
+  const plusOpenedRef = useRef(false)
+  useEffect(() => {
+    if (startParam !== 'plus' || plusOpenedRef.current) return
+    if (state.kind === 'loading') return
+    plusOpenedRef.current = true
+    openPlus()
+  }, [state.kind, openPlus])
   const [clanSection, setClanSection] = useState<ClanSection>('war')
   const [settingsOpen, setSettingsOpen] = useState(false)
   // Права на сервис спрашиваем отдельно от статуса клана.
@@ -186,9 +204,17 @@ export default function App() {
             return
           } catch { /* fall through to entry screen */ }
         }
-        setState({ kind: 'guestEntry' })
+        // Не привязан — первым делом привязка тега: без неё нет ни разбора боёв,
+        // ни Плюса. Посмотреть клан без привязки можно с того же экрана.
+        setState({ kind: 'link' })
       } else if (e instanceof ApiError && e.code === 'clan_not_found') {
-        setState({ kind: 'clanless' })
+        setState({ kind: 'clanless', reason: 'noClan' })
+      } else if (e instanceof ApiError && e.code === 'war_not_found') {
+        // У подключённого клана нет войны. Раньше это был экран ошибки с «повторить»,
+        // хотя ничего не сломалось: теперь — приложение игрока, война вернётся сама.
+        // Это не сбой, поэтому и опрашиваем в обычном темпе, а не каждые 15 секунд.
+        failuresRef.current = 0
+        setState({ kind: 'clanless', reason: 'noWar' })
       } else if (e instanceof ApiError && (e.code === 'no_init_data' || e.code === 'bad_init_data')) {
         setState({ kind: 'notInTelegram' })
       } else if (e instanceof ApiError && (e.status === 500 || e.status === 503)) {
@@ -240,6 +266,17 @@ export default function App() {
   switch (state.kind) {
     case 'loading':
       return <SplashScreen />
+    case 'link':
+      return (
+        <main>
+          <LinkPrompt />
+          <div className="center" style={{ minHeight: 'auto', padding: '4px 0 24px' }}>
+            <button className="btn-mini" onClick={() => { haptic('light'); setState({ kind: 'guestEntry' }) }}>
+              {t.link.browseClan}
+            </button>
+          </div>
+        </main>
+      )
     case 'guestEntry':
       return (
         <GuestEntry
@@ -254,7 +291,9 @@ export default function App() {
     case 'clanless':
       // Админ сервиса без своего клана — не тупик: панель и есть то, зачем он зашёл,
       // а заход в чужой клан из неё вернёт обычные экраны.
-      return me.role !== 'none' ? <OwnerPanel me={me} /> : <ClanlessView />
+      return me.role !== 'none'
+        ? <OwnerPanel me={me} />
+        : <ClanlessView reason={state.reason} initialTab={startParam === 'meta' ? 'meta' : 'me'} />
     case 'notInTelegram':
       return (
         <div className="center">
@@ -355,7 +394,7 @@ export default function App() {
             )}
             {tab === 'me' && (
               <div className="fade-in">
-                <MyStatsView />
+                <MyStatsView defaultSection={startParam === 'review' ? 'battles' : 'clan'} />
               </div>
             )}
             {tab === 'tournament' && (
@@ -372,6 +411,7 @@ export default function App() {
               <MoreView
                 canManage={canManage}
                 isLeader={Boolean(data.isClanLeader)}
+                initialSection={startParam === 'meta' ? 'worldTop' : null}
                 onOpenNotifications={() => { haptic('light'); setSettingsOpen(true) }}
               />
             )}

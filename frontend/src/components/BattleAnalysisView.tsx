@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { api, ApiError } from '../lib/api'
-import type { BattleAnalysis, MyDeck, TimeSlot } from '../types'
-import { haptic } from '../lib/telegram'
+import type { BattleAnalysis, MyDeck, PlusStatus, ReviewLocked, TimeSlot } from '../types'
+import { haptic, hapticNotify, requestWriteAccess } from '../lib/telegram'
 import { useT, type Translations } from '../lib/i18n'
+import { PLUS_CHANGED, usePlusSheet } from '../lib/plusSheet'
 import { CardIcon } from './MetaDecksView'
 
 /** Меньше боёв в срезе — процент ничего не значит, и сравнивать его не с чем. */
@@ -21,8 +22,9 @@ export function BattleAnalysisView() {
   const { t } = useT()
   const [data, setData] = useState<BattleAnalysis | null>(null)
   const [state, setState] = useState<'loading' | 'ready' | 'error' | 'unlinked'>('loading')
+  const openPlus = usePlusSheet()
 
-  useEffect(() => {
+  const load = useCallback(() => {
     let alive = true
     api.getMyBattles()
       .then(d => { if (alive) { setData(d); setState('ready') } })
@@ -32,6 +34,15 @@ export function BattleAnalysisView() {
       })
     return () => { alive = false }
   }, [])
+
+  useEffect(load, [load])
+
+  // Купил Плюс в окне поверх разбора — перечитываем разбор, чтобы замки пропали сразу
+  useEffect(() => {
+    const reload = () => { load() }
+    window.addEventListener(PLUS_CHANGED, reload)
+    return () => window.removeEventListener(PLUS_CHANGED, reload)
+  }, [load])
 
   const b = t.battles
   if (state === 'loading') return <div className="center" style={{ marginTop: 16 }}><div className="spinner" /></div>
@@ -65,6 +76,7 @@ export function BattleAnalysisView() {
           </p>
         )}
         <p className="muted small" style={{ margin: '4px 0 0', opacity: 0.75 }}>{b.accumulating}</p>
+        <AccessLine data={data} onOpen={openPlus} t={t} />
       </section>
 
       {data.games < MIN_SLOT_GAMES ? (
@@ -78,13 +90,138 @@ export function BattleAnalysisView() {
         </section>
       )}
 
+      <TiltAlertsCard unlocked={data.access.unlocked} onOpenPlus={openPlus} t={t} />
       <ElixirCard data={data} t={t} />
-      <DecksCard decks={data.decks} t={t} />
-      <TimeCard data={data} t={t} />
+      <DecksCard decks={data.decks} locked={data.locked} onOpenPlus={openPlus} t={t} />
+      <TimeCard data={data} onOpenPlus={openPlus} t={t} />
       <TiltCard data={data} t={t} />
-      <ToughCard data={data} t={t} />
+      <ToughCard data={data} onOpenPlus={openPlus} t={t} />
+      {data.locked && (
+        <button className="btn plus-cta" onClick={openPlus}>{b.unlockBtn}</button>
+      )}
     </div>
   )
+}
+
+/**
+ * Строка доступа под шапкой: только что выданный триал, срок Плюса или сколько
+ * боёв осталось до бесплатного триала. Без Плюса и без надежды на триал — молчим:
+ * замки ниже скажут всё сами.
+ */
+function AccessLine({ data, onOpen, t }: { data: BattleAnalysis; onOpen: () => void; t: Translations }) {
+  const b = t.battles
+  const a = data.access
+  if (a.trialStarted) {
+    return <p className="ba-access ba-access-gift">{b.trialStarted.replace('{days}', String(a.trialDays))}</p>
+  }
+  if (a.paywall && a.active && a.until) {
+    return (
+      <button className="ba-access ba-access-plus" onClick={onOpen}>
+        {b.plusActive.replace('{date}', new Date(a.until).toLocaleDateString())}
+      </button>
+    )
+  }
+  if (!a.unlocked && !a.trialUsed && a.trialDays > 0 && data.games < a.trialMinBattles) {
+    return (
+      <p className="ba-access">
+        🎁 {b.trialHint.replace('{n}', String(a.trialMinBattles - data.games)).replace('{days}', String(a.trialDays))}
+      </p>
+    )
+  }
+  return null
+}
+
+/**
+ * «Стоп-тильт» — главное, за что платят, поэтому стоит выше подробностей. С Плюсом
+ * это переключатель, без него — объяснение и кнопка. Перед включением просим у
+ * Telegram право писать в личку: без него бот не достучится до того, кто открыл
+ * приложение, но ни разу не нажимал «Старт» в чате.
+ */
+function TiltAlertsCard({ unlocked, onOpenPlus, t }: { unlocked: boolean; onOpenPlus: () => void; t: Translations }) {
+  const b = t.battles
+  const [plus, setPlus] = useState<PlusStatus | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    if (!unlocked) return
+    let alive = true
+    api.getPlus().then(s => { if (alive) setPlus(s) }).catch(() => { /* переключатель просто не появится */ })
+    return () => { alive = false }
+  }, [unlocked])
+
+  if (!unlocked) {
+    return (
+      <section className="card ba-alerts ba-alerts-locked">
+        <div className="card-title">{b.alertsTitle}</div>
+        <p className="muted small" style={{ margin: '0 0 10px' }}>{b.alertsPlusOnly}</p>
+        <button className="btn-mini" onClick={onOpenPlus}>{b.unlockBtn}</button>
+      </section>
+    )
+  }
+  if (!plus) return null
+
+  const on = plus.tiltAlerts && !plus.dmBlocked
+  const toggle = async () => {
+    haptic('medium')
+    setBusy(true)
+    try {
+      const next = !on
+      if (next && !(await requestWriteAccess())) {
+        hapticNotify('error')
+        setPlus({ ...plus, dmBlocked: true })
+        return
+      }
+      await api.setTiltAlerts(next)
+      hapticNotify('success')
+      setPlus({ ...plus, tiltAlerts: next, dmBlocked: false })
+    } catch {
+      hapticNotify('error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <section className="card ba-alerts">
+      <div className="ba-alerts-row">
+        <div className="ba-alerts-text">
+          <div className="card-title" style={{ margin: 0 }}>{b.alertsTitle}</div>
+          <span className="muted small">{on ? b.alertsOn : b.alertsOff}</span>
+        </div>
+        <button
+          className={`ba-switch ${on ? 'ba-switch-on' : ''}`}
+          role="switch"
+          aria-checked={on}
+          disabled={busy}
+          onClick={toggle}
+        >
+          <span className="ba-switch-knob" />
+        </button>
+      </div>
+      {plus.dmBlocked && <p className="muted small" style={{ margin: '8px 0 0' }}>{b.alertsBlocked}</p>}
+    </section>
+  )
+}
+
+/** Замок с цифрой самого игрока: «ещё 4 карты» продаёт лучше, чем «больше аналитики». */
+function LockedRow({ text, onOpen }: { text: string; onOpen: () => void }) {
+  return (
+    <button className="ba-locked" onClick={onOpen}>
+      <span className="ba-locked-icon">🔒</span>
+      <span className="ba-locked-text">{text}</span>
+      <span className="ba-locked-arrow">›</span>
+    </button>
+  )
+}
+
+function lockedLines(locked: ReviewLocked | null, t: Translations) {
+  const b = t.battles
+  return {
+    decks: locked && locked.decks > 0 ? b.lockedDecks.replace('{n}', String(locked.decks)) : null,
+    counters: locked && locked.counters > 0 ? b.lockedCounters.replace('{n}', String(locked.counters)) : null,
+    tough: locked && locked.toughCards > 0 ? b.lockedTough.replace('{n}', String(locked.toughCards)) : null,
+    weekdays: locked?.weekdays ? b.lockedWeekdays : null,
+  }
 }
 
 /** Выводы по порядку важности; каждый — только когда за ним достаточно боёв. */
@@ -154,8 +291,11 @@ function ElixirCard({ data, t }: { data: BattleAnalysis; t: Translations }) {
   )
 }
 
-function DecksCard({ decks, t }: { decks: MyDeck[]; t: Translations }) {
+function DecksCard({ decks, locked, onOpenPlus, t }: {
+  decks: MyDeck[]; locked: ReviewLocked | null; onOpenPlus: () => void; t: Translations
+}) {
   const b = t.battles
+  const lines = lockedLines(locked, t)
   return (
     <section className="card">
       <div className="card-title">{b.decksTitle}</div>
@@ -196,11 +336,14 @@ function DecksCard({ decks, t }: { decks: MyDeck[]; t: Translations }) {
           )}
         </div>
       ))}
+      {lines.counters && <LockedRow text={lines.counters} onOpen={onOpenPlus} />}
+      {lines.decks && <LockedRow text={lines.decks} onOpen={onOpenPlus} />}
     </section>
   )
 }
 
-function TimeCard({ data, t }: { data: BattleAnalysis; t: Translations }) {
+function TimeCard({ data, onOpenPlus, t }: { data: BattleAnalysis; onOpenPlus: () => void; t: Translations }) {
+  const lines = lockedLines(data.locked, t)
   const b = t.battles
   const slot = (s: TimeSlot, label: string) => (
     <Bar
@@ -217,6 +360,7 @@ function TimeCard({ data, t }: { data: BattleAnalysis; t: Translations }) {
       <div className="card-title">{b.timeTitle}</div>
       <p className="muted small" style={{ margin: '0 0 10px' }}>{b.timeHint}</p>
       {data.dayParts.map(s => slot(s, b.partsTitle[s.key as PartKey] ?? s.key))}
+      {lines.weekdays && <LockedRow text={lines.weekdays} onOpen={onOpenPlus} />}
       <div className="ba-week">
         {data.weekdays.map(s => (
           <div key={s.key} className="ba-day">
@@ -258,8 +402,9 @@ function TiltCard({ data, t }: { data: BattleAnalysis; t: Translations }) {
   )
 }
 
-function ToughCard({ data, t }: { data: BattleAnalysis; t: Translations }) {
+function ToughCard({ data, onOpenPlus, t }: { data: BattleAnalysis; onOpenPlus: () => void; t: Translations }) {
   const b = t.battles
+  const lines = lockedLines(data.locked, t)
   return (
     <section className="card">
       <div className="card-title">{b.toughTitle}</div>
@@ -277,6 +422,7 @@ function ToughCard({ data, t }: { data: BattleAnalysis; t: Translations }) {
             ))}
           </div>
         )}
+      {lines.tough && <LockedRow text={lines.tough} onOpen={onOpenPlus} />}
     </section>
   )
 }

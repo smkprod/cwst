@@ -18,13 +18,19 @@ public class GetBattleAnalysisUseCase(
     IPlayerRepository players,
     IPlayerBattleRepository battles,
     IMetaRepository meta,
-    CollectPlayerBattlesUseCase collect)
+    CollectPlayerBattlesUseCase collect,
+    PlusAccess plus,
+    IServiceSettingRepository settings)
 {
     /// <summary>Своих колод показываем не больше - остальные сыграны по разу-два.</summary>
     private const int DecksShown = 3;
 
     /// <summary>Колода, сыгранная меньше раз, - проба, а не «моя колода».</summary>
     private const int MinDeckGames = 3;
+
+    /// <summary>Сколько карт «против чего проигрываешь» показываем с Плюсом и без него.</summary>
+    private const int ToughShownPlus = 6;
+    private const int ToughShownFree = 1;
 
     /// <returns>null - игрок не привязан.</returns>
     public async Task<BattleAnalysisDto?> ExecuteAsync(long telegramUserId, int tzOffsetMinutes, CancellationToken ct = default)
@@ -41,6 +47,14 @@ public class GetBattleAnalysisUseCase(
         var list = await battles.GetSinceAsync(tag, DateTime.UtcNow - CollectPlayerBattlesUseCase.Keep, ct);
         var totals = BattleAnalyzer.Count(list);
 
+        // Триал - в момент, когда разбору уже есть что показать, а не при привязке:
+        // три дня Плюса на пустой истории ничего бы человеку не дали.
+        var trialStarted = false;
+        try { trialStarted = await plus.TryStartTrialAsync(telegramUserId, tag, list.Count, ct); }
+        catch { /* триал - подарок, его сбой не должен ронять сам разбор */ }
+        var access = await plus.GetAsync(telegramUserId, ct);
+        var offer = await PlusSales.ReadAsync(settings, ct);
+
         var window = await MetaWindow.LoadAsync(meta, ct);
         var catalog = await GetMetaDecksUseCase.SafeCatalogAsync(crApi, ct);
 
@@ -52,6 +66,34 @@ public class GetBattleAnalysisUseCase(
             .Take(DecksShown)
             .Select(d => MyDeck(d, window, catalog))
             .ToList();
+
+        var tough = BattleAnalyzer.ToughCards(list, take: ToughShownPlus)
+            .Select(c => new ToughCardDto(
+                GetMetaDecksUseCase.Card(c.CardKey, catalog),
+                c.Games,
+                BattleAnalyzer.Percent(c.Wins, c.Games),
+                Math.Round(c.Delta * 100, 1)))
+            .ToList();
+        var weekdays = BattleAnalyzer.Weekdays(list, tzOffsetMinutes)
+            .Select(s => new TimeSlotDto(s.Key, s.Games, BattleAnalyzer.Percent(s.Wins, s.Games)))
+            .ToList();
+
+        // Без Плюса разбор короткий: одна худшая карта, одна колода без контр, без
+        // дней недели. Режем здесь, на сервере: спрятанное на клиенте всё равно
+        // уезжало бы в ответе, и открыть его мог бы любой, кто заглянет в запрос.
+        ReviewLockedDto? locked = null;
+        if (!access.Unlocked)
+        {
+            var hiddenCounters = decks.Sum(d => d.MetaCounters.Count);
+            locked = new ReviewLockedDto(
+                ToughCards: Math.Max(0, tough.Count - ToughShownFree),
+                Decks: Math.Max(0, decks.Count - 1),
+                Counters: hiddenCounters,
+                Weekdays: weekdays.Any(w => w.Games > 0));
+            tough = tough.Take(ToughShownFree).ToList();
+            decks = decks.Take(1).Select(d => d with { MetaCounters = [] }).ToList();
+            weekdays = [];
+        }
 
         return new BattleAnalysisDto(
             PlayerTag: tag,
@@ -66,23 +108,26 @@ public class GetBattleAnalysisUseCase(
             DayParts: BattleAnalyzer.DayParts(list, tzOffsetMinutes)
                 .Select(s => new TimeSlotDto(s.Key, s.Games, BattleAnalyzer.Percent(s.Wins, s.Games)))
                 .ToList(),
-            Weekdays: BattleAnalyzer.Weekdays(list, tzOffsetMinutes)
-                .Select(s => new TimeSlotDto(s.Key, s.Games, BattleAnalyzer.Percent(s.Wins, s.Games)))
-                .ToList(),
+            Weekdays: weekdays,
             Tilt: list.Count == 0 ? null : new TiltDto(
                 tilt.AfterTwoLosses,
                 BattleAnalyzer.Percent(tilt.AfterTwoLossesWins, tilt.AfterTwoLosses),
                 tilt.AfterWin,
                 BattleAnalyzer.Percent(tilt.AfterWinWins, tilt.AfterWin),
                 tilt.LongestLossStreak),
-            ToughCards: BattleAnalyzer.ToughCards(list)
-                .Select(c => new ToughCardDto(
-                    GetMetaDecksUseCase.Card(c.CardKey, catalog),
-                    c.Games,
-                    BattleAnalyzer.Percent(c.Wins, c.Games),
-                    Math.Round(c.Delta * 100, 1)))
-                .ToList(),
-            MetaBattles: window?.Battles ?? 0);
+            ToughCards: tough,
+            MetaBattles: window?.Battles ?? 0,
+            Access: new ReviewAccessDto(
+                Paywall: access.Paywall,
+                Unlocked: access.Unlocked,
+                Active: access.Active,
+                Until: access.Until?.ToString("O"),
+                Source: access.Source,
+                TrialStarted: trialStarted,
+                TrialUsed: access.TrialUsed,
+                TrialDays: offer.TrialDays,
+                TrialMinBattles: PlusSales.TrialMinBattles),
+            Locked: locked);
     }
 
     private static MyDeckDto MyDeck(

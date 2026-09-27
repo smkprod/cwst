@@ -30,4 +30,20 @@ public class SponsorPayment
     public required string TelegramChargeId { get; set; }
 
     public DateTime PaidAtUtc { get; set; }
+
+    /// <summary>
+    /// За что заплачено: «sponsor» или «plus». Журнал один на все продажи: по нему
+    /// же воронка кампаний считает, кто заплатил, и отдельная таблица на каждый
+    /// товар разнесла бы деньги по углам.
+    /// </summary>
+    public string Kind { get; set; } = Kinds.Sponsor;
+
+    /// <summary>Звёзды возвращены. Доступ, купленный этим платежом, при этом отзывается.</summary>
+    public DateTime? RefundedAtUtc { get; set; }
+
+    public static class Kinds
+    {
+        public const string Sponsor = "sponsor";
+        public const string Plus = "plus";
+    }
 }

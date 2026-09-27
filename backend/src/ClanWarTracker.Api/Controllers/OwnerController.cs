@@ -4,6 +4,8 @@ using ClanWarTracker.Domain.Entities;
 using ClanWarTracker.Domain.Enums;
 using ClanWarTracker.Domain.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Telegram.Bot;
+using Telegram.Bot.Exceptions;
 
 namespace ClanWarTracker.Api.Controllers;
 
@@ -32,8 +34,16 @@ public class OwnerController(
     IServiceSettingRepository settings,
     ServiceAccess access,
     IServiceScopeFactory scopes,
+    ITelegramBotClient bot,
+    PlusAccess plusAccess,
+    IEntitlementRepository entitlements,
+    RevokePurchaseUseCase revokePurchase,
     ILogger<OwnerController> logger) : ControllerBase
 {
+    public record PlusSettingsRequest(bool Paywall, int Price7, int Price30, int TrialDays);
+    public record GrantPlusRequest(string PlayerTag, int Days);
+    public record RefundRequest(string ChargeId);
+
     /// <summary>1 — сбор из панели уже идёт. Второй параллельный удвоил бы запросы к API игры.</summary>
     private static int _harvestRunning;
 
@@ -290,7 +300,7 @@ public class OwnerController(
             totalStars = await sponsorPayments.TotalStarsAsync(ct),
             payments = recent.Select(p => new
             {
-                p.PlayerTag, p.Stars, p.Days, p.PaidAtUtc, p.TelegramChargeId,
+                p.PlayerTag, p.Stars, p.Days, p.PaidAtUtc, p.TelegramChargeId, p.Kind, p.RefundedAtUtc,
             }),
         });
     }
@@ -306,6 +316,121 @@ public class OwnerController(
         await settings.SetAsync(SponsorSales.PriceKey, req.Stars.ToString(), ct);
         await settings.SetAsync(SponsorSales.DaysKey, req.Days.ToString(), ct);
         return Ok(new { stars = req.Stars, days = req.Days });
+    }
+
+    /// <summary>
+    /// GET /api/owner/plus — условия продажи Плюса и как он продаётся: сколько
+    /// действующих, сколько триалов и сколько из них заплатили.
+    /// </summary>
+    [HttpGet("plus")]
+    public async Task<IActionResult> GetPlus(CancellationToken ct)
+    {
+        if (await DenyAsync(ServicePermission.Sponsors, ct) is { } deny) return deny;
+
+        var offer = await PlusSales.ReadAsync(settings, ct);
+        var now = DateTime.UtcNow;
+        var all = await entitlements.GetAllAsync(Entitlement.Skus.Plus, ct);
+        var live = all.Where(e => e.RevokedAtUtc is null).ToList();
+
+        var trialUsers = live.Where(e => e.Source == Entitlement.Sources.Trial).Select(e => e.TelegramUserId).ToHashSet();
+        var buyers = live.Where(e => e.Source == Entitlement.Sources.Purchase).Select(e => e.TelegramUserId).ToHashSet();
+        var purchases = live.Where(e => e.Source == Entitlement.Sources.Purchase).ToList();
+        var weekAgo = now.AddDays(-7);
+
+        return Ok(new
+        {
+            paywall = offer.Paywall,
+            price7 = offer.Price7,
+            price30 = offer.Price30,
+            trialDays = offer.TrialDays,
+            // Действующий Плюс, без спонсоров: они получают его в нагрузку к спонсорству
+            active = live.Where(e => e.UntilUtc > now).Select(e => e.TelegramUserId).Distinct().Count(),
+            trials = trialUsers.Count,
+            trialsPaid = trialUsers.Count(buyers.Contains),
+            buyers = buyers.Count,
+            purchases = purchases.Count,
+            stars = purchases.Sum(e => e.Stars),
+            starsWeek = purchases.Where(e => e.CreatedAtUtc >= weekAgo).Sum(e => e.Stars),
+            recent = all.OrderByDescending(e => e.CreatedAtUtc).Take(30).Select(e => new
+            {
+                e.TelegramUserId, e.PlayerTag, e.Source, e.Days, e.Stars, e.UntilUtc, e.CreatedAtUtc,
+                revoked = e.RevokedAtUtc is not null,
+            }),
+        });
+    }
+
+    /// <summary>
+    /// POST /api/owner/plus/settings — цены пропусков, срок триала и выключатель платного.
+    /// Выключатель - аварийный: всё платное становится бесплатным для всех, продажа закрывается.
+    /// </summary>
+    [HttpPost("plus/settings")]
+    public async Task<IActionResult> SetPlus([FromBody] PlusSettingsRequest req, CancellationToken ct)
+    {
+        if (await DenyAsync(ServicePermission.Sponsors, ct) is { } deny) return deny;
+        if (req.Price7 is < 1 or > PlusSales.MaxStars || req.Price30 is < 1 or > PlusSales.MaxStars)
+            return BadRequest(new { error = "bad_stars" });
+        if (req.TrialDays is < 0 or > 30) return BadRequest(new { error = "bad_days" });
+
+        await settings.SetAsync(PlusSales.PaywallKey, req.Paywall ? "on" : "off", ct);
+        await settings.SetAsync(PlusSales.Price7Key, req.Price7.ToString(), ct);
+        await settings.SetAsync(PlusSales.Price30Key, req.Price30.ToString(), ct);
+        await settings.SetAsync(PlusSales.TrialDaysKey, req.TrialDays.ToString(), ct);
+        return Ok(new { paywall = req.Paywall, price7 = req.Price7, price30 = req.Price30, trialDays = req.TrialDays });
+    }
+
+    /// <summary>
+    /// POST /api/owner/plus/grant — выдать Плюс руками (подарок, компенсация, блогеру).
+    /// Body: { playerTag, days }. Выдаётся на Telegram-аккаунт, к которому привязан тег.
+    /// </summary>
+    [HttpPost("plus/grant")]
+    public async Task<IActionResult> GrantPlus([FromBody] GrantPlusRequest req, CancellationToken ct)
+    {
+        if (await DenyAsync(ServicePermission.Sponsors, ct) is { } deny) return deny;
+        if (req.Days is < 1 or > 366) return BadRequest(new { error = "bad_days" });
+
+        var tag = LinkPlayerUseCase.Normalize(req.PlayerTag ?? "");
+        var player = await players.GetByTagAsync(tag, ct);
+        if (player is null) return NotFound(new { error = "player_not_found" });
+        if (player.TelegramUserId is not long tg) return BadRequest(new { error = "player_not_linked" });
+
+        var until = await plusAccess.GrantAsync(tg, req.Days, Entitlement.Sources.Grant, player.PlayerTag, 0, null, ct);
+        return Ok(new { playerTag = player.PlayerTag, name = player.Name, until });
+    }
+
+    /// <summary>
+    /// POST /api/owner/payments/refund — вернуть звёзды за платёж и отозвать купленное.
+    /// Body: { chargeId }. Сначала возврат в Telegram, потом отметка: отметить возврат,
+    /// которого Telegram не сделал, значило бы отобрать у человека оплаченное.
+    /// </summary>
+    [HttpPost("payments/refund")]
+    public async Task<IActionResult> Refund([FromBody] RefundRequest req, CancellationToken ct)
+    {
+        if (await DenyAsync(ServicePermission.Sponsors, ct) is { } deny) return deny;
+
+        var payment = await sponsorPayments.GetByChargeAsync(req.ChargeId ?? "", ct);
+        if (payment is null) return NotFound(new { error = "payment_not_found" });
+        if (payment.RefundedAtUtc is not null) return Conflict(new { error = "already_refunded" });
+
+        try
+        {
+            await bot.RefundStarPayment(payment.PayerTelegramUserId, payment.TelegramChargeId, ct);
+        }
+        catch (ApiRequestException ex)
+        {
+            // Уже возвращено раньше (например, из самого Telegram) - отметим и у себя,
+            // иначе журнал так и будет врать, что деньги у нас.
+            if (ex.Message.Contains("CHARGE_ALREADY_REFUNDED", StringComparison.OrdinalIgnoreCase))
+            {
+                await revokePurchase.MarkRefundedAsync(payment.TelegramChargeId, ct);
+                return Ok(new { refunded = true, note = "already_refunded_in_telegram" });
+            }
+            logger.LogWarning(ex, "Refund failed for {Charge}", payment.TelegramChargeId);
+            return StatusCode(502, new { error = "refund_failed", message = ex.Message });
+        }
+
+        await revokePurchase.MarkRefundedAsync(payment.TelegramChargeId, ct);
+        logger.LogInformation("Refunded {Stars} XTR, charge {Charge}", payment.Stars, payment.TelegramChargeId);
+        return Ok(new { refunded = true });
     }
 
     /// <summary>GET /api/owner/sponsors — действующие спонсоры.</summary>

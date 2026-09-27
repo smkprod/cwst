@@ -4,28 +4,36 @@ import type { ClanOverview, PlayerProfile } from '../types'
 import { useT } from '../lib/i18n'
 import { haptic, shareToTelegram, botStartLink } from '../lib/telegram'
 import { useBotUsername } from '../lib/botUsername'
-import { LangSwitcher } from './LangSwitcher'
 import { RecruitToggle } from './RecruitToggle'
 import { PlayerSearchView } from './PlayerSearchView'
-import { TournamentView } from './TournamentView'
 import { TopPlayersTeaser } from './TopPlayersTeaser'
-import { PlayerProfileCard } from './PlayerProfileCard'
-import { DecksButton } from './DecksButton'
 import { RegionTopCard } from './RegionTopCard'
 import { BotTourCard } from './BotTourCard'
+import { MyStatsView, type MeSection } from './MyStatsView'
+import { WorldTopView } from './WorldTopView'
+import { MoreView } from './MoreView'
 
-type Tab = 'profile' | 'clan' | 'search' | 'tournament'
+export type SoloTab = 'me' | 'meta' | 'clan' | 'search' | 'more'
+
+/** Почему у игрока нет экрана войны: клан не подключён или у подключённого нет войны. */
+export type SoloReason = 'noClan' | 'noWar'
 
 /**
- * Экран игрока, чей клан не подключён к боту. Раньше здесь была одна инструкция и
- * тупик: делать нечего, смотреть нечего. Теперь это личный кабинет — своя статистика,
- * разбор коллекции, подбор колод и рейтинг кланов региона, — а просьба подключить клан
- * стоит рядом с тем, что человек за это получит.
+ * Приложение игрока без войны клана: клан не подключён, клана нет вовсе или у
+ * подключённого сейчас нет войны.
+ *
+ * Раньше это был отдельный экран-тупик с профилем и просьбой подключить клан.
+ * Теперь это то же приложение для игрока: разбор своих боёв первым, мета топа,
+ * поиск, «Ещё» с языком и Плюсом. Клан — одна из вкладок, а не условие входа.
  */
-export function ClanlessView() {
+export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection = 'battles' }: {
+  reason?: SoloReason
+  initialTab?: SoloTab
+  meSection?: MeSection
+} = {}) {
   const { t } = useT()
   const botUsername = useBotUsername()
-  const [tab, setTab] = useState<Tab>('profile')
+  const [tab, setTab] = useState<SoloTab>(initialTab)
 
   const [profile, setProfile] = useState<PlayerProfile | null>(null)
   const [overview, setOverview] = useState<ClanOverview | null>(null)
@@ -58,7 +66,7 @@ export function ClanlessView() {
     return () => { alive = false }
   }, [])
 
-  const switchTab = (next: Tab) => {
+  const switchTab = (next: SoloTab) => {
     haptic('light')
     setTab(next)
   }
@@ -68,47 +76,40 @@ export function ClanlessView() {
     shareToTelegram(t.clanless.shareText, botStartLink())
   }
 
-  // Пока профиль не загрузился — не даём вкладкам, которые без него бессмысленны
-  const hasProfile = profileState === 'ready' && profile !== null
-
-  const tabs: { id: Tab; icon: string; label: string }[] = [
-    { id: 'profile', icon: '👤', label: t.clanless.tabProfile },
+  const tabs: { id: SoloTab; icon: string; label: string }[] = [
+    { id: 'me', icon: '👤', label: t.tabs.me },
+    { id: 'meta', icon: '🔥', label: t.worldTop.tabMeta },
     { id: 'clan', icon: '🏰', label: t.clanless.tabClan },
     { id: 'search', icon: '🔍', label: t.tabs.search },
-    { id: 'tournament', icon: '🥇', label: t.tabs.tournament },
+    { id: 'more', icon: '⚙️', label: t.tabs.more },
   ]
 
   return (
     <>
       <main className="with-tabbar fade-in">
-        <div className="lang-switcher-bar">
-          <LangSwitcher />
-        </div>
-
-        {tab === 'profile' && (
+        {tab === 'me' && (
           <div className="fade-in">
-            <ConnectBanner profile={profile} overview={overview} onShare={shareInstructions} />
-
-            {profileState === 'loading' && (
-              <div className="center" style={{ marginTop: 24 }}><div className="spinner" /></div>
-            )}
-            {profileState === 'error' && (
-              <p className="center muted small" style={{ marginTop: 16 }}>{t.clanless.profileError}</p>
-            )}
-            {hasProfile && (
-              <>
-                <DecksButton playerTag={profile.playerTag} />
-                <PlayerProfileCard profile={profile} />
-              </>
-            )}
+            <MyStatsView defaultSection={meSection} />
           </div>
         )}
 
+        {tab === 'meta' && <div className="fade-in"><WorldTopView /></div>}
+
         {tab === 'clan' && (
           <div className="fade-in">
-            <ConnectBanner profile={profile} overview={overview} onShare={shareInstructions} />
+            {reason === 'noWar' ? (
+              <section className="card connect-banner connect-banner-ok">
+                <div className="connect-title">⏳ {t.clanless.noWarTitle}</div>
+                <p className="muted small" style={{ margin: 0 }}>{t.clanless.noWarText}</p>
+              </section>
+            ) : (
+              <ConnectBanner profile={profile} overview={overview} onShare={shareInstructions} />
+            )}
+            {profileState === 'error' && (
+              <p className="center muted small" style={{ marginTop: 8 }}>{t.clanless.profileError}</p>
+            )}
 
-            <section className="card">
+            {reason === 'noClan' && <section className="card">
               <div className="card-title">{t.clanless.stepsTitle}</div>
               <ol className="setup-steps">
                 <li>{t.clanless.step1}</li>
@@ -120,7 +121,7 @@ export function ClanlessView() {
                   {t.clanless.shareBtn}
                 </button>
               )}
-            </section>
+            </section>}
 
             <BotTourCard />
 
@@ -136,7 +137,9 @@ export function ClanlessView() {
         )}
 
         {tab === 'search' && <div className="fade-in"><PlayerSearchView /></div>}
-        {tab === 'tournament' && <div className="fade-in"><TournamentView /></div>}
+        {tab === 'more' && (
+          <MoreView canManage={false} isLeader={false} onOpenNotifications={() => { /* уведомления — у клана */ }} />
+        )}
       </main>
 
       <nav className="tabbar" role="tablist">

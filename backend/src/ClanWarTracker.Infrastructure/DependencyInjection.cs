@@ -77,6 +77,8 @@ public static class DependencyInjection
         services.AddScoped<ITopPlayerRepository, TopPlayerRepository>();
         services.AddScoped<IMetaRepository, MetaRepository>();
         services.AddScoped<IPlayerBattleRepository, PlayerBattleRepository>();
+        services.AddScoped<IEntitlementRepository, EntitlementRepository>();
+        services.AddScoped<IPlayerAlertPrefsRepository, PlayerAlertPrefsRepository>();
         services.AddScoped<IServiceModeratorRepository, ServiceModeratorRepository>();
         services.AddScoped<IServiceSettingRepository, ServiceSettingRepository>();
         services.AddScoped<IClanMessageRepository, ClanMessageRepository>();
@@ -714,6 +716,48 @@ CREATE TABLE IF NOT EXISTS ""SponsorPayments"" (
         // SQLite длину не проверяет, поэтому локально это не всплывало вовсе.
         await db.Database.ExecuteSqlRawAsync(
             "ALTER TABLE \"SponsorPayments\" ALTER COLUMN \"TelegramChargeId\" TYPE text;");
+        // Журнал продаж общий на все товары: вид товара и отметка о возврате.
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"SponsorPayments\" ADD COLUMN IF NOT EXISTS \"Kind\" varchar(16) NOT NULL DEFAULT 'sponsor';");
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"SponsorPayments\" ADD COLUMN IF NOT EXISTS \"RefundedAtUtc\" timestamptz;");
+
+        // Выдачи платного доступа (Плюс): покупки, триалы, подарки - по аккаунту Telegram.
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""Entitlements"" (
+    ""Id"" serial PRIMARY KEY,
+    ""TelegramUserId"" bigint NOT NULL,
+    ""Sku"" varchar(24) NOT NULL,
+    ""Source"" varchar(16) NOT NULL,
+    ""Days"" integer NOT NULL DEFAULT 0,
+    ""UntilUtc"" timestamptz NOT NULL,
+    ""PlayerTag"" varchar(16),
+    ""Stars"" integer NOT NULL DEFAULT 0,
+    ""ChargeId"" text,
+    ""CreatedAtUtc"" timestamptz NOT NULL,
+    ""RevokedAtUtc"" timestamptz
+);");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_Entitlements_TelegramUserId_Sku\" ON \"Entitlements\" (\"TelegramUserId\", \"Sku\");");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_Entitlements_ChargeId\" ON \"Entitlements\" (\"ChargeId\");");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_Entitlements_PlayerTag\" ON \"Entitlements\" (\"PlayerTag\");");
+
+        // Личные настройки оповещений («Стоп-тильт») и их состояние.
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""PlayerAlertPrefs"" (
+    ""Id"" serial PRIMARY KEY,
+    ""TelegramUserId"" bigint NOT NULL,
+    ""TiltAlerts"" boolean,
+    ""LastAlertBattleUtc"" timestamptz,
+    ""LastAlertSentUtc"" timestamptz,
+    ""AlertDay"" varchar(10),
+    ""AlertsToday"" integer NOT NULL DEFAULT 0,
+    ""DmBlocked"" boolean NOT NULL DEFAULT FALSE
+);");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_PlayerAlertPrefs_TelegramUserId\" ON \"PlayerAlertPrefs\" (\"TelegramUserId\");");
 
         // Страница клана на Аллее: оформление и девиз.
         await db.Database.ExecuteSqlRawAsync(

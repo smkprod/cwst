@@ -129,7 +129,7 @@ public class GetMetaDecksUseCase(IClashRoyaleApi crApi, IMetaRepository meta, IT
             : $"https://link.clashroyale.com/deck/en?deck={string.Join(';', keys.Select(k => Math.Abs(k)))}";
 
     /// <summary>Справочник только для имён, иконок и эликсира; без него - номера вместо имён.</summary>
-    internal static async Task<Dictionary<int, CrCatalogCard>> SafeCatalogAsync(IClashRoyaleApi crApi, CancellationToken ct)
+    public static async Task<Dictionary<int, CrCatalogCard>> SafeCatalogAsync(IClashRoyaleApi crApi, CancellationToken ct)
     {
         try
         {

@@ -8,8 +8,10 @@ import { InviteCard } from './InviteCard'
 import { RecruitToggle } from './RecruitToggle'
 import { RecruitBoard } from './RecruitBoard'
 import { WorldTopView } from './WorldTopView'
+import { usePlusSheet } from '../lib/plusSheet'
 
-type Section = 'recruit' | 'about' | 'worldTop'
+export type MoreSection = 'recruit' | 'about' | 'worldTop'
+type Section = MoreSection
 
 interface Props {
   /** Админ группы или лидер клана — только им есть что настраивать в уведомлениях. */
@@ -17,6 +19,8 @@ interface Props {
   /** Глава или соруководитель видит биржу кандидатов. */
   isLeader: boolean
   onOpenNotifications: () => void
+  /** Сразу открыть раздел — по ссылке из бота («/meta» ведёт в мировой топ). */
+  initialSection?: MoreSection | null
 }
 
 /**
@@ -27,9 +31,10 @@ interface Props {
  * ежедневным экраном. В итоге бар доходил до семи пунктов, а найти настройки
  * можно было только случайно.
  */
-export function MoreView({ canManage, isLeader, onOpenNotifications }: Props) {
+export function MoreView({ canManage, isLeader, onOpenNotifications, initialSection = null }: Props) {
   const { t } = useT()
-  const [section, setSection] = useState<Section | null>(null)
+  const [section, setSection] = useState<Section | null>(initialSection)
+  const openPlus = usePlusSheet()
 
   const open = (next: Section) => { haptic('light'); setSection(next) }
   const back = () => { haptic('light'); setSection(null) }
@@ -69,6 +74,15 @@ export function MoreView({ canManage, isLeader, onOpenNotifications }: Props) {
 
       <section className="card" style={{ marginTop: 10 }}>
         <div className="card-title">{t.more.sectionsTitle}</div>
+
+        <button className="more-row" onClick={openPlus}>
+          <span className="more-row-icon">💎</span>
+          <span className="more-row-text">
+            <span className="more-row-title">{t.more.plus}</span>
+            <span className="muted small">{t.more.plusHint}</span>
+          </span>
+          <span className="more-row-arrow">›</span>
+        </button>
 
         <button className="more-row" onClick={() => open('worldTop')}>
           <span className="more-row-icon">🌍</span>

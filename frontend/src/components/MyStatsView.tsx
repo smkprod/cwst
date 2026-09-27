@@ -22,7 +22,8 @@ type State =
  * (профиль, коллекция, подбор колод). Первое смотрят каждый военный день,
  * второе — раз в пару недель, и внизу простыни его никто не находил.
  */
-type Section = 'clan' | 'battles' | 'game'
+export type MeSection = 'clan' | 'battles' | 'game'
+type Section = MeSection
 
 const PERF_META: Record<string, { emoji: string; cls: string }> = {
   'топ': { emoji: '🔥', cls: 'perf-top' },
@@ -31,12 +32,16 @@ const PERF_META: Record<string, { emoji: string; cls: string }> = {
   'ниже среднего': { emoji: '😴', cls: 'perf-below' },
 }
 
-export function MyStatsView() {
+/**
+ * @param defaultSection С какой секции открыть. Игроку без клана — разбор боёв:
+ * клановая секция у него пустая, и открывать её первой значит начать с «нет данных».
+ */
+export function MyStatsView({ defaultSection = 'clan' }: { defaultSection?: MeSection } = {}) {
   const [state, setState] = useState<State>({ kind: 'loading' })
   const [history, setHistory] = useState<PlayerHistory | null>(null)
   const [profile, setProfile] = useState<PlayerProfile | null>(null)
   const [me, setMe] = useState<LinkedPlayer | null>(null)
-  const [section, setSection] = useState<Section>('clan')
+  const [section, setSection] = useState<Section>(defaultSection)
   const { t } = useT()
 
   // Тег нужен и тогда, когда статистики войны нет: профиль, разбор и колоды

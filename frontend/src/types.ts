@@ -719,6 +719,72 @@ export interface ToughCard {
   deltaPercent: number
 }
 
+/** Доступ к полному разбору. */
+export interface ReviewAccess {
+  paywall: boolean
+  /** Полный разбор открыт: Плюс есть или платное выключено. */
+  unlocked: boolean
+  active: boolean
+  until: string | null
+  source: string | null
+  /** Триал выдан только что — этим открытием. */
+  trialStarted: boolean
+  trialUsed: boolean
+  trialDays: number
+  trialMinBattles: number
+}
+
+/** Что спрятано за Плюсом — цифрами самого игрока. */
+export interface ReviewLocked {
+  toughCards: number
+  decks: number
+  counters: number
+  weekdays: boolean
+}
+
+/** «Clanify Плюс»: статус, цены, оповещения. */
+export interface PlusStatus {
+  paywall: boolean
+  active: boolean
+  unlocked: boolean
+  until: string | null
+  /** purchase / trial / gift / grant / sponsor */
+  source: string | null
+  trialUsed: boolean
+  trialDays: number
+  trialMinBattles: number
+  price7: number
+  price30: number
+  onSale: boolean
+  linked: boolean
+  tiltAlerts: boolean
+  dmBlocked: boolean
+}
+
+export interface OwnerPlus {
+  paywall: boolean
+  price7: number
+  price30: number
+  trialDays: number
+  active: number
+  trials: number
+  trialsPaid: number
+  buyers: number
+  purchases: number
+  stars: number
+  starsWeek: number
+  recent: {
+    telegramUserId: number
+    playerTag: string | null
+    source: string
+    days: number
+    stars: number
+    untilUtc: string
+    createdAtUtc: string
+    revoked: boolean
+  }[]
+}
+
 export interface BattleAnalysis {
   playerTag: string
   games: number
@@ -734,6 +800,9 @@ export interface BattleAnalysis {
   tilt: Tilt | null
   toughCards: ToughCard[]
   metaBattles: number
+  access: ReviewAccess
+  /** null — ничего не спрятано. */
+  locked: ReviewLocked | null
 }
 
 export interface TopPlayerRow {
@@ -1193,6 +1262,9 @@ export interface SponsorSales {
     days: number
     paidAtUtc: string
     telegramChargeId: string
+    /** sponsor / plus */
+    kind: string
+    refundedAtUtc: string | null
   }[]
 }
 

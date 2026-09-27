@@ -73,14 +73,16 @@ public class BotUpdateHandler(
             // падает через десять секунд ожидания — у плательщика, а не у нас в логах.
             new ReceiverOptions
             {
+                // CallbackQuery — кнопки под сообщениями бота («Это мой аккаунт»).
                 AllowedUpdates =
                 [
                     UpdateType.Message, UpdateType.InlineQuery, UpdateType.MyChatMember,
-                    UpdateType.PreCheckoutQuery,
+                    UpdateType.PreCheckoutQuery, UpdateType.CallbackQuery,
                 ],
             },
             stoppingToken);
 
+        await RegisterPrivateCommandsAsync(stoppingToken);
         logger.LogInformation("Bot polling started as @{Username}", _botUsername);
         await Task.Delay(Timeout.Infinite, stoppingToken);
     }
@@ -116,6 +118,17 @@ public class BotUpdateHandler(
                 try { await ProcessMembershipAsync(membership, ct); }
                 catch (OperationCanceledException) { /* воркер останавливается */ }
                 catch (Exception ex) { logger.LogError(ex, "Membership update failed"); }
+            });
+            return Task.CompletedTask;
+        }
+
+        if (update.CallbackQuery is { } callback)
+        {
+            _ = Task.Run(async () =>
+            {
+                try { await ProcessCallbackAsync(callback, ct); }
+                catch (OperationCanceledException) { /* воркер останавливается */ }
+                catch (Exception ex) { logger.LogError(ex, "Callback {Data} failed", callback.Data); }
             });
             return Task.CompletedTask;
         }
@@ -194,8 +207,12 @@ public class BotUpdateHandler(
         try
         {
             using var scope = scopeFactory.CreateScope();
-            var payments = scope.ServiceProvider.GetRequiredService<ProcessSponsorPaymentUseCase>();
-            problem = await payments.ValidateAsync(q.Currency, q.TotalAmount, q.InvoicePayload, ct);
+            // Оба товара приходят сюда же; различаются префиксом счёта.
+            problem = PlusSales.IsPlusPayload(q.InvoicePayload)
+                ? await scope.ServiceProvider.GetRequiredService<ProcessPlusPaymentUseCase>()
+                    .ValidateAsync(q.Currency, q.TotalAmount, q.InvoicePayload)
+                : await scope.ServiceProvider.GetRequiredService<ProcessSponsorPaymentUseCase>()
+                    .ValidateAsync(q.Currency, q.TotalAmount, q.InvoicePayload, ct);
         }
         catch (Exception ex)
         {
@@ -230,6 +247,12 @@ public class BotUpdateHandler(
         // Раньше всего остального: если дальше упадёт, по следу будет видно, что
         // подтверждение до бота дошло, и искать надо в выдаче, а не в доставке.
         await TraceAsync(PaymentTrace.PaidKey, payload, charge, "получено, выдаю…", ct);
+
+        if (PlusSales.IsPlusPayload(payload))
+        {
+            await ProcessPlusPaidAsync(msg, paid, ct);
+            return;
+        }
 
         ProcessSponsorPaymentUseCase.Applied? applied = null;
         Exception? failure = null;
@@ -283,6 +306,66 @@ public class BotUpdateHandler(
         await TellAsync(msg.Chat.Id,
             $"★ Спасибо! Спонсорство для {applied.PlayerName} активно до {applied.Until:dd.MM.yyyy}.\n\n" +
             "Фон себе и клану выбираются во вкладке «Я» → «Моё оформление».", ct);
+    }
+
+    /// <summary>
+    /// Звёзды за «Плюс» списаны — выдаём срок и говорим об этом человеку. Тот же
+    /// порядок, что у спонсорства: след для панели на каждом исходе и номер платежа
+    /// плательщику при любом сбое, чтобы было по чему вернуть звёзды.
+    /// </summary>
+    private async Task ProcessPlusPaidAsync(
+        Message msg, Telegram.Bot.Types.Payments.SuccessfulPayment paid, CancellationToken ct)
+    {
+        var charge = paid.TelegramPaymentChargeId;
+        var payload = paid.InvoicePayload;
+
+        ProcessPlusPaymentUseCase.Applied? applied = null;
+        Exception? failure = null;
+        try
+        {
+            using var scope = scopeFactory.CreateScope();
+            applied = await scope.ServiceProvider.GetRequiredService<ProcessPlusPaymentUseCase>()
+                .ApplyAsync(msg.From?.Id ?? msg.Chat.Id, payload, paid.TotalAmount, charge, ct);
+        }
+        catch (Exception ex)
+        {
+            failure = ex;
+        }
+
+        if (failure is DbUpdateException && await PaymentRecordedAsync(charge, ct))
+        {
+            await TraceAsync(PaymentTrace.PaidKey, payload, charge, "повторная доставка — уже выдано", ct);
+            return;
+        }
+
+        if (failure is not null || applied is null)
+        {
+            var reason = failure is null ? "счёт не разобран" : $"{failure.GetType().Name}: {Flatten(failure)}";
+            logger.LogError(failure, "Plus payment NOT applied: charge {Charge}, payload {Payload}, reason {Reason}",
+                charge, payload, reason);
+            await TraceAsync(PaymentTrace.PaidKey, payload, charge, "НЕ ВЫДАНО — " + reason, ct);
+            await TellAsync(msg.Chat.Id,
+                "Оплата прошла, но включить Плюс автоматически не получилось. Напиши /paysupport " +
+                "и перешли это сообщение — по номеру платежа всё включат вручную или вернут звёзды:\n" + charge, ct);
+            return;
+        }
+
+        if (applied.Duplicate)
+        {
+            await TraceAsync(PaymentTrace.PaidKey, payload, charge, "повторная доставка — уже выдано", ct);
+            return;
+        }
+
+        logger.LogInformation("Plus paid: tg {Tg} +{Days}d for {Stars} XTR, charge {Charge}",
+            applied.RecipientTelegramUserId, applied.Days, paid.TotalAmount, charge);
+        await TraceAsync(PaymentTrace.PaidKey, payload, charge,
+            $"ok — Плюс до {applied.Until:dd.MM.yyyy} (tg {applied.RecipientTelegramUserId})", ct);
+
+        await TellAsync(msg.Chat.Id,
+            $"💎 Спасибо! Clanify Плюс активен до {applied.Until:dd.MM.yyyy}.\n\n" +
+            "• Полный разбор боёв — во вкладке «Я» → «⚔️ Разбор боёв»\n" +
+            "• «Стоп-тильт» уже включён: напишу, если начнёшь сливать серию подряд. " +
+            "Выключить можно там же, в разборе.", ct);
     }
 
     /// <summary>След оплаты для панели — в своём контексте, чтобы упавшая выдача его не утянула.</summary>
@@ -692,7 +775,10 @@ public class BotUpdateHandler(
                         try { await sp.GetRequiredService<TrackStartUseCase>().ExecuteAsync(msg.From!.Id, arg, ct); }
                         catch (Exception ex) { logger.LogWarning(ex, "Could not record start source {Arg}", arg); }
 
-                        await bot.SendMessage(msg.Chat.Id, t.StartPrivate, cancellationToken: ct);
+                        // Кнопка приложения прямо под приветствием: раньше её не было, и
+                        // человек, не догадавшийся про кнопку меню, приложения не видел.
+                        await bot.SendMessage(msg.Chat.Id, t.StartPrivate,
+                            replyMarkup: AppButton(t.OpenAppButton), cancellationToken: ct);
                     }
                     else
                     {
@@ -912,6 +998,42 @@ public class BotUpdateHandler(
                     break;
                 }
 
+                case "/help":
+                case "/помощь":
+                    await Reply(msg, t.HelpText, ct);
+                    break;
+
+                case "/me":
+                case "/я":
+                    if (msg.Chat.Type != ChatType.Private) { await Reply(msg, t.HelpText, ct); return; }
+                    await SendMyReviewAsync(msg.Chat.Id, msg.From!.Id, null, sp, t, ct);
+                    break;
+
+                case "/deck":
+                case "/колода":
+                    await SendMyDeckAsync(msg, sp, t, ct);
+                    break;
+
+                case "/meta":
+                case "/мета":
+                    await SendMetaAsync(msg, sp, t, ct);
+                    break;
+
+                case "/plus":
+                case "/плюс":
+                    await SendPlusInfoAsync(msg, sp, t, ct);
+                    break;
+
+                case "/paysupport":
+                    var owner = config["Owner:Username"]?.Trim().TrimStart('@');
+                    await Reply(msg, string.Format(t.PaySupport,
+                        string.IsNullOrEmpty(owner) ? t.PaySupportOwnerFallback : "@" + owner), ct);
+                    break;
+
+                case "/terms":
+                    await Reply(msg, t.Terms, ct);
+                    break;
+
                 case "/status":
                     var statusUseCase = sp.GetRequiredService<GetClanStatusUseCase>();
                     var clans = sp.GetRequiredService<IClanRepository>();
@@ -940,6 +1062,12 @@ public class BotUpdateHandler(
                         forecastLine + "\n" +
                         string.Join('\n', lines) +
                         (status.Players.Count > 15 ? string.Format(t.StatusMore, status.Players.Count - 15) : ""), ct);
+                    break;
+
+                default:
+                    // В личке непонятое сообщение - повод показать, что бот умеет. В группе
+                    // молчим: там пишут друг другу, а не боту.
+                    if (msg.Chat.Type == ChatType.Private) await Reply(msg, t.HelpText, ct);
                     break;
             }
         }
@@ -973,6 +1101,16 @@ public class BotUpdateHandler(
         var tag = LinkPlayerUseCase.Normalize(rawTag);
         var t = await TextForAsync(msg, sp, ct);
 
+        // Уже привязан к другому тегу — не перепривязываем молча. Раньше любой
+        // присланный тег (друга, соперника) тихо уводил привязку на себя, а с
+        // платным Плюсом это ещё и «потеря» оплаченного доступа на глазах у человека.
+        var current = await sp.GetRequiredService<IPlayerRepository>().GetByTelegramIdAsync(msg.From!.Id, ct);
+        if (current is not null && !string.Equals(current.PlayerTag, tag, StringComparison.OrdinalIgnoreCase))
+        {
+            await ShowForeignTagAsync(msg, tag, current.PlayerTag, sp, t, ct);
+            return;
+        }
+
         // Привязываем игрока (без клана — из ЛС)
         var playerName = await sp.GetRequiredService<LinkPlayerUseCase>()
             .ExecuteAsync(msg.From!.Id, tag, null, null, msg.From!.Username, ct);
@@ -988,11 +1126,12 @@ public class BotUpdateHandler(
         try { clanTag = await crApi.GetPlayerClanTagAsync(tag, ct); }
         catch { /* not critical */ }
 
-        if (clanTag is null)
-        {
-            await Reply(msg, string.Format(t.QuickNoClan, playerName), ct);
-            return;
-        }
+        // Сначала — то, ради чего человек пришёл: его собственные бои. Клан для этого
+        // не нужен; война, если она есть, придёт следующим сообщением.
+        await SendMyReviewAsync(msg.Chat.Id, msg.From!.Id, string.Format(t.LinkedHead, playerName), sp, t, ct,
+            noClan: clanTag is null);
+
+        if (clanTag is null) return;
 
         // Auto-register clan in DB if not yet there, then link the player to it.
         // This lets the Mini App show war stats without the leader running /setup.
@@ -1046,11 +1185,8 @@ public class BotUpdateHandler(
         try { status = await getStatus.ExecuteAsync(clanTag, ct); }
         catch { /* not critical */ }
 
-        if (status is null)
-        {
-            await Reply(msg, string.Format(t.QuickNoWarData, playerName, clanTag), ct);
-            return;
-        }
+        // Войны нет или она недоступна — разбор уже отправлен, дублировать «привязан» незачем
+        if (status is null) return;
 
         var me = status.Players.FirstOrDefault(p =>
             string.Equals(p.PlayerTag, tag, StringComparison.OrdinalIgnoreCase));
@@ -1118,6 +1254,228 @@ public class BotUpdateHandler(
             cancellationToken: ct);
     }
 
+    /// <summary>
+    /// Короткий разбор боёв сообщением: процент побед, худшая карта, тильт — и кнопка
+    /// в приложение за полным. Им же отвечает /me, и его же присылает бот сразу после
+    /// привязки: человек видит пользу в первом же ответе, а не «привязан, открой меню».
+    /// </summary>
+    private async Task SendMyReviewAsync(
+        long chatId, long telegramUserId, string? header, IServiceProvider sp, BotText t, CancellationToken ct,
+        bool noClan = false)
+    {
+        var analysis = await sp.GetRequiredService<GetBattleAnalysisUseCase>().ExecuteAsync(telegramUserId, 0, ct);
+        if (analysis is null)
+        {
+            await bot.SendMessage(chatId, t.NotLinkedYet, cancellationToken: ct);
+            return;
+        }
+
+        if (header is null)
+        {
+            var me = await sp.GetRequiredService<IPlayerRepository>().GetByTelegramIdAsync(telegramUserId, ct);
+            header = $"👤 {me?.Name ?? analysis.PlayerTag} · {analysis.PlayerTag}";
+        }
+
+        var sb = new StringBuilder();
+        sb.AppendLine(header);
+        sb.AppendLine();
+        if (analysis.Games > 0)
+        {
+            sb.AppendLine(string.Format(t.LinkedStats, analysis.Games, analysis.WinPercent.ToString("0"),
+                analysis.Wins, analysis.Losses));
+            if (analysis.ToughCards.FirstOrDefault() is { } tough)
+                sb.AppendLine(string.Format(t.LinkedTough, tough.Card.Name, tough.WinPercent.ToString("0"), tough.Games));
+            if (analysis.Tilt is { AfterTwoLossesGames: >= 4 } tilt)
+                sb.AppendLine(string.Format(t.LinkedTilt, tilt.AfterTwoLossesWinPercent.ToString("0")));
+        }
+        else
+        {
+            sb.AppendLine(t.LinkedNoBattles);
+        }
+
+        if (analysis.Access.TrialStarted)
+        {
+            sb.AppendLine();
+            sb.AppendLine(string.Format(t.LinkedTrial, analysis.Access.TrialDays));
+        }
+        if (noClan)
+        {
+            sb.AppendLine();
+            sb.AppendLine(t.LinkedNoClanLine);
+        }
+        sb.AppendLine();
+        sb.Append(t.LinkedTail);
+
+        await bot.SendMessage(chatId, sb.ToString(),
+            replyMarkup: AppButton(t.OpenReviewButton, "review"), cancellationToken: ct);
+    }
+
+    /// <summary>
+    /// Прислали чужой тег, будучи уже привязанным: показываем, кто это, и спрашиваем,
+    /// не свой ли это второй аккаунт. Перепривязка — только по кнопке.
+    /// </summary>
+    private async Task ShowForeignTagAsync(
+        Message msg, string tag, string currentTag, IServiceProvider sp, BotText t, CancellationToken ct)
+    {
+        var info = await sp.GetRequiredService<IClashRoyaleApi>().GetPlayerInfoAsync(tag, ct);
+        if (info is null)
+        {
+            await Reply(msg, string.Format(t.QuickNotFound, tag), ct);
+            return;
+        }
+
+        var sb = new StringBuilder();
+        sb.AppendLine(string.Format(t.ForeignTagHead, info.Name, info.Tag));
+        var line = $"🏆 {info.Trophies:N0}";
+        if (info.CurrentPathOfLegend is { Trophies: > 0 } pol) line += $" · 🏅 {pol.Trophies:N0}";
+        sb.AppendLine(line);
+        if (!string.IsNullOrEmpty(info.ClanName)) sb.AppendLine($"🛡 {info.ClanName}");
+        sb.AppendLine();
+        sb.Append(string.Format(t.ForeignTagLinkedAs, currentTag));
+
+        var rows = new List<InlineKeyboardButton[]>
+        {
+            new[] { InlineKeyboardButton.WithCallbackData(t.ForeignTagRelinkButton, "relink|" + info.Tag) },
+        };
+        if (_botUsername != "bot")
+            rows.Add(new[] { InlineKeyboardButton.WithUrl(t.OpenAppButton, $"https://t.me/{_botUsername}?startapp") });
+
+        await bot.SendMessage(msg.Chat.Id, sb.ToString(), replyParameters: msg.MessageId,
+            replyMarkup: new InlineKeyboardMarkup(rows), cancellationToken: ct);
+    }
+
+    /// <summary>Кнопки под сообщениями бота. Пока одна: «Это мой аккаунт».</summary>
+    private async Task ProcessCallbackAsync(CallbackQuery callback, CancellationToken ct)
+    {
+        using var scope = scopeFactory.CreateScope();
+        var sp = scope.ServiceProvider;
+        var data = callback.Data ?? "";
+
+        if (data.StartsWith("relink|", StringComparison.Ordinal))
+        {
+            var tag = data["relink|".Length..];
+            var t = await TextForUserAsync(callback.From.Id, callback.From.LanguageCode, sp, ct);
+            var name = await sp.GetRequiredService<LinkPlayerUseCase>()
+                .ExecuteAsync(callback.From.Id, tag, null, null, callback.From.Username, ct);
+
+            await bot.AnswerCallbackQuery(callback.Id, text: name is null ? t.RelinkFailed : null,
+                cancellationToken: ct);
+            if (name is null) return;
+
+            var chatId = callback.Message?.Chat.Id ?? callback.From.Id;
+            await SendMyReviewAsync(chatId, callback.From.Id, string.Format(t.RelinkDone, name), sp, t, ct);
+            return;
+        }
+
+        await bot.AnswerCallbackQuery(callback.Id, cancellationToken: ct);
+    }
+
+    /// <summary>/deck — колода из последнего боя и кнопка, открывающая её прямо в игре.</summary>
+    private async Task SendMyDeckAsync(Message msg, IServiceProvider sp, BotText t, CancellationToken ct)
+    {
+        var me = await sp.GetRequiredService<IPlayerRepository>().GetByTelegramIdAsync(msg.From!.Id, ct);
+        if (me is null) { await Reply(msg, t.NotLinkedYet, ct); return; }
+
+        var crApi = sp.GetRequiredService<IClashRoyaleApi>();
+        var log = await crApi.GetRecentBattlesAsync(me.PlayerTag, ct);
+        var deck = log.Where(CollectPlayerBattlesUseCase.Counts)
+            .OrderByDescending(b => b.BattleTimeUtc)
+            .Select(b => b.MyDeck)
+            .FirstOrDefault();
+        if (deck is null) { await Reply(msg, t.DeckNone, ct); return; }
+
+        var catalog = await GetMetaDecksUseCase.SafeCatalogAsync(crApi, ct);
+        var elixir = deck.Average(c => catalog.GetValueOrDefault(c.Id)?.ElixirCost ?? 0);
+        var names = string.Join("\n", deck.Select(c => (c.EvolutionLevel > 0 ? "✨ " : "• ") + c.Name));
+        var link = GetMetaDecksUseCase.CopyLink(deck.Select(MetaCard.Key).ToArray());
+
+        await bot.SendMessage(msg.Chat.Id, string.Format(t.DeckHead, elixir.ToString("0.0"), names),
+            replyParameters: msg.MessageId,
+            replyMarkup: link is null
+                ? AppButton(t.OpenAppButton)
+                : new InlineKeyboardMarkup(InlineKeyboardButton.WithUrl(t.DeckOpenButton, link)),
+            cancellationToken: ct);
+    }
+
+    /// <summary>/meta — пять лучших колод топа за неделю, по боям.</summary>
+    private async Task SendMetaAsync(Message msg, IServiceProvider sp, BotText t, CancellationToken ct)
+    {
+        var meta = await sp.GetRequiredService<GetMetaDecksUseCase>().ExecuteAsync(ct);
+        if (meta is null || meta.Decks.Count == 0) { await Reply(msg, t.MetaEmpty, ct); return; }
+
+        var sb = new StringBuilder();
+        sb.AppendLine(string.Format(t.MetaHead, meta.Battles.ToString("N0")));
+        var place = 0;
+        foreach (var d in meta.Decks.Take(5))
+        {
+            place++;
+            sb.AppendLine();
+            sb.AppendLine(string.Format(t.MetaRow, place, d.WinPercent.ToString("0.#"), d.Games,
+                string.Join(" · ", d.Cards.Select(c => (c.Evo ? "✨" : "") + c.Name))));
+        }
+
+        await bot.SendMessage(msg.Chat.Id, sb.ToString().TrimEnd(), replyParameters: msg.MessageId,
+            replyMarkup: AppButton(t.OpenAppButton, "meta"), cancellationToken: ct);
+    }
+
+    /// <summary>/plus — что даёт Плюс и есть ли он у тебя. Купить — в приложении, одним нажатием.</summary>
+    private async Task SendPlusInfoAsync(Message msg, IServiceProvider sp, BotText t, CancellationToken ct)
+    {
+        var status = await sp.GetRequiredService<PlusAccess>().GetAsync(msg.From!.Id, ct);
+        var offer = await PlusSales.ReadAsync(sp.GetRequiredService<IServiceSettingRepository>(), ct);
+
+        var line = !status.Paywall ? t.PlusFreeLine
+            : status.Active && status.Until is { } until ? string.Format(t.PlusActiveLine, until.ToString("dd.MM.yyyy"))
+            : string.Format(t.PlusOfferLine, offer.Price7, offer.Price30);
+
+        await bot.SendMessage(msg.Chat.Id, string.Format(t.PlusInfo, line), replyParameters: msg.MessageId,
+            replyMarkup: AppButton(t.PlusButton, "plus"), cancellationToken: ct);
+    }
+
+    /// <summary>
+    /// Меню команд в личке. Ставится при каждом запуске: так список не расходится
+    /// с тем, что бот умеет на самом деле, а правка не требует похода в BotFather.
+    /// Группы не трогаем: там свои команды клана.
+    /// </summary>
+    private async Task RegisterPrivateCommandsAsync(CancellationToken ct)
+    {
+        var sets = new List<(string? Lang, string[][] Items)>
+        {
+            (null, new[]
+            {
+                new[] { "me", "Короткий разбор твоих боёв" }, new[] { "deck", "Твоя колода из последнего боя" },
+                new[] { "meta", "Лучшие колоды топа за неделю" }, new[] { "plus", "Clanify Плюс" },
+                new[] { "help", "Что умеет бот" }, new[] { "paysupport", "Помощь с оплатой" }, new[] { "terms", "Условия" },
+            }),
+            ("uk", new[]
+            {
+                new[] { "me", "Короткий розбір твоїх боїв" }, new[] { "deck", "Твоя колода з останнього бою" },
+                new[] { "meta", "Найкращі колоди топу за тиждень" }, new[] { "plus", "Clanify Плюс" },
+                new[] { "help", "Що вміє бот" }, new[] { "paysupport", "Допомога з оплатою" }, new[] { "terms", "Умови" },
+            }),
+            ("en", new[]
+            {
+                new[] { "me", "A short review of your battles" }, new[] { "deck", "Your deck from the last battle" },
+                new[] { "meta", "The top's best decks this week" }, new[] { "plus", "Clanify Plus" },
+                new[] { "help", "What the bot can do" }, new[] { "paysupport", "Payment help" }, new[] { "terms", "Terms" },
+            }),
+        };
+
+        foreach (var (lang, items) in sets)
+        {
+            try
+            {
+                await bot.SetMyCommands(
+                    items.Select(i => new BotCommand { Command = i[0], Description = i[1] }),
+                    BotCommandScope.AllPrivateChats(), lang, ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Could not set private commands for {Lang}", lang ?? "default");
+            }
+        }
+    }
+
     /// <summary>Похоже на CR-тег: 3–12 буквенно-цифровых символов, можно с # вначале.</summary>
     /// <summary>
     /// Обновляет сохранённый @username, если он изменился. Дёшево: один поиск по
@@ -1141,12 +1499,19 @@ public class BotUpdateHandler(
         catch { /* не критично — обработка сообщения важнее */ }
     }
 
+    /// <summary>
+    /// Похоже на тег Clash Royale. Теги пишутся только буквами 0289PYLQGRJCUV, так что
+    /// «привет» или «hello» больше не уходят в поиск игрока (а раньше уходили и
+    /// получали в ответ «игрок не найден» вместо справки).
+    /// </summary>
     private static bool IsLikelyCrTag(string text)
     {
-        var t = text.Trim();
+        var t = text.Trim().ToUpperInvariant();
         if (t.StartsWith('#')) t = t[1..];
-        return t.Length is >= 3 and <= 12 && t.All(char.IsLetterOrDigit);
+        return t.Length is >= 3 and <= 12 && t.All(c => TagAlphabet.Contains(c));
     }
+
+    private const string TagAlphabet = "0289PYLQGRJCUV";
 
     /// <summary>
     /// Автор сообщения, на которое реально ответили, или null.
@@ -1300,6 +1665,20 @@ public class BotUpdateHandler(
     /// Ошибку глотаем намеренно: не смогли определить язык — ответим по-русски,
     /// но ответим. Промолчать в ответ на команду хуже, чем ответить не на том языке.
     /// </summary>
+    /// <summary>Язык для лички по человеку, а не по сообщению — для кнопок, у которых сообщения нет.</summary>
+    private static async Task<BotText> TextForUserAsync(long userId, string? languageCode, IServiceProvider sp, CancellationToken ct)
+    {
+        try
+        {
+            var player = await sp.GetRequiredService<IPlayerRepository>().GetByTelegramIdAsync(userId, ct);
+            if (player?.ClanId is int clanId
+                && await sp.GetRequiredService<IClanRepository>().GetByIdAsync(clanId, ct) is { } clan)
+                return NotificationSettings.Parse(clan.NotificationSettingsJson).Text;
+        }
+        catch { /* язык — не повод не ответить */ }
+        return BotText.For(languageCode);
+    }
+
     private static async Task<BotText> TextForAsync(Message msg, IServiceProvider sp, CancellationToken ct)
     {
         try
@@ -1355,11 +1734,18 @@ public class BotUpdateHandler(
     }
 
     /// <summary>Кнопка «Открыть приложение», если username бота известен.</summary>
-    private InlineKeyboardMarkup? AppButton(string label) =>
+    private InlineKeyboardMarkup? AppButton(string label) => AppButton(label, null);
+
+    /// <summary>
+    /// Кнопка приложения с параметром запуска: «review» открывает разбор, «plus» —
+    /// Плюс, «meta» — мету. Приложение читает его из start_param.
+    /// </summary>
+    private InlineKeyboardMarkup? AppButton(string label, string? startParam) =>
         _botUsername == "bot"
             ? null
             : new InlineKeyboardMarkup(
-                InlineKeyboardButton.WithUrl(label, $"https://t.me/{_botUsername}?startapp"));
+                InlineKeyboardButton.WithUrl(label,
+                    $"https://t.me/{_botUsername}?startapp" + (startParam is null ? "" : "=" + startParam)));
 
     private Task SendWithAppButtonAsync(long chatId, string text, CancellationToken ct) =>
         bot.SendMessage(chatId, text, replyMarkup: AppButton("🎮 Открыть приложение"),
