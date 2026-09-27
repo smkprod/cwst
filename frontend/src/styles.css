@@ -2772,3 +2772,9 @@ button.hall-step {
   background: rgba(255, 200, 61, 0.10); border: 1px solid rgba(255, 200, 61, 0.28);
 }
 .looks-until-text { font-weight: 700; color: var(--gold); font-size: 14px; }
+
+/* След последней оплаты в панели */
+.adm-trace { margin: 12px 0 4px; padding: 10px 12px; border-radius: var(--r-ctl); background: rgba(255, 255, 255, 0.04); }
+.adm-trace-line { display: grid; gap: 2px; padding: 6px 0; }
+.adm-trace-line + .adm-trace-line { border-top: 1px solid var(--line); }
+.adm-trace-outcome { word-break: break-word; }

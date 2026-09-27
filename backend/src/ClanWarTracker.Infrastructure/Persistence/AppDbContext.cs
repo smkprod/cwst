@@ -102,7 +102,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             // повторная доставка того же платежа упрётся сюда и откатит продление.
             e.HasIndex(p => p.TelegramChargeId).IsUnique();
             e.HasIndex(p => p.PaidAtUtc);
-            e.Property(p => p.TelegramChargeId).HasMaxLength(128);
+            // Длину номера платежа не ограничиваем: номера звёзд длинные, и
+            // varchar(128) ронял вставку оплаченного платежа.
             e.Property(p => p.PlayerTag).HasMaxLength(16);
         });
 
