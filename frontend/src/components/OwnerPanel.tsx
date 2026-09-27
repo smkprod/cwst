@@ -1007,7 +1007,7 @@ function TopSection({ t }: { t: Translations }) {
             <p className="muted small">{t.owner.topLastOk.replace('{n}', String(status.lastRows))}</p>
           )}
 
-      {status.lastMeta && <p className="muted small">{status.lastMeta}</p>}
+      {status.lastMeta && <p className="muted small" style={{ whiteSpace: 'pre-line', wordBreak: 'break-word' }}>{status.lastMeta}</p>}
 
       <p className="muted small">{t.owner.topHint}</p>
 

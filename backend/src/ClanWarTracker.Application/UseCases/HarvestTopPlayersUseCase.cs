@@ -121,6 +121,24 @@ public class HarvestTopPlayersUseCase(
                 try { info = await crApi.GetPlayerInfoAsync(r.Tag, ct); }
                 catch { /* закрытый или пропавший профиль — строку всё равно пишем */ }
 
+                // Журнал нужен для меты (первые MetaPlayers) и для колоды, когда
+                // профиль отдал её неполной: у части игроков «текущая колода» в API
+                // приходит из 7, 6 и даже одной карты.
+                var profileDeck = info?.CurrentDeck ?? [];
+                if (i < MetaPlayers || profileDeck.Count < 8)
+                {
+                    try { logs[i] = await crApi.GetRecentBattlesAsync(r.Tag, ct); }
+                    catch { if (i < MetaPlayers) Interlocked.Increment(ref logFailures); }
+                }
+
+                // Колода последнего настоящего боя - всегда восемь карт и то, чем
+                // игрок реально играет сейчас. Профиль - запасной вариант.
+                var lastBattleDeck = logs[i]?
+                    .Where(CollectPlayerBattlesUseCase.Counts)
+                    .OrderByDescending(b => b.BattleTimeUtc)
+                    .Select(b => b.MyDeck)
+                    .FirstOrDefault();
+
                 rows[i] = new TopPlayer
                 {
                     DayUtc = day,
@@ -128,27 +146,20 @@ public class HarvestTopPlayersUseCase(
                     PlayerTag = r.Tag,
                     Name = info?.Name ?? r.Name,
                     ClanName = info?.ClanName ?? r.ClanName,
-                    // Рейтинг Пути легенд (те самые 3000+) — из профиля. Очки из
-                    // нового лидерборда оказались не рейтингом, а чем-то вроде числа
-                    // побед (41 у первого места), и порог входа выходил «23».
+                    // Рейтинг Пути легенд (те самые 3000+) — из профиля, если он там есть.
                     Trophies = info?.CurrentPathOfLegend?.Trophies is int pol and > 0
                         ? pol
                         : r.Trophies > 0 ? r.Trophies : info?.Trophies ?? 0,
                     ExpLevel = info?.ExpLevel ?? 0,
-                    DeckCardIds = Pack(info?.CurrentDeck),
+                    DeckCardIds = Pack(lastBattleDeck ?? profileDeck),
                 };
-
-                if (i < MetaPlayers)
-                {
-                    try { logs[i] = await crApi.GetRecentBattlesAsync(r.Tag, ct); }
-                    catch { Interlocked.Increment(ref logFailures); }
-                }
             }
             finally { gate.Release(); }
         }));
 
         await top.ReplaceDayAsync(day, rows, ct);
         var metaNote = await SaveMetaAsync(day, logs, logFailures, ct);
+        if (!string.IsNullOrEmpty(response.Source)) metaNote = $"источник: {response.Source}\n{metaNote}";
         return await RememberAsync(new HarvestResult(rows.Length, null, Meta: metaNote), ct);
     }
 
@@ -165,6 +176,7 @@ public class HarvestTopPlayersUseCase(
             // снимок, в сегодняшнем посчитался бы второй раз.
             var since = DateTime.UtcNow.AddHours(-24);
             var battles = logs
+                .Take(MetaPlayers)
                 .Where(l => l is not null)
                 .SelectMany(l => l!)
                 .Where(b => b.BattleTimeUtc >= since);
@@ -197,7 +209,7 @@ public class HarvestTopPlayersUseCase(
             var keepFrom = DateOnly.Parse(day).AddDays(-(MetaKeepDays - 1)).ToString("yyyy-MM-dd");
             await meta.ReplaceDayAsync(day, decks, matchups, keepFrom, ct);
 
-            var read = logs.Count(l => l is not null);
+            var read = logs.Take(MetaPlayers).Count(l => l is not null);
             return $"мета: журналов {read}, не открылось {failures}, боёв {result.Battles}, " +
                    $"колод {decks.Count}, пар карт {matchups.Count}";
         }
