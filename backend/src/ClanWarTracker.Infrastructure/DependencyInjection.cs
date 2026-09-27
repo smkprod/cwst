@@ -138,6 +138,69 @@ public static class DependencyInjection
     /// осторожное: сливаем, только когда Telegram-аккаунт стоит максимум за одной записью.
     /// Если аккаунтов два — это разные люди на один тег, и решать за них мы не вправе.
     /// </summary>
+    /// <summary>
+    /// Переносит спонсорство, попавшее не в ту строку игрока, на его настоящую строку.
+    ///
+    /// Тег не уникален: у игрока по строке на каждый клан, где он бывал, а выдача
+    /// искала по тегу без порядка и брала любую. Оплата звёздами и ручная выдача из
+    /// панели могли записать срок в старую строку из чужого клана, которую
+    /// приложение не читает, — звёзды списаны, звезды у игрока нет.
+    ///
+    /// Настоящая строка - та, к которой привязан Telegram самого человека. Если таких
+    /// строк у тега несколько или нет ни одной, не трогаем: однозначного владельца нет.
+    /// Оставшиеся дни чужих строк ДОБАВЛЯЮТСЯ к его сроку, а не сравниваются с ним:
+    /// каждая такая выдача была продлением для этого человека, и максимум съел бы
+    /// оплаченное, если у него уже шло своё спонсорство.
+    ///
+    /// Запускается только воркером. API стартует одновременно с ним, и два прохода
+    /// параллельно прибавили бы одни и те же дни дважды. Повторный запуск безопасен:
+    /// чужие строки после переноса очищены, и переносить второй раз нечего.
+    /// </summary>
+    /// <returns>Что перенесено - по строке на игрока, для лога вызывающего.</returns>
+    public static async Task<List<string>> RepairMisplacedSponsorshipAsync(IServiceProvider sp)
+    {
+        using var scope = sp.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var report = new List<string>();
+        var now = DateTime.UtcNow;
+        var sponsoredTags = await db.Players
+            .Where(p => p.SponsorUntilUtc != null && p.SponsorUntilUtc > now && p.TelegramUserId == null)
+            .Select(p => p.PlayerTag.ToUpper())
+            .Distinct()
+            .ToListAsync();
+        if (sponsoredTags.Count == 0) return report;
+
+        foreach (var tag in sponsoredTags)
+        {
+            var rows = await db.Players.Where(p => p.PlayerTag.ToUpper() == tag).ToListAsync();
+            var claimed = rows.Where(r => r.TelegramUserId != null).ToList();
+            if (claimed.Count != 1) continue;
+
+            var owner = claimed[0];
+            var strays = rows
+                .Where(r => r.Id != owner.Id && r.SponsorUntilUtc is { } u && u > now)
+                .ToList();
+            if (strays.Count == 0) continue;
+
+            var extra = strays.Aggregate(TimeSpan.Zero, (acc, r) => acc + (r.SponsorUntilUtc!.Value - now));
+            var from = owner.SponsorUntilUtc is { } until && until > now ? until : now;
+            owner.SponsorUntilUtc = from + extra;
+            owner.SponsorBackgroundKey ??= strays.Select(r => r.SponsorBackgroundKey).FirstOrDefault(k => k != null);
+            owner.SponsorClanBackgroundKey ??= strays.Select(r => r.SponsorClanBackgroundKey).FirstOrDefault(k => k != null);
+
+            foreach (var r in strays)
+            {
+                r.SponsorUntilUtc = null;
+                r.SponsorBackgroundKey = null;
+                r.SponsorClanBackgroundKey = null;
+            }
+            report.Add($"{owner.PlayerTag} -> row {owner.Id} from {strays.Count} stray row(s), until {owner.SponsorUntilUtc:u}");
+        }
+
+        if (report.Count > 0) await db.SaveChangesAsync();
+        return report;
+    }
+
     private static async Task MergeDuplicatePlayersAsync(AppDbContext db)
     {
         try

@@ -51,6 +51,21 @@ var host = builder.Build();
 // Воркер тоже создаёт схему БД: на хостинге он может стартовать раньше API
 await DependencyInjection.InitDatabaseAsync(host.Services);
 
+// Спонсорство, записанное не в ту строку игрока (тег не уникален, а выдача искала
+// по нему без порядка), переносится на его настоящую строку. Только здесь, не в
+// API: два параллельных прохода прибавили бы одни и те же дни дважды.
+try
+{
+    var moved = await DependencyInjection.RepairMisplacedSponsorshipAsync(host.Services);
+    var log = host.Services.GetRequiredService<ILogger<Program>>();
+    foreach (var line in moved) log.LogWarning("Sponsorship repaired: {Line}", line);
+}
+catch (Exception ex)
+{
+    // Починка не должна мешать запуску: без неё бот работает, как работал
+    host.Services.GetRequiredService<ILogger<Program>>().LogError(ex, "Sponsorship repair failed");
+}
+
 // Логируем outbound IP — нужно для настройки токена Clash Royale API
 try
 {
