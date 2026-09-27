@@ -270,7 +270,7 @@ export const api = {
   ownerRemoveModerator: (id: number) =>
     request<{ ok: boolean }>(`/api/owner/moderators/${id}`, { method: 'DELETE' }),
   ownerHarvestTop: () =>
-    request<{ rows: number; problem: string | null; meta?: string | null }>('/api/owner/top/harvest', { method: 'POST' }),
+    request<{ started: boolean; running: boolean }>('/api/owner/top/harvest', { method: 'POST' }),
   /** Что со снимками мирового топа — без запуска тысячи запросов к API игры. */
   ownerTopStatus: () => request<TopStatus>('/api/owner/top/status'),
   ownerGetStats: () => request<OwnerStats>('/api/owner/stats'),

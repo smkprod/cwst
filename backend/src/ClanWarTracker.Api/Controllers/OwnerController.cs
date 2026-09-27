@@ -30,8 +30,13 @@ public class OwnerController(
     IServiceModeratorRepository moderators,
     IPlayerRepository players,
     IServiceSettingRepository settings,
-    ServiceAccess access) : ControllerBase
+    ServiceAccess access,
+    IServiceScopeFactory scopes,
+    ILogger<OwnerController> logger) : ControllerBase
 {
+    /// <summary>1 — сбор из панели уже идёт. Второй параллельный удвоил бы запросы к API игры.</summary>
+    private static int _harvestRunning;
+
     public record BroadcastRequest(string Text, string Target);
     public record AddModeratorRequest(string Username, string? Note, string[]? Permissions);
     public record GrantSponsorRequest(string PlayerTag, int Days);
@@ -130,8 +135,31 @@ public class OwnerController(
     {
         if (await DenyAsync(ServicePermission.Maintenance, ct) is { } deny) return deny;
 
-        var result = await harvestTop.ExecuteAsync(force: true, ct: ct);
-        return Ok(new { rows = result.Rows, problem = result.Skipped, meta = result.Meta });
+        // Сбор идёт минуты, а панель ждёт ответа секунды: раньше запрос обрывался
+        // по таймауту клиента, отмена доходила до сбора и убивала его на полпути.
+        // Теперь кнопка только запускает, итог панель читает из /top/status.
+        if (Interlocked.CompareExchange(ref _harvestRunning, 1, 0) != 0)
+            return Accepted(new { started = false, running = true });
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var scope = scopes.CreateScope();
+                var harvest = scope.ServiceProvider.GetRequiredService<HarvestTopPlayersUseCase>();
+                await harvest.ExecuteAsync(force: true, ct: CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Manual top harvest failed");
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _harvestRunning, 0);
+            }
+        });
+
+        return Accepted(new { started = true, running = true });
     }
 
     /// <summary>
@@ -157,6 +185,7 @@ public class OwnerController(
             lastRows = last?.Rows ?? 0,
             lastProblem = last?.Problem,
             lastMeta = last?.Meta,
+            running = Volatile.Read(ref _harvestRunning) == 1,
         });
     }
 
