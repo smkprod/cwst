@@ -20,8 +20,9 @@ public class CrRankedPlayer
 /// суточный снимок молча не собирался неделями, не оставив ни строчки в логе.
 /// </summary>
 /// <param name="Problem">null — рейтинг пришёл. Иначе текст для лога.</param>
-public record CrGlobalRanking(List<CrRankedPlayer> Players, string? Problem)
+/// <param name="Source">Откуда взят список: какой рейтинг и какие ещё были. Для панели.</param>
+public record CrGlobalRanking(List<CrRankedPlayer> Players, string? Problem, string? Source = null)
 {
-    public static CrGlobalRanking Ok(List<CrRankedPlayer> players) => new(players, null);
+    public static CrGlobalRanking Ok(List<CrRankedPlayer> players, string? source = null) => new(players, null, source);
     public static CrGlobalRanking Failed(string problem) => new([], problem);
 }
