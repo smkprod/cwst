@@ -19,6 +19,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<SentNotification> SentNotifications => Set<SentNotification>();
     public DbSet<ActivityDay> ActivityDays => Set<ActivityDay>();
     public DbSet<TopPlayer> TopPlayers => Set<TopPlayer>();
+    public DbSet<MetaDeckDay> MetaDeckDays => Set<MetaDeckDay>();
+    public DbSet<MetaMatchupDay> MetaMatchupDays => Set<MetaMatchupDay>();
     public DbSet<ServiceModerator> ServiceModerators => Set<ServiceModerator>();
     public DbSet<ServiceSetting> ServiceSettings => Set<ServiceSetting>();
     public DbSet<ClanMessage> ClanMessages => Set<ClanMessage>();
@@ -96,6 +98,21 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(t => t.Name).HasMaxLength(64);
             e.Property(t => t.ClanName).HasMaxLength(64);
             e.Property(t => t.DeckCardIds).HasMaxLength(128);
+        });
+
+        mb.Entity<MetaDeckDay>(e =>
+        {
+            e.ToTable("MetaDeckDays");
+            e.HasIndex(d => new { d.DayUtc, d.DeckKey }).IsUnique();
+            e.Property(d => d.DayUtc).HasMaxLength(10);
+            e.Property(d => d.DeckKey).HasMaxLength(128);
+        });
+
+        mb.Entity<MetaMatchupDay>(e =>
+        {
+            e.ToTable("MetaMatchupDays");
+            e.HasIndex(m => new { m.DayUtc, m.CardKey, m.OppCardKey }).IsUnique();
+            e.Property(m => m.DayUtc).HasMaxLength(10);
         });
 
         mb.Entity<Acquisition>(e =>

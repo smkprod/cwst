@@ -14,8 +14,17 @@ namespace ClanWarTracker.Api.Controllers;
 public class TopController(
     GetTopMetaUseCase meta,
     GetTopPlayersUseCase players,
-    GetTopPlayerDetailUseCase detail) : ControllerBase
+    GetTopPlayerDetailUseCase detail,
+    GetMetaDecksUseCase decks) : ControllerBase
 {
+    /// <summary>GET /api/top/decks — лучшие колоды топа за неделю по боям, с контрами.</summary>
+    [HttpGet("decks")]
+    public async Task<IActionResult> Decks(CancellationToken ct)
+    {
+        var dto = await decks.ExecuteAsync(ct);
+        return dto is null ? NoContent() : Ok(dto);
+    }
+
     /// <summary>GET /api/top/meta — популярность карт, динамика за неделю, порог входа.</summary>
     [HttpGet("meta")]
     public async Task<IActionResult> Meta(CancellationToken ct)
