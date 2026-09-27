@@ -24,6 +24,7 @@ public class OwnerController(
     SetClanPlanUseCase setPlan,
     OwnerBroadcastUseCase broadcast,
     HarvestTopPlayersUseCase harvestTop,
+    ITopPlayerRepository topPlayers,
     IServiceModeratorRepository moderators,
     IPlayerRepository players,
     IServiceSettingRepository settings,
@@ -148,6 +149,31 @@ public class OwnerController(
 
         var result = await harvestTop.ExecuteAsync(force: true, ct: ct);
         return Ok(new { rows = result.Rows, problem = result.Skipped });
+    }
+
+    /// <summary>
+    /// GET /api/owner/top/status — что со снимками мирового топа.
+    ///
+    /// Отдельно от сбора: узнать, почему снимка нет, должно быть можно НЕ запуская
+    /// тысячу запросов к API игры. Раньше единственным способом было нажать «собрать»
+    /// и ждать, а до появления этой ручки — вообще никак: причину знал воркер, и знал
+    /// он её в своей памяти, в другом контейнере.
+    /// </summary>
+    [HttpGet("top/status")]
+    public async Task<IActionResult> TopStatus(CancellationToken ct)
+    {
+        if (await DenyAsync(ServicePermission.Maintenance, ct) is { } deny) return deny;
+
+        var last = await harvestTop.LastAsync(ct);
+        var days = await topPlayers.DaysAsync(14, ct);
+        return Ok(new
+        {
+            latestDay = days.FirstOrDefault(),
+            daysStored = days.Count,
+            lastAttemptAtUtc = last?.AtUtc,
+            lastRows = last?.Rows ?? 0,
+            lastProblem = last?.Problem,
+        });
     }
 
     /// <summary>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, ApiError, adminClan } from '../lib/api'
-import type { AppTab, BroadcastTarget, Moderator, OwnerClan, OwnerClanDetail, OwnerSponsor, OwnerStats, ServiceIdentity, ServicePermission } from '../types'
+import type { AppTab, BroadcastTarget, Moderator, OwnerClan, OwnerClanDetail, OwnerSponsor, OwnerStats, ServiceIdentity, ServicePermission, TopStatus } from '../types'
 
 /** «Можно ли мне вот это». Прокидывается вниз, чтобы правила жили в одном месте. */
 type Can = (p: ServicePermission) => boolean
@@ -20,7 +20,7 @@ const ROLE_LABEL: Record<string, string> = {
   elder: '⭐ Старейшина',
 }
 
-type Section = 'overview' | 'clans' | 'broadcast' | 'moderators' | 'sponsors' | 'settings'
+type Section = 'overview' | 'clans' | 'broadcast' | 'moderators' | 'sponsors' | 'settings' | 'top'
 type ClanFilter = 'all' | 'pro' | 'free' | 'silent' | 'expiring'
 
 /** Сколько дней назад (для «активность» и «подключён»). null — даты нет. */
@@ -71,6 +71,7 @@ export function OwnerPanel({ me }: { me: ServiceIdentity }) {
     ...(can('Sponsors') ? [{ key: 'sponsors' as Section, label: '★ Спонсоры' }] : []),
     ...(can('ManageModerators') ? [{ key: 'moderators' as Section, label: '🛡 Модераторы' }] : []),
     ...(can('AppSettings') ? [{ key: 'settings' as Section, label: '⚙️ Вкладки' }] : []),
+    ...(can('Maintenance') ? [{ key: 'top' as Section, label: '🌍 Топ' }] : []),
   ]
 
   return (
@@ -99,6 +100,7 @@ export function OwnerPanel({ me }: { me: ServiceIdentity }) {
       {section === 'sponsors' && can('Sponsors') && <SponsorsSection t={t} />}
       {section === 'moderators' && can('ManageModerators') && <ModeratorsSection can={can} t={t} />}
       {section === 'settings' && can('AppSettings') && <TabsSection t={t} />}
+      {section === 'top' && can('Maintenance') && <TopSection t={t} />}
     </div>
   )
 }
@@ -958,5 +960,84 @@ function TabsSection({ t }: { t: Translations }) {
         {busy ? t.owner.saving : t.owner.tabsSave}
       </button>
     </div>
+  )
+}
+
+/**
+ * Состояние снимков мирового топа.
+ *
+ * Причину, по которой снимок не собрался, код записывал и раньше — но записывал
+ * её воркер к себе в память, а панель живёт в другом контейнере. Про поломку
+ * узнавали от человека, открывшего вкладку и увидевшего вечное «ещё собираем».
+ * Здесь причина лежит текстом ровно в том виде, в каком её вернул API игры.
+ */
+function TopSection({ t }: { t: Translations }) {
+  const [status, setStatus] = useState<TopStatus | null>(null)
+  const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [busy, setBusy] = useState(false)
+  const [run, setRun] = useState<string | null>(null)
+
+  const load = useCallback(() => {
+    setState('loading')
+    api.ownerTopStatus()
+      .then(s => { setStatus(s); setState('ready') })
+      .catch(() => setState('error'))
+  }, [])
+
+  useEffect(load, [load])
+
+  const harvest = async () => {
+    haptic('medium')
+    setBusy(true)
+    setRun(null)
+    try {
+      const r = await api.ownerHarvestTop()
+      hapticNotify(r.problem ? 'error' : 'success')
+      setRun(r.problem ?? t.owner.topRunOk.replace('{n}', String(r.rows)))
+      load()
+    } catch (e) {
+      hapticNotify('error')
+      setRun(e instanceof ApiError ? `${e.code}` : t.owner.topRunFail)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (state === 'loading') return <div className="center"><div className="spinner" /></div>
+  if (state === 'error' || !status) return <p className="center muted">{t.owner.error}</p>
+
+  return (
+    <section className="card">
+      <p className="adm-block-title">{t.owner.topTitle}</p>
+
+      <div className="adm-kv">
+        <span className="muted small">{t.owner.topLatestDay}</span>
+        <b>{status.latestDay ?? t.owner.topNone}</b>
+      </div>
+      <div className="adm-kv">
+        <span className="muted small">{t.owner.topDaysStored}</span>
+        <b>{status.daysStored}</b>
+      </div>
+      <div className="adm-kv">
+        <span className="muted small">{t.owner.topLastAttempt}</span>
+        <b>{status.lastAttemptAtUtc
+          ? new Date(status.lastAttemptAtUtc).toLocaleString()
+          : t.owner.topNever}</b>
+      </div>
+
+      {status.lastProblem
+        ? <p className="form-error small adm-top-problem">{status.lastProblem}</p>
+        : status.lastAttemptAtUtc && (
+            <p className="muted small">{t.owner.topLastOk.replace('{n}', String(status.lastRows))}</p>
+          )}
+
+      <p className="muted small">{t.owner.topHint}</p>
+
+      <button className="btn" disabled={busy} onClick={harvest}>
+        {busy ? t.owner.topRunning : t.owner.topRun}
+      </button>
+
+      {run && <p className="small adm-top-run">{run}</p>}
+    </section>
   )
 }

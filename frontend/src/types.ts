@@ -1111,6 +1111,18 @@ export interface PlayerPage {
   weeks: PageWeek[]
 }
 
+/** Состояние снимков мирового топа. Видно только владельцу и модератору. */
+export interface TopStatus {
+  /** Самый свежий день со снимком, 'YYYY-MM-DD'. null — снимков нет вообще. */
+  latestDay: string | null
+  daysStored: number
+  /** Когда воркер (или панель) последний раз пытался собрать. null — попыток не было. */
+  lastAttemptAtUtc: string | null
+  lastRows: number
+  /** Почему не вышло. null — вышло. */
+  lastProblem: string | null
+}
+
 export interface OwnerSponsor {
   playerTag: string
   name: string

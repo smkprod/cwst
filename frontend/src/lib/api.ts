@@ -1,5 +1,5 @@
 import { initData } from './telegram'
-import type { AppConfig, AppTab, BackgroundKey, ClanDesignKey, ClanPage, PlayerPage, HallOfFame, OwnerSponsor, Moderator, ServiceIdentity, ServicePermission, BroadcastResult, BroadcastTarget, ClanDiscipline, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, TopPlayerRow, TopPlayerDetail, Tournament, TournamentSummary, WarJournal } from '../types'
+import type { AppConfig, AppTab, BackgroundKey, ClanDesignKey, ClanPage, PlayerPage, HallOfFame, OwnerSponsor, Moderator, ServiceIdentity, ServicePermission, BroadcastResult, BroadcastTarget, TopStatus, ClanDiscipline, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, TopPlayerRow, TopPlayerDetail, Tournament, TournamentSummary, WarJournal } from '../types'
 
 // Если мы на Render (production), BASE должен быть пустой строкой '', чтобы запросы шли на тот же домен.
 // Для локальной разработки (Development) оставляем localhost:5000.
@@ -245,6 +245,8 @@ export const api = {
     request<{ ok: boolean }>(`/api/owner/moderators/${id}`, { method: 'DELETE' }),
   ownerHarvestTop: () =>
     request<{ rows: number; problem: string | null }>('/api/owner/top/harvest', { method: 'POST' }),
+  /** Что со снимками мирового топа — без запуска тысячи запросов к API игры. */
+  ownerTopStatus: () => request<TopStatus>('/api/owner/top/status'),
   ownerGetStats: () => request<OwnerStats>('/api/owner/stats'),
   ownerGetClans: () => request<OwnerClan[]>('/api/owner/clans'),
   ownerGetClanDetail: (clanId: number) => request<OwnerClanDetail>(`/api/owner/clans/${clanId}`),
