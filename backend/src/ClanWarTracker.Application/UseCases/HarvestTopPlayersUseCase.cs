@@ -76,6 +76,20 @@ public class HarvestTopPlayersUseCase(
 
     public async Task<HarvestResult> ExecuteAsync(bool force = false, CancellationToken ct = default)
     {
+        try
+        {
+            return await CollectAsync(force, ct);
+        }
+        catch (Exception ex) when (!ct.IsCancellationRequested)
+        {
+            // Без этого упавший сбор оставлял в панели причину прошлой попытки,
+            // и казалось, что кнопка вообще ничего не делает.
+            return await RememberAsync(new HarvestResult(0, $"сбор упал: {ex.GetType().Name}: {ex.Message}"), ct);
+        }
+    }
+
+    private async Task<HarvestResult> CollectAsync(bool force, CancellationToken ct)
+    {
         var day = DateTime.UtcNow.ToString("yyyy-MM-dd");
         if (!force && await top.HasDayAsync(day, ct)) return HarvestResult.Done;
 

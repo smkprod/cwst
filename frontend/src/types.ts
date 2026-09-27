@@ -1193,6 +1193,8 @@ export interface TopStatus {
   lastProblem: string | null
   /** Итог сбора меты по боям: сколько боёв и колод или почему нет. */
   lastMeta?: string | null
+  /** Сбор из панели идёт прямо сейчас. */
+  running?: boolean
 }
 
 export interface OwnerSponsor {

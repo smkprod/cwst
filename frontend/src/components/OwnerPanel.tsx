@@ -945,20 +945,37 @@ function TopSection({ t }: { t: Translations }) {
 
   useEffect(load, [load])
 
+  // Сбор идёт в фоне минуты две: кнопка его только запускает, а итог читаем
+  // из статуса, пока сервер не скажет, что закончил.
+  useEffect(() => {
+    if (!status?.running) return
+    const timer = setTimeout(() => {
+      api.ownerTopStatus()
+        .then(s => {
+          setStatus(s)
+          if (!s.running) {
+            setBusy(false)
+            hapticNotify(s.lastProblem ? 'error' : 'success')
+            setRun(s.lastProblem ?? [t.owner.topRunOk.replace('{n}', String(s.lastRows)), s.lastMeta].filter(Boolean).join('\n'))
+          }
+        })
+        .catch(() => { /* следующая попытка через пару секунд */ setStatus(s => s && { ...s }) })
+    }, 4000)
+    return () => clearTimeout(timer)
+  }, [status, t])
+
   const harvest = async () => {
     haptic('medium')
     setBusy(true)
     setRun(null)
     try {
-      const r = await api.ownerHarvestTop()
-      hapticNotify(r.problem ? 'error' : 'success')
-      setRun(r.problem ?? [t.owner.topRunOk.replace('{n}', String(r.rows)), r.meta].filter(Boolean).join('\n'))
-      load()
+      await api.ownerHarvestTop()
+      setRun(t.owner.topRunning)
+      setStatus(s => s && { ...s, running: true })
     } catch (e) {
       hapticNotify('error')
-      setRun(e instanceof ApiError ? `${e.code}` : t.owner.topRunFail)
-    } finally {
       setBusy(false)
+      setRun(e instanceof ApiError ? `${e.code}` : t.owner.topRunFail)
     }
   }
 
@@ -994,8 +1011,8 @@ function TopSection({ t }: { t: Translations }) {
 
       <p className="muted small">{t.owner.topHint}</p>
 
-      <button className="btn" disabled={busy} onClick={harvest}>
-        {busy ? t.owner.topRunning : t.owner.topRun}
+      <button className="btn" disabled={busy || status.running} onClick={harvest}>
+        {busy || status.running ? t.owner.topRunning : t.owner.topRun}
       </button>
 
       {run && <p className="small adm-top-run">{run}</p>}
