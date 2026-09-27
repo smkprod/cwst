@@ -128,7 +128,12 @@ public class HarvestTopPlayersUseCase(
                     PlayerTag = r.Tag,
                     Name = info?.Name ?? r.Name,
                     ClanName = info?.ClanName ?? r.ClanName,
-                    Trophies = r.Trophies > 0 ? r.Trophies : info?.Trophies ?? 0,
+                    // Рейтинг Пути легенд (те самые 3000+) — из профиля. Очки из
+                    // нового лидерборда оказались не рейтингом, а чем-то вроде числа
+                    // побед (41 у первого места), и порог входа выходил «23».
+                    Trophies = info?.CurrentPathOfLegend?.Trophies is int pol and > 0
+                        ? pol
+                        : r.Trophies > 0 ? r.Trophies : info?.Trophies ?? 0,
                     ExpLevel = info?.ExpLevel ?? 0,
                     DeckCardIds = Pack(info?.CurrentDeck),
                 };

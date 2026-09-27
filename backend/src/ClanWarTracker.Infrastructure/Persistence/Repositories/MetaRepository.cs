@@ -37,6 +37,34 @@ public class MetaRepository(AppDbContext db) : IMetaRepository
             .Where(m => string.Compare(m.DayUtc, fromDayUtc) >= 0)
             .ToListAsync(ct);
 
+    public Task<List<MetaDeckDay>> GetDeckTotalsSinceAsync(string fromDayUtc, CancellationToken ct = default) =>
+        db.MetaDeckDays.AsNoTracking()
+            .Where(d => string.Compare(d.DayUtc, fromDayUtc) >= 0)
+            .GroupBy(d => d.DeckKey)
+            .Select(g => new MetaDeckDay
+            {
+                DayUtc = fromDayUtc,
+                DeckKey = g.Key,
+                Games = g.Sum(x => x.Games),
+                Wins = g.Sum(x => x.Wins),
+                Draws = g.Sum(x => x.Draws),
+            })
+            .ToListAsync(ct);
+
+    public Task<List<MetaMatchupDay>> GetMatchupTotalsSinceAsync(string fromDayUtc, CancellationToken ct = default) =>
+        db.MetaMatchupDays.AsNoTracking()
+            .Where(m => string.Compare(m.DayUtc, fromDayUtc) >= 0)
+            .GroupBy(m => new { m.CardKey, m.OppCardKey })
+            .Select(g => new MetaMatchupDay
+            {
+                DayUtc = fromDayUtc,
+                CardKey = g.Key.CardKey,
+                OppCardKey = g.Key.OppCardKey,
+                Games = g.Sum(x => x.Games),
+                Wins = g.Sum(x => x.Wins),
+            })
+            .ToListAsync(ct);
+
     public async Task<string?> LatestDayAsync(CancellationToken ct = default) =>
         await db.MetaDeckDays.AsNoTracking()
             .OrderByDescending(d => d.DayUtc)

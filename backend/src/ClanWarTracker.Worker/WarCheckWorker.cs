@@ -92,6 +92,14 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
     private string? _lastTopProblem;
 
     /// <summary>
+    /// Журналы привязанных игроков читаем раз в три часа: API хранит 25 боёв, а
+    /// столько активный игрок сыгрывает за вечер. В памяти, а не в базе: после
+    /// рестарта лишний проход стоит пары сотен запросов, а не потери данных.
+    /// </summary>
+    private static readonly TimeSpan BattleSyncInterval = TimeSpan.FromHours(3);
+    private DateTime _lastBattleSyncUtc = DateTime.MinValue;
+
+    /// <summary>
     /// Пишет в лог итог сбора мирового топа.
     ///
     /// Раньше здесь было «если что-то записали — сообщи», то есть неудача не оставляла
@@ -337,6 +345,25 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
             catch (Exception ex)
             {
                 logger.LogError(ex, "Top players harvest failed");
+            }
+
+            if (DateTime.UtcNow - _lastBattleSyncUtc >= BattleSyncInterval)
+            {
+                _lastBattleSyncUtc = DateTime.UtcNow;
+                try
+                {
+                    // Бои привязанных игроков для личного разбора
+                    using var scope = scopeFactory.CreateScope();
+                    var collect = scope.ServiceProvider.GetRequiredService<CollectPlayerBattlesUseCase>();
+                    var s = await collect.SyncAllAsync(stoppingToken);
+                    logger.LogInformation(
+                        "Player battles synced: {Players} players, {Added} new, {Failed} failed, {Purged} purged",
+                        s.Players, s.Added, s.Failed, s.Purged);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Player battles sync failed");
+                }
             }
 
         }

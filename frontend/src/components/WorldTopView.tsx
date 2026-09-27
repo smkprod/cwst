@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
-import type { TopMeta, TopPlayerRow } from '../types'
+import type { TopCard, TopMeta, TopPlayerRow } from '../types'
 import { fmt } from '../lib/format'
 import { haptic } from '../lib/telegram'
 import { useT, type Translations } from '../lib/i18n'
 import { DeckStrip } from './DeckStrip'
 import { TopPlayerModal } from './TopPlayerModal'
 import { MetaDecksView } from './MetaDecksView'
+import { CardDecksModal } from './CardDecksModal'
 
 const PAGE = 50
 
@@ -121,6 +122,7 @@ function Tile({ value, label, hint, accent }: {
 
 /** Витрина популярности карт с недельной динамикой. */
 function MetaCards({ meta, t }: { meta: TopMeta; t: Translations }) {
+  const [open, setOpen] = useState<TopCard | null>(null)
   return (
     <section className="card" style={{ marginTop: 10 }}>
       <div className="card-title">{t.worldTop.cardsTitle}</div>
@@ -132,13 +134,18 @@ function MetaCards({ meta, t }: { meta: TopMeta; t: Translations }) {
         {' · '}
         {fmt(meta.playersWithDeck)} {t.worldTop.decksKnown}
       </p>
+      <p className="muted small" style={{ margin: '0 0 10px' }}>👆 {t.worldTop.cardTapHint}</p>
 
       {meta.cards.length === 0 ? (
         <p className="muted small" style={{ margin: 0 }}>{t.worldTop.noCards}</p>
       ) : (
         <div className="wtop-cards">
           {meta.cards.map(c => (
-            <div key={c.cardId} className="wtop-card">
+            <button
+              key={c.cardId}
+              className="wtop-card wtop-card-btn"
+              onClick={() => { haptic('light'); setOpen(c) }}
+            >
               {c.iconUrl
                 ? <img src={c.iconUrl} alt={c.name} loading="lazy" />
                 : <div className="wtop-card-blank" />}
@@ -149,10 +156,11 @@ function MetaCards({ meta, t }: { meta: TopMeta; t: Translations }) {
                   {c.deltaPercent > 0 ? '▲' : '▼'} {Math.abs(c.deltaPercent)}
                 </span>
               )}
-            </div>
+            </button>
           ))}
         </div>
       )}
+      {open && <CardDecksModal card={open} onClose={() => setOpen(null)} />}
     </section>
   )
 }

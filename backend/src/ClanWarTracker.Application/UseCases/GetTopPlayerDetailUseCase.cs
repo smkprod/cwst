@@ -43,7 +43,8 @@ public class GetTopPlayerDetailUseCase(IClashRoyaleApi crApi, ITopPlayerReposito
                 b.BattleTimeUtc.ToString("O"), b.Type, b.Won, b.CrownsFor, b.CrownsAgainst,
                 b.OpponentName,
                 b.MyDeck.Select(Card).ToList(),
-                b.OpponentDeck.Select(Card).ToList())).ToList());
+                b.OpponentDeck.Select(Card).ToList())).ToList(),
+            Rating: info.CurrentPathOfLegend?.Trophies is int r and > 0 ? r : null);
     }
 
     private static TopDeckCardDto Card(CrDeckCard c) => new(c.Id, c.Name, c.IconUrl);

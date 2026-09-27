@@ -24,9 +24,18 @@ public record MetaDeckRowDto(
     List<MetaCounterDto> Counters,
     string? CopyLink);
 
+/// <summary>Колода из профилей топа: сколько игроков из тысячи держат её сейчас.</summary>
+/// <param name="BestRank">Лучшее место среди тех, у кого эта колода.</param>
+public record TopProfileDeckDto(List<MetaCardDto> Cards, int Players, int BestRank, string? CopyLink);
+
 /// <param name="Battles">Сколько боёв топа вошло в окно.</param>
+/// <param name="ProfileDecks">
+/// Только для выборки по карте: колоды из профилей топа. Есть всегда, даже когда
+/// меты по боям ещё нет или карта в ней редкая.
+/// </param>
 public record MetaDecksDto(
     string FromDayUtc,
     string ToDayUtc,
     int Battles,
-    List<MetaDeckRowDto> Decks);
+    List<MetaDeckRowDto> Decks,
+    List<TopProfileDeckDto>? ProfileDecks = null);

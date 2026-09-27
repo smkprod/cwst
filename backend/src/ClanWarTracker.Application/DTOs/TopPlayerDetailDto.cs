@@ -27,4 +27,5 @@ public record TopPlayerDetailDto(
     int ThreeCrownWins,
     int? Rank,                 // место в последнем снимке; null — не в топе
     List<TopDeckCardDto> CurrentDeck,
-    List<TopBattleDto> Battles);
+    List<TopBattleDto> Battles,
+    int? Rating = null);       // рейтинг Пути легенд в текущем сезоне; null — не играл

@@ -24,8 +24,22 @@ public class PlayerController(
     LinkPlayerUseCase linkPlayer,
     AnnounceAchievementUseCase announceAchievement,
     IServiceSettingRepository settings,
-    IRespectRepository respects) : ControllerBase
+    IRespectRepository respects,
+    GetBattleAnalysisUseCase battleAnalysis) : ControllerBase
 {
+    /// <summary>
+    /// GET /api/players/me/battles?tz=180 — личный разбор боёв.
+    /// tz — смещение местного времени от UTC в минутах: «вечером» считается по
+    /// часам игрока, а не сервера.
+    /// </summary>
+    [HttpGet("me/battles")]
+    public async Task<IActionResult> MyBattles([FromQuery] int tz = 0, CancellationToken ct = default)
+    {
+        var userId = (long)HttpContext.Items["TelegramUserId"]!;
+        var dto = await battleAnalysis.ExecuteAsync(userId, Math.Clamp(tz, -720, 840), ct);
+        return dto is null ? NotFound(new { error = "player_not_linked" }) : Ok(dto);
+    }
+
     /// <summary>
     /// GET /api/players/{tag}/decks — какие колоды меты игрок может собрать из своей
     /// коллекции и до каких не хватает пары карт.

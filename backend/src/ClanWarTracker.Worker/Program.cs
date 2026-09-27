@@ -19,6 +19,7 @@ builder.Services.AddScoped<SendSmartAlertUseCase>();
 builder.Services.AddScoped<SendLeaderBriefingUseCase>();
 builder.Services.AddScoped<SendPerfectDayUseCase>();
 builder.Services.AddScoped<HarvestTopPlayersUseCase>();
+builder.Services.AddScoped<CollectPlayerBattlesUseCase>();
 builder.Services.AddScoped<TournamentBracketService>();
 builder.Services.AddScoped<TournamentNotifier>();
 builder.Services.AddScoped<AutoResolveTournamentMatchesUseCase>();

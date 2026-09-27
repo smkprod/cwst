@@ -53,7 +53,7 @@ export function MetaDecksView({ t }: { t: Translations }) {
   )
 }
 
-function DeckRow({ deck, place, t }: { deck: MetaDeckRow; place: number; t: Translations }) {
+export function DeckRow({ deck, place, t }: { deck: MetaDeckRow; place: number; t: Translations }) {
   const good = deck.winPercent >= 55
   const bad = deck.winPercent < 50
 
@@ -106,7 +106,7 @@ function DeckRow({ deck, place, t }: { deck: MetaDeckRow; place: number; t: Tran
   )
 }
 
-function CardIcon({ card }: { card: MetaCard }) {
+export function CardIcon({ card }: { card: MetaCard }) {
   return (
     <span className={`wtop-deck-card ${card.evo ? 'mdeck-evo' : ''}`} title={card.name}>
       {card.iconUrl

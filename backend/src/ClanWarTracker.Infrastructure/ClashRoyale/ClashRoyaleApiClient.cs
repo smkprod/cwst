@@ -467,7 +467,7 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
 
             var data = await resp.Content.ReadFromJsonAsync<CardCatalogResponse>(cancellationToken: ct);
             // items — обычные карты, supportItems — башенные войска (в колодах они не участвуют)
-            var all = (data?.Items ?? []).Where(c => c.IconUrls?.Medium is not null);
+            var all = (data?.Items ?? []).Where(c => CardIcon(c.IconUrls) != "");
 
             return all
                 .GroupBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
@@ -479,8 +479,8 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
                         Name = g.First().Name,
                         ElixirCost = g.First().ElixirCost ?? 0,
                         Rarity = g.First().Rarity ?? "",
-                        IconUrl = g.First().IconUrls!.Medium!,
-                        EvoIconUrl = g.First().IconUrls!.EvolutionMedium,
+                        IconUrl = CardIcon(g.First().IconUrls),
+                        EvoIconUrl = g.First().IconUrls?.EvolutionMedium,
                         MaxEvolutionLevel = g.First().MaxEvolutionLevel,
                     },
                     StringComparer.OrdinalIgnoreCase);
@@ -654,30 +654,30 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
                 CurrentFavouriteCard = data.CurrentFavouriteCard?.Name,
                 MaxCardLevel = maxCardLevel,
                 CurrentDeck = (data.CurrentDeck ?? [])
-                    .Where(c => c?.IconUrls?.Medium is not null)
+                    .Where(c => c is not null)
                     .Select(c => new CrDeckCard
                     {
                         Id = c!.Id,
                         Name = c.Name,
                         Level = ToGameLevel(c.Level, c.MaxLevel, maxCardLevel),
                         MaxLevel = maxCardLevel,
-                        IconUrl = c.IconUrls!.Medium!,
+                        IconUrl = CardIcon(c.IconUrls),
                         EvolutionLevel = c.EvolutionLevel,
                         MaxEvolutionLevel = c.MaxEvolutionLevel,
-                        EvoIconUrl = c.IconUrls.EvolutionMedium,
+                        EvoIconUrl = c.IconUrls?.EvolutionMedium,
                     })
                     .ToList(),
                 Cards = (data.Cards ?? [])
-                    .Where(c => c?.IconUrls?.Medium is not null)
+                    .Where(c => c is not null)
                     .Select(c => new CrCard
                     {
                         Name = c!.Name,
                         Level = ToGameLevel(c.Level, c.MaxLevel, maxCardLevel),
                         MaxLevel = maxCardLevel,
-                        IconUrl = c.IconUrls!.Medium!,
+                        IconUrl = CardIcon(c.IconUrls),
                         EvolutionLevel = c.EvolutionLevel,
                         MaxEvolutionLevel = c.MaxEvolutionLevel,
-                        EvoIconUrl = c.IconUrls.EvolutionMedium,
+                        EvoIconUrl = c.IconUrls?.EvolutionMedium,
                     })
                     .OrderByDescending(c => c.Level)
                     .ThenBy(c => c.Name)
@@ -738,7 +738,16 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
 
     private record CardIconUrls(
         [property: JsonPropertyName("medium")] string? Medium,
-        [property: JsonPropertyName("evolutionMedium")] string? EvolutionMedium = null);
+        [property: JsonPropertyName("evolutionMedium")] string? EvolutionMedium = null,
+        [property: JsonPropertyName("heroMedium")] string? HeroMedium = null);
+
+    /// <summary>
+    /// Иконка карты. У части новых карт обычной иконки в ответе нет, только
+    /// геройская или эволюционная. Раньше такие карты просто выкидывались, и в
+    /// колоде оставалось семь карт: в витрине дыра, а в мету колода не попадала вовсе.
+    /// </summary>
+    private static string CardIcon(CardIconUrls? icons) =>
+        icons?.Medium ?? icons?.HeroMedium ?? icons?.EvolutionMedium ?? "";
 
     public async Task<CrTournament?> GetTournamentAsync(string tournamentTag, CancellationToken ct = default)
     {
@@ -1038,8 +1047,10 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
                         Rank = ReadInt(e, "rank") ?? players.Count + 1,
                         // Очки у рейтинга Path of Legends - не кубки; как поле назовут,
                         // заранее неизвестно, поэтому перебираем вероятные имена.
-                        Trophies = ReadInt(e, "score") ?? ReadInt(e, "eloRating") ?? ReadInt(e, "rating")
-                                   ?? ReadInt(e, "trophies") ?? ReadInt(e, "points") ?? 0,
+                        // «score» здесь оказался не рейтингом (у первого места 41), поэтому
+                        // он последний; настоящий рейтинг снимок берёт из профиля.
+                        Trophies = ReadInt(e, "eloRating") ?? ReadInt(e, "rating")
+                                   ?? ReadInt(e, "trophies") ?? ReadInt(e, "score") ?? ReadInt(e, "points") ?? 0,
                         ClanName = e.TryGetProperty("clan", out var clan) && clan.ValueKind == JsonValueKind.Object
                             ? ReadString(clan, "name")
                             : ReadString(e, "clanName"),
@@ -1287,17 +1298,17 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
     /// </summary>
     private static List<CrDeckCard> Deck(List<CardResponse>? cards) =>
         (cards ?? [])
-            .Where(c => c?.IconUrls?.Medium is not null)
+            .Where(c => c is not null)
             .Select(c => new CrDeckCard
             {
                 Id = c!.Id,
                 Name = c.Name,
                 Level = c.Level,
                 MaxLevel = c.MaxLevel,
-                IconUrl = c.IconUrls!.Medium!,
+                IconUrl = CardIcon(c.IconUrls),
                 EvolutionLevel = c.EvolutionLevel,
                 MaxEvolutionLevel = c.MaxEvolutionLevel,
-                EvoIconUrl = c.IconUrls.EvolutionMedium,
+                EvoIconUrl = c.IconUrls?.EvolutionMedium,
             })
             .ToList();
 

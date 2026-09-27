@@ -64,7 +64,8 @@ export function TopPlayerModal({ tag, onClose }: { tag: string; onClose: () => v
         {state === 'ready' && data && (
           <>
             <div className="modal-grid">
-              <Stat value={fmt(data.trophies)} label={t.worldTop.trophies} accent />
+              {data.rating ? <Stat value={fmt(data.rating)} label={t.worldTop.rating} accent /> : null}
+              <Stat value={fmt(data.trophies)} label={t.worldTop.trophies} accent={!data.rating} />
               <Stat value={data.rank ? `#${data.rank}` : '—'} label={t.worldTop.rank} />
               <Stat value={fmt(data.bestTrophies)} label={t.worldTop.bestTrophies} />
               <Stat value={String(data.expLevel)} label={t.worldTop.level} />
