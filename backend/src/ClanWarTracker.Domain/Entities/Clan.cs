@@ -51,6 +51,19 @@ public class Clan
     /// <summary>Когда клан подключили к боту. null — подключён до появления поля.</summary>
     public DateTime? CreatedAtUtc { get; set; }
 
+    // --- Страница клана на Аллее славы ---
+
+    /// <summary>
+    /// Оформление страницы клана — см. <see cref="ClanPageDesign"/>. null — обычная.
+    ///
+    /// Лежит на клане, а не на спонсоре, специально: спонсорство заканчивается, а
+    /// страница клана после этого меняться сама не должна.
+    /// </summary>
+    public string? PageDesignKey { get; set; }
+
+    /// <summary>Девиз на странице клана. null — строки нет вообще, а не пустая.</summary>
+    public string? Motto { get; set; }
+
     public List<Player> Players { get; set; } = [];
 
     /// <summary>Действующий тариф с учётом срока: просроченный Pro = Free.</summary>

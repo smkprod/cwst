@@ -554,6 +554,12 @@ CREATE TABLE IF NOT EXISTS ""ClanMessages"" (
         await db.Database.ExecuteSqlRawAsync(
             "ALTER TABLE \"Clans\" ADD COLUMN IF NOT EXISTS \"AcceptsClanMail\" boolean NOT NULL DEFAULT TRUE;");
 
+        // Страница клана на Аллее: оформление и девиз.
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Clans\" ADD COLUMN IF NOT EXISTS \"PageDesignKey\" varchar(32);");
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Clans\" ADD COLUMN IF NOT EXISTS \"Motto\" varchar(160);");
+
         // Модераторы сервиса: кому владелец открыл панель на просмотр.
         await db.Database.ExecuteSqlRawAsync(@"
 CREATE TABLE IF NOT EXISTS ""ServiceModerators"" (
