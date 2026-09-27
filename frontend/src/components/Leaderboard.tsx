@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
-import type { ClanStatus, GlobalTop, Plan, PlayerStatus, SeasonArchive, SeasonBreakdown, SeasonPlayer, WarLogWeek } from '../types'
+import type { ClanStatus, GlobalTop, PlayerStatus, SeasonArchive, SeasonBreakdown, SeasonPlayer, WarLogWeek } from '../types'
 import { weekKing } from '../lib/king'
 import { fmt } from '../lib/format'
 import { SponsorMarks, rowBackground } from '../lib/sponsorMarks'
@@ -12,7 +12,6 @@ import { HistoryCard } from './HistoryCard'
 interface Props {
   players: PlayerStatus[]
   myPlayerTag?: string
-  plan: Plan
   /** Тренировочные дни = война недели доиграна, первое место уже окончательное. */
   periodType: ClanStatus['periodType']
   /** Нужен, чтобы назвать короля, когда медали текущей недели уже обнулились. */
@@ -41,7 +40,7 @@ type ArchiveState =
 
 const MEDALS = ['🥇', '🥈', '🥉']
 
-export function Leaderboard({ players, myPlayerTag, plan, periodType, warLog, canManage = false }: Props) {
+export function Leaderboard({ players, myPlayerTag, periodType, warLog, canManage = false }: Props) {
   const [sel, setSel] = useState<Selection>('current')
   const [breakdown, setBreakdown] = useState<BreakdownState>({ kind: 'idle' })
   const [global, setGlobal] = useState<GlobalState>({ kind: 'idle' })
@@ -104,7 +103,7 @@ export function Leaderboard({ players, myPlayerTag, plan, periodType, warLog, ca
       </div>
 
       {sel === 'current' && (
-        <WeekBoard players={players} myPlayerTag={myPlayerTag} onOpen={openByTag} plan={plan} periodType={periodType} warLog={warLog} />
+        <WeekBoard players={players} myPlayerTag={myPlayerTag} onOpen={openByTag} periodType={periodType} warLog={warLog} />
       )}
       {sel === 'season' && <SeasonBoard state={breakdown} myPlayerTag={myPlayerTag} rosterTags={new Set(players.map(p => p.playerTag))} onOpen={openByTag} />}
       {sel === 'archive' && <ArchiveBoard state={archive} myPlayerTag={myPlayerTag} />}
@@ -113,7 +112,7 @@ export function Leaderboard({ players, myPlayerTag, plan, periodType, warLog, ca
       {sel !== 'global' && sel !== 'archive' && (
         <>
           <div style={{ height: 12 }} />
-          <HistoryCard plan={plan} />
+          <HistoryCard />
         </>
       )}
 
@@ -129,8 +128,8 @@ export function Leaderboard({ players, myPlayerTag, plan, periodType, warLog, ca
   )
 }
 
-function WeekBoard({ players, myPlayerTag, onOpen, plan, periodType, warLog }: {
-  players: PlayerStatus[]; myPlayerTag?: string; onOpen: (tag: string) => void; plan: Plan
+function WeekBoard({ players, myPlayerTag, onOpen, periodType, warLog }: {
+  players: PlayerStatus[]; myPlayerTag?: string; onOpen: (tag: string) => void
   periodType: ClanStatus['periodType']; warLog: WarLogWeek[]
 }) {
   const { t } = useT()
@@ -192,7 +191,7 @@ function WeekBoard({ players, myPlayerTag, onOpen, plan, periodType, warLog }: {
                   <span className="rating-name-text">{p.name}</span>
                   <SponsorMarks of={p} />
                   {p.playerTag === myPlayerTag && <span className="me-badge">{t.leaderboard.you}</span>}
-                  {plan === 'pro' && p.consecutiveWars >= 3 && (
+                  {p.consecutiveWars >= 3 && (
                     <span className="streak-badge">🔥{p.consecutiveWars}</span>
                   )}
                 </span>

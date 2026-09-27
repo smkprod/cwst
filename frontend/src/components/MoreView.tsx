@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import type { Plan } from '../types'
 import { haptic } from '../lib/telegram'
 import { useT } from '../lib/i18n'
 import { LangSwitcher } from './LangSwitcher'
@@ -13,11 +12,10 @@ import { WorldTopView } from './WorldTopView'
 type Section = 'recruit' | 'about' | 'worldTop'
 
 interface Props {
-  plan: Plan
   /** Админ группы или лидер клана — только им есть что настраивать в уведомлениях. */
   canManage: boolean
-  /** Лидер клана на Pro видит биржу кандидатов. */
-  isProLeader: boolean
+  /** Глава или соруководитель видит биржу кандидатов. */
+  isLeader: boolean
   onOpenNotifications: () => void
 }
 
@@ -29,7 +27,7 @@ interface Props {
  * ежедневным экраном. В итоге бар доходил до семи пунктов, а найти настройки
  * можно было только случайно.
  */
-export function MoreView({ plan, canManage, isProLeader, onOpenNotifications }: Props) {
+export function MoreView({ canManage, isLeader, onOpenNotifications }: Props) {
   const { t } = useT()
   const [section, setSection] = useState<Section | null>(null)
 
@@ -40,8 +38,8 @@ export function MoreView({ plan, canManage, isProLeader, onOpenNotifications }: 
     return (
       <div className="fade-in">
         <button className="btn-mini more-back" onClick={back}>← {t.more.back}</button>
-        {section === 'recruit' && (isProLeader ? <RecruitBoard /> : <RecruitToggle />)}
-        {section === 'about' && <AboutCard plan={plan} />}
+        {section === 'recruit' && (isLeader ? <RecruitBoard /> : <RecruitToggle />)}
+        {section === 'about' && <AboutCard />}
         {section === 'worldTop' && <WorldTopView />}
       </div>
     )
@@ -84,8 +82,8 @@ export function MoreView({ plan, canManage, isProLeader, onOpenNotifications }: 
         <button className="more-row" onClick={() => open('recruit')}>
           <span className="more-row-icon">👥</span>
           <span className="more-row-text">
-            <span className="more-row-title">{isProLeader ? t.more.recruitBoard : t.more.recruitMe}</span>
-            <span className="muted small">{isProLeader ? t.more.recruitBoardHint : t.more.recruitMeHint}</span>
+            <span className="more-row-title">{isLeader ? t.more.recruitBoard : t.more.recruitMe}</span>
+            <span className="muted small">{isLeader ? t.more.recruitBoardHint : t.more.recruitMeHint}</span>
           </span>
           <span className="more-row-arrow">›</span>
         </button>

@@ -3,7 +3,7 @@ using ClanWarTracker.Domain.Interfaces;
 
 namespace ClanWarTracker.Application.UseCases;
 
-/// <summary>История войн клана по неделям из накопленных снапшотов (Pro-фича).</summary>
+/// <summary>История войн клана по неделям из накопленных снапшотов.</summary>
 public class GetClanHistoryUseCase(IWarSnapshotRepository snapshots)
 {
     public async Task<ClanHistoryDto> ExecuteAsync(

@@ -1,44 +1,27 @@
 import { useEffect, useState } from 'react'
-import { api, ApiError } from '../lib/api'
-import type { ClanHistory, Plan } from '../types'
+import { api } from '../lib/api'
+import type { ClanHistory } from '../types'
 import { fmt, fmtShort } from '../lib/format'
 import { useT } from '../lib/i18n'
 
 type State =
   | { kind: 'loading' }
-  | { kind: 'locked' }
   | { kind: 'empty' }
   | { kind: 'error' }
   | { kind: 'ready'; data: ClanHistory }
 
-export function HistoryCard({ plan }: { plan: Plan }) {
+export function HistoryCard() {
   const [state, setState] = useState<State>({ kind: 'loading' })
   const { t } = useT()
 
   useEffect(() => {
-    if (plan !== 'pro') {
-      setState({ kind: 'locked' })
-      return
-    }
     api.getMyClanHistory()
       .then(data => setState(data.weeks.length === 0 ? { kind: 'empty' } : { kind: 'ready', data }))
-      .catch(e => setState(e instanceof ApiError && e.code === 'pro_required' ? { kind: 'locked' } : { kind: 'error' }))
-  }, [plan])
+      .catch(() => setState({ kind: 'error' }))
+  }, [])
 
   if (state.kind === 'loading') return null
   if (state.kind === 'error') return null
-
-  if (state.kind === 'locked') {
-    return (
-      <section className="card forecast-locked">
-        <div className="card-title-row">
-          <div className="card-title">{t.history.title}</div>
-          <span className="pro-chip">PRO</span>
-        </div>
-        <p className="muted small">{t.history.lockedNote}</p>
-      </section>
-    )
-  }
 
   if (state.kind === 'empty') {
     return (

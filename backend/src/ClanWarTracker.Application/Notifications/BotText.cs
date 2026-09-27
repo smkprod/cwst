@@ -76,7 +76,6 @@ public sealed class BotText
     public required string NudgeUnlinked { get; init; }
     /// <summary>{0} — сколько игроков без Telegram.</summary>
     public required string FinalCallUnlinked { get; init; }
-    public required string ProUpsell { get; init; }
     public required string FinalCallTitle { get; init; }
 
     /* --- Отчёт за день и итог недели --- */
@@ -113,12 +112,6 @@ public sealed class BotText
     /// <summary>{0} — шанс сейчас, {1} — шанс без твоих атак, {2} — осталось колод.</summary>
     public required string SmartAlert { get; init; }
 
-    /* --- Истечение Pro --- */
-    /// <summary>{0} — дата окончания.</summary>
-    public required string PlanSevenDays { get; init; }
-    /// <summary>{0} — дата окончания.</summary>
-    public required string PlanThreeDays { get; init; }
-    public required string PlanExpired { get; init; }
 
     /* --- Приглашение друга --- */
     /// <summary>{0} — имя пришедшего игрока.</summary>
@@ -349,7 +342,6 @@ public sealed class BotText
         NudgeUnlinked = "👥 Ещё <b>{0}</b> без Telegram — их тег не достанет. "
                       + "Админ может привязать их сам: ответь на сообщение игрока командой /bind #ТЕГ",
         FinalCallUnlinked = "👥 Ещё <b>{0}</b> без Telegram — админ может привязать через /bind.",
-        ProUpsell = "🔒 Личные напоминания в DM — функция Pro. Подключи Pro, чтобы никто не забывал про атаки.",
         FinalCallTitle = "🚨 <b>Война закрывается через ~30 минут!</b>\nПоследний шанс доиграть КВ:",
 
         DayDone = "🌙 День {0} войны завершён!",
@@ -389,19 +381,6 @@ public sealed class BotText
         SmartAlert = "📉 Без твоих атак шанс клана на победу упадёт с {0}% до {1}%!\n"
                    + "Осталось колод: {2}/4 — успей сыграть.",
 
-        PlanSevenDays = "⏳ Pro-тариф клана заканчивается примерно через 7 дней ({0} UTC).\n\n"
-                      + "Без Pro будут недоступны:\n"
-                      + "• Безлимитные личные напоминания (Free — только 5 игроков)\n"
-                      + "• Прогноз клана и игроков\n"
-                      + "• История войн и DNA-профили\n"
-                      + "• Кнопка «Пнуть всех» без ограничений\n\n"
-                      + "Свяжитесь с администратором сервиса для продления.",
-        PlanThreeDays = "⚠️ Pro-тариф клана заканчивается через ~3 дня ({0} UTC).\n\n"
-                      + "Поспешите продлить, чтобы не потерять прогнозы, историю и безлимитные напоминания!",
-        PlanExpired = "🔒 Pro-тариф клана истёк — клан переведён на Free.\n\n"
-                    + "Напоминания теперь ограничены 5 привязанными игроками; "
-                    + "прогнозы, история и DNA-профили недоступны.\n\n"
-                    + "Для продления обратитесь к администратору сервиса.",
 
         ReferralJoined = "🎉 По твоей ссылке в Clanify зашёл новый игрок: {0}. Спасибо, что зовёшь друзей!",
 
@@ -611,7 +590,6 @@ public sealed class BotText
         NudgeUnlinked = "👥 Ще <b>{0}</b> без Telegram — тег їх не дістане. "
                       + "Адмін може прив’язати їх сам: дай відповідь на повідомлення гравця командою /bind #ТЕГ",
         FinalCallUnlinked = "👥 Ще <b>{0}</b> без Telegram — адмін може прив’язати через /bind.",
-        ProUpsell = "🔒 Особисті нагадування в DM — функція Pro. Підключи Pro, щоб ніхто не забував про атаки.",
         FinalCallTitle = "🚨 <b>Війна зачиняється за ~30 хвилин!</b>\nОстанній шанс дограти КВ:",
 
         DayDone = "🌙 День {0} війни завершено!",
@@ -651,19 +629,6 @@ public sealed class BotText
         SmartAlert = "📉 Без твоїх атак шанс клану на перемогу впаде з {0}% до {1}%!\n"
                    + "Залишилось колод: {2}/4 — устигни зіграти.",
 
-        PlanSevenDays = "⏳ Pro-тариф клану завершується приблизно через 7 днів ({0} UTC).\n\n"
-                      + "Без Pro будуть недоступні:\n"
-                      + "• Безлімітні особисті нагадування (Free — лише 5 гравців)\n"
-                      + "• Прогноз клану та гравців\n"
-                      + "• Історія війн і DNA-профілі\n"
-                      + "• Кнопка «Розштовхати всіх» без обмежень\n\n"
-                      + "Зв’яжіться з адміністратором сервісу для продовження.",
-        PlanThreeDays = "⚠️ Pro-тариф клану завершується через ~3 дні ({0} UTC).\n\n"
-                      + "Поспішіть продовжити, щоб не втратити прогнози, історію та безлімітні нагадування!",
-        PlanExpired = "🔒 Pro-тариф клану вичерпано — клан переведено на Free.\n\n"
-                    + "Нагадування тепер обмежені 5 прив’язаними гравцями; "
-                    + "прогнози, історія та DNA-профілі недоступні.\n\n"
-                    + "Для продовження зверніться до адміністратора сервісу.",
 
         ReferralJoined = "🎉 За твоїм посиланням у Clanify зайшов новий гравець: {0}. Дякуємо, що кличеш друзів!",
 
@@ -873,7 +838,6 @@ public sealed class BotText
         NudgeUnlinked = "👥 <b>{0}</b> more without Telegram — a tag won't reach them. "
                       + "An admin can link them: reply to the player's message with /bind #TAG",
         FinalCallUnlinked = "👥 <b>{0}</b> more without Telegram — an admin can link them via /bind.",
-        ProUpsell = "🔒 Private DM reminders are a Pro feature. Go Pro so nobody forgets their attacks.",
         FinalCallTitle = "🚨 <b>The war closes in ~30 minutes!</b>\nLast chance to finish your attacks:",
 
         DayDone = "🌙 War day {0} is over!",
@@ -913,19 +877,6 @@ public sealed class BotText
         SmartAlert = "📉 Without your attacks the clan's win chance drops from {0}% to {1}%!\n"
                    + "Decks left: {2}/4 — get them in.",
 
-        PlanSevenDays = "⏳ The clan's Pro plan ends in about 7 days ({0} UTC).\n\n"
-                      + "Without Pro you lose:\n"
-                      + "• Unlimited private reminders (Free — only 5 players)\n"
-                      + "• Clan and player forecasts\n"
-                      + "• War history and DNA profiles\n"
-                      + "• The unlimited \"Nudge everyone\" button\n\n"
-                      + "Contact the service admin to renew.",
-        PlanThreeDays = "⚠️ The clan's Pro plan ends in ~3 days ({0} UTC).\n\n"
-                      + "Renew soon so you don't lose forecasts, history and unlimited reminders!",
-        PlanExpired = "🔒 The clan's Pro plan has expired — the clan is back on Free.\n\n"
-                    + "Reminders are now limited to 5 linked players; "
-                    + "forecasts, history and DNA profiles are unavailable.\n\n"
-                    + "Contact the service admin to renew.",
 
         ReferralJoined = "🎉 A new player joined Clanify through your link: {0}. Thanks for bringing friends!",
 

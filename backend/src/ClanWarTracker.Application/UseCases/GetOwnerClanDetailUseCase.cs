@@ -6,7 +6,7 @@ namespace ClanWarTracker.Application.UseCases;
 
 /// <summary>
 /// Детали клана для панели владельца: кто привязан, у кого какой @username и кто из них
-/// лидер/соруководитель — то есть с кем говорить про Pro. Роли берём из CR API (кэш 5 мин),
+/// лидер/соруководитель — то есть с кем говорить о клане. Роли берём из CR API (кэш 5 мин),
 /// поэтому дёргаем только при открытии конкретного клана, а не для всего списка.
 /// </summary>
 public class GetOwnerClanDetailUseCase(
@@ -59,8 +59,6 @@ public class GetOwnerClanDetailUseCase(
             Id: clan.Id,
             ClanTag: clan.ClanTag,
             Name: clan.Name,
-            Plan: clan.EffectivePlan(DateTime.UtcNow) == PlanTier.Pro ? "pro" : "free",
-            PlanExpiresAtUtc: clan.PlanExpiresAtUtc,
             TelegramChatId: clan.TelegramChatId,
             TelegramMessageThreadId: clan.TelegramMessageThreadId,
             CreatedAtUtc: clan.CreatedAtUtc,

@@ -26,17 +26,9 @@ export function ForecastCard({ forecast, stats: _stats, periodType }: Props) {
     )
   }
 
-  if (forecast === null) {
-    return (
-      <section className="card forecast-card forecast-locked">
-        <div className="card-title-row">
-          <div className="card-title">{t.forecast.title}</div>
-          <span className="pro-chip">PRO</span>
-        </div>
-        <p className="muted small">{t.forecast.lockedNote}</p>
-      </section>
-    )
-  }
+  // Сервер строит прогноз всегда; пустым он не приходит, но и замком его закрывать
+  // больше незачем — тарифа нет.
+  if (forecast === null) return null
 
   const trendMeta = TREND_ICON[forecast.trend]
   const trendLabel = t.forecast.trend[forecast.trend]

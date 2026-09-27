@@ -7,7 +7,7 @@ namespace ClanWarTracker.Application.UseCases;
 
 /// <summary>
 /// Личный алерт игроку, который ещё не доиграл войну: показывает, на сколько именно
-/// его бездействие роняет шанс клана на победу. Pro-фича — использует тот же прогноз,
+/// его бездействие роняет шанс клана на победу. Использует тот же прогноз,
 /// что и Mini App (GetClanStatusUseCase), но адресует эффект конкретному игроку.
 /// </summary>
 public class SendSmartAlertUseCase(
@@ -26,8 +26,6 @@ public class SendSmartAlertUseCase(
     {
         foreach (var clan in await clans.GetAllAsync(ct))
         {
-            if (clan.EffectivePlan(DateTime.UtcNow) != PlanTier.Pro) continue;
-
             ClanStatusDto? status;
             try { status = await clanStatus.ExecuteAsync(clan.ClanTag, ct); }
             catch { continue; } // CR API прилёг — не роняем цикл для остальных кланов

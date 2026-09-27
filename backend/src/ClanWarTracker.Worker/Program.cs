@@ -12,7 +12,6 @@ builder.Services.AddScoped<GetSeasonStatsUseCase>();
 builder.Services.AddScoped<CaptureWarSnapshotsUseCase>();
 builder.Services.AddScoped<CaptureWarBattlesUseCase>();
 builder.Services.AddScoped<SendRemindersUseCase>();
-builder.Services.AddScoped<SendPlanExpiryRemindersUseCase>();
 builder.Services.AddScoped<SendDailyReportUseCase>();
 builder.Services.AddScoped<SendFinalCallUseCase>();
 builder.Services.AddScoped<SendWarStartUseCase>();

@@ -15,11 +15,11 @@ export interface PlayerStatus {
   rank: number               // место в клане по славе
   status: PlayStatus
   isLinked: boolean
-  consecutiveWars: number    // Pro: недель подряд участвовал (0 = Free или не участвовал)
+  consecutiveWars: number    // недель подряд участвовал (0 — не участвовал)
   role?: string              // "leader" | "coLeader" | "elder" | undefined (рядовой)
   trophies: number           // кубки игрока (0 — состав клана не отдался)
-  dnaLabel?: string          // Pro: архетип ("Тащер 💪" и т.п.), undefined — мало данных/Free
-  reliabilityScore: number   // Pro: надёжность 0..100 (0 — нет данных/Free)
+  dnaLabel?: string          // архетип ("Тащер 💪" и т.п.), undefined — мало данных
+  reliabilityScore: number   // надёжность 0..100 (0 — нет данных)
   isSponsor?: boolean        // спонсор — ★ рядом с именем
   backgroundKey?: BackgroundKey | null  // оформление строки спонсора
   badgeKey?: string | null   // выставленный напоказ значок
@@ -39,7 +39,7 @@ export interface DisciplinePlayer {
   avgHoursBeforeEnd: number  // в среднем за сколько часов до конца отыгрывает
 }
 
-/* --- Разведка гонки (Pro): досье на кланы недели --- */
+/* --- Разведка гонки: досье на кланы недели --- */
 export interface ScoutClan {
   tag: string
   name: string
@@ -47,7 +47,7 @@ export interface ScoutClan {
   isOurClan: boolean
   currentFame: number
   dayPoints: number[]        // очки по завершённым дням этой недели
-  weeksTracked: number       // 0 — истории нет или урезано на Free
+  weeksTracked: number       // 0 — истории нет
   avgWeekFame: number
   bestWeekFame: number
   avgRank: number
@@ -59,11 +59,8 @@ export interface ScoutClan {
 }
 
 export interface RaceScout {
-  isPro: boolean
   weeksAnalyzed: number
   clans: ScoutClan[]
-  /** Код дразнилки для Free; null — дразнить нечем. */
-  freeTeaser: string | null
   /** С кем реально идёт борьба (по обычной силе, а не по сегодняшнему месту). */
   realRivalTag: string | null
 }
@@ -75,7 +72,7 @@ export interface ClanDiscipline {
   lastMinute: DisciplinePlayer[]
 }
 
-/** Pro-аналитика: шанс победы и здоровье клана. */
+/** Аналитика: шанс победы и здоровье клана. */
 export interface HealthFactor {
   name: string
   score: number              // 0..100
@@ -113,8 +110,6 @@ export interface ClanForecast {
   projectedDayFameLow: number   // -1σ нижняя граница прогноза дня
   projectedDayFameHigh: number  // +1σ верхняя граница прогноза дня
 }
-
-export type Plan = 'free' | 'pro'
 
 /** Один клан в таблице гонки недели. */
 export interface RaceClan {
@@ -238,12 +233,11 @@ export interface ClanStatus {
   periodIndex: number
   dayEndsAtUtc: string
   hoursLeft: number
-  plan: Plan
   stats: ClanStats
-  forecast: ClanForecast | null   // null на Free-тарифе
+  forecast: ClanForecast | null
   race: RaceClan[]                // ситуация в гонке (все кланы недели)
   players: PlayerStatus[]
-  insights: ClanInsights | null   // Pro-аналитика (null на Free)
+  insights: ClanInsights | null   // аналитика недели
   warLog: WarLogWeek[]            // журнал прошлых войн (места кланов и очки)
   dayLogs: WarDayLog[]            // официальный по-дневный лог гонки (periodLogs из API)
   myPlayerTag?: string       // тег текущего пользователя (если /my/status)
@@ -359,7 +353,7 @@ export interface MyStats {
   contributionPercent: number
   performanceLabel: string
   clanAvgFamePerAttack: number
-  season: MySeason | null    // null — Free или данных ещё нет
+  season: MySeason | null    // null — данных ещё нет
 }
 
 export interface NudgeResult {
@@ -370,7 +364,7 @@ export interface NudgeResult {
   postedToChat: boolean
 }
 
-/* --- История войн (Pro) --- */
+/* --- История войн --- */
 export interface DayHistory {
   periodIndex: number
   dayNumber: number          // 1..4
@@ -399,7 +393,7 @@ export interface ClanHistory {
   weeks: WeekHistory[]
 }
 
-/* --- Сезонный зачёт (Pro) --- */
+/* --- Сезонный зачёт --- */
 export interface SeasonPlayer {
   playerTag: string
   name: string
@@ -427,7 +421,7 @@ export interface SeasonArchive {
   seasons: SeasonArchiveEntry[]
 }
 
-/* --- Разбивка сезона по неделям (Pro): каждая война + общий зачёт --- */
+/* --- Разбивка сезона по неделям: каждая война + общий зачёт --- */
 export interface SeasonWeekPlayer {
   playerTag: string
   name: string
@@ -494,7 +488,7 @@ export interface PlayerProfile {
   wins: number
   losses: number
   maxCardLevel: number          // текущий потолок уровня карт в игре
-  analysis: PlayerAnalysis | null  // разбор под набор; null — не Pro или нет колоды
+  analysis: PlayerAnalysis | null  // разбор под набор; null — нет колоды
   royaleApiUrl: string
 }
 
@@ -615,8 +609,6 @@ export interface TopPlayerDetail {
 export interface OwnerStats {
   // Кланы
   totalClans: number
-  proClans: number
-  freeClans: number
   chatsWithBot: number
   activeClans7d: number
   silentClans: number
@@ -634,10 +626,6 @@ export interface OwnerStats {
   newUsers30d: number
   clansWithKnownDate: number
   usersWithKnownDate: number
-  // Pro
-  proExpiring7d: number
-  proExpired: number
-  proForever: number
   // Вовлечённость
   respects7d: number
   avgLinkedPerClan: number
@@ -685,9 +673,6 @@ export interface OwnerClan {
   id: number
   clanTag: string
   name: string
-  plan: Plan
-  planExpiresAtUtc: string | null
-  daysLeft: number | null       // сколько дней Pro осталось; null — бессрочно/Free
   linkedPlayers: number
   hasChat: boolean
   createdAtUtc: string | null
@@ -709,8 +694,6 @@ export interface OwnerClanDetail {
   id: number
   clanTag: string
   name: string
-  plan: Plan
-  planExpiresAtUtc: string | null
   telegramChatId: number
   telegramMessageThreadId: number | null
   createdAtUtc: string | null

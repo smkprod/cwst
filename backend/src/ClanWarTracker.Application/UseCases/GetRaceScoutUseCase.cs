@@ -26,13 +26,7 @@ public class GetRaceScoutUseCase(IClashRoyaleApi crApi, IMemoryCache cache)
     /// <summary>Военных колод за неделю: 4 дня × 4 колоды.</summary>
     private const int WarDecksPerWeek = 16;
 
-    /// <summary>Ниже этого темпа относительно своего обычного соперник «просел».</summary>
-    private const int BelowUsualThreshold = -15;
-
-    /// <summary>Разброс результатов, с которого клан считается непредсказуемым.</summary>
-    private const int UnstableThreshold = 50;
-
-    public async Task<RaceScoutDto?> ExecuteAsync(string clanTag, bool isPro, CancellationToken ct = default)
+    public async Task<RaceScoutDto?> ExecuteAsync(string clanTag, CancellationToken ct = default)
     {
         var war = await crApi.GetCurrentWarAsync(clanTag, ct);
         if (war is null) return null;
@@ -92,48 +86,9 @@ public class GetRaceScoutUseCase(IClashRoyaleApi crApi, IMemoryCache cache)
             .FirstOrDefault();
 
         return new RaceScoutDto(
-            IsPro: isPro,
             WeeksAnalyzed: weeksAnalyzed,
-            // На Free отдаём только то, что и так видно в таблице гонки: имена и места.
-            // Цифры разведки — платные, и прятать их надо на сервере, а не в интерфейсе.
-            Clans: isPro ? rows : rows.Select(Redact).ToList(),
-            FreeTeaser: isPro ? null : Teaser(rows, rivals),
-            RealRivalTag: isPro ? realRival?.Tag : null);
-    }
-
-    /// <summary>Оставляет только публичное: имя, место и текущие медали.</summary>
-    private static ScoutClanDto Redact(ScoutClanDto c) => c with
-    {
-        DayPoints = [],
-        WeeksTracked = 0,
-        AvgWeekFame = 0,
-        BestWeekFame = 0,
-        AvgRank = 0,
-        Volatility = 0,
-        AvgDecksPerPlayer = 0,
-        AvgParticipants = 0,
-        PaceVsUsualPercent = 0,
-        FadesLate = false,
-    };
-
-    /// <summary>
-    /// Код дразнилки для Free. Обещаем ровно то, что реально посчитано, — иначе
-    /// человек купит Pro и не найдёт внутри того, что ему показали.
-    /// null — сказать нечего, и тогда честнее промолчать.
-    /// </summary>
-    private static string? Teaser(List<ScoutClanDto> all, List<ScoutClanDto> rivals)
-    {
-        if (rivals.Any(r => r.WeeksTracked > 0 && r.PaceVsUsualPercent <= BelowUsualThreshold))
-            return "rivalBelowUsual";
-        if (rivals.Any(r => r.WeeksTracked >= 3 && r.Volatility >= UnstableThreshold))
-            return "rivalUnstable";
-
-        var ours = all.FirstOrDefault(r => r.IsOurClan);
-        var best = rivals.Where(r => r.WeeksTracked > 0).OrderByDescending(r => r.AvgWeekFame).FirstOrDefault();
-        if (ours is { WeeksTracked: > 0 } && best is not null && ours.AvgWeekFame > best.AvgWeekFame)
-            return "weAreStronger";
-
-        return rivals.Any(r => r.WeeksTracked > 0) ? "generic" : null;
+            Clans: rows,
+            RealRivalTag: realRival?.Tag);
     }
 
     /// <summary>

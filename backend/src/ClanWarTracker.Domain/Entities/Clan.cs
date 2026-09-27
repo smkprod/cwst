@@ -38,14 +38,13 @@ public class Clan
     /// </summary>
     public string? LastWarStartKey { get; set; }
 
-    // --- SaaS-тариф ---
+    // --- Бывший тариф Pro ---
+    // Тарифа больше нет: платная модель - спонсорство, всё, что закрывал Pro, открыто
+    // всем. Свойства остаются ТОЛЬКО ради колонок: в базах, созданных через
+    // EnsureCreated, они NOT NULL без значения по умолчанию, и если EF перестанет их
+    // писать, вставка нового клана упадёт - то есть сломается /setup. Не читать.
     public PlanTier PlanTier { get; set; } = PlanTier.Free;
-    public DateTime? PlanExpiresAtUtc { get; set; }      // null = бессрочно
-
-    /// <summary>
-    /// Какие стадии напоминания об окончании Pro уже отправлены за текущий оплаченный период.
-    /// Сбрасывается в None при каждом продлении Pro.
-    /// </summary>
+    public DateTime? PlanExpiresAtUtc { get; set; }
     public PlanReminderStage PlanReminderStageSent { get; set; } = PlanReminderStage.None;
 
     /// <summary>Когда клан подключили к боту. null — подключён до появления поля.</summary>
@@ -66,9 +65,4 @@ public class Clan
 
     public List<Player> Players { get; set; } = [];
 
-    /// <summary>Действующий тариф с учётом срока: просроченный Pro = Free.</summary>
-    public PlanTier EffectivePlan(DateTime utcNow) =>
-        PlanTier == PlanTier.Pro && (PlanExpiresAtUtc is null || PlanExpiresAtUtc > utcNow)
-            ? PlanTier.Pro
-            : PlanTier.Free;
 }

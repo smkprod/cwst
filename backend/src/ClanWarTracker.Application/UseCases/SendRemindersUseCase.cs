@@ -40,8 +40,6 @@ public class SendRemindersUseCase(
             if (timeLeft > TimeSpan.FromHours(clan.ReminderHoursBeforeEnd) || timeLeft <= TimeSpan.Zero)
                 continue;
 
-            var isPro = clan.EffectivePlan(now) == PlanTier.Pro;
-
             // Все привязанные игроки клана, отсортированы по Id (стабильный порядок)
             // Тег в чате работает по @username; для ЛС ниже отдельно нужен TelegramUserId
             var allLinked = (await players.GetByClanIdAsync(clan.Id, ct))
@@ -50,9 +48,9 @@ public class SendRemindersUseCase(
                 .GroupBy(p => p.PlayerTag, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
-            // Персональные DM — только Pro и если канал включает ЛС
+            // Личные напоминания — если канал включает ЛС.
             // В ЛС Telegram не даёт писать первым — нужен подтверждённый TelegramUserId
-            var allowedForDm = isPro && settings.Reminders.Channel.WantsDm()
+            var allowedForDm = settings.Reminders.Channel.WantsDm()
                 ? allLinked.Where(kv => kv.Value.TelegramUserId is not null)
                     .ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.OrdinalIgnoreCase)
                 : new Dictionary<string, Domain.Entities.Player>(StringComparer.OrdinalIgnoreCase);
@@ -104,11 +102,6 @@ public class SendRemindersUseCase(
                 var note = unlinked > 0 ? "\n\n" + string.Format(t.ReminderUnlinked, unlinked) : "";
                 parts.Add($"{t.ReminderChatTitle}\n\n{names}{note}");
             }
-
-            // Up-sell — только ВМЕСТЕ со сводкой по лентяям. Отдельно не шлём: когда все
-            // отыграли, голая реклама Pro в чате — это спам.
-            if (!isPro && allLinked.Count > 0 && parts.Count > 0)
-                parts.Add(t.ProUpsell);
 
             // Сводка в чат — один раз за военный день (ключ дня), а не каждый тик окна.
             var chatKey = $"{clan.Id}:{war.SeasonId}:{war.SectionIndex}:{war.PeriodIndex}";

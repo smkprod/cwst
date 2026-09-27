@@ -60,7 +60,7 @@ public class ClanController(
         var viewingAsAdmin = Acting is not null;
 
         return Ok(new { status.ClanTag, status.ClanName, status.PeriodType, status.PeriodIndex,
-                        status.DayEndsAtUtc, status.HoursLeft, status.Plan, status.Stats, status.Forecast,
+                        status.DayEndsAtUtc, status.HoursLeft, status.Stats, status.Forecast,
                         status.Race, status.Players, status.Insights, status.WarLog, status.DayLogs,
                         status.ClanBackgroundKey,
                         myPlayerTag = player.PlayerTag,
@@ -402,8 +402,6 @@ public class ClanController(
 
     /// <summary>
     /// GET /api/clans/my/scout — «Разведка гонки»: досье на каждый клан недели.
-    /// На Free возвращаются только имена и места (то же, что видно в таблице гонки)
-    /// плюс код дразнилки: цифры разведки режутся здесь, а не в интерфейсе.
     /// </summary>
     [HttpGet("my/scout")]
     public async Task<IActionResult> GetScout(CancellationToken ct)
@@ -411,9 +409,8 @@ public class ClanController(
         var (_, clan, error) = await ResolvePlayerClanAsync(ct);
         if (error is not null) return error;
 
-        var isPro = clan!.EffectivePlan(DateTime.UtcNow) == PlanTier.Pro;
         RaceScoutDto? scout;
-        try { scout = await getScout.ExecuteAsync(clan.ClanTag, isPro, ct); }
+        try { scout = await getScout.ExecuteAsync(clan!.ClanTag, ct); }
         catch (HttpRequestException ex) when ((int)(ex.StatusCode ?? 0) is >= 500 or 429)
             { return StatusCode(503, new { error = "cr_api_unavailable", message = ex.Message }); }
         catch (InvalidOperationException ex) when (ex.Message.Contains("CR API"))
@@ -471,9 +468,8 @@ public class ClanController(
         if (!ActingCanManage && !isAdmin && !isClanLeader)
             return StatusCode(403, new { error = "not_admin", message = "Пинать может только админ группы или лидер клана" });
 
-        var isPro = clan.EffectivePlan(DateTime.UtcNow) == PlanTier.Pro;
         NudgePlayersUseCase.NudgeResult? result;
-        try { result = await nudge.ExecuteAsync(clan.Id, isPro, ct); }
+        try { result = await nudge.ExecuteAsync(clan.Id, ct); }
         catch (HttpRequestException ex) when ((int)(ex.StatusCode ?? 0) is >= 500 or 429)
             { return StatusCode(503, new { error = "cr_api_unavailable", message = ex.Message }); }
         catch (InvalidOperationException ex) when (ex.Message.Contains("CR API"))

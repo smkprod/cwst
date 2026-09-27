@@ -274,11 +274,9 @@ export default function App() {
       )
     case 'ready': {
       const { data } = state
-      const isPro = data.plan === 'pro'
       const canManage = Boolean(data.isAdmin || data.isClanLeader)
       const notFinished = data.players.filter(p => p.status !== 'played').length
 
-      const isProLeader = Boolean(data.isClanLeader) && data.plan === 'pro'
 
       // Король недели считается один раз на оба экрана — иначе состав и рейтинг
       // однажды разойдутся в том, кого короновать.
@@ -328,17 +326,17 @@ export default function App() {
                 {/* Действие вперёд наблюдения: пока глава читает цифры, лентяи не отыграют.
                     Кнопка первой, чтобы пнуть можно было не пролистывая экран. */}
                 {canManage && data.periodType !== 'training' && (
-                  <NudgeButton notPlayedCount={notFinished} isPro={isPro} />
+                  <NudgeButton notPlayedCount={notFinished} />
                 )}
                 <ForecastCard forecast={data.forecast} stats={data.stats} periodType={data.periodType} />
                 <RaceCard race={data.race} periodType={data.periodType} />
                 {/* Разведка стоит вплотную к таблице гонки: таблица говорит, кто впереди
                     сейчас, разведка — чего эти кланы стоят вообще. Порознь они не работают. */}
-                <ScoutCard plan={data.plan} />
-                <DisciplineCard plan={data.plan} />
+                <ScoutCard />
+                <DisciplineCard />
                 <WarLogCard log={data.warLog} />
                 <WarJournalCard />
-                <InsightsCard insights={data.insights} plan={data.plan} players={data.players} dayLogs={data.dayLogs ?? []} warLog={data.warLog ?? []} race={data.race ?? []} periodType={data.periodType} periodIndex={data.periodIndex} hoursLeft={data.hoursLeft} />
+                <InsightsCard insights={data.insights} players={data.players} dayLogs={data.dayLogs ?? []} warLog={data.warLog ?? []} race={data.race ?? []} periodType={data.periodType} periodIndex={data.periodIndex} hoursLeft={data.hoursLeft} />
                 {/* Автонапоминания перенесены в ⚙️ «Уведомления» (шестерёнка в шапке) —
                     там же вкл/выкл, канал, часы и время окончания КВ. */}
               </div>
@@ -351,7 +349,7 @@ export default function App() {
             {tab === 'clan' && clanSection === 'rating' && (
               <div className="fade-in">
                 <ClanWorldRankCard />
-                <Leaderboard players={data.players} myPlayerTag={data.myPlayerTag} plan={data.plan} periodType={data.periodType} warLog={data.warLog ?? []} canManage={canManage} />
+                <Leaderboard players={data.players} myPlayerTag={data.myPlayerTag} periodType={data.periodType} warLog={data.warLog ?? []} canManage={canManage} />
                 <WorldTopEntry />
               </div>
             )}
@@ -372,9 +370,8 @@ export default function App() {
             )}
             {tab === 'more' && (
               <MoreView
-                plan={data.plan}
                 canManage={canManage}
-                isProLeader={isProLeader}
+                isLeader={Boolean(data.isClanLeader)}
                 onOpenNotifications={() => { haptic('light'); setSettingsOpen(true) }}
               />
             )}
@@ -440,12 +437,13 @@ export default function App() {
               <div className="fade-in">
                 <WarHeader status={data} />
                 {/* Тот же порядок, что и у своих, за вычетом того, чего гостю не положено:
-                    кнопки пинка (он не управляет кланом) и дисциплины (это Pro-ручка клана). */}
+                    кнопки пинка (он не управляет кланом) и дисциплины: она называет конкретных
+                    людей, которые не доигрывают, и посторонним её показывать незачем. */}
                 <StatsStrip stats={data.stats} />
                 <ForecastCard forecast={data.forecast} stats={data.stats} periodType={data.periodType} />
                 <RaceCard race={data.race} periodType={data.periodType} />
                 <WarLogCard log={data.warLog} />
-                <InsightsCard insights={data.insights} plan={data.plan} players={data.players} dayLogs={data.dayLogs ?? []} warLog={data.warLog ?? []} race={data.race ?? []} periodType={data.periodType} periodIndex={data.periodIndex} hoursLeft={data.hoursLeft} />
+                <InsightsCard insights={data.insights} players={data.players} dayLogs={data.dayLogs ?? []} warLog={data.warLog ?? []} race={data.race ?? []} periodType={data.periodType} periodIndex={data.periodIndex} hoursLeft={data.hoursLeft} />
                 <div style={{ height: 12 }} />
                 <LeaderCtaCard />
               </div>
@@ -457,7 +455,7 @@ export default function App() {
             )}
             {tab === 'clan' && clanSection === 'rating' && (
               <div className="fade-in">
-                <Leaderboard players={data.players} myPlayerTag={myPlayerTag} plan={data.plan} periodType={data.periodType} warLog={data.warLog ?? []} />
+                <Leaderboard players={data.players} myPlayerTag={myPlayerTag} periodType={data.periodType} warLog={data.warLog ?? []} />
                 <WorldTopEntry />
               </div>
             )}
@@ -479,9 +477,8 @@ export default function App() {
             {tab === 'more' && (
               // Гость клан не настраивает: уведомления и биржа лидера ему недоступны
               <MoreView
-                plan={data.plan}
                 canManage={false}
-                isProLeader={false}
+                isLeader={false}
                 onOpenNotifications={() => {}}
               />
             )}

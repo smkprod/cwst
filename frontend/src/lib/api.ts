@@ -267,12 +267,6 @@ export const api = {
   ownerGetStats: () => request<OwnerStats>('/api/owner/stats'),
   ownerGetClans: () => request<OwnerClan[]>('/api/owner/clans'),
   ownerGetClanDetail: (clanId: number) => request<OwnerClanDetail>(`/api/owner/clans/${clanId}`),
-  ownerSetPlan: (clanId: number, tier: 'pro' | 'free', days?: number) =>
-    request<{ ok: boolean }>(`/api/owner/clans/${clanId}/plan`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tier, days: days ?? null }),
-    }),
   ownerDeleteClan: (clanId: number) =>
     request<{ ok: boolean }>(`/api/owner/clans/${clanId}`, { method: 'DELETE' }),
   ownerBroadcast: (text: string, target: BroadcastTarget) =>

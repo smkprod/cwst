@@ -21,7 +21,7 @@ const ROLE_LABEL: Record<string, string> = {
 }
 
 type Section = 'overview' | 'clans' | 'broadcast' | 'moderators' | 'sponsors' | 'settings' | 'top' | 'campaigns'
-type ClanFilter = 'all' | 'pro' | 'free' | 'silent' | 'expiring'
+type ClanFilter = 'all' | 'silent'
 
 /** Сколько дней назад (для «активность» и «подключён»). null — даты нет. */
 function daysAgo(iso: string | null): number | null {
@@ -113,31 +113,26 @@ function Overview({ stats, clans }: { stats: OwnerStats; clans: OwnerClan[] }) {
   const conversion = stats.totalLinkedUsers > 0
     ? Math.round(stats.usersWithClan * 100 / stats.totalLinkedUsers)
     : 0
-  const proShare = stats.totalClans > 0
-    ? Math.round(stats.proClans * 100 / stats.totalClans)
+  // Доля живых кланов: тарифа больше нет, а то, пользуется ли
+  // клан ботом на самом деле, и есть главный признак, что сервис работает.
+  const activeShare = stats.totalClans > 0
+    ? Math.round(stats.activeClans7d * 100 / stats.totalClans)
     : 0
-  const expiring = clans.filter(c => c.daysLeft !== null && c.daysLeft <= 7)
   const silent = clans.filter(c => !c.isActive)
 
   return (
     <>
       {/* Главные три числа — то, что смотришь первым делом */}
       <div className="adm-hero">
-        <HeroStat value={stats.totalClans} label="кланов" sub={`${stats.proClans} PRO`} />
+        <HeroStat value={stats.totalClans} label="кланов" sub={`${stats.chatsWithBot} с чатом`} />
         <HeroStat value={stats.totalLinkedUsers} label="игроков" sub={`+${stats.newUsers7d} за неделю`} />
-        <HeroStat value={`${proShare}%`} label="на PRO" sub={`${stats.freeClans} на Free`} />
+        <HeroStat value={`${activeShare}%`} label="активны" sub={`${stats.silentClans} молчат`} />
       </div>
 
       {/* Требует внимания */}
-      {(expiring.length > 0 || silent.length > 0) && (
+      {silent.length > 0 && (
         <div className="card adm-alert-card">
           <p className="adm-block-title">⚠️ Требует внимания</p>
-          {expiring.length > 0 && (
-            <p className="adm-alert-row">
-              <b>{expiring.length}</b> клан(ов) с истекающим PRO:{' '}
-              <span className="muted">{expiring.map(c => c.name).join(', ')}</span>
-            </p>
-          )}
           {silent.length > 0 && (
             <p className="adm-alert-row">
               <b>{silent.length}</b> клан(ов) молчат больше недели:{' '}
@@ -185,8 +180,6 @@ function Overview({ stats, clans }: { stats: OwnerStats; clans: OwnerClan[] }) {
 
       <Block title="🏰 Кланы">
         <Row label="Всего подключено" value={stats.totalClans} />
-        <Row label="На PRO" value={stats.proClans} accent="good" />
-        <Row label="На Free" value={stats.freeClans} />
         <Row label="Активны за неделю" value={stats.activeClans7d} accent={stats.silentClans > 0 ? undefined : 'good'} />
         <Row label="Молчат больше недели" value={stats.silentClans} accent={stats.silentClans > 0 ? 'bad' : undefined} />
         <Row label="Подключён чат бота" value={stats.chatsWithBot} />
@@ -226,13 +219,6 @@ function Overview({ stats, clans }: { stats: OwnerStats; clans: OwnerClan[] }) {
           Считается только по записям с датой подключения: {stats.clansWithKnownDate} из {stats.totalClans} кланов,
           {' '}{stats.usersWithKnownDate} из {stats.totalLinkedUsers} игроков. У подключённых раньше даты нет.
         </p>
-      </Block>
-
-      <Block title="💎 PRO">
-        <Row label="Активных PRO" value={stats.proClans} accent="good" />
-        <Row label="Истекает в ближайшие 7 дней" value={stats.proExpiring7d} accent={stats.proExpiring7d > 0 ? 'warn' : undefined} />
-        <Row label="Уже истёк" value={stats.proExpired} accent={stats.proExpired > 0 ? 'bad' : undefined} />
-        <Row label="Бессрочный" value={stats.proForever} />
       </Block>
 
       <Block title="🔥 Вовлечённость">
@@ -282,19 +268,12 @@ function ClansSection({ clans, onChanged, can, t }: {
 
   const filters: { key: ClanFilter; label: string; count: number }[] = [
     { key: 'all', label: 'Все', count: clans.length },
-    { key: 'pro', label: 'PRO', count: clans.filter(c => c.plan === 'pro').length },
-    { key: 'free', label: 'Free', count: clans.filter(c => c.plan === 'free').length },
-    { key: 'expiring', label: 'Истекают', count: clans.filter(c => c.daysLeft !== null && c.daysLeft <= 7).length },
     { key: 'silent', label: 'Молчат', count: clans.filter(c => !c.isActive).length },
   ]
 
   const q = query.trim().toLowerCase()
   const shown = clans
-    .filter(c => filter === 'all'
-      || (filter === 'pro' && c.plan === 'pro')
-      || (filter === 'free' && c.plan === 'free')
-      || (filter === 'silent' && !c.isActive)
-      || (filter === 'expiring' && c.daysLeft !== null && c.daysLeft <= 7))
+    .filter(c => filter === 'all' || (filter === 'silent' && !c.isActive))
     .filter(c => q === '' || c.name.toLowerCase().includes(q) || c.clanTag.toLowerCase().includes(q))
 
   return (
@@ -344,16 +323,6 @@ function ClanCard({ clan: c, onChanged, can, t }: {
     }
   }
 
-  const setPlan = async (tier: 'pro' | 'free', days?: number) => {
-    haptic('medium')
-    setBusy(true)
-    try {
-      await api.ownerSetPlan(c.id, tier, days)
-      hapticNotify('success')
-      onChanged()
-    } catch { hapticNotify('error') } finally { setBusy(false) }
-  }
-
   const remove = async () => {
     haptic('medium')
     if (!confirmDelete) { setConfirmDelete(true); return }
@@ -364,8 +333,6 @@ function ClanCard({ clan: c, onChanged, can, t }: {
       onChanged()
     } catch { hapticNotify('error') } finally { setBusy(false); setConfirmDelete(false) }
   }
-
-  const expiringSoon = c.daysLeft !== null && c.daysLeft <= 7
 
   return (
     <li className="card owner-card">
@@ -384,12 +351,6 @@ function ClanCard({ clan: c, onChanged, can, t }: {
           </span>
         </div>
         <div className="adm-card-right">
-          <span className={`plan-badge ${c.plan === 'pro' ? 'plan-pro' : 'plan-free'}`}>
-            {c.plan === 'pro' ? 'PRO' : 'FREE'}
-          </span>
-          {c.daysLeft !== null && (
-            <span className={`muted small ${expiringSoon ? 'adm-warn' : ''}`}>{c.daysLeft} дн.</span>
-          )}
           <span className="muted small">{open ? '▲' : '▼'}</span>
         </div>
       </button>
@@ -455,12 +416,6 @@ function ClanCard({ clan: c, onChanged, can, t }: {
           </div>
 
           <div className="owner-actions">
-            {can('Plans') && <>
-            <button className="btn-mini" disabled={busy} onClick={() => setPlan('pro', 30)}>{t.owner.pro30}</button>
-            <button className="btn-mini" disabled={busy} onClick={() => setPlan('pro', 90)}>{t.owner.pro90}</button>
-            <button className="btn-mini" disabled={busy} onClick={() => setPlan('pro')}>{t.owner.proInf}</button>
-            <button className="btn-mini btn-mini-danger" disabled={busy} onClick={() => setPlan('free')}>{t.owner.free}</button>
-            </>}
             {can('DeleteClans') && <button
               className="btn-mini btn-mini-danger owner-delete"
               disabled={busy}
@@ -559,7 +514,9 @@ function BroadcastBox({ dmCount, chatCount, t }: { dmCount: number; chatCount: n
 /** Порядок в списке — от безобидного к опасному: галочки читают сверху вниз. */
 const PERMISSIONS: ServicePermission[] = [
   'EnterClans', 'ManageClans', 'ChatAdmin',
-  'Plans', 'Sponsors', 'Broadcast', 'DeleteClans',
+  // 'Plans' убран: тарифов больше нет. Сам флаг остаётся в типе — права хранятся
+  // числом, и выкинуть значение значило бы сдвинуть уже выданные модераторам права.
+  'Sponsors', 'Broadcast', 'DeleteClans',
   'Maintenance', 'AppSettings', 'ManageModerators',
 ]
 
