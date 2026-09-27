@@ -620,6 +620,67 @@ export interface MetaDecks {
   profileDecks?: TopProfileDeck[] | null
 }
 
+/* --- Личный разбор боёв --- */
+export interface ElixirLeak {
+  avgLeakWins: number
+  avgLeakLosses: number
+  avgLeakAll: number
+  games: number
+}
+
+export interface MyDeck {
+  cards: MetaCard[]
+  games: number
+  wins: number
+  winPercent: number
+  /** Процент побед такой же или похожей колоды у топа; null — в мете её нет. */
+  metaWinPercent: number | null
+  /** Сколько карт совпадает с колодой топа (8 — та же самая). */
+  metaSharedCards: number
+  metaGames: number
+  metaCounters: MetaCounter[]
+  copyLink: string | null
+}
+
+export interface TimeSlot {
+  /** night/morning/day/evening или '0'..'6' (пн..вс). */
+  key: string
+  games: number
+  winPercent: number
+}
+
+export interface Tilt {
+  afterTwoLossesGames: number
+  afterTwoLossesWinPercent: number
+  afterWinGames: number
+  afterWinWinPercent: number
+  longestLossStreak: number
+}
+
+export interface ToughCard {
+  card: MetaCard
+  games: number
+  winPercent: number
+  deltaPercent: number
+}
+
+export interface BattleAnalysis {
+  playerTag: string
+  games: number
+  wins: number
+  losses: number
+  draws: number
+  winPercent: number
+  sinceUtc: string | null
+  elixir: ElixirLeak | null
+  decks: MyDeck[]
+  dayParts: TimeSlot[]
+  weekdays: TimeSlot[]
+  tilt: Tilt | null
+  toughCards: ToughCard[]
+  metaBattles: number
+}
+
 export interface TopPlayerRow {
   rank: number
   playerTag: string

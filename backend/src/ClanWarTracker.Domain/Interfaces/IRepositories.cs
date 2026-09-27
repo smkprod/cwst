@@ -174,6 +174,21 @@ public interface ITopPlayerRepository
     Task<List<string>> DaysAsync(int limit, CancellationToken ct = default);
 }
 
+public interface IPlayerBattleRepository
+{
+    /// <summary>
+    /// Дописывает бои, которых ещё нет (ключ - игрок и время боя), и возвращает,
+    /// сколько добавлено. Журнал API перекрывается с прошлым чтением почти целиком.
+    /// </summary>
+    Task<int> AddNewAsync(string playerTag, IReadOnlyList<PlayerBattle> battles, CancellationToken ct = default);
+
+    /// <summary>Бои игрока начиная с момента, по времени.</summary>
+    Task<List<PlayerBattle>> GetSinceAsync(string playerTag, DateTime sinceUtc, CancellationToken ct = default);
+
+    /// <summary>Стирает бои старше момента. Возвращает, сколько стёрто.</summary>
+    Task<int> PurgeOlderThanAsync(DateTime utc, CancellationToken ct = default);
+}
+
 public interface IMetaRepository
 {
     /// <summary>
@@ -195,6 +210,12 @@ public interface IMetaRepository
 
     /// <summary>Самый свежий день с метой. null — меты ещё нет.</summary>
     Task<string?> LatestDayAsync(CancellationToken ct = default);
+
+    /// <summary>Колоды за окно, сложенные по дням в базе (DayUtc в ответе - начало окна).</summary>
+    Task<List<MetaDeckDay>> GetDeckTotalsSinceAsync(string fromDayUtc, CancellationToken ct = default);
+
+    /// <summary>Пары «карта против карты» за окно, сложенные по дням в базе.</summary>
+    Task<List<MetaMatchupDay>> GetMatchupTotalsSinceAsync(string fromDayUtc, CancellationToken ct = default);
 }
 
 public interface IRespectRepository

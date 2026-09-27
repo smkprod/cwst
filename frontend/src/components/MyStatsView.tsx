@@ -9,6 +9,7 @@ import { useT, perfLabel, type Translations } from '../lib/i18n'
 import { TournamentHistoryCard } from './TournamentHistoryCard'
 import { PlayerProfileCard } from './PlayerProfileCard'
 import { DecksButton } from './DecksButton'
+import { BattleAnalysisView } from './BattleAnalysisView'
 
 type State =
   | { kind: 'loading' }
@@ -21,7 +22,7 @@ type State =
  * (профиль, коллекция, подбор колод). Первое смотрят каждый военный день,
  * второе — раз в пару недель, и внизу простыни его никто не находил.
  */
-type Section = 'clan' | 'game'
+type Section = 'clan' | 'battles' | 'game'
 
 const PERF_META: Record<string, { emoji: string; cls: string }> = {
   'топ': { emoji: '🔥', cls: 'perf-top' },
@@ -81,6 +82,10 @@ export function MyStatsView() {
         onClick={() => switchTo('clan')}
       >{t.me.sectionClan}</button>
       <button
+        className={`me-section ${section === 'battles' ? 'me-section-on' : ''}`}
+        onClick={() => switchTo('battles')}
+      >{t.battles.section}</button>
+      <button
         className={`me-section ${section === 'game' ? 'me-section-on' : ''}`}
         onClick={() => switchTo('game')}
       >{t.me.sectionGame}</button>
@@ -114,7 +119,7 @@ export function MyStatsView() {
         {sectionTabs}
         {section === 'clan'
           ? <p className="center muted" style={{ margin: '24px 0 8px' }}>{state.message}</p>
-          : gameSection}
+          : section === 'battles' ? <BattleAnalysisView /> : gameSection}
       </div>
     )
   }
@@ -151,7 +156,7 @@ export function MyStatsView() {
 
       {sectionTabs}
 
-      {section === 'game' ? gameSection : (
+      {section === 'game' ? gameSection : section === 'battles' ? <BattleAnalysisView /> : (
       <div className="fade-in">
       <div className="card me-ring-card">
         <ContributionRing percent={s.contributionPercent} label={t.me.contrib} ariaLabel={t.me.contribAria} />
