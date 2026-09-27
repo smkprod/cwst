@@ -36,11 +36,6 @@ public class BotUpdateHandler(
         ? url
         : null;
 
-    /// <summary>Ожидающие рефералы: TG ID нового пользователя → TG ID пригласившего.
-    /// Заполняется при /start ref_&lt;id&gt; и расходуется при первой привязке тега.
-    /// In-memory: при перезапуске воркера незавершённые рефералы теряются — это допустимо.</summary>
-    private readonly ConcurrentDictionary<long, long> _pendingReferrals = new();
-
     /// <summary>
     /// Сколько сообщений обрабатываем одновременно. Telegram.Bot ждёт завершения
     /// обработчика, прежде чем взять следующее обновление, поэтому одна медленная
@@ -691,13 +686,11 @@ public class BotUpdateHandler(
                             return;
                         }
 
-                        // Реферальная ссылка: /start ref_<telegramId> — запоминаем пригласившего
-                        // до момента, когда новый пользователь пришлёт свой тег.
-                        if (arg is not null && arg.StartsWith("ref_", StringComparison.Ordinal)
-                            && long.TryParse(arg.AsSpan(4), out var refUserId) && refUserId != msg.From!.Id)
-                        {
-                            _pendingReferrals[msg.From!.Id] = refUserId;
-                        }
+                        // Откуда пришёл: /start ad_<код> — реклама, /start ref_<id> — реферал.
+                        // В базу, а не в память воркера: память терялась при каждом деплое,
+                        // а приложение, где тоже привязывают тег, её не видело вовсе.
+                        try { await sp.GetRequiredService<TrackStartUseCase>().ExecuteAsync(msg.From!.Id, arg, ct); }
+                        catch (Exception ex) { logger.LogWarning(ex, "Could not record start source {Arg}", arg); }
 
                         await bot.SendMessage(msg.Chat.Id, t.StartPrivate, cancellationToken: ct);
                     }
@@ -724,6 +717,13 @@ public class BotUpdateHandler(
                     if (!await IsAdminAsync(msg, ct)) { await Reply(msg, t.SetupOnlyAdmin, ct); return; }
                     var clanName = await sp.GetRequiredService<SetupClanUseCase>()
                         .ExecuteAsync(msg.Chat.Id, arg, msg.MessageThreadId, ct);
+                    // Главный шаг воронки: клан подключён. Засчитывается тому, кто
+                    // подключил, — если он пришёл по рекламе или реферальной ссылке.
+                    if (clanName is not null)
+                    {
+                        try { await sp.GetRequiredService<IAcquisitionRepository>().MarkClanConnectedAsync(msg.From!.Id, ct); }
+                        catch (Exception ex) { logger.LogWarning(ex, "Could not mark clan connected"); }
+                    }
                     var topicNote = msg.MessageThreadId is not null ? t.SetupTopicNote : "";
                     await Reply(msg, clanName is null
                         ? t.SetupClanNotFound
@@ -734,9 +734,9 @@ public class BotUpdateHandler(
                     if (arg is null) { await Reply(msg, t.LinkFormat, ct); return; }
                     var isPrivate = msg.Chat.Type == ChatType.Private;
                     var linkChatId = isPrivate ? (long?)null : msg.Chat.Id;
-                    var linkReferrer = _pendingReferrals.TryRemove(msg.From!.Id, out var lr) ? lr : (long?)null;
+                    // Пригласившего use case берёт из базы сам
                     var playerName = await sp.GetRequiredService<LinkPlayerUseCase>()
-                        .ExecuteAsync(msg.From!.Id, arg, linkChatId, linkReferrer, msg.From!.Username, ct);
+                        .ExecuteAsync(msg.From!.Id, arg, linkChatId, null, msg.From!.Username, ct);
                     await Reply(msg, playerName is null
                         ? t.LinkNotFound
                         : string.Format(isPrivate ? t.LinkOkPrivate : t.LinkOkGroup, playerName), ct);
@@ -975,9 +975,8 @@ public class BotUpdateHandler(
         var t = await TextForAsync(msg, sp, ct);
 
         // Привязываем игрока (без клана — из ЛС)
-        var quickReferrer = _pendingReferrals.TryRemove(msg.From!.Id, out var qr) ? qr : (long?)null;
         var playerName = await sp.GetRequiredService<LinkPlayerUseCase>()
-            .ExecuteAsync(msg.From!.Id, tag, null, quickReferrer, msg.From!.Username, ct);
+            .ExecuteAsync(msg.From!.Id, tag, null, null, msg.From!.Username, ct);
 
         if (playerName is null)
         {
