@@ -2797,3 +2797,93 @@ button.hall-step {
 .ba-tough-item { display: flex; flex-direction: column; align-items: center; gap: 3px; }
 .ba-tough-item .wtop-deck-card { width: 56px; }
 .ba-tough-pct { font-size: 15px; font-weight: 800; }
+
+/* ===== Единая карточка игрока ===== */
+.psheet-modal { padding-top: 6px; }
+.psheet { display: flex; flex-direction: column; gap: 10px; }
+
+/* Шапка: у спонсора — его фон под вуалью, у остальных — фирменный градиент */
+.psheet-hero {
+  position: relative; overflow: hidden; border-radius: 16px; padding: 14px 14px 12px;
+  background: linear-gradient(135deg, rgba(156, 107, 255, 0.22), rgba(255, 122, 69, 0.12)), var(--bg-card);
+  background-size: cover; background-position: center;
+}
+.psheet-hero-bg { min-height: 170px; }
+.psheet-hero-veil {
+  position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.25) 0%, rgba(0, 0, 0, 0.55) 55%, rgba(0, 0, 0, 0.8) 100%);
+}
+.psheet-hero > *:not(.psheet-hero-veil) { position: relative; z-index: 1; }
+.psheet-hero-top { display: flex; align-items: flex-start; gap: 10px; }
+.psheet-id { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.psheet-name {
+  margin: 0; font-size: 21px; font-weight: 800; line-height: 1.2; color: #fff;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px; word-break: break-word;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+.psheet-tag { align-self: flex-start; color: rgba(255, 255, 255, 0.75); }
+.psheet-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.psheet-chip {
+  display: inline-flex; align-items: center; gap: 4px; padding: 4px 9px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; color: #fff; border: none;
+  background: rgba(255, 255, 255, 0.12); backdrop-filter: blur(4px);
+}
+.psheet-chip-clan { cursor: pointer; background: rgba(156, 107, 255, 0.35); }
+.psheet-chip-gold { background: rgba(255, 196, 0, 0.25); color: #ffd54a; }
+.psheet-hero-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 12px; }
+.psheet-hero-stat {
+  display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 8px 4px;
+  border-radius: 12px; background: rgba(0, 0, 0, 0.28); text-align: center;
+}
+.psheet-hero-stat-accent { background: rgba(156, 107, 255, 0.35); }
+.psheet-hero-value { font-size: 18px; font-weight: 800; color: #fff; line-height: 1.1; }
+.psheet-hero-label { font-size: 11px; font-weight: 600; color: rgba(255, 255, 255, 0.8); }
+.psheet-hero-sub { font-size: 10px; color: rgba(255, 255, 255, 0.65); }
+
+.psheet-tabs {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 4px;
+  border-radius: 12px; background: var(--bg-card);
+  position: sticky; top: -8px; z-index: 2;
+}
+.psheet-tab {
+  padding: 8px 2px; border: none; border-radius: 9px; cursor: pointer;
+  background: transparent; color: var(--muted); font-size: 13px; font-weight: 700;
+}
+.psheet-tab-on { background: var(--accent); color: #fff; }
+
+.psheet-block { padding: 10px 12px; border-radius: 14px; background: var(--bg-card); margin-bottom: 10px; }
+.psheet-block-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.psheet-block-title { font-size: 14px; font-weight: 800; }
+.psheet-note { margin: 0 0 10px; font-size: 13px; }
+.psheet-facts { display: flex; flex-wrap: wrap; gap: 12px; margin: 10px 0; }
+.psheet-fact { display: inline-flex; align-items: center; gap: 8px; }
+.psheet-fact .wtop-deck-card { width: 40px; }
+.psheet-streak { flex-direction: column; align-items: flex-start; gap: 0; }
+.psheet-streak b { font-size: 17px; }
+.psheet-royaleapi { align-self: center; margin-top: 4px; }
+
+.psheet-war-bars { display: flex; align-items: flex-end; gap: 3px; height: 54px; margin-bottom: 8px; }
+.psheet-war-bar { flex: 1; height: 100%; display: flex; align-items: flex-end; }
+.psheet-war-fill { display: block; width: 100%; border-radius: 3px 3px 0 0; background: linear-gradient(180deg, var(--accent), rgba(156, 107, 255, 0.4)); }
+
+.psheet-battle { border-radius: 12px; background: var(--bg-card); margin-bottom: 8px; border-left: 3px solid var(--muted); overflow: hidden; }
+.psheet-battle-win { border-left-color: var(--green); }
+.psheet-battle-loss { border-left-color: var(--red); }
+.psheet-battle-head {
+  width: 100%; display: flex; align-items: center; gap: 10px; padding: 9px 10px 2px;
+  border: none; background: none; color: var(--text); text-align: left; cursor: pointer;
+}
+.psheet-battle-score { font-size: 18px; font-weight: 800; min-width: 38px; }
+.psheet-battle-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.psheet-battle-result { font-size: 14px; font-weight: 700; }
+.psheet-battle-win .psheet-battle-result { color: var(--green); }
+.psheet-battle-loss .psheet-battle-result { color: var(--red); }
+.psheet-battle-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.psheet-battle-chevron { color: var(--muted); }
+.psheet-battle-opp { padding: 0 10px 9px 58px; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.psheet-link { border: none; background: none; padding: 0; color: var(--accent); font: inherit; font-weight: 700; cursor: pointer; }
+.psheet-battle-decks { padding: 0 10px 10px; display: flex; flex-direction: column; gap: 4px; }
+.psheet-cards .card { margin-left: 0; margin-right: 0; }
+/* Любая строка с игроком открывает его единую карточку */
+.row-tap { cursor: pointer; }
+.row-tap:active { opacity: 0.75; }

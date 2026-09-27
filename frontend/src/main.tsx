@@ -5,6 +5,7 @@ import { initTelegram } from './lib/telegram'
 import { ensureBotUsername } from './lib/botUsername'
 import { LangProvider } from './lib/i18n'
 import { ClanModalProvider } from './lib/clanModal'
+import { PlayerSheetProvider } from './lib/playerSheet'
 import './styles.css'
 
 initTelegram()
@@ -16,9 +17,11 @@ void ensureBotUsername()
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <LangProvider>
-      <ClanModalProvider>
-        <App />
-      </ClanModalProvider>
+      <PlayerSheetProvider>
+        <ClanModalProvider>
+          <App />
+        </ClanModalProvider>
+      </PlayerSheetProvider>
     </LangProvider>
   </React.StrictMode>,
 )

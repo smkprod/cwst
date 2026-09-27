@@ -1,21 +1,15 @@
 import { useEffect, useState } from 'react'
-import { api, ApiError } from '../lib/api'
-import type { PlayerProfile, RecruitmentCandidate } from '../types'
+import { api } from '../lib/api'
+import type { RecruitmentCandidate } from '../types'
 import { fmt } from '../lib/format'
 import { haptic } from '../lib/telegram'
 import { useT } from '../lib/i18n'
-import { PlayerProfileCard } from './PlayerProfileCard'
+import { usePlayerSheet } from '../lib/playerSheet'
 
 type BoardState = { kind: 'loading' } | { kind: 'error' } | { kind: 'ready'; candidates: RecruitmentCandidate[] }
-type View =
-  | { kind: 'board' }
-  | { kind: 'profile_loading'; playerTag: string }
-  | { kind: 'profile'; profile: PlayerProfile }
-  | { kind: 'profile_error'; playerTag: string }
 
 export function RecruitBoard() {
   const [boardState, setBoardState] = useState<BoardState>({ kind: 'loading' })
-  const [view, setView] = useState<View>({ kind: 'board' })
   const { t } = useT()
 
   useEffect(() => {
@@ -24,52 +18,8 @@ export function RecruitBoard() {
       .catch(() => setBoardState({ kind: 'error' }))
   }, [])
 
-  const openProfile = async (candidate: RecruitmentCandidate) => {
-    haptic('light')
-    setView({ kind: 'profile_loading', playerTag: candidate.playerTag })
-    try {
-      const profile = await api.getPlayerProfile(candidate.playerTag)
-      setView({ kind: 'profile', profile })
-    } catch (e) {
-      if (e instanceof ApiError && e.code === 'player_not_found') {
-        setView({ kind: 'profile_error', playerTag: candidate.playerTag })
-      } else {
-        setView({ kind: 'profile_error', playerTag: candidate.playerTag })
-      }
-    }
-  }
-
-  const backToBoard = () => {
-    haptic('light')
-    setView({ kind: 'board' })
-  }
-
-  if (view.kind === 'profile_loading') {
-    return (
-      <div>
-        <button className="btn-back" onClick={backToBoard}>← {t.recruit.back}</button>
-        <div className="center" style={{ marginTop: 24 }}><div className="spinner" /></div>
-      </div>
-    )
-  }
-
-  if (view.kind === 'profile_error') {
-    return (
-      <div>
-        <button className="btn-back" onClick={backToBoard}>← {t.recruit.back}</button>
-        <p className="center muted" style={{ marginTop: 24 }}>{t.search.notFound}</p>
-      </div>
-    )
-  }
-
-  if (view.kind === 'profile') {
-    return (
-      <div>
-        <button className="btn-back" onClick={backToBoard}>← {t.recruit.back}</button>
-        <PlayerProfileCard profile={view.profile} />
-      </div>
-    )
-  }
+  const openSheet = usePlayerSheet()
+  const openProfile = (candidate: RecruitmentCandidate) => openSheet(candidate.playerTag)
 
   // Board view
   if (boardState.kind === 'loading') return <div className="center"><div className="spinner" /></div>

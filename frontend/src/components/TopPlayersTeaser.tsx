@@ -3,6 +3,7 @@ import { api } from '../lib/api'
 import type { GlobalTop } from '../types'
 import { fmt } from '../lib/format'
 import { useT } from '../lib/i18n'
+import { usePlayerSheet } from '../lib/playerSheet'
 
 /**
  * Живой топ-3 игроков сервиса для стартовых экранов (гость / без клана).
@@ -11,6 +12,7 @@ import { useT } from '../lib/i18n'
  * При ошибке API тихо не рендерится (стартовый экран не ломаем).
  */
 export function TopPlayersTeaser() {
+  const openSheet = usePlayerSheet()
   const [top, setTop] = useState<GlobalTop | null>(null)
   const { t } = useT()
 
@@ -26,7 +28,7 @@ export function TopPlayersTeaser() {
       <div className="card-title">{t.guest.topTitle}</div>
       <ul className="teaser-list">
         {top.players.slice(0, 3).map((p, i) => (
-          <li key={p.playerTag} className="teaser-row">
+          <li key={p.playerTag} className="teaser-row row-tap" onClick={() => openSheet(p.playerTag)}>
             <span className="teaser-medal">{medals[i]}</span>
             <span className="teaser-name">
               {p.name}
