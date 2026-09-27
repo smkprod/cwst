@@ -43,19 +43,32 @@ public static class SponsorSales
     /// владелец может поменять цену, пока человек держит счёт открытым, и тогда
     /// честно выдать ровно то, что было написано на кнопке, за ровно ту сумму,
     /// которую он согласился заплатить.
+    ///
+    /// Получатель - номер строки, а не тег. Тег не уникален: у игрока по строке на
+    /// каждый клан, где он бывал, и первая же оплата по тегу записала спонсорство
+    /// в чужую старую строку. Звёзды списались, а звезды у игрока не появилось.
     /// </summary>
-    public static string Payload(string playerTag, int days, int stars) =>
-        $"sp|{playerTag}|{days}|{stars}";
+    public static string Payload(int playerId, int days, int stars) =>
+        $"sp|{playerId}|{days}|{stars}";
 
-    public static bool TryParse(string? payload, out string playerTag, out int days, out int stars)
+    /// <param name="PlayerId">Строка игрока. null - счёт старого формата, где вместо неё тег.</param>
+    /// <param name="PlayerTag">Тег из счёта старого формата.</param>
+    public record Parsed(int? PlayerId, string? PlayerTag, int Days, int Stars);
+
+    /// <summary>
+    /// Разбор счёта. Понимает и старый формат с тегом: счета, выставленные до
+    /// перехода на номер строки, ещё могут быть открыты у людей, и оплата по ним
+    /// обязана пройти, а не упасть на «счёт повреждён».
+    /// </summary>
+    public static Parsed? Parse(string? payload)
     {
-        playerTag = "";
-        days = stars = 0;
         var parts = payload?.Split('|');
-        if (parts is not ["sp", var tag, var d, var s]) return false;
-        if (!int.TryParse(d, out days) || !int.TryParse(s, out stars)) return false;
-        if (string.IsNullOrWhiteSpace(tag) || days <= 0 || stars <= 0) return false;
-        playerTag = tag;
-        return true;
+        if (parts is not ["sp", var who, var d, var s]) return null;
+        if (!int.TryParse(d, out var days) || !int.TryParse(s, out var stars)) return null;
+        if (days <= 0 || stars <= 0) return null;
+
+        if (int.TryParse(who, out var id) && id > 0) return new Parsed(id, null, days, stars);
+        if (who.Length > 1 && who[0] == '#') return new Parsed(null, who, days, stars);
+        return null;
     }
 }

@@ -41,6 +41,14 @@ public interface IPlayerRepository
     /// записи, и правка в них тихо теряется при сохранении.
     /// </summary>
     Task<Player?> GetByTagAsync(string playerTag, CancellationToken ct = default);
+
+    /// <summary>
+    /// Игрок по номеру строки — отслеживаемый.
+    ///
+    /// Точнее тега: тег не уникален, у игрока по строке на каждый клан, где он
+    /// бывал. Где известна конкретная строка (счёт на оплату), искать надо по ней.
+    /// </summary>
+    Task<Player?> GetByIdAsync(int id, CancellationToken ct = default);
     Task AddAsync(Player player, CancellationToken ct = default);
     Task SaveChangesAsync(CancellationToken ct = default);
 }

@@ -110,11 +110,21 @@ public class GetHallOfFameUseCase(
         // Привязки и спонсорство подтягиваем одним заходом: ходить в базу на
         // каждого из сотни игроков — это сотня запросов ради одной таблицы.
         var linked = await players.GetAllLinkedAsync(ct);
+        var now = DateTime.UtcNow;
+
+        // У одного тега бывает несколько строк - по одной на каждый клан, где игрок
+        // бывал. First() брал любую, и у спонсора на Аллее могла оказаться строка
+        // без звезды и фона. Берём ту, где спонсорство, потом привязанную к самому
+        // человеку.
         var byTag = linked
             .GroupBy(p => p.PlayerTag, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
-
-        var now = DateTime.UtcNow;
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderByDescending(p => p.IsSponsor(now))
+                      .ThenByDescending(p => p.TelegramUserId != null)
+                      .ThenBy(p => p.Id)
+                      .First(),
+                StringComparer.OrdinalIgnoreCase);
 
         var topPlayers = playerRows
             .OrderByDescending(r => r.Fame)
