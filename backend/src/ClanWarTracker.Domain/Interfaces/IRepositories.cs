@@ -174,6 +174,29 @@ public interface ITopPlayerRepository
     Task<List<string>> DaysAsync(int limit, CancellationToken ct = default);
 }
 
+public interface IMetaRepository
+{
+    /// <summary>
+    /// Записывает мету дня целиком, заменяя прежнюю за ту же дату, и стирает дни
+    /// старше <paramref name="keepFromDayUtc"/>.
+    /// </summary>
+    Task ReplaceDayAsync(
+        string dayUtc,
+        IReadOnlyList<MetaDeckDay> decks,
+        IReadOnlyList<MetaMatchupDay> matchups,
+        string keepFromDayUtc,
+        CancellationToken ct = default);
+
+    /// <summary>Колоды за дни начиная с <paramref name="fromDayUtc"/> включительно.</summary>
+    Task<List<MetaDeckDay>> GetDecksSinceAsync(string fromDayUtc, CancellationToken ct = default);
+
+    /// <summary>Пары «карта против карты» за дни начиная с <paramref name="fromDayUtc"/>.</summary>
+    Task<List<MetaMatchupDay>> GetMatchupsSinceAsync(string fromDayUtc, CancellationToken ct = default);
+
+    /// <summary>Самый свежий день с метой. null — меты ещё нет.</summary>
+    Task<string?> LatestDayAsync(CancellationToken ct = default);
+}
+
 public interface IRespectRepository
 {
     /// <summary>Респект игрока за конкретный день (лимит «1 в сутки»). null — ещё не давал.</summary>

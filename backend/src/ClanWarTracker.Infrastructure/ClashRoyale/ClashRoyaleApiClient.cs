@@ -1272,6 +1272,8 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
                     OpponentTags = (b.Opponent ?? []).Select(x => x.Tag).Where(x => x is not null).ToList(),
                     MyDeck = Deck(me.Cards),
                     OpponentDeck = Deck(opp?.Cards),
+                    ElixirLeaked = me.ElixirLeaked,
+                    TrophyChange = me.TrophyChange,
                 });
             }
             return result;
@@ -1311,7 +1313,11 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         [property: JsonPropertyName("name")] string Name,
         [property: JsonPropertyName("crowns")] int Crowns,
         // Колода в ответе была всегда — просто раньше её выбрасывали за ненадобностью
-        [property: JsonPropertyName("cards")] List<CardResponse>? Cards = null);
+        [property: JsonPropertyName("cards")] List<CardResponse>? Cards = null,
+        // Для разбора боёв. Необязательные: в части режимов API их не присылает, и
+        // отсутствие поля не должно ронять разбор всего журнала.
+        [property: JsonPropertyName("elixirLeaked")] double? ElixirLeaked = null,
+        [property: JsonPropertyName("trophyChange")] int? TrophyChange = null);
 
     private record NamedEntity([property: JsonPropertyName("name")] string Name);
     private record ClanProfile([property: JsonPropertyName("clanWarTrophies")] int? ClanWarTrophies);

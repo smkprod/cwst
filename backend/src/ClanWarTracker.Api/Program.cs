@@ -26,6 +26,7 @@ builder.Services.AddScoped<AnnounceAchievementUseCase>();
 // Сбор снимка топа живёт в воркере, но владельцу нужна ручка, чтобы запустить его
 // руками и сразу увидеть причину, когда снимок не собирается.
 builder.Services.AddScoped<HarvestTopPlayersUseCase>();
+builder.Services.AddScoped<GetMetaDecksUseCase>();
 builder.Services.AddScoped<GetRaceScoutUseCase>();
 builder.Services.AddScoped<GetPlayerStatsUseCase>();
 builder.Services.AddScoped<GetClanHistoryUseCase>();

@@ -6,10 +6,11 @@ import { haptic } from '../lib/telegram'
 import { useT, type Translations } from '../lib/i18n'
 import { DeckStrip } from './DeckStrip'
 import { TopPlayerModal } from './TopPlayerModal'
+import { MetaDecksView } from './MetaDecksView'
 
 const PAGE = 50
 
-type Section = 'meta' | 'list'
+type Section = 'decks' | 'meta' | 'list'
 
 /**
  * Мировой топ: тысяча лучших игроков планеты, их колоды и мета.
@@ -24,7 +25,7 @@ export function WorldTopView() {
   const { t } = useT()
   const [meta, setMeta] = useState<TopMeta | null>(null)
   const [state, setState] = useState<'loading' | 'ready' | 'empty' | 'error'>('loading')
-  const [section, setSection] = useState<Section>('meta')
+  const [section, setSection] = useState<Section>('decks')
   const [openTag, setOpenTag] = useState<string | null>(null)
 
   useEffect(() => {
@@ -75,6 +76,12 @@ export function WorldTopView() {
 
       <div className="wtop-tabs">
         <button
+          className={`wtop-tab ${section === 'decks' ? 'wtop-tab-on' : ''}`}
+          onClick={() => { haptic('light'); setSection('decks') }}
+        >
+          🔥 {t.worldTop.tabDecks}
+        </button>
+        <button
           className={`wtop-tab ${section === 'meta' ? 'wtop-tab-on' : ''}`}
           onClick={() => { haptic('light'); setSection('meta') }}
         >
@@ -88,7 +95,9 @@ export function WorldTopView() {
         </button>
       </div>
 
-      {section === 'meta' ? <MetaCards meta={meta} t={t} /> : <TopList t={t} onOpen={setOpenTag} />}
+      {section === 'decks' && <MetaDecksView t={t} />}
+      {section === 'meta' && <MetaCards meta={meta} t={t} />}
+      {section === 'list' && <TopList t={t} onOpen={setOpenTag} />}
 
       {openTag && <TopPlayerModal tag={openTag} onClose={() => setOpenTag(null)} />}
     </div>

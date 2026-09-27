@@ -131,7 +131,7 @@ public class OwnerController(
         if (await DenyAsync(ServicePermission.Maintenance, ct) is { } deny) return deny;
 
         var result = await harvestTop.ExecuteAsync(force: true, ct: ct);
-        return Ok(new { rows = result.Rows, problem = result.Skipped });
+        return Ok(new { rows = result.Rows, problem = result.Skipped, meta = result.Meta });
     }
 
     /// <summary>
@@ -156,6 +156,7 @@ public class OwnerController(
             lastAttemptAtUtc = last?.AtUtc,
             lastRows = last?.Rows ?? 0,
             lastProblem = last?.Problem,
+            lastMeta = last?.Meta,
         });
     }
 

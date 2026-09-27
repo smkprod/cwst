@@ -1,4 +1,5 @@
 using System.Text.Json;
+using ClanWarTracker.Application.Meta;
 using ClanWarTracker.Domain.Entities;
 using ClanWarTracker.Domain.Interfaces;
 
@@ -19,6 +20,7 @@ namespace ClanWarTracker.Application.UseCases;
 public class HarvestTopPlayersUseCase(
     IClashRoyaleApi crApi,
     ITopPlayerRepository top,
+    IMetaRepository meta,
     IServiceSettingRepository settings)
 {
     /// <summary>
@@ -33,7 +35,8 @@ public class HarvestTopPlayersUseCase(
 
     /// <param name="Rows">Сколько строк записала последняя попытка.</param>
     /// <param name="Problem">Причина, если снимка не вышло. null — вышел.</param>
-    public record LastHarvest(DateTime AtUtc, int Rows, string? Problem);
+    /// <param name="Meta">Итог сбора меты по боям: сколько боёв и колод вошло или почему нет.</param>
+    public record LastHarvest(DateTime AtUtc, int Rows, string? Problem, string? Meta = null);
 
     /// <summary>Потолок самого API: больше тысячи мест rankings не отдаёт.</summary>
     public const int TopSize = 1000;
@@ -45,12 +48,28 @@ public class HarvestTopPlayersUseCase(
     /// </summary>
     private const int Parallelism = 5;
 
+    /// <summary>
+    /// Чьи журналы боёв читаем для меты. Не вся тысяча: это ещё тысяча запросов
+    /// поверх профилей, а сбор из панели идёт внутри HTTP-запроса. Пятьсот журналов
+    /// по 25 боёв - больше десяти тысяч боёв в день, для процентов побед хватает.
+    /// </summary>
+    public const int MetaPlayers = 500;
+
+    /// <summary>Сколько дней меты храним. Витрина считает окно в неделю.</summary>
+    public const int MetaKeepDays = 7;
+
+    /// <summary>
+    /// Колоду, сыгранную за день один раз, не храним: она ничего не скажет ни о
+    /// проценте побед, ни о популярности, а таких колод большинство.
+    /// </summary>
+    private const int MinDeckGamesPerDay = 2;
+
     /// <param name="Rows">Сколько строк записано.</param>
     /// <param name="Skipped">
     /// Почему снимка не вышло. null — вышел. «Уже есть за сегодня» — тоже причина,
     /// но штатная, поэтому она отделена флагом <paramref name="AlreadyDone"/>.
     /// </param>
-    public record HarvestResult(int Rows, string? Skipped, bool AlreadyDone = false)
+    public record HarvestResult(int Rows, string? Skipped, bool AlreadyDone = false, string? Meta = null)
     {
         public static readonly HarvestResult Done = new(0, "снимок за сегодня уже есть", AlreadyDone: true);
     }
@@ -75,6 +94,8 @@ public class HarvestTopPlayersUseCase(
             .ToList();
 
         var rows = new TopPlayer[ranking.Count];
+        var logs = new List<CrRecentBattle>?[ranking.Count];
+        var logFailures = 0;
         using var gate = new SemaphoreSlim(Parallelism);
 
         await Task.WhenAll(ranking.Select(async (r, i) =>
@@ -97,12 +118,74 @@ public class HarvestTopPlayersUseCase(
                     ExpLevel = info?.ExpLevel ?? 0,
                     DeckCardIds = Pack(info?.CurrentDeck),
                 };
+
+                if (i < MetaPlayers)
+                {
+                    try { logs[i] = await crApi.GetRecentBattlesAsync(r.Tag, ct); }
+                    catch { Interlocked.Increment(ref logFailures); }
+                }
             }
             finally { gate.Release(); }
         }));
 
         await top.ReplaceDayAsync(day, rows, ct);
-        return await RememberAsync(new HarvestResult(rows.Length, null), ct);
+        var metaNote = await SaveMetaAsync(day, logs, logFailures, ct);
+        return await RememberAsync(new HarvestResult(rows.Length, null, Meta: metaNote), ct);
+    }
+
+    /// <summary>
+    /// Мета дня из журналов боёв. Отдельно от снимка мест: сломайся она, места и
+    /// колоды профилей уже записаны, и витрина топа работает как раньше.
+    /// </summary>
+    private async Task<string> SaveMetaAsync(
+        string day, List<CrRecentBattle>?[] logs, int failures, CancellationToken ct)
+    {
+        try
+        {
+            // Только последние сутки: снимок раз в день, и бой, попавший во вчерашний
+            // снимок, в сегодняшнем посчитался бы второй раз.
+            var since = DateTime.UtcNow.AddHours(-24);
+            var battles = logs
+                .Where(l => l is not null)
+                .SelectMany(l => l!)
+                .Where(b => b.BattleTimeUtc >= since);
+
+            var result = MetaAggregator.Build(battles);
+
+            var decks = result.Decks
+                .Where(kv => kv.Value.Games >= MinDeckGamesPerDay)
+                .Select(kv => new MetaDeckDay
+                {
+                    DayUtc = day,
+                    DeckKey = kv.Key,
+                    Games = kv.Value.Games,
+                    Wins = kv.Value.Wins,
+                    Draws = kv.Value.Draws,
+                })
+                .ToList();
+
+            var matchups = result.Matchups
+                .Select(kv => new MetaMatchupDay
+                {
+                    DayUtc = day,
+                    CardKey = kv.Key.Card,
+                    OppCardKey = kv.Key.Opp,
+                    Games = kv.Value.Games,
+                    Wins = kv.Value.Wins,
+                })
+                .ToList();
+
+            var keepFrom = DateOnly.Parse(day).AddDays(-(MetaKeepDays - 1)).ToString("yyyy-MM-dd");
+            await meta.ReplaceDayAsync(day, decks, matchups, keepFrom, ct);
+
+            var read = logs.Count(l => l is not null);
+            return $"мета: журналов {read}, не открылось {failures}, боёв {result.Battles}, " +
+                   $"колод {decks.Count}, пар карт {matchups.Count}";
+        }
+        catch (Exception ex)
+        {
+            return $"мета не собралась: {ex.GetType().Name}: {ex.Message}";
+        }
     }
 
     /// <summary>
@@ -115,7 +198,7 @@ public class HarvestTopPlayersUseCase(
     {
         try
         {
-            var record = new LastHarvest(DateTime.UtcNow, result.Rows, result.Skipped);
+            var record = new LastHarvest(DateTime.UtcNow, result.Rows, result.Skipped, result.Meta);
             await settings.SetAsync(LastHarvestKey, JsonSerializer.Serialize(record), ct);
         }
         catch { /* диагностика не обязана работать, чтобы работал сбор */ }
