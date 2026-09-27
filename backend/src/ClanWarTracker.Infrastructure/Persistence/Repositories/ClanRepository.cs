@@ -65,7 +65,20 @@ public class PlayerRepository(AppDbContext db) : IPlayerRepository
             // Без учёта регистра: прежний поиск по списку сравнивал именно так, и
             // запись, заведённая до нормализации тегов, иначе просто не нашлась бы.
             // Таблица в сотни строк, потеря индекса тут ничего не стоит.
-            .FirstOrDefaultAsync(p => p.PlayerTag.ToUpper() == playerTag.ToUpper(), ct);
+            .Where(p => p.PlayerTag.ToUpper() == playerTag.ToUpper())
+            // Тег НЕ уникален: у игрока по строке на каждый клан, где он бывал, а
+            // слияние дублей работает только внутри одного клана. Без порядка база
+            // отдавала любую из строк - и спонсорство, оплаченное звёздами, ушло в
+            // старую строку из чужого клана, которую приложение не читает. Звёзды
+            // списались, звезды у игрока не появилось. Первой берём строку, к
+            // которой привязан сам человек, потом привязанную главой, потом раннюю.
+            .OrderByDescending(p => p.TelegramUserId != null)
+            .ThenByDescending(p => p.TelegramUsername != null)
+            .ThenBy(p => p.Id)
+            .FirstOrDefaultAsync(ct);
+
+    public Task<Player?> GetByIdAsync(int id, CancellationToken ct = default) =>
+        db.Players.Include(p => p.Clan).FirstOrDefaultAsync(p => p.Id == id, ct);
 
     public async Task AddAsync(Player player, CancellationToken ct = default) =>
         await db.Players.AddAsync(player, ct);

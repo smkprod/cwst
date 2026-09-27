@@ -24,15 +24,27 @@ public class ProcessSponsorPaymentUseCase(
         string currency, int totalAmount, string payload, CancellationToken ct = default)
     {
         if (currency != SponsorSales.Currency) return "Оплата принимается только звёздами.";
-        if (!SponsorSales.TryParse(payload, out var tag, out _, out var stars))
+        if (SponsorSales.Parse(payload) is not { } order)
             return "Счёт повреждён — открой оплату заново.";
         // Сумма зашита в счёт при его создании. Расхождение значит, что счёт
         // собран не нами, и списывать по нему нельзя.
-        if (stars != totalAmount) return "Сумма не совпадает со счётом — открой оплату заново.";
-        if (await players.GetByTagAsync(tag, ct) is null)
+        if (order.Stars != totalAmount) return "Сумма не совпадает со счётом — открой оплату заново.";
+        if (await ResolveAsync(order, ct) is null)
             return "Игрок не найден — привяжи профиль в боте и попробуй снова.";
         return null;
     }
+
+    /// <summary>
+    /// Кому выдавать. По номеру строки, если он в счёте, иначе по тегу.
+    ///
+    /// Тег не уникален, и первая оплата по нему ушла в чужую старую строку. Номер
+    /// строки однозначен; по тегу ищем только для счетов старого формата, и там
+    /// поиск уже предпочитает строку, привязанную к самому человеку.
+    /// </summary>
+    private Task<Player?> ResolveAsync(SponsorSales.Parsed order, CancellationToken ct) =>
+        order.PlayerId is { } id
+            ? players.GetByIdAsync(id, ct)
+            : players.GetByTagAsync(order.PlayerTag!, ct);
 
     /// <param name="Duplicate">Этот платёж уже был учтён — повторная доставка.</param>
     public record Applied(string PlayerName, DateTime Until, int Days, bool Duplicate);
@@ -48,11 +60,13 @@ public class ProcessSponsorPaymentUseCase(
         long payerTelegramUserId, string payload, int totalAmount, string chargeId,
         CancellationToken ct = default)
     {
-        if (!SponsorSales.TryParse(payload, out var tag, out var days, out var stars)) return null;
+        if (SponsorSales.Parse(payload) is not { } order) return null;
+        var days = order.Days;
+        var stars = order.Stars;
 
         // Трекаемая выборка: через AsNoTracking-список изменение срока молча
         // не сохранилось бы — ровно так однажды уже терялась выдача спонсорства.
-        var player = await players.GetByTagAsync(tag, ct);
+        var player = await ResolveAsync(order, ct);
         if (player is null) return null;
 
         if (await payments.ExistsAsync(chargeId, ct))
