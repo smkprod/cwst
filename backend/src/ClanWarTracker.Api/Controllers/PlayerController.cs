@@ -428,19 +428,8 @@ public class PlayerController(
         static PathOfLegendDto? Pol(Domain.Entities.CrPathOfLegend? p) =>
             p is null ? null : new PathOfLegendDto(p.Trophies, p.LeagueNumber, p.Rank);
 
-        // Разбор под набор — Pro-функция. Тариф смотрим у клана ТОГО, КТО СМОТРИТ:
-        // это его инструмент подбора, а не свойство просматриваемого игрока.
-        // Исключение — собственный профиль: свой разбор человек видит всегда, тарифом
-        // закрыт подбор ЧУЖИХ игроков, а не право знать про себя.
-        var viewerId = (long)HttpContext.Items["TelegramUserId"]!;
-        var viewer = await players.GetByTelegramIdAsync(viewerId, ct);
-        var viewerClan = viewer?.ClanId is int vc ? await clans.GetByIdAsync(vc, ct) : null;
-        var viewerIsPro = viewerClan?.EffectivePlan(DateTime.UtcNow) == PlanTier.Pro;
-        var isSelf = string.Equals(viewer?.PlayerTag, playerTag, StringComparison.OrdinalIgnoreCase);
-
-        var analysis = viewerIsPro || isSelf
-            ? AnalyzePlayerService.Build(info, weeksPlayed, avgFame)
-            : null;
+        // Разбор под набор — всем: и свой профиль, и чужой при подборе в клан.
+        var analysis = AnalyzePlayerService.Build(info, weeksPlayed, avgFame);
 
         var profileDto = new PlayerProfileDto(
             PlayerTag: info.Tag,

@@ -21,7 +21,6 @@ public class OwnerController(
     IClanRepository clans,
     GetOwnerDashboardUseCase dashboard,
     GetOwnerClanDetailUseCase clanDetail,
-    SetClanPlanUseCase setPlan,
     OwnerBroadcastUseCase broadcast,
     HarvestTopPlayersUseCase harvestTop,
     ITopPlayerRepository topPlayers,
@@ -33,7 +32,6 @@ public class OwnerController(
     IServiceSettingRepository settings,
     ServiceAccess access) : ControllerBase
 {
-    public record SetPlanRequest(string Tier, int? Days);
     public record BroadcastRequest(string Text, string Target);
     public record AddModeratorRequest(string Username, string? Note, string[]? Permissions);
     public record GrantSponsorRequest(string PlayerTag, int Days);
@@ -64,7 +62,7 @@ public class OwnerController(
 
     /// <summary>
     /// GET /api/owner/clans/{id} — детали клана: привязанные игроки с @username и ролями
-    /// (главы первыми — с ними имеет смысл говорить про Pro).
+    /// (главы первыми — с ними имеет смысл говорить о клане).
     /// </summary>
     [HttpGet("clans/{id:int}")]
     public async Task<IActionResult> GetClanDetail(int id, CancellationToken ct)
@@ -73,24 +71,6 @@ public class OwnerController(
 
         var detail = await clanDetail.ExecuteAsync(id, ct);
         return detail is null ? NotFound(new { error = "clan_not_found" }) : Ok(detail);
-    }
-
-    /// <summary>POST /api/owner/clans/{id}/plan — выдать тариф. Body: { tier: "pro"|"free", days?: 30 }.</summary>
-    [HttpPost("clans/{id:int}/plan")]
-    public async Task<IActionResult> SetPlan(int id, [FromBody] SetPlanRequest req, CancellationToken ct)
-    {
-        if (await DenyAsync(ServicePermission.Plans, ct) is { } deny) return deny;
-
-        var tier = req.Tier?.ToLowerInvariant() switch
-        {
-            "pro" => PlanTier.Pro,
-            "free" => PlanTier.Free,
-            _ => (PlanTier?)null,
-        };
-        if (tier is null) return BadRequest(new { error = "bad_tier", message = "tier: pro | free" });
-
-        var ok = await setPlan.ExecuteAsync(id, tier.Value, req.Days, ct);
-        return ok ? Ok(new { ok = true }) : NotFound(new { error = "clan_not_found" });
     }
 
     /// <summary>GET /api/owner/stats — детальная сводка по сервису.</summary>

@@ -1,11 +1,10 @@
-import type { ClanInsights, Plan, PlayerStatus, RaceClan, WarDayLog, WarLogWeek } from '../types'
+import type { ClanInsights, PlayerStatus, RaceClan, WarDayLog, WarLogWeek } from '../types'
 import { SponsorMarks } from '../lib/sponsorMarks'
 import { fmt } from '../lib/format'
 import { useT } from '../lib/i18n'
 
 interface Props {
   insights: ClanInsights | null
-  plan: Plan
   players: PlayerStatus[]
   dayLogs: WarDayLog[]
   warLog: WarLogWeek[]
@@ -16,27 +15,15 @@ interface Props {
 }
 
 /**
- * «Аналитика недели» (Pro): темп против прошлой недели, медали по дням из
+ * «Аналитика недели»: темп против прошлой недели, медали по дням из
  * официального лога и герои недели.
  *
  * Отсюда убран «шанс победы». Он выглядел главной цифрой карточки, но был
  * бесполезен: проценты скакали сами по себе от чужих атак, а сделать с ними
  * было нечего. Разговор про конкретных людей теперь ведёт «Дисциплина клана».
  */
-export function InsightsCard({ insights, plan, players, dayLogs, warLog, race, periodType, periodIndex, hoursLeft }: Props) {
+export function InsightsCard({ insights, players, dayLogs, warLog, race, periodType, periodIndex, hoursLeft }: Props) {
   const { t } = useT()
-
-  if (plan !== 'pro') {
-    return (
-      <section className="card forecast-locked">
-        <div className="card-title-row">
-          <div className="card-title">{t.insights.title}</div>
-          <span className="pro-chip">PRO</span>
-        </div>
-        <p className="muted small">{t.insights.lockedNote}</p>
-      </section>
-    )
-  }
 
   if (!insights) return null
 
@@ -84,7 +71,6 @@ export function InsightsCard({ insights, plan, players, dayLogs, warLog, race, p
     <section className="card insights-card">
       <div className="card-title-row">
         <div className="card-title">{t.insights.title}</div>
-        <span className="pro-chip">PRO</span>
       </div>
 
       {/* На виду: прогноз финиша против прошлой недели (вперёд-смотрящее сравнение) */}

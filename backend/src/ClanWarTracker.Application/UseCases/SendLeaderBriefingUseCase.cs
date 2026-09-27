@@ -7,11 +7,11 @@ using ClanWarTracker.Domain.Interfaces;
 namespace ClanWarTracker.Application.UseCases;
 
 /// <summary>
-/// «Утренний брифинг лидера» (Pro): в начале каждого военного дня лидеру и соруководителям
+/// «Утренний брифинг лидера»: в начале каждого военного дня лидеру и соруководителям
 /// в ЛС приходит личная сводка-план. Не просто цифры, а метрики + что с ними делать:
 /// место в гонке и отрыв, темп против прошлой недели с целью «сколько нужно в день»,
 /// форма клана за последние недели (спарклайн) и поимённо кто ещё не доиграл (кого пнуть).
-/// Ежедневный ритуал, который делает Pro привычкой. Окно — первые ~3 часа дня, дедуп по дню.
+/// Ежедневный ритуал, который делает бота привычкой. Окно — первые ~3 часа дня, дедуп по дню.
 /// </summary>
 public class SendLeaderBriefingUseCase(
     IClashRoyaleApi crApi,
@@ -34,8 +34,6 @@ public class SendLeaderBriefingUseCase(
 
         foreach (var clan in await clans.GetAllAsync(ct))
         {
-            if (clan.EffectivePlan(now) != PlanTier.Pro) continue;
-
             WarStatus? war;
             try { war = await crApi.GetCurrentWarAsync(clan.ClanTag, ct); }
             catch { continue; }

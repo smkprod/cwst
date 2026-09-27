@@ -246,17 +246,6 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
             try
             {
                 using var scope = scopeFactory.CreateScope();
-                var expiry = scope.ServiceProvider.GetRequiredService<SendPlanExpiryRemindersUseCase>();
-                await expiry.ExecuteAsync(stoppingToken);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Plan expiry reminder failed");
-            }
-
-            try
-            {
-                using var scope = scopeFactory.CreateScope();
                 var smartAlert = scope.ServiceProvider.GetRequiredService<SendSmartAlertUseCase>();
                 await smartAlert.ExecuteAsync(stoppingToken);
             }
@@ -267,7 +256,7 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
 
             try
             {
-                // Утренний брифинг лидера (Pro): личная сводка-план в начале военного дня.
+                // Утренний брифинг лидера: личная сводка-план в начале военного дня.
                 using var scope = scopeFactory.CreateScope();
                 var briefing = scope.ServiceProvider.GetRequiredService<SendLeaderBriefingUseCase>();
                 var sent = await briefing.ExecuteAsync(_briefingKeys, stoppingToken);

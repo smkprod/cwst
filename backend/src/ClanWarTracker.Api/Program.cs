@@ -41,7 +41,6 @@ builder.Services.AddScoped<NudgePlayersUseCase>();
 builder.Services.AddScoped<OwnerBroadcastUseCase>();
 builder.Services.AddScoped<GetOwnerDashboardUseCase>();
 builder.Services.AddScoped<GetOwnerClanDetailUseCase>();
-builder.Services.AddScoped<SetClanPlanUseCase>();
 builder.Services.AddScoped<LinkPlayerUseCase>();
 builder.Services.AddScoped<SetupClanUseCase>();
 builder.Services.AddScoped<TournamentBracketService>();

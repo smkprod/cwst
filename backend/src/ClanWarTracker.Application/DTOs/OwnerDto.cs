@@ -4,8 +4,6 @@ namespace ClanWarTracker.Application.DTOs;
 public record OwnerStatsDto(
     // Кланы
     int TotalClans,
-    int ProClans,
-    int FreeClans,
     int ChatsWithBot,
     int ActiveClans7d,          // есть свежие снимки войны за неделю
     int SilentClans,            // подключены, но данных за неделю нет
@@ -25,11 +23,6 @@ public record OwnerStatsDto(
     int NewUsers30d,
     int ClansWithKnownDate,     // честность: по скольким кланам дата вообще есть
     int UsersWithKnownDate,
-
-    // Pro
-    int ProExpiring7d,
-    int ProExpired,             // были Pro, срок вышел
-    int ProForever,             // Pro без срока
 
     // Вовлечённость
     int Respects7d,
@@ -54,9 +47,6 @@ public record OwnerClanDto(
     int Id,
     string ClanTag,
     string Name,
-    string Plan,                // "pro" | "free"
-    DateTime? PlanExpiresAtUtc,
-    int? DaysLeft,              // сколько дней Pro осталось; null — бессрочно/Free
     int LinkedPlayers,
     bool HasChat,
     DateTime? CreatedAtUtc,
@@ -68,8 +58,6 @@ public record OwnerClanDetailDto(
     int Id,
     string ClanTag,
     string Name,
-    string Plan,
-    DateTime? PlanExpiresAtUtc,
     long TelegramChatId,
     int? TelegramMessageThreadId,
     DateTime? CreatedAtUtc,
@@ -83,5 +71,5 @@ public record OwnerMemberDto(
     string? TelegramUsername,   // без @; null — не задан
     long? TelegramUserId,
     string? Role,               // "leader" | "coLeader" | "elder" | "member" | null
-    bool IsLeader,              // лидер или соруководитель — с кем говорить о Pro
+    bool IsLeader,              // лидер или соруководитель — с кем говорить о клане
     DateTime? LinkedAtUtc);

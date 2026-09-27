@@ -91,13 +91,12 @@ public class GetClanStatusUseCase(
         var totalFame = roster.Sum(p => p.Fame);
         var clanAvgFamePerAttack = totalWarDecks > 0 ? (double)totalFame / totalWarDecks : 150.0;
 
-        // Гейтинг плана
-        var plan = clan?.EffectivePlan(now) ?? Domain.Enums.PlanTier.Free;
-
-        // История (Pro): стрики, DNA, надёжность и EWMA-профили прогноза.
-        // Загружается ДО enrichment — EWMA передаётся в ProjectPlayer.
+        // История: стрики, DNA, надёжность и EWMA-профили прогноза.
+        // Загружается ДО enrichment — EWMA передаётся в ProjectPlayer. Кэшируется на
+        // 30 минут на клан и неделю, так что открыть её всем кланам - это 16 расчётов
+        // за полчаса, а не на каждый опрос статуса.
         var history = new Dictionary<string, PlayerHistoryStats>(StringComparer.OrdinalIgnoreCase);
-        if (clan is not null && plan == Domain.Enums.PlanTier.Pro)
+        if (clan is not null)
             history = await ComputeHistoryStatsAsync(clan.Id, war, ct);
 
         // Расчёт по каждому игроку + прогноз
@@ -164,10 +163,8 @@ public class GetClanStatusUseCase(
 
         var race = await BuildRaceAsync(war, clanAvgFamePerAttack, ct);
 
-        // Pro-аналитика: шанс победы + здоровье клана
-        ClanInsightsDto? insights = null;
-        if (plan == Domain.Enums.PlanTier.Pro)
-            insights = BuildInsights(war, playerDtos, race, history);
+        // Аналитика: шанс победы + здоровье клана
+        var insights = BuildInsights(war, playerDtos, race, history);
 
         // Журнал прошлых войн: места кланов и очки (официальный /riverracelog)
         List<WarLogWeekDto> warLog = [];
@@ -216,7 +213,6 @@ public class GetClanStatusUseCase(
             PeriodIndex: war.PeriodIndex,
             DayEndsAtUtc: war.DayEndsAtUtc,
             HoursLeft: hoursLeft,
-            Plan: plan == Domain.Enums.PlanTier.Pro ? "pro" : "free",
             Stats: stats,
             Forecast: clanForecast,
             Race: race,
@@ -445,7 +441,7 @@ public class GetClanStatusUseCase(
     }
 
     /// <summary>
-    /// Pro-аналитика. Шанс победы — эвристика: разница прогнозов наша/лучший соперник,
+    /// Аналитика. Шанс победы — эвристика: разница прогнозов наша/лучший соперник,
     /// нормированная на неопределённость оставшихся атак (логистическая функция).
     /// Здоровье клана — 4 фактора 0..100 со средневзвешенным итогом.
     /// </summary>

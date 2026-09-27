@@ -71,24 +71,21 @@ public class GetPlayerStatsUseCase(
 
         var label = PerformanceLabel(projection.AvgFamePerAttack, clanAvgFamePerAttack, rank, roster.Count);
 
-        // Сезонная сводка — только на Pro (как и сезонный зачёт клана)
+        // Сезонная сводка
         MySeasonDto? mySeason = null;
-        if (clan.EffectivePlan(now) == Domain.Enums.PlanTier.Pro)
+        var season = await seasonStats.ExecuteAsync(clan.Id, realSeasonId > 0 ? realSeasonId : null, ct);
+        var meRow = season?.Players.FirstOrDefault(p =>
+            string.Equals(p.PlayerTag, me.PlayerTag, StringComparison.OrdinalIgnoreCase));
+        if (season is not null && meRow is not null)
         {
-            var season = await seasonStats.ExecuteAsync(clan.Id, realSeasonId > 0 ? realSeasonId : null, ct);
-            var meRow = season?.Players.FirstOrDefault(p =>
-                string.Equals(p.PlayerTag, me.PlayerTag, StringComparison.OrdinalIgnoreCase));
-            if (season is not null && meRow is not null)
-            {
-                mySeason = new MySeasonDto(
-                    SeasonId: realSeasonId > 0 ? realSeasonId : season.SeasonId,
-                    TotalFame: meRow.TotalFame,
-                    Rank: meRow.Rank,
-                    ClanSize: season.Players.Count,
-                    WeeksParticipated: meRow.WeeksParticipated,
-                    BestWeekFame: meRow.BestWeekFame,
-                    WeeksTracked: season.WeeksTracked);
-            }
+            mySeason = new MySeasonDto(
+                SeasonId: realSeasonId > 0 ? realSeasonId : season.SeasonId,
+                TotalFame: meRow.TotalFame,
+                Rank: meRow.Rank,
+                ClanSize: season.Players.Count,
+                WeeksParticipated: meRow.WeeksParticipated,
+                BestWeekFame: meRow.BestWeekFame,
+                WeeksTracked: season.WeeksTracked);
         }
 
         return new MyStatsDto(

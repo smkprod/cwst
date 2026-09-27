@@ -6,9 +6,6 @@ namespace ClanWarTracker.Application.UseCases;
 
 public class SetupClanUseCase(IClashRoyaleApi crApi, IClanRepository clans)
 {
-    /// <summary>Новые кланы получают пробный Pro, чтобы увидеть прогнозы и историю.</summary>
-    private const int TrialDays = 14;
-
     /// <param name="messageThreadId">ID темы (Topic) форума, если /setup выполнен внутри темы —
     /// тогда все напоминания/отчёты бот шлёт туда же, а не в общий чат группы.</param>
     /// <returns>Имя клана или null, если тег не найден в CR API.</returns>
@@ -38,8 +35,6 @@ public class SetupClanUseCase(IClashRoyaleApi crApi, IClanRepository clans)
                 Name = name,
                 TelegramChatId = chatId,
                 TelegramMessageThreadId = messageThreadId,
-                PlanTier = PlanTier.Pro,
-                PlanExpiresAtUtc = DateTime.UtcNow.AddDays(TrialDays),
                 CreatedAtUtc = DateTime.UtcNow,
             }, ct);
         }
