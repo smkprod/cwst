@@ -489,6 +489,10 @@ public sealed class BotText
     public required string TrkBtnOn { get; init; }
     /// <summary>Кнопка.</summary>
     public required string TrkBtnOff { get; init; }
+    /// <summary>Ответ на /tracker в группе: трекер живёт в личке.</summary>
+    public required string TrkInGroup { get; init; }
+    /// <summary>Кнопка: открыть трекер в личке.</summary>
+    public required string TrkBtnDm { get; init; }
 
     /* --- Inline-режим: карточка в любом чате Telegram --- */
     public required string InlineWarTitle { get; init; }
@@ -797,7 +801,7 @@ public sealed class BotText
         ForeignTagRelinkButton = "🔗 Это мой аккаунт",
         RelinkDone = "✅ Теперь ты привязан как {0}.",
         RelinkFailed = "Не получилось перепривязать — пришли тег ещё раз.",
-        HelpText = "📖 Что я умею\n\nПришли свой тег (например #2VUPLPU0R) — привяжу и разберу твои бои. Клан не нужен.\n\n/me — короткий разбор твоих боёв\n/deck — твоя колода из последнего боя\n/meta — лучшие колоды топа за неделю\n/plus — Clanify Плюс\n/paysupport — помощь с оплатой\n/terms — условия\n\nВ группе клана: /setup #ТЕГ_КЛАНА — подключить войну, /status — кто не доиграл.",
+        HelpText = "📖 Что я умею\n\nПришли свой тег (например #2VUPLPU0R) — привяжу и разберу твои бои. Клан не нужен.\n\n/me — короткий разбор твоих боёв\n/deck — твоя колода из последнего боя\n/meta — лучшие колоды топа за неделю\n/tracker — трекер боёв: разбор после каждого боя\n/plus — Clanify Плюс\n/paysupport — помощь с оплатой\n/terms — условия\n\nВ группе клана: /setup #ТЕГ_КЛАНА — подключить войну, /status — кто не доиграл.",
         NotLinkedYet = "Сначала пришли свой тег — например #2VUPLPU0R.",
         DeckHead = "🃏 Твоя колода из последнего боя (💧{0}):\n{1}",
         DeckNone = "Не нашёл боёв 1 на 1 в журнале — сыграй бой, и я покажу колоду.",
@@ -887,6 +891,8 @@ public sealed class BotText
         TrkBtnPlus = "⭐ Плюс",
         TrkBtnOn = "Включить",
         TrkBtnOff = "Выключить",
+        TrkInGroup = "🎯 Трекер боёв работает в личке: там я после каждого боя тихо присылаю разбор. Нажми кнопку ниже — и включи в один тап.",
+        TrkBtnDm = "🎯 Включить в личке",
     };
 
     public static readonly BotText Uk = new()
@@ -1144,7 +1150,7 @@ public sealed class BotText
         ForeignTagRelinkButton = "🔗 Це мій акаунт",
         RelinkDone = "✅ Тепер ти прив’язаний як {0}.",
         RelinkFailed = "Не вдалося перепривʼязати — надішли тег ще раз.",
-        HelpText = "📖 Що я вмію\n\nНадішли свій тег (наприклад #2VUPLPU0R) — прив’яжу й розберу твої бої. Клан не потрібен.\n\n/me — короткий розбір твоїх боїв\n/deck — твоя колода з останнього бою\n/meta — найкращі колоди топу за тиждень\n/plus — Clanify Плюс\n/paysupport — допомога з оплатою\n/terms — умови\n\nУ групі клану: /setup #ТЕГ_КЛАНУ — підключити війну, /status — хто не дограв.",
+        HelpText = "📖 Що я вмію\n\nНадішли свій тег (наприклад #2VUPLPU0R) — прив’яжу й розберу твої бої. Клан не потрібен.\n\n/me — короткий розбір твоїх боїв\n/deck — твоя колода з останнього бою\n/meta — найкращі колоди топу за тиждень\n/tracker — трекер боїв: розбір після кожного бою\n/plus — Clanify Плюс\n/paysupport — допомога з оплатою\n/terms — умови\n\nУ групі клану: /setup #ТЕГ_КЛАНУ — підключити війну, /status — хто не дограв.",
         NotLinkedYet = "Спершу надішли свій тег — наприклад #2VUPLPU0R.",
         DeckHead = "🃏 Твоя колода з останнього бою (💧{0}):\n{1}",
         DeckNone = "Не знайшов боїв 1 на 1 у журналі — зіграй бій, і я покажу колоду.",
@@ -1234,6 +1240,8 @@ public sealed class BotText
         TrkBtnPlus = "⭐ Плюс",
         TrkBtnOn = "Увімкнути",
         TrkBtnOff = "Вимкнути",
+        TrkInGroup = "🎯 Трекер боїв працює в особистих: там я після кожного бою тихо надсилаю розбір. Натисни кнопку нижче — і увімкни в один тап.",
+        TrkBtnDm = "🎯 Увімкнути в особистих",
     };
 
     public static readonly BotText En = new()
@@ -1491,7 +1499,7 @@ public sealed class BotText
         ForeignTagRelinkButton = "🔗 This is my account",
         RelinkDone = "✅ You're now linked as {0}.",
         RelinkFailed = "Couldn't relink — send the tag again.",
-        HelpText = "📖 What I can do\n\nSend your tag (e.g. #2VUPLPU0R) — I'll link you and review your battles. No clan needed.\n\n/me — a short review of your battles\n/deck — your deck from the last battle\n/meta — the top's best decks this week\n/plus — Clanify Plus\n/paysupport — payment help\n/terms — terms\n\nIn a clan group: /setup #CLAN_TAG — connect the war, /status — who hasn't played.",
+        HelpText = "📖 What I can do\n\nSend your tag (e.g. #2VUPLPU0R) — I'll link you and review your battles. No clan needed.\n\n/me — a short review of your battles\n/deck — your deck from the last battle\n/meta — the top's best decks this week\n/tracker — battle tracker: a breakdown after every battle\n/plus — Clanify Plus\n/paysupport — payment help\n/terms — terms\n\nIn a clan group: /setup #CLAN_TAG — connect the war, /status — who hasn't played.",
         NotLinkedYet = "Send your tag first — e.g. #2VUPLPU0R.",
         DeckHead = "🃏 Your deck from the last battle (💧{0}):\n{1}",
         DeckNone = "No 1v1 battles in your log — play one and I'll show the deck.",
@@ -1581,5 +1589,7 @@ public sealed class BotText
         TrkBtnPlus = "⭐ Plus",
         TrkBtnOn = "Turn on",
         TrkBtnOff = "Turn off",
+        TrkInGroup = "🎯 The battle tracker works in private chat: that's where I quietly send a breakdown after every battle. Tap the button below to turn it on.",
+        TrkBtnDm = "🎯 Turn on in private chat",
     };
 }
