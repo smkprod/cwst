@@ -166,6 +166,15 @@ public class OwnerController(
             catch (Exception ex)
             {
                 logger.LogError(ex, "Manual top harvest failed");
+                // Сбор упал раньше, чем успел записать причину, - пишем её свежим
+                // контекстом, иначе панель так и показывала бы прошлую попытку.
+                try
+                {
+                    using var scope = scopes.CreateScope();
+                    await scope.ServiceProvider.GetRequiredService<HarvestTopPlayersUseCase>()
+                        .RecordFailureAsync($"сбор не запустился: {ex.GetType().Name}: {ex.Message}");
+                }
+                catch (Exception inner) { logger.LogError(inner, "Could not record harvest failure"); }
             }
             finally
             {
