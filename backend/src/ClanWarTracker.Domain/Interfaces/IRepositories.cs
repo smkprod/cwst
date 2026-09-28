@@ -228,7 +228,11 @@ public interface IMetaRepository
         IReadOnlyList<MetaDeckDay> decks,
         IReadOnlyList<MetaMatchupDay> matchups,
         string keepFromDayUtc,
-        CancellationToken ct = default);
+        CancellationToken ct = default,
+        IReadOnlyList<MetaBattle>? battles = null);
+
+    /// <summary>Бои топа за дни начиная с <paramref name="fromDayUtc"/> включительно.</summary>
+    Task<List<MetaBattle>> GetBattlesSinceAsync(string fromDayUtc, CancellationToken ct = default);
 
     /// <summary>Колоды за дни начиная с <paramref name="fromDayUtc"/> включительно.</summary>
     Task<List<MetaDeckDay>> GetDecksSinceAsync(string fromDayUtc, CancellationToken ct = default);
