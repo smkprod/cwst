@@ -26,6 +26,16 @@ public class ServiceSettingRepository(AppDbContext db) : IServiceSettingReposito
             existing.UpdatedAtUtc = DateTime.UtcNow;
         }
 
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch
+        {
+            // Несохранённая настройка осталась бы в контексте и роняла бы каждое
+            // следующее сохранение того же запроса.
+            foreach (var e in db.ChangeTracker.Entries<ServiceSetting>().ToList()) e.State = EntityState.Detached;
+            throw;
+        }
     }
 }
