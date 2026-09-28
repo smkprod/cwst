@@ -32,7 +32,10 @@ public class SentNotificationRepository(AppDbContext db) : ISentNotificationRepo
         {
             // Ключ уже записан (уникальный индекс). Значит уведомление считается
             // отправленным — ровно то, чего мы и добивались, поэтому не ошибка.
-            db.ChangeTracker.Clear();
+            // Отцепляем только отметки: Clear() отцепил бы и то, что вызывающий загрузил
+            // раньше (настройки, сигналы), и их изменения молча не сохранились бы.
+            foreach (var e in db.ChangeTracker.Entries<SentNotification>().ToList())
+                e.State = EntityState.Detached;
         }
     }
 
