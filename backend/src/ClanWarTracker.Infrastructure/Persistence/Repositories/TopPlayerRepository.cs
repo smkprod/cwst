@@ -15,7 +15,16 @@ public class TopPlayerRepository(AppDbContext db) : ITopPlayerRepository
         // давать один снимок, иначе доля карт посчитается по двум тысячам строк.
         await db.TopPlayers.Where(t => t.DayUtc == dayUtc).ExecuteDeleteAsync(ct);
         db.TopPlayers.AddRange(rows);
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        finally
+        {
+            // И после успеха, и после сбоя: тысяча строк снимка не нужна в контексте,
+            // а несохранённые строки уронили бы запись меты и причины сбоя следом.
+            foreach (var e in db.ChangeTracker.Entries<TopPlayer>().ToList()) e.State = EntityState.Detached;
+        }
     }
 
     public Task<List<TopPlayer>> GetDayAsync(string dayUtc, CancellationToken ct = default) =>

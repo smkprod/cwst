@@ -1,3 +1,4 @@
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using ClanWarTracker.Application.Meta;
 using ClanWarTracker.Domain.Entities;
@@ -232,12 +233,24 @@ public class HarvestTopPlayersUseCase(
     {
         try
         {
-            var record = new LastHarvest(DateTime.UtcNow, result.Rows, result.Skipped, result.Meta);
-            await settings.SetAsync(LastHarvestKey, JsonSerializer.Serialize(record), ct);
+            // Настройка хранит до 2000 символов. По умолчанию JSON пишет каждую русскую
+            // букву как \uXXXX (6 символов), и длинная причина сбоя переполняла колонку:
+            // запись падала молча, и панель показывала прошлую попытку - кнопка будто
+            // ничего не делала. Теперь кириллица как есть, а тексты обрезаны с запасом.
+            var record = new LastHarvest(DateTime.UtcNow, result.Rows, Cut(result.Skipped, 700), Cut(result.Meta, 700));
+            await settings.SetAsync(LastHarvestKey, JsonSerializer.Serialize(record, RecordJson), ct);
         }
         catch { /* диагностика не обязана работать, чтобы работал сбор */ }
         return result;
     }
+
+    private static readonly JsonSerializerOptions RecordJson = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+
+    private static string? Cut(string? s, int max) => s is null || s.Length <= max ? s : s[..max] + "…";
+
+    /// <summary>Записать исход сбора, упавшего до того, как он успел сделать это сам (панель, сбой запуска).</summary>
+    public async Task RecordFailureAsync(string problem, CancellationToken ct = default) =>
+        await RememberAsync(new HarvestResult(0, problem), ct);
 
     /// <summary>Исход последней попытки. null — попыток ещё не было или запись не читается.</summary>
     public async Task<LastHarvest?> LastAsync(CancellationToken ct = default)

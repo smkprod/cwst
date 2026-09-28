@@ -30,8 +30,18 @@ public class MetaRepository(AppDbContext db) : IMetaRepository
 
         db.MetaDeckDays.AddRange(decks);
         db.MetaMatchupDays.AddRange(matchups);
-        await db.SaveChangesAsync(ct);
-        db.ChangeTracker.Clear();
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        finally
+        {
+            // Отцепляем только своё: Clear() снял бы и чужие отслеживаемые записи, а
+            // несохранённые строки меты уронили бы запись причины сбоя следом.
+            foreach (var e in db.ChangeTracker.Entries<MetaDeckDay>().ToList()) e.State = EntityState.Detached;
+            foreach (var e in db.ChangeTracker.Entries<MetaMatchupDay>().ToList()) e.State = EntityState.Detached;
+            foreach (var e in db.ChangeTracker.Entries<MetaBattle>().ToList()) e.State = EntityState.Detached;
+        }
     }
 
     public Task<List<MetaDeckDay>> GetDecksSinceAsync(string fromDayUtc, CancellationToken ct = default) =>
