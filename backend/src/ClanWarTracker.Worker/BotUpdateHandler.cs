@@ -791,6 +791,9 @@ public class BotUpdateHandler(
                         try { await sp.GetRequiredService<TrackStartUseCase>().ExecuteAsync(msg.From!.Id, arg, ct); }
                         catch (Exception ex) { logger.LogWarning(ex, "Could not record start source {Arg}", arg); }
 
+                        // Пришёл по кнопке «включить в личке» из группы - сразу трекер, а не приветствие
+                        if (arg == TrackerStartArg && await SendTrackerStatusAsync(msg, sp, ct)) return;
+
                         // Кнопка приложения прямо под приветствием: раньше её не было, и
                         // человек, не догадавшийся про кнопку меню, приложения не видел.
                         await bot.SendMessage(msg.Chat.Id, t.StartPrivate,
@@ -1043,12 +1046,20 @@ public class BotUpdateHandler(
                 case "/tracker":
                 case "/трекер":
                 {
-                    if (msg.Chat.Type != ChatType.Private) { await Reply(msg, t.HelpText, ct); return; }
-                    var tracker = await sp.GetRequiredService<TrackerActionsUseCase>()
-                        .StatusAsync(msg.From!.Id, msg.From.LanguageCode, ct);
-                    if (tracker is null) { await Reply(msg, t.NotLinkedYet, ct); return; }
-                    await sp.GetRequiredService<INotificationSender>()
-                        .SendDmAsync(msg.Chat.Id, tracker.Text, tracker.Rows, silent: false, ct);
+                    if (msg.Chat.Type != ChatType.Private)
+                    {
+                        // Трекер пишет только в личку. В группе - кнопка туда, а не справка:
+                        // человек нажал /tracker из анонса и должен дойти до включения в один тап.
+                        await bot.SendMessage(msg.Chat.Id, t.TrkInGroup,
+                            messageThreadId: msg.MessageThreadId,
+                            replyParameters: msg.MessageId,
+                            replyMarkup: _botUsername == "bot" ? null
+                                : new InlineKeyboardMarkup(InlineKeyboardButton.WithUrl(t.TrkBtnDm,
+                                    $"https://t.me/{_botUsername}?start={TrackerStartArg}")),
+                            cancellationToken: ct);
+                        return;
+                    }
+                    if (!await SendTrackerStatusAsync(msg, sp, ct)) await Reply(msg, t.NotLinkedYet, ct);
                     break;
                 }
 
@@ -1809,6 +1820,20 @@ public class BotUpdateHandler(
 
     /// <summary>Кнопка «Открыть приложение», если username бота известен.</summary>
     private InlineKeyboardMarkup? AppButton(string label) => AppButton(label, null);
+
+    /// <summary>Параметр /start из кнопки «включить в личке»: открывает трекер сразу.</summary>
+    private const string TrackerStartArg = "tracker";
+
+    /// <summary>Состояние трекера с кнопками. false - игрок не привязан.</summary>
+    private static async Task<bool> SendTrackerStatusAsync(Message msg, IServiceProvider sp, CancellationToken ct)
+    {
+        var tracker = await sp.GetRequiredService<TrackerActionsUseCase>()
+            .StatusAsync(msg.From!.Id, msg.From.LanguageCode, ct);
+        if (tracker is null) return false;
+        await sp.GetRequiredService<INotificationSender>()
+            .SendDmAsync(msg.Chat.Id, tracker.Text, tracker.Rows, silent: false, ct);
+        return true;
+    }
 
     /// <summary>
     /// Кнопка приложения с параметром запуска: «review» открывает разбор, «plus» —
