@@ -29,8 +29,27 @@ public class PlayerController(
     GetPlayerSheetUseCase playerSheet,
     GetMatchHistoryUseCase matchHistory,
     GetMatchReportUseCase matchReport,
-    TrackerActionsUseCase trackerActions) : ControllerBase
+    TrackerActionsUseCase trackerActions,
+    IPlayerAlertPrefsRepository alertPrefs) : ControllerBase
 {
+    /// <summary>
+    /// POST /api/players/me/dm-allowed — человек разрешил боту писать в личку (окно
+    /// Telegram в приложении). Снимаем отметку «не доходит»: после неё бот молчал бы
+    /// до первого сообщения человека боту, хотя писать ему уже можно.
+    /// </summary>
+    [HttpPost("me/dm-allowed")]
+    public async Task<IActionResult> DmAllowed(CancellationToken ct)
+    {
+        var userId = (long)HttpContext.Items["TelegramUserId"]!;
+        var prefs = await alertPrefs.GetOrCreateAsync(userId, ct);
+        if (prefs.DmBlocked)
+        {
+            prefs.DmBlocked = false;
+            await alertPrefs.SaveChangesAsync(ct);
+        }
+        return Ok(new { ok = true });
+    }
+
     public record TrackerRequest(bool Enabled, int? Tz, string? Lang);
 
     /// <summary>GET /api/players/{tag}/sheet — единая карточка игрока для любого экрана.</summary>
