@@ -189,7 +189,7 @@ export const api = {
       body: JSON.stringify({ enabled, tz, lang }),
     }),
   getMatches: (q: { before?: string | null; result?: string; mode?: string; arch?: string | null; lang: string }) => {
-    const p = new URLSearchParams({ lang: q.lang })
+    const p = new URLSearchParams({ lang: q.lang, tz: String(-new Date().getTimezoneOffset()) })
     if (q.before) p.set('before', q.before)
     if (q.result && q.result !== 'all') p.set('result', q.result)
     if (q.mode && q.mode !== 'all') p.set('mode', q.mode)

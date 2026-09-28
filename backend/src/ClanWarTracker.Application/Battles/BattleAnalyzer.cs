@@ -68,6 +68,33 @@ public static class BattleAnalyzer
             .ToList();
     }
 
+    /// <param name="Weekday">0 - понедельник, 6 - воскресенье.</param>
+    /// <param name="Part">0 - ночь (0–6), 1 - утро, 2 - день, 3 - вечер (18–24).</param>
+    public record HeatCell(int Weekday, int Part, int Games, int Wins);
+
+    /// <summary>
+    /// Карта «когда ты играешь лучше»: день недели × часть суток по местному времени.
+    /// Двадцать восемь клеток, а не 168 часов: за месяц на час приходится по бою-два,
+    /// и карта из шума ничего бы не сказала.
+    /// </summary>
+    public static List<HeatCell> Heat(IReadOnlyList<PlayerBattle> battles, int tzOffsetMinutes)
+    {
+        var grid = new (int G, int W)[7, 4];
+        foreach (var b in battles)
+        {
+            var local = b.BattleTimeUtc.AddMinutes(tzOffsetMinutes);
+            var d = ((int)local.DayOfWeek + 6) % 7;
+            var p = local.Hour / 6;
+            grid[d, p].G++;
+            if (b.Result > 0) grid[d, p].W++;
+        }
+        var cells = new List<HeatCell>(28);
+        for (var d = 0; d < 7; d++)
+            for (var p = 0; p < 4; p++)
+                cells.Add(new HeatCell(d, p, grid[d, p].G, grid[d, p].W));
+        return cells;
+    }
+
     /// <summary>Дни недели по местному времени: 0 - понедельник, 6 - воскресенье.</summary>
     public static List<Slot> Weekdays(IReadOnlyList<PlayerBattle> battles, int tzOffsetMinutes)
     {

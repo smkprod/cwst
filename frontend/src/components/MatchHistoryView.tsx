@@ -7,6 +7,7 @@ import { usePlusSheet, PLUS_CHANGED } from '../lib/plusSheet'
 import { CardIcon } from './MetaDecksView'
 import { TrackerCard } from './TrackerCard'
 import { MatchReportSheet } from './MatchReportSheet'
+import { ArchRadar, HeatMap, SessionChart } from './TrackerGraphics'
 
 const RESULTS = ['all', 'win', 'loss'] as const
 const MODES = ['all', 'ladder', 'pol', 'war', 'other'] as const
@@ -85,6 +86,8 @@ export function MatchHistoryView({ openMatchId }: { openMatchId?: number | null 
         <section className="card">
           <div className="card-title" style={{ marginBottom: 2 }}>{s.aggTitle}</div>
           <p className="muted small" style={{ margin: '0 0 8px' }}>{s.aggHint}</p>
+          <ArchRadar rows={agg.archetypes} basePct={agg.basePct ?? 50} locked={!data.unlocked}
+            onUnlock={() => openPlus()} t={t} />
           {agg.archetypes.map(r => (
             <button
               key={r.arch.key}
@@ -125,6 +128,8 @@ export function MatchHistoryView({ openMatchId }: { openMatchId?: number | null 
           )}
         </section>
       )}
+
+      {agg?.heat && <HeatMap cells={agg.heat} basePct={agg.basePct ?? 50} t={t} />}
 
       <div className="trk-chips">
         {RESULTS.map(r => (
@@ -195,19 +200,27 @@ function SessionBlock({ session, onOpen }: { session: MatchSession; onOpen: (id:
           <span key={i} className={`tilt-cell tilt-cell-${r}`} />
         ))}
       </div>
+      <SessionChart session={session} t={t} />
       {session.matches.map(m => <Row key={m.id} m={m} onOpen={onOpen} />)}
     </section>
   )
 }
 
 function Row({ m, onOpen }: { m: MatchRow; onOpen: (id: number) => void }) {
+  const { t } = useT()
   return (
     <button className="trk-row" onClick={() => onOpen(m.id)}>
       <span className={`trk-dot ${m.result > 0 ? 'trk-dot-w' : m.result < 0 ? 'trk-dot-l' : 'trk-dot-d'}`} />
       <span className="trk-score">{m.crownsFor}–{m.crownsAgainst}</span>
       <span className="trk-row-main">
         <span className="trk-row-arch">{m.arch?.label ?? '—'}</span>
-        <span className="muted small trk-row-opp">{m.oppName ?? ''}</span>
+        <span className="muted small trk-row-opp">
+          {m.oppName ?? ''}
+          {m.topPct != null && (
+            <span className={`trk-top ${m.topPct >= 50 ? 'trk-top-good' : 'trk-top-bad'}`}
+              title={`${t.trk.topChip}: ${m.topGames ?? 0}`}>📊 {Math.round(m.topPct)}%</span>
+          )}
+        </span>
       </span>
       <span className="trk-row-cards">
         {m.keyCards.map((c, i) => <CardIcon key={`${c.cardId}-${i}`} card={c} />)}
