@@ -3057,6 +3057,7 @@ button.hall-step {
   padding: 0 4px; border-radius: 6px; background: rgba(0, 0, 0, 0.75); color: #fff; line-height: 14px;
 }
 .trk-card-badge { position: absolute; top: -4px; right: -2px; font-size: 11px; }
+.trk-card-tower-mark { position: absolute; top: -5px; left: 0; font-size: 11px; }
 .trk-block { display: flex; flex-direction: column; gap: 5px; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.06); }
 .trk-towers { display: grid; grid-template-columns: 64px repeat(3, minmax(0, 1fr)); gap: 6px; align-items: center; }
 .trk-towers-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
