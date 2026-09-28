@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
+import { ChallengePromo } from './components/ChallengePromo'
 import { initTelegram } from './lib/telegram'
 import { ensureBotUsername } from './lib/botUsername'
 import { LangProvider } from './lib/i18n'
@@ -22,6 +23,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <PlayerSheetProvider>
           <ClanModalProvider>
             <App />
+            <ChallengePromo />
           </ClanModalProvider>
         </PlayerSheetProvider>
       </PlusSheetProvider>

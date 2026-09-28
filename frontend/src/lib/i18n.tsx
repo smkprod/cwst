@@ -67,6 +67,12 @@ const ru = {
   },
 
   ch: {
+    promoTitle: 'Новый челлендж на {prize}!',
+    promoText: 'Побеждай в ладдере и Пути легенд: каждая победа — 🎟 билет, серия из 3 побед — бонусный. Кто наберёт больше всех — забирает {prize}.',
+    promoGo: '🎟 К челленджу',
+    promoLater: 'Позже',
+    promoStarts: 'Старт через',
+    promoLive: '🔴 Уже идёт · до конца',
     hoursShort: 'ч',
     minShort: 'м',
     secShort: 'с',
@@ -1624,6 +1630,12 @@ const uk: Translations = {
   },
 
   ch: {
+    promoTitle: 'Новий челендж на {prize}!',
+    promoText: 'Перемагай у ладдері та Шляху легенд: кожна перемога — 🎟 квиток, серія з 3 перемог — бонусний. Хто набере найбільше — забирає {prize}.',
+    promoGo: '🎟 До челенджу',
+    promoLater: 'Пізніше',
+    promoStarts: 'Старт через',
+    promoLive: '🔴 Вже триває · до кінця',
     hoursShort: 'г',
     minShort: 'хв',
     secShort: 'с',
@@ -3177,6 +3189,12 @@ const en: Translations = {
   },
 
   ch: {
+    promoTitle: 'New challenge for {prize}!',
+    promoText: 'Win in Ladder and Path of Legends: every win is a 🎟 ticket, a 3-win streak gives a bonus one. Most tickets takes {prize}.',
+    promoGo: '🎟 Go to the challenge',
+    promoLater: 'Later',
+    promoStarts: 'Starts in',
+    promoLive: '🔴 Live now · ends in',
     hoursShort: 'h',
     minShort: 'm',
     secShort: 's',

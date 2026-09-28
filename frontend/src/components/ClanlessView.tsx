@@ -10,6 +10,7 @@ import { TopPlayersTeaser } from './TopPlayersTeaser'
 import { RegionTopCard } from './RegionTopCard'
 import { BotTourCard } from './BotTourCard'
 import { ChallengeView } from './ChallengeView'
+import { OPEN_CHALLENGE } from '../lib/promo'
 import { MyStatsView, type BattlesView, type MeSection } from './MyStatsView'
 import { WorldTopView } from './WorldTopView'
 import { MoreView } from './MoreView'
@@ -39,6 +40,11 @@ export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection =
   const { t } = useT()
   const botUsername = useBotUsername()
   const [tab, setTab] = useState<SoloTab>(initialTab)
+  useEffect(() => {
+    const go = () => setTab('challenge')
+    window.addEventListener(OPEN_CHALLENGE, go)
+    return () => window.removeEventListener(OPEN_CHALLENGE, go)
+  }, [])
 
   const [profile, setProfile] = useState<PlayerProfile | null>(null)
   const [overview, setOverview] = useState<ClanOverview | null>(null)

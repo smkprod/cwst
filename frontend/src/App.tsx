@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { api, ApiError, adminClan } from './lib/api'
 import { askDmOnce, haptic, startMatchId, startParam, startToMatches } from './lib/telegram'
 import { ChallengeView } from './components/ChallengeView'
+import { afterPromo, OPEN_CHALLENGE } from './lib/promo'
 import { usePlusSheet } from './lib/plusSheet'
 import { useT, type Translations } from './lib/i18n'
 import type { AppConfig, AppTab, ClanStatus, ServiceIdentity } from './types'
@@ -134,11 +135,19 @@ export default function App() {
     const id = window.setTimeout(() => {
       // Отметка внутри таймера: если экран сменился раньше, спросим на следующем
       dmAskedRef.current = true
-      askDmOnce().then(allowed => { if (allowed) api.dmAllowed().catch(() => { /* повторим при следующем включении */ }) })
+      afterPromo()
+        .then(askDmOnce)
+        .then(allowed => { if (allowed) api.dmAllowed().catch(() => { /* повторим при следующем включении */ }) })
     }, 2500)
     return () => window.clearTimeout(id)
   }, [state.kind])
   const [tab, setTab] = useState<Tab>(START_TAB)
+  // Кнопка «К челленджу» из окна-анонса
+  useEffect(() => {
+    const go = () => setTab('challenge')
+    window.addEventListener(OPEN_CHALLENGE, go)
+    return () => window.removeEventListener(OPEN_CHALLENGE, go)
+  }, [])
   const openPlus = usePlusSheet()
 
   // Кнопка «💎 Открыть Плюс» в боте: окно Плюса сразу при запуске, один раз.
