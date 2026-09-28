@@ -10,6 +10,7 @@ import { TournamentHistoryCard } from './TournamentHistoryCard'
 import { PlayerProfileCard } from './PlayerProfileCard'
 import { DecksButton } from './DecksButton'
 import { BattleAnalysisView } from './BattleAnalysisView'
+import { MatchHistoryView } from './MatchHistoryView'
 import { TiltCard } from './TiltCard'
 
 type State =
@@ -37,7 +38,35 @@ const PERF_META: Record<string, { emoji: string; cls: string }> = {
  * @param defaultSection С какой секции открыть. Игроку без клана — разбор боёв:
  * клановая секция у него пустая, и открывать её первой значит начать с «нет данных».
  */
-export function MyStatsView({ defaultSection = 'clan' }: { defaultSection?: MeSection } = {}) {
+export type BattlesView = 'history' | 'review'
+
+/**
+ * Секция «Бои»: история с трекером или разбор за 30 дней. История — первой: после
+ * боя человек приходит посмотреть именно этот бой.
+ */
+function BattlesSection({ initialView = 'history', openMatchId = null }: { initialView?: BattlesView; openMatchId?: number | null }) {
+  const { t } = useT()
+  const [view, setView] = useState<BattlesView>(initialView)
+  return (
+    <div>
+      <div className="trk-view-switch">
+        <button className={`trk-chip ${view === 'history' ? 'trk-chip-on' : ''}`} onClick={() => { haptic('light'); setView('history') }}>
+          {t.trk.viewHistory}
+        </button>
+        <button className={`trk-chip ${view === 'review' ? 'trk-chip-on' : ''}`} onClick={() => { haptic('light'); setView('review') }}>
+          {t.trk.viewReview}
+        </button>
+      </div>
+      {view === 'history' ? <MatchHistoryView openMatchId={openMatchId} /> : <BattleAnalysisView />}
+    </div>
+  )
+}
+
+export function MyStatsView({ defaultSection = 'clan', battlesView = 'history', openMatchId = null }: {
+  defaultSection?: MeSection
+  battlesView?: BattlesView
+  openMatchId?: number | null
+} = {}) {
   const [state, setState] = useState<State>({ kind: 'loading' })
   const [history, setHistory] = useState<PlayerHistory | null>(null)
   const [profile, setProfile] = useState<PlayerProfile | null>(null)
@@ -127,7 +156,7 @@ export function MyStatsView({ defaultSection = 'clan' }: { defaultSection?: MeSe
         {sectionTabs}
         {section === 'clan'
           ? <p className="center muted" style={{ margin: '24px 0 8px' }}>{state.message}</p>
-          : section === 'battles' ? <BattleAnalysisView /> : gameSection}
+          : section === 'battles' ? <BattlesSection initialView={battlesView} openMatchId={openMatchId} /> : gameSection}
       </div>
     )
   }
@@ -164,7 +193,7 @@ export function MyStatsView({ defaultSection = 'clan' }: { defaultSection?: MeSe
 
       {sectionTabs}
 
-      {section === 'game' ? gameSection : section === 'battles' ? <BattleAnalysisView /> : (
+      {section === 'game' ? gameSection : section === 'battles' ? <BattlesSection initialView={battlesView} openMatchId={openMatchId} /> : (
       <div className="fade-in">
       <div className="card me-ring-card">
         <ContributionRing percent={s.contributionPercent} label={t.me.contrib} ariaLabel={t.me.contribAria} />
