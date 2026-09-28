@@ -26,7 +26,8 @@ public class TrackerActionsUseCase(
     public record State(bool Available, bool Enabled, bool DmBlocked, bool MutedToday);
 
     /// <param name="Rows">Кнопки под обновлённым сообщением; пусто - без кнопок.</param>
-    public record Result(string Text, IReadOnlyList<IReadOnlyList<BotButton>> Rows);
+    /// <param name="Toast">Ответ всплывающим окном, а сообщение не трогать (карточка захода остаётся).</param>
+    public record Result(string Text, IReadOnlyList<IReadOnlyList<BotButton>> Rows, bool Toast = false);
 
     public async Task<State> GetAsync(long tg, CancellationToken ct = default)
     {
@@ -127,6 +128,18 @@ public class TrackerActionsUseCase(
                 await alertPrefs.SaveChangesAsync(ct);
                 await sentLog.AddAsync(MuteKind, $"{tg}|{DateTime.UtcNow:O}", ct);
                 return new Result(t.TrkMuted, [[new BotButton(t.TrkBtnAll, Url: "startapp:matches")]]);
+            }
+            case TrackerText.TiltCallback:
+            {
+                // Включение Стоп-тильта из карточки трекера: те же бесплатные сигналы,
+                // что и из приложения. Карточку не переписываем - она про заход.
+                var prefs = await alertPrefs.GetOrCreateAsync(tg, ct);
+                prefs.Lang ??= TiltMessages.Code(BotText.ParseLang(languageCode));
+                prefs.TiltAlerts = true;
+                prefs.DmBlocked = false;
+                await alertPrefs.SaveChangesAsync(ct);
+                var t = BotText.For(prefs.Lang);
+                return new Result(string.Format(t.TrkTiltOnToast, prefs.FreeSignalsLeft), [], Toast: true);
             }
             case "trk|on":
             case "trk|off":
