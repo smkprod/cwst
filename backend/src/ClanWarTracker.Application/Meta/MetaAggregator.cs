@@ -29,10 +29,12 @@ public static class MetaAggregator
     public record PairStat(int Games, int Wins);
 
     /// <param name="Battles">Сколько уникальных боёв вошло после отсева дублей и режимов.</param>
+    /// <param name="Games">Сами бои: колода против колоды и итог для стороны A.</param>
     public record Result(
         Dictionary<string, DeckStat> Decks,
         Dictionary<(int Card, int Opp), PairStat> Matchups,
-        int Battles);
+        int Battles,
+        List<(string DeckA, string DeckB, int Result)>? Games = null);
 
     /// <summary>
     /// Каждый бой даёт два наблюдения - по колоде с каждой стороны.
@@ -47,6 +49,7 @@ public static class MetaAggregator
         var decks = new Dictionary<string, (int G, int W, int D)>();
         var pairs = new Dictionary<(int, int), (int G, int W)>();
         var seen = new HashSet<string>();
+        var games = new List<(string, string, int)>();
         var count = 0;
 
         foreach (var b in battles)
@@ -73,6 +76,7 @@ public static class MetaAggregator
 
             AddDeck(decks, MetaCard.DeckKey(mine), iWon, draw);
             AddDeck(decks, MetaCard.DeckKey(theirs), theyWon, draw);
+            games.Add((MetaCard.DeckKey(mine), MetaCard.DeckKey(theirs), draw ? 0 : iWon ? 1 : -1));
 
             foreach (var c in mine)
                 foreach (var t in theirs)
@@ -85,7 +89,8 @@ public static class MetaAggregator
         return new Result(
             decks.ToDictionary(kv => kv.Key, kv => new DeckStat(kv.Value.G, kv.Value.W, kv.Value.D)),
             pairs.ToDictionary(kv => kv.Key, kv => new PairStat(kv.Value.G, kv.Value.W)),
-            count);
+            count,
+            games);
     }
 
     private static void AddDeck(Dictionary<string, (int G, int W, int D)> map, string key, bool won, bool draw)

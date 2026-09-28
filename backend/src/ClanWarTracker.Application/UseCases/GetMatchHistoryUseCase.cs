@@ -1,4 +1,5 @@
 using ClanWarTracker.Application.Battles;
+using ClanWarTracker.Application.Meta;
 using ClanWarTracker.Application.DTOs;
 using ClanWarTracker.Application.Notifications;
 using ClanWarTracker.Domain.Entities;
@@ -186,6 +187,7 @@ public class GetMatchReportUseCase(
     IPlayerRepository players,
     IPlayerBattleRepository battles,
     IPlayerAlertPrefsRepository alertPrefs,
+    IMetaRepository meta,
     PlusAccess plus)
 {
     public enum Outcome { Ok, NotLinked, NotFound, Locked }
@@ -258,7 +260,50 @@ public class GetMatchReportUseCase(
             r.Verdict?.Code, TrackerText.Verdict(t, r.Verdict, catalog),
             new MatchReportSessionDto(r.Session.StartUtc, r.Session.Index, r.Session.Count, r.Session.Wins,
                 r.Session.Losses, r.Session.Draws, r.Session.Trophies, r.Session.Strip),
-            plusDto, hint && plusDto is not null, r.LockedCount, r.HasDetail, access.Unlocked);
+            plusDto, hint && plusDto is not null, r.LockedCount, r.HasDetail, access.Unlocked,
+            await MatchupAsync(b, month, access.Unlocked, catalog, ct));
         return (Outcome.Ok, dto);
+    }
+
+    /// <summary>
+    /// Статистика матчапа: по боям топ-500 - всем, по своим боям - с Плюсом. Сбой
+    /// здесь не должен ронять отчёт: без статистики он всё равно полезен.
+    /// </summary>
+    private async Task<MatchupDto?> MatchupAsync(
+        PlayerBattle b, List<PlayerBattle> month, bool unlocked, Dictionary<int, CrCatalogCard> catalog, CancellationToken ct)
+    {
+        try
+        {
+            static List<MatchupTierDto> Dto(MatchupStats.Result r) => r.Tiers
+                .Select(t => new MatchupTierDto(t.Key, t.Wins, t.Draws, t.Losses, t.Games, t.WinPercent, t.Reliability))
+                .ToList();
+
+            var window = await MatchupWindow.LoadAsync(meta, ct);
+            var top = window is null ? null : MatchupStats.FromTop(b.DeckKey, b.OppDeckKey, window, catalog);
+
+            List<MatchupTierDto>? own = null;
+            if (unlocked)
+            {
+                var ownStats = MatchupStats.FromOwn(b.DeckKey, b.OppDeckKey, month.Where(x => x.Id != b.Id), catalog);
+                if (ownStats.Tiers.Any(t => t.Games > 0)) own = Dto(ownStats);
+            }
+
+            return new MatchupDto(
+                top is null ? null : Dto(top), window?.Count ?? 0, top?.Headline?.Key,
+                own, !unlocked,
+                Shape(b.DeckKey, catalog), Shape(b.OppDeckKey, catalog));
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>Средний эликсир и цикл из четырёх самых дешёвых. null - справочник неполон.</summary>
+    public static DeckShapeDto? Shape(string deckKey, IReadOnlyDictionary<int, CrCatalogCard> catalog)
+    {
+        var costs = MetaCard.ParseDeckKey(deckKey).Select(k => catalog.GetValueOrDefault(Math.Abs(k))?.ElixirCost ?? 0).ToList();
+        if (costs.Count != 8 || costs.Any(c => c <= 0)) return null;
+        return new DeckShapeDto(Math.Round(costs.Average(), 1), costs.OrderBy(c => c).Take(4).Sum());
     }
 }

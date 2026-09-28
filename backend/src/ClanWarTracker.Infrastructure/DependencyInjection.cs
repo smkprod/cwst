@@ -618,6 +618,17 @@ CREATE TABLE IF NOT EXISTS ""MetaMatchupDays"" (
 );");
         await db.Database.ExecuteSqlRawAsync(
             "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_MetaMatchupDays_DayUtc_CardKey_OppCardKey\" ON \"MetaMatchupDays\" (\"DayUtc\", \"CardKey\", \"OppCardKey\");");
+        // Бои топа колода против колоды - для статистики матчапа в разборе боя.
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""MetaBattles"" (
+    ""Id"" serial PRIMARY KEY,
+    ""DayUtc"" varchar(10) NOT NULL,
+    ""DeckA"" varchar(128) NOT NULL,
+    ""DeckB"" varchar(128) NOT NULL,
+    ""Result"" integer NOT NULL DEFAULT 0
+);");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_MetaBattles_DayUtc\" ON \"MetaBattles\" (\"DayUtc\");");
 
         // Бои привязанных игроков для личного разбора: API хранит только 25 последних.
         await db.Database.ExecuteSqlRawAsync(@"

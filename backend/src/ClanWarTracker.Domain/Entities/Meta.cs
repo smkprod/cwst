@@ -40,6 +40,24 @@ public class MetaMatchupDay
     public int Wins { get; set; }
 }
 
+/// <summary>
+/// Один бой топа: колода против колоды и итог. Храним неделю ради статистики
+/// матчапа в разборе боя: «такие колоды друг против друга в топ-500 — 58%».
+/// Пар «карта против карты» для этого мало: они не знают, какие карты были вместе.
+/// </summary>
+public class MetaBattle
+{
+    public int Id { get; set; }
+    public required string DayUtc { get; set; }
+
+    /// <summary>Колоды сторон в формате <see cref="MetaCard.DeckKey"/>.</summary>
+    public required string DeckA { get; set; }
+    public required string DeckB { get; set; }
+
+    /// <summary>1 - выиграла A, 0 - ничья, -1 - выиграла B.</summary>
+    public int Result { get; set; }
+}
+
 public static class MetaCard
 {
     /// <summary>

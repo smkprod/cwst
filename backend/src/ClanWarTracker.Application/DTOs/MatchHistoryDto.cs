@@ -96,4 +96,19 @@ public record MatchReportDto(
     bool Hint,
     int LockedCount,
     bool HasDetail,
-    bool Unlocked);
+    bool Unlocked,
+    MatchupDto? Matchup = null);
+
+/// <param name="Reliability">reliable (100+ боёв), adequate (20+), low.</param>
+public record MatchupTierDto(string Key, int Wins, int Draws, int Losses, int Games, double WinPercent, string Reliability);
+
+/// <param name="Cycle">Сумма четырёх самых дешёвых карт - сколько стоит прокрутить колоду.</param>
+public record DeckShapeDto(double AvgElixir, int Cycle);
+
+/// <param name="Top">Как такие колоды играют друг против друга в топ-500 за неделю. null - боёв топа ещё нет.</param>
+/// <param name="Headline">Ключ самой точной ступени с достаточной выборкой.</param>
+/// <param name="Own">То же по своим боям за месяц (Плюс). null - закрыто или нечего показать.</param>
+public record MatchupDto(
+    List<MatchupTierDto>? Top, int TopBattles, string? Headline,
+    List<MatchupTierDto>? Own, bool OwnLocked,
+    DeckShapeDto? Me, DeckShapeDto? Them);

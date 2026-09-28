@@ -11,7 +11,8 @@ public class MetaRepository(AppDbContext db) : IMetaRepository
         IReadOnlyList<MetaDeckDay> decks,
         IReadOnlyList<MetaMatchupDay> matchups,
         string keepFromDayUtc,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        IReadOnlyList<MetaBattle>? battles = null)
     {
         // Замена целиком: повторный сбор за тот же день не должен удваивать игры.
         await db.MetaDeckDays.Where(d => d.DayUtc == dayUtc).ExecuteDeleteAsync(ct);
@@ -20,6 +21,12 @@ public class MetaRepository(AppDbContext db) : IMetaRepository
         // Строки дней сравниваются как строки: формат yyyy-MM-dd сортируется так же, как даты.
         await db.MetaDeckDays.Where(d => string.Compare(d.DayUtc, keepFromDayUtc) < 0).ExecuteDeleteAsync(ct);
         await db.MetaMatchupDays.Where(m => string.Compare(m.DayUtc, keepFromDayUtc) < 0).ExecuteDeleteAsync(ct);
+        if (battles is not null)
+        {
+            await db.MetaBattles.Where(b => b.DayUtc == dayUtc).ExecuteDeleteAsync(ct);
+            await db.MetaBattles.Where(b => string.Compare(b.DayUtc, keepFromDayUtc) < 0).ExecuteDeleteAsync(ct);
+            db.MetaBattles.AddRange(battles);
+        }
 
         db.MetaDeckDays.AddRange(decks);
         db.MetaMatchupDays.AddRange(matchups);
@@ -63,6 +70,11 @@ public class MetaRepository(AppDbContext db) : IMetaRepository
                 Games = g.Sum(x => x.Games),
                 Wins = g.Sum(x => x.Wins),
             })
+            .ToListAsync(ct);
+
+    public Task<List<MetaBattle>> GetBattlesSinceAsync(string fromDayUtc, CancellationToken ct = default) =>
+        db.MetaBattles.AsNoTracking()
+            .Where(b => string.Compare(b.DayUtc, fromDayUtc) >= 0)
             .ToListAsync(ct);
 
     public async Task<string?> LatestDayAsync(CancellationToken ct = default) =>

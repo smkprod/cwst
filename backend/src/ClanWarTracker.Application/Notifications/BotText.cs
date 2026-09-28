@@ -491,6 +491,8 @@ public sealed class BotText
     public required string TrkBtnOff { get; init; }
     /// <summary>Ответ на /tracker в группе: трекер живёт в личке.</summary>
     public required string TrkInGroup { get; init; }
+    /// <summary>Строка матчапа в карточке: {0}% побед таких колод против таких, {1} боёв в топ-500.</summary>
+    public required string TrkMatchup { get; init; }
     /// <summary>Кнопка: открыть трекер в личке.</summary>
     public required string TrkBtnDm { get; init; }
 
@@ -891,6 +893,7 @@ public sealed class BotText
         TrkBtnPlus = "⭐ Плюс",
         TrkBtnOn = "Включить",
         TrkBtnOff = "Выключить",
+        TrkMatchup = "📊 В топ-500 такой матчап: {0}% побед ({1} боёв)",
         TrkInGroup = "🎯 Трекер боёв работает в личке: там я после каждого боя тихо присылаю разбор. Нажми кнопку ниже — и включи в один тап.",
         TrkBtnDm = "🎯 Включить в личке",
     };
@@ -1240,6 +1243,7 @@ public sealed class BotText
         TrkBtnPlus = "⭐ Плюс",
         TrkBtnOn = "Увімкнути",
         TrkBtnOff = "Вимкнути",
+        TrkMatchup = "📊 У топ-500 такий матчап: {0}% перемог ({1} боїв)",
         TrkInGroup = "🎯 Трекер боїв працює в особистих: там я після кожного бою тихо надсилаю розбір. Натисни кнопку нижче — і увімкни в один тап.",
         TrkBtnDm = "🎯 Увімкнути в особистих",
     };
@@ -1589,6 +1593,7 @@ public sealed class BotText
         TrkBtnPlus = "⭐ Plus",
         TrkBtnOn = "Turn on",
         TrkBtnOff = "Turn off",
+        TrkMatchup = "📊 In the top 500 this matchup wins {0}% ({1} battles)",
         TrkInGroup = "🎯 The battle tracker works in private chat: that's where I quietly send a breakdown after every battle. Tap the button below to turn it on.",
         TrkBtnDm = "🎯 Turn on in private chat",
     };

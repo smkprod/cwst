@@ -21,6 +21,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<TopPlayer> TopPlayers => Set<TopPlayer>();
     public DbSet<MetaDeckDay> MetaDeckDays => Set<MetaDeckDay>();
     public DbSet<MetaMatchupDay> MetaMatchupDays => Set<MetaMatchupDay>();
+    public DbSet<MetaBattle> MetaBattles => Set<MetaBattle>();
     public DbSet<PlayerBattle> PlayerBattles => Set<PlayerBattle>();
     public DbSet<Entitlement> Entitlements => Set<Entitlement>();
     public DbSet<PlayerAlertPrefs> PlayerAlertPrefs => Set<PlayerAlertPrefs>();
@@ -125,6 +126,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(b => b.OppName).HasMaxLength(32);
             e.Property(b => b.DeckSelection).HasMaxLength(24);
             e.Property(b => b.OppArchetype).HasMaxLength(24);
+        });
+
+        mb.Entity<MetaBattle>(e =>
+        {
+            e.ToTable("MetaBattles");
+            e.HasIndex(b => b.DayUtc);
+            e.Property(b => b.DayUtc).HasMaxLength(10);
+            e.Property(b => b.DeckA).HasMaxLength(128);
+            e.Property(b => b.DeckB).HasMaxLength(128);
         });
 
         mb.Entity<MetaMatchupDay>(e =>

@@ -6,6 +6,7 @@ import { useT, type Translations } from '../lib/i18n'
 import { usePlusSheet } from '../lib/plusSheet'
 import { usePlayerSheet } from '../lib/playerSheet'
 import { signed } from './MatchHistoryView'
+import { MatchupPanel } from './MatchupPanel'
 
 /** Полное HP башен по уровню не знаем — полоска показывает остаток от самой крепкой из видимых. */
 const KING_HP_GUESS = 4824
@@ -107,6 +108,8 @@ function Report({ r, t, onPlus, onOpponent }: {
       <Deck side={r.them} t={t} />
       <div className="trk-side-title"><span>{s.you}</span></div>
       <Deck side={r.me} t={t} />
+
+      {r.matchup && <MatchupPanel m={r.matchup} t={t} onPlus={onPlus} />}
 
       {r.hasDetail ? (
         <>
