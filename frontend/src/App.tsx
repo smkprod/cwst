@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { api, ApiError, adminClan } from './lib/api'
-import { haptic, startMatchId, startParam, startToMatches } from './lib/telegram'
+import { askDmOnce, haptic, startMatchId, startParam, startToMatches } from './lib/telegram'
 import { ChallengeView } from './components/ChallengeView'
 import { usePlusSheet } from './lib/plusSheet'
 import { useT, type Translations } from './lib/i18n'
@@ -125,6 +125,19 @@ const START_BATTLES_VIEW = startParam === 'review' ? 'review' : 'history'
 
 export default function App() {
   const [state, setState] = useState<State>({ kind: 'loading' })
+
+  // Разрешение писать в личку — один раз, через пару секунд после загрузки: окно
+  // поверх пустого экрана загрузки выглядело бы как ошибка.
+  const dmAskedRef = useRef(false)
+  useEffect(() => {
+    if (dmAskedRef.current || state.kind === 'loading' || state.kind === 'notInTelegram') return
+    const id = window.setTimeout(() => {
+      // Отметка внутри таймера: если экран сменился раньше, спросим на следующем
+      dmAskedRef.current = true
+      askDmOnce().then(allowed => { if (allowed) api.dmAllowed().catch(() => { /* повторим при следующем включении */ }) })
+    }, 2500)
+    return () => window.clearTimeout(id)
+  }, [state.kind])
   const [tab, setTab] = useState<Tab>(START_TAB)
   const openPlus = usePlusSheet()
 

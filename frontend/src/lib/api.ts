@@ -191,6 +191,7 @@ export const api = {
       body: JSON.stringify(c),
     }),
   getTracker: () => request<TrackerState>('/api/players/me/tracker'),
+  dmAllowed: () => request<{ ok: boolean }>('/api/players/me/dm-allowed', { method: 'POST' }),
   setTracker: (enabled: boolean, tz: number, lang: string) =>
     request<TrackerState>('/api/players/me/tracker', {
       method: 'POST',

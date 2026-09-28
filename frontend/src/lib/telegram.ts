@@ -159,3 +159,28 @@ export function openInvoice(url: string): Promise<InvoiceStatus> {
     tg.openInvoice(url, status => resolve(status))
   })
 }
+
+const DM_ASK_KEY = 'cwst_dm_ask'
+const DM_ASK_AGAIN_MS = 7 * 24 * 3600 * 1000
+
+/**
+ * Один раз попросить разрешение писать в личку — родным окном Telegram.
+ *
+ * Бот может написать только тому, кто хоть раз нажал «Старт» в личке с ним. Многие
+ * привязывают тег в группе клана или в приложении и в личку не заходят: из 131
+ * человека рассылка дошла до 70. Разрешение из этого окна работает так же, как «Старт».
+ *
+ * Кто разрешил — больше не спрашиваем; кто отказал — не раньше чем через неделю.
+ * @returns true — разрешил (сейчас или раньше).
+ */
+export async function askDmOnce(): Promise<boolean> {
+  if (!tg?.requestWriteAccess || !initData) return false
+  let saved: string | null = null
+  try { saved = localStorage.getItem(DM_ASK_KEY) } catch { /* приватный режим — просто спросим */ }
+  if (saved === 'granted') return false
+  if (saved && Date.now() - Number(saved) < DM_ASK_AGAIN_MS) return false
+
+  const allowed = await requestWriteAccess()
+  try { localStorage.setItem(DM_ASK_KEY, allowed ? 'granted' : String(Date.now())) } catch { /* не страшно */ }
+  return allowed
+}
