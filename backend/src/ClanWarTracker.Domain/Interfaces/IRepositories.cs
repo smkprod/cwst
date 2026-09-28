@@ -192,6 +192,28 @@ public interface IPlayerBattleRepository
     Task<int> PurgeOlderThanAsync(DateTime utc, CancellationToken ct = default);
 }
 
+public interface ITiltAlertRepository
+{
+    Task AddAsync(TiltAlert alert, CancellationToken ct = default);
+
+    /// <summary>Сигнал по номеру — отслеживаемый. null — такого нет.</summary>
+    Task<TiltAlert?> GetAsync(int id, CancellationToken ct = default);
+
+    /// <summary>Сигналы человека без итога захода — отслеживаемые.</summary>
+    Task<List<TiltAlert>> GetOpenAsync(long telegramUserId, CancellationToken ct = default);
+
+    /// <summary>Сигналы человека с момента — для «пауза работает» и счётчиков за день.</summary>
+    Task<List<TiltAlert>> GetSinceAsync(long telegramUserId, DateTime sinceUtc, CancellationToken ct = default);
+
+    /// <summary>Все сигналы с момента — для панели владельца.</summary>
+    Task<List<TiltAlert>> GetAllSinceAsync(DateTime sinceUtc, CancellationToken ct = default);
+
+    /// <summary>У кого есть сигналы без итога захода — их надо дописать, даже если Плюс уже кончился.</summary>
+    Task<List<long>> UsersWithOpenAsync(CancellationToken ct = default);
+
+    Task SaveChangesAsync(CancellationToken ct = default);
+}
+
 public interface IMetaRepository
 {
     /// <summary>
@@ -400,6 +422,15 @@ public interface IEntitlementRepository
     /// <summary>Все выдачи товара — для статистики продаж и конверсии триала.</summary>
     Task<List<Entitlement>> GetAllAsync(string sku, CancellationToken ct = default);
 
+    /// <summary>Сколько бесплатных подарочных недель человек раздал с указанного момента.</summary>
+    Task<int> CountFreeGiftsSinceAsync(long giverTelegramUserId, DateTime sinceUtc, CancellationToken ct = default);
+
+    /// <summary>
+    /// Выдачи, срок которых кончается в окне, без напоминания - отслеживаемые.
+    /// Вызывающий сам проверяет, что это последний срок человека.
+    /// </summary>
+    Task<List<Entitlement>> GetEndingAsync(DateTime fromUtc, DateTime toUtc, CancellationToken ct = default);
+
     Task SaveChangesAsync(CancellationToken ct = default);
 }
 
@@ -413,6 +444,15 @@ public interface IPlayerAlertPrefsRepository
 
     /// <summary>Кто явно включил «Стоп-тильт» — нужны, когда платный доступ выключен владельцем.</summary>
     Task<List<long>> OptedInAsync(CancellationToken ct = default);
+
+    /// <summary>Кто включил «Стоп-тильт» без Плюса и ещё не израсходовал бесплатные сигналы.</summary>
+    Task<List<long>> FreeSignalUsersAsync(CancellationToken ct = default);
+
+    /// <summary>У кого уже было знакомство с тильт-типом — чтобы не писать второй раз.</summary>
+    Task<HashSet<long>> IntroducedAsync(CancellationToken ct = default);
+
+    /// <summary>У кого стоит пауза — после неё надо написать «можно».</summary>
+    Task<List<long>> PausedUsersAsync(CancellationToken ct = default);
 
     Task SaveChangesAsync(CancellationToken ct = default);
 }

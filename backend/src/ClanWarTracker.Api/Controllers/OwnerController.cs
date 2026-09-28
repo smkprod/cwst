@@ -38,9 +38,10 @@ public class OwnerController(
     PlusAccess plusAccess,
     IEntitlementRepository entitlements,
     RevokePurchaseUseCase revokePurchase,
+    ITiltAlertRepository tiltAlerts,
     ILogger<OwnerController> logger) : ControllerBase
 {
-    public record PlusSettingsRequest(bool Paywall, int Price7, int Price30, int TrialDays);
+    public record PlusSettingsRequest(bool Paywall, int Price7, int Price30);
     public record GrantPlusRequest(string PlayerTag, int Days);
     public record RefundRequest(string ChargeId);
 
@@ -332,25 +333,36 @@ public class OwnerController(
         var all = await entitlements.GetAllAsync(Entitlement.Skus.Plus, ct);
         var live = all.Where(e => e.RevokedAtUtc is null).ToList();
 
-        var trialUsers = live.Where(e => e.Source == Entitlement.Sources.Trial).Select(e => e.TelegramUserId).ToHashSet();
-        var buyers = live.Where(e => e.Source == Entitlement.Sources.Purchase).Select(e => e.TelegramUserId).ToHashSet();
-        var purchases = live.Where(e => e.Source == Entitlement.Sources.Purchase).ToList();
+        // Купленное за звёзды: себе или в подарок. Плюс внутри спонсорства звёзд не несёт -
+        // они учтены в платеже спонсорства.
+        var purchases = live.Where(e => e.Stars > 0).ToList();
+        var buyers = purchases.Select(e => e.GiverTelegramUserId ?? e.TelegramUserId).ToHashSet();
         var weekAgo = now.AddDays(-7);
+
+        // «Стоп-тильт»: работает ли главный продукт. Цели плана - от 30% сигналов с паузой,
+        // «🔕» не растёт, из получивших бесплатные сигналы покупает хотя бы каждый десятый.
+        var alerts = (await tiltAlerts.GetAllSinceAsync(now.AddDays(-30), ct)).Where(a => a.Kind == "streak").ToList();
+        var week = alerts.Where(a => a.SentUtc >= weekAgo).ToList();
+        var freeUsers = alerts.Where(a => a.Free).Select(a => a.TelegramUserId).ToHashSet();
+        var freeThenBought = freeUsers.Count(tg => purchases.Any(e => e.TelegramUserId == tg
+            && e.CreatedAtUtc >= alerts.Where(a => a.TelegramUserId == tg && a.Free).Min(a => a.SentUtc)));
 
         return Ok(new
         {
             paywall = offer.Paywall,
             price7 = offer.Price7,
             price30 = offer.Price30,
-            trialDays = offer.TrialDays,
-            // Действующий Плюс, без спонсоров: они получают его в нагрузку к спонсорству
             active = live.Where(e => e.UntilUtc > now).Select(e => e.TelegramUserId).Distinct().Count(),
-            trials = trialUsers.Count,
-            trialsPaid = trialUsers.Count(buyers.Contains),
             buyers = buyers.Count,
             purchases = purchases.Count,
             stars = purchases.Sum(e => e.Stars),
             starsWeek = purchases.Where(e => e.CreatedAtUtc >= weekAgo).Sum(e => e.Stars),
+            gifts = live.Count(e => e.Source == Entitlement.Sources.Gift),
+            alertsWeek = week.Count,
+            pausedWeek = week.Count(a => a.Choice == "pause"),
+            mutedWeek = week.Count(a => a.Choice == "mute"),
+            freeUsers = freeUsers.Count,
+            freeThenBought,
             recent = all.OrderByDescending(e => e.CreatedAtUtc).Take(30).Select(e => new
             {
                 e.TelegramUserId, e.PlayerTag, e.Source, e.Days, e.Stars, e.UntilUtc, e.CreatedAtUtc,
@@ -360,7 +372,7 @@ public class OwnerController(
     }
 
     /// <summary>
-    /// POST /api/owner/plus/settings — цены пропусков, срок триала и выключатель платного.
+    /// POST /api/owner/plus/settings — цены пропусков и выключатель платного.
     /// Выключатель - аварийный: всё платное становится бесплатным для всех, продажа закрывается.
     /// </summary>
     [HttpPost("plus/settings")]
@@ -369,13 +381,10 @@ public class OwnerController(
         if (await DenyAsync(ServicePermission.Sponsors, ct) is { } deny) return deny;
         if (req.Price7 is < 1 or > PlusSales.MaxStars || req.Price30 is < 1 or > PlusSales.MaxStars)
             return BadRequest(new { error = "bad_stars" });
-        if (req.TrialDays is < 0 or > 30) return BadRequest(new { error = "bad_days" });
-
         await settings.SetAsync(PlusSales.PaywallKey, req.Paywall ? "on" : "off", ct);
         await settings.SetAsync(PlusSales.Price7Key, req.Price7.ToString(), ct);
         await settings.SetAsync(PlusSales.Price30Key, req.Price30.ToString(), ct);
-        await settings.SetAsync(PlusSales.TrialDaysKey, req.TrialDays.ToString(), ct);
-        return Ok(new { paywall = req.Paywall, price7 = req.Price7, price30 = req.Price30, trialDays = req.TrialDays });
+        return Ok(new { paywall = req.Paywall, price7 = req.Price7, price30 = req.Price30 });
     }
 
     /// <summary>

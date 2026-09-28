@@ -36,6 +36,9 @@ builder.Services.AddScoped<ProcessSponsorPaymentUseCase>();
 builder.Services.AddScoped<PlusAccess>();
 builder.Services.AddScoped<ProcessPlusPaymentUseCase>();
 builder.Services.AddScoped<TiltWatchUseCase>();
+builder.Services.AddScoped<TiltActionsUseCase>();
+builder.Services.AddScoped<TiltIntroUseCase>();
+builder.Services.AddScoped<PlusReminderUseCase>();
 builder.Services.AddScoped<GetMetaDecksUseCase>();
 builder.Services.AddScoped<GetBattleAnalysisUseCase>();
 // Откуда пришёл человек (реклама, реферал) — пишется при /start

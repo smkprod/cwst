@@ -1,5 +1,12 @@
 namespace ClanWarTracker.Domain.Interfaces;
 
+/// <summary>
+/// Кнопка под сообщением бота - без типов Telegram, чтобы слой приложения о нём не знал.
+/// Либо колбэк (бот получит нажатие), либо ссылка. Ссылка вида «startapp:plus»
+/// превращается в ссылку на приложение с этим параметром запуска.
+/// </summary>
+public record BotButton(string Text, string? CallbackData = null, string? Url = null);
+
 public interface INotificationSender
 {
     Task SendToUserAsync(long telegramUserId, string text, CancellationToken ct = default);
@@ -9,6 +16,21 @@ public interface INotificationSender
     /// или заблокировал его: вызывающий запоминает это и перестаёт пытаться.
     /// </summary>
     Task<bool> TrySendToUserAsync(long telegramUserId, string text, CancellationToken ct = default);
+
+    /// <summary>
+    /// Личное сообщение со своими кнопками (рядами). Возвращает номер сообщения, чтобы
+    /// потом его править, или null - не доставлено.
+    /// </summary>
+    Task<int?> SendToUserWithButtonsAsync(
+        long telegramUserId, string text, IReadOnlyList<IReadOnlyList<BotButton>> rows, CancellationToken ct = default);
+
+    /// <summary>
+    /// Переписывает своё сообщение в личке. rows null или пустые - кнопки убираются.
+    /// false - сообщение удалено или текст не изменился.
+    /// </summary>
+    Task<bool> EditUserMessageAsync(
+        long chatId, int messageId, string text, IReadOnlyList<IReadOnlyList<BotButton>>? rows = null,
+        CancellationToken ct = default);
 
     /// <param name="threadId">ID темы (Topic) форума группы — если клан настроен через /setup
     /// внутри темы, сообщение нужно слать туда, а не в общий чат. Null — общий чат/группа без тем.</param>

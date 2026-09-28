@@ -81,6 +81,44 @@ public static class BattleAnalyzer
             .ToList();
     }
 
+    /// <summary>
+    /// Бои, по которым считается тильт: только ладдер и Путь легенд.
+    ///
+    /// Война клана сюда не идёт: там четыре разные колоды и совсем другая ставка,
+    /// а сигнал «пауза» посреди военного дня только мешает доиграть колоды. Турниры
+    /// и испытания - тоже нет: кубки в них не теряются.
+    /// </summary>
+    public static bool IsTiltEligible(string? type) =>
+        type is not null
+        && !type.Contains("riverRace", StringComparison.OrdinalIgnoreCase)
+        && (type.Equals("PvP", StringComparison.OrdinalIgnoreCase)
+            || type.Contains("legend", StringComparison.OrdinalIgnoreCase)
+            || type.Contains("ranked", StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// Каждый бой вместе с тем, что было перед ним в этом заходе: сколько поражений
+    /// подряд (больше нуля) или что перед ним победа (меньше нуля). Новый заход
+    /// начинает счёт с нуля; ничья серию не рвёт и не продолжает.
+    /// </summary>
+    private static IEnumerable<(PlayerBattle Battle, int StreakBefore, int Session)> WithStreak(IReadOnlyList<PlayerBattle> battles)
+    {
+        int streak = 0, session = 0;
+        DateTime? last = null;
+        foreach (var b in battles)
+        {
+            if (last is { } prev && b.BattleTimeUtc - prev > SessionGap)
+            {
+                streak = 0;
+                session++;
+            }
+            yield return (b, streak, session);
+
+            if (b.Result < 0) streak = streak > 0 ? streak + 1 : 1;
+            else if (b.Result > 0) streak = -1;
+            last = b.BattleTimeUtc;
+        }
+    }
+
     public record TiltStats(int AfterTwoLosses, int AfterTwoLossesWins, int AfterWin, int AfterWinWins, int LongestLossStreak);
 
     /// <summary>
@@ -144,7 +182,8 @@ public static class BattleAnalyzer
     /// что первый совет не услышали, и третий не поможет.
     /// </summary>
     public static TiltCheck ShouldAlertTilt(
-        IReadOnlyList<PlayerBattle> battles, DateTime nowUtc, DateTime? lastAlertBattleUtc, TimeSpan freshness)
+        IReadOnlyList<PlayerBattle> battles, DateTime nowUtc, DateTime? lastAlertBattleUtc, TimeSpan freshness,
+        int threshold = 2)
     {
         if (battles.Count == 0) return new TiltCheck(false, null, 0);
 
@@ -166,7 +205,120 @@ public static class BattleAnalyzer
         }
 
         var alreadyThisSession = lastAlertBattleUtc is { } la && la >= sessionStart;
-        return new TiltCheck(streak >= 2 && !alreadyThisSession, last.BattleTimeUtc, streak);
+        return new TiltCheck(streak >= Math.Max(2, threshold) && !alreadyThisSession, last.BattleTimeUtc, streak);
+    }
+
+    /// <summary>Сколько наблюдений «после двух поражений» нужно, чтобы назвать личный процент.</summary>
+    public const int ProfileMinSamples = 8;
+
+    /// <summary>Сколько боёв нужно для тильт-типа: меньше - это ещё не характер, а один вечер.</summary>
+    public const int ProfileMinBattles = 20;
+
+    /// <param name="BasePercent">Обычный процент побед.</param>
+    /// <param name="After2Percent">
+    /// Процент после двух поражений подряд, сглаженный к обычному: (победы + 8·обычный) / (n + 8).
+    /// На восьми боях сырая цифра скачет на ±30 п.п., и одна нелепая цифра, показанная
+    /// в клане, убила бы доверие ко всему остальному. null - наблюдений ещё мало.
+    /// </param>
+    /// <param name="Type">ice / boiling / volcano; null - рано судить.</param>
+    public record TiltProfile(int Games, double BasePercent, int After2Games, double? After2Percent, string? Type);
+
+    /// <summary>Тильт-тип: 🧊 Лёд (разница до 3 п.п.), 🌡 Закипаешь (до 12), 🌋 Вулкан (больше).</summary>
+    public static TiltProfile Profile(IReadOnlyList<PlayerBattle> battles)
+    {
+        var totals = Count(battles);
+        if (totals.Games == 0) return new TiltProfile(0, 0, 0, null, null);
+
+        var tilt = Tilt(battles);
+        var baseRate = (double)totals.Wins / totals.Games;
+        if (tilt.AfterTwoLosses < ProfileMinSamples || totals.Games < ProfileMinBattles)
+            return new TiltProfile(totals.Games, Math.Round(baseRate * 100, 1), tilt.AfterTwoLosses, null, null);
+
+        var after2 = (tilt.AfterTwoLossesWins + ProfileMinSamples * baseRate) / (tilt.AfterTwoLosses + ProfileMinSamples);
+        var diff = (baseRate - after2) * 100;
+        var type = diff <= 3 ? "ice" : diff <= 12 ? "boiling" : "volcano";
+        return new TiltProfile(totals.Games, Math.Round(baseRate * 100, 1), tilt.AfterTwoLosses,
+            Math.Round(after2 * 100, 1), type);
+    }
+
+    /// <summary>Бои, сыгранные «в тильте»: после <paramref name="threshold"/> и более поражений подряд в заходе.</summary>
+    public static List<PlayerBattle> InTilt(IReadOnlyList<PlayerBattle> battles, int threshold = 2) =>
+        WithStreak(battles).Where(x => x.StreakBefore >= threshold).Select(x => x.Battle).ToList();
+
+    /// <param name="AtUtc">Бой, после которого бот написал бы.</param>
+    /// <param name="AfterWins">Что было дальше в том же заходе.</param>
+    public record Moment(DateTime AtUtc, int AfterWins, int AfterLosses);
+
+    /// <summary>
+    /// Моменты, когда «Стоп-тильт» написал бы: серия дошла до порога, по одному на
+    /// заход, - и чем кончилось продолжение. Для бесплатных это вместо замка:
+    /// «за 14 дней было 4 момента, после них 3–9».
+    /// </summary>
+    public static List<Moment> Moments(IReadOnlyList<PlayerBattle> battles, int threshold, DateTime sinceUtc)
+    {
+        var result = new List<(DateTime At, int W, int L)>();
+        var momentSession = -1;
+        int? open = null;
+
+        foreach (var (b, before, session) in WithStreak(battles))
+        {
+            if (open is int oi && momentSession == session)
+            {
+                var m = result[oi];
+                if (b.Result > 0) m.W++;
+                else if (b.Result < 0) m.L++;
+                result[oi] = m;
+            }
+
+            var after = b.Result < 0 ? (before > 0 ? before + 1 : 1) : before;
+            if (b.Result < 0 && after == Math.Max(2, threshold) && momentSession != session && b.BattleTimeUtc >= sinceUtc)
+            {
+                result.Add((b.BattleTimeUtc, 0, 0));
+                open = result.Count - 1;
+                momentSession = session;
+            }
+        }
+
+        return result.Select(m => new Moment(m.At, m.W, m.L)).ToList();
+    }
+
+    /// <summary>
+    /// Своя лучшая колода за период - для «🟢 Можно. Начни с колоды X». Процент
+    /// сглажен к обычному, чтобы колода «3 из 3» не обгоняла проверенную.
+    /// </summary>
+    public static (string Key, int Games, int Wins, double Percent)? BestDeck(
+        IReadOnlyList<PlayerBattle> battles, int minGames = 5)
+    {
+        var totals = Count(battles);
+        if (totals.Games == 0) return null;
+        var baseRate = (double)totals.Wins / totals.Games;
+
+        var best = battles
+            .GroupBy(b => b.DeckKey)
+            .Select(g => (Key: g.Key, Games: g.Count(), Wins: g.Count(b => b.Result > 0)))
+            .Where(d => d.Games >= minGames)
+            .Select(d => (d.Key, d.Games, d.Wins, Smoothed: (d.Wins + minGames * baseRate) / (d.Games + minGames)))
+            .OrderByDescending(d => d.Smoothed)
+            .FirstOrDefault();
+        if (best.Key is null) return null;
+        return (best.Key, best.Games, best.Wins, Math.Round(100.0 * best.Wins / best.Games, 1));
+    }
+
+    /// <summary>
+    /// Заход, в который входит бой <paramref name="anchorUtc"/>: соседние бои без перерыва
+    /// больше <see cref="SessionGap"/>. Пусто - такого боя в списке нет.
+    /// </summary>
+    public static List<PlayerBattle> SessionAround(IReadOnlyList<PlayerBattle> battles, DateTime anchorUtc)
+    {
+        var i = -1;
+        for (var k = 0; k < battles.Count; k++)
+            if (battles[k].BattleTimeUtc == anchorUtc) { i = k; break; }
+        if (i < 0) return [];
+
+        int from = i, to = i;
+        while (from > 0 && battles[from].BattleTimeUtc - battles[from - 1].BattleTimeUtc <= SessionGap) from--;
+        while (to < battles.Count - 1 && battles[to + 1].BattleTimeUtc - battles[to].BattleTimeUtc <= SessionGap) to++;
+        return battles.Skip(from).Take(to - from + 1).ToList();
     }
 
     public record DeckUse(string Key, int Games, int Wins);

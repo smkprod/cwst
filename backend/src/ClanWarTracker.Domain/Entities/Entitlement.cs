@@ -45,6 +45,12 @@ public class Entitlement
     /// <summary>Отозвано (возврат звёзд или решение владельца). Отозванная выдача доступа не даёт.</summary>
     public DateTime? RevokedAtUtc { get; set; }
 
+    /// <summary>Кто подарил (Source = gift). null - купил себе сам или выдано не игроком.</summary>
+    public long? GiverTelegramUserId { get; set; }
+
+    /// <summary>Когда напомнили, что пропуск заканчивается. Одно напоминание на срок.</summary>
+    public DateTime? ReminderSentUtc { get; set; }
+
     public static class Skus
     {
         public const string Plus = "plus";
@@ -56,6 +62,8 @@ public class Entitlement
         public const string Trial = "trial";
         public const string Gift = "gift";
         public const string Grant = "grant";
+        /// <summary>Плюс, входящий в купленное спонсорство: дни складываются с купленным Плюсом.</summary>
+        public const string Sponsor = "sponsor";
     }
 }
 
@@ -89,4 +97,97 @@ public class PlayerAlertPrefs
     /// пытаемся, пока он сам не откроет приложение или не напишет боту.
     /// </summary>
     public bool DmBlocked { get; set; }
+
+    /// <summary>Язык сообщений (ru/uk/en). null - берём язык клана, иначе русский.</summary>
+    public string? Lang { get; set; }
+
+    /// <summary>Смещение местного времени от UTC в минутах - для тихих часов и «до 21:52».</summary>
+    public int? TzOffsetMinutes { get; set; }
+
+    /// <summary>
+    /// Бесплатные живые сигналы без Плюса. Вместо триала на дни: человек сначала сам
+    /// видит, как бот вовремя его остановил, и платит уже за это.
+    /// </summary>
+    public int FreeSignalsLeft { get; set; } = DefaultFreeSignals;
+
+    public const int DefaultFreeSignals = 2;
+
+    /// <summary>После скольких поражений подряд писать: 2 или 3.</summary>
+    public int LossThreshold { get; set; } = 2;
+
+    /// <summary>«Лимит на вечер»: столько поражений за день - и бот предлагает закончить. null - выключен.</summary>
+    public int? DailyLossLimit { get; set; }
+
+    /// <summary>Тихие часы 23:00-08:00 по местному времени: ночью не пишем.</summary>
+    public bool QuietHours { get; set; } = true;
+
+    /// <summary>Нажал «Пауза»: до этого момента молчим, потом пишем «можно».</summary>
+    public DateTime? PauseUntilUtc { get; set; }
+
+    /// <summary>Нажал «Сегодня не писать»: молчим до этого момента (конец местного дня).</summary>
+    public DateTime? MutedUntilUtc { get; set; }
+
+    /// <summary>Когда прислали знакомство с тильт-типом. Один раз на человека.</summary>
+    public DateTime? IntroSentUtc { get; set; }
+
+    /// <summary>День (местный, yyyy-MM-dd), когда уже написали про «лимит на вечер».</summary>
+    public string? LimitAlertDay { get; set; }
+}
+
+/// <summary>
+/// Один сигнал «Стоп-тильта» и что было после него.
+///
+/// Нужен не для отчётности: по нему бот правит своё же сообщение в итог захода,
+/// помнит нажатую кнопку и считает главный довод продлить Плюс - «после паузы ты
+/// выигрываешь 57%, без паузы 29%». Без журнала эту цифру взять было бы неоткуда.
+/// </summary>
+public class TiltAlert
+{
+    public int Id { get; set; }
+    public long TelegramUserId { get; set; }
+    public required string PlayerTag { get; set; }
+
+    /// <summary>streak - серия поражений; limit - «лимит на вечер».</summary>
+    public required string Kind { get; set; }
+
+    public DateTime SentUtc { get; set; }
+
+    /// <summary>Бой, после которого написали: всё, что позже, - «после сигнала».</summary>
+    public DateTime TriggerBattleUtc { get; set; }
+
+    public DateTime SessionStartUtc { get; set; }
+    public int LossStreak { get; set; }
+
+    /// <summary>Сообщение в личке - его бот правит в итог захода. null - не доставлено.</summary>
+    public int? MessageId { get; set; }
+
+    /// <summary>Бесплатный сигнал (без Плюса).</summary>
+    public bool Free { get; set; }
+
+    /// <summary>Язык, на котором написали, - итог пишется на нём же.</summary>
+    public string Lang { get; set; } = "ru";
+
+    /// <summary>
+    /// Текст отправленного сигнала. Telegram правит сообщение только целиком, а по
+    /// кнопке «Пауза» к тому же тексту надо дописать одну строку.
+    /// </summary>
+    public string? Text { get; set; }
+
+    /// <summary>Нажатая кнопка: pause, go, mute. null - не нажал ничего.</summary>
+    public string? Choice { get; set; }
+    public DateTime? ChoiceUtc { get; set; }
+
+    /// <summary>Когда написали «можно» после паузы.</summary>
+    public DateTime? ResumeSentUtc { get; set; }
+
+    /// <summary>Когда подвели итог захода. null - заход ещё идёт.</summary>
+    public DateTime? SummaryUtc { get; set; }
+
+    public int SessionWins { get; set; }
+    public int SessionLosses { get; set; }
+    public int SessionTrophies { get; set; }
+
+    /// <summary>Бои после сигнала в том же заходе - для «пауза работает».</summary>
+    public int AfterWins { get; set; }
+    public int AfterLosses { get; set; }
 }

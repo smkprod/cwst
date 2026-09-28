@@ -14,7 +14,8 @@ public class ProcessPlusPaymentUseCase(
     PlusAccess access,
     IEntitlementRepository entitlements,
     ISponsorPaymentRepository payments,
-    IPlayerRepository players)
+    IPlayerRepository players,
+    IPlayerAlertPrefsRepository alertPrefs)
 {
     /// <summary>Можно ли принимать платёж. null - можно, иначе причина для плательщика.</summary>
     public Task<string?> ValidateAsync(string currency, int totalAmount, string payload)
@@ -29,7 +30,10 @@ public class ProcessPlusPaymentUseCase(
     }
 
     /// <param name="Duplicate">Этот платёж уже учтён - повторная доставка.</param>
-    public record Applied(long RecipientTelegramUserId, DateTime Until, int Days, bool Duplicate);
+    /// <param name="Gift">Платил не получатель: подарок или оплаченная просьба «подари мне».</param>
+    public record Applied(
+        long RecipientTelegramUserId, DateTime Until, int Days, bool Duplicate,
+        bool Gift = false, string? RecipientName = null, string? RecipientLang = null);
 
     /// <summary>
     /// Выдаёт Плюс за прошедший платёж. null - счёт не разобран, хотя деньги списаны:
@@ -48,10 +52,18 @@ public class ProcessPlusPaymentUseCase(
 
         var player = await players.GetByTelegramIdAsync(order.RecipientTelegramUserId, ct);
         var stars = totalAmount > 0 ? totalAmount : order.Stars;
+        var gift = payerTelegramUserId != order.RecipientTelegramUserId;
 
         var newUntil = await access.GrantAsync(
-            order.RecipientTelegramUserId, order.Days, Entitlement.Sources.Purchase,
-            player?.PlayerTag, stars, chargeId, ct, save: false);
+            order.RecipientTelegramUserId, order.Days,
+            gift ? Entitlement.Sources.Gift : Entitlement.Sources.Purchase,
+            player?.PlayerTag, stars, chargeId, ct, save: false,
+            giverTelegramUserId: gift ? payerTelegramUserId : null);
+
+        // Заплатил - значит, в личке с ботом он есть: прошлую неудачу доставки забываем,
+        // иначе купивший не получил бы ни одного сигнала, ради которых платил.
+        var prefs = await alertPrefs.GetAsync(order.RecipientTelegramUserId, ct);
+        if (!gift && prefs is { DmBlocked: true }) prefs.DmBlocked = false;
 
         await payments.AddAsync(new SponsorPayment
         {
@@ -67,7 +79,8 @@ public class ProcessPlusPaymentUseCase(
         // Платёж и доступ - одной транзакцией (один контекст на оба репозитория).
         // Повтор того же платежа упрётся в уникальный номер и откатит и доступ.
         await entitlements.SaveChangesAsync(ct);
-        return new Applied(order.RecipientTelegramUserId, newUntil, order.Days, Duplicate: false);
+        return new Applied(order.RecipientTelegramUserId, newUntil, order.Days, Duplicate: false,
+            Gift: gift, RecipientName: player?.Name, RecipientLang: prefs?.Lang);
     }
 }
 
@@ -92,12 +105,11 @@ public class RevokePurchaseUseCase(
         var now = DateTime.UtcNow;
         payment.RefundedAtUtc = now;
 
-        if (payment.Kind == SponsorPayment.Kinds.Plus)
-        {
-            foreach (var e in await entitlements.GetByChargeAsync(chargeId, ct))
-                e.RevokedAtUtc ??= now;
-        }
-        else
+        // Всё, что выдано этим платежом: Плюс за Плюс, Плюс внутри спонсорства.
+        foreach (var e in await entitlements.GetByChargeAsync(chargeId, ct))
+            e.RevokedAtUtc ??= now;
+
+        if (payment.Kind != SponsorPayment.Kinds.Plus)
         {
             // Спонсорство: срок укорачивается на оплаченные дни. Ниже «сейчас» не
             // уходит - закончившееся спонсорство просто снимается.

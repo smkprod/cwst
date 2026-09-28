@@ -32,6 +32,7 @@ builder.Services.AddScoped<GetBattleAnalysisUseCase>();
 builder.Services.AddScoped<GetPlayerSheetUseCase>();
 builder.Services.AddScoped<PlusAccess>();
 builder.Services.AddScoped<RevokePurchaseUseCase>();
+builder.Services.AddScoped<GetTiltProfileUseCase>();
 builder.Services.AddScoped<GetRaceScoutUseCase>();
 builder.Services.AddScoped<GetPlayerStatsUseCase>();
 builder.Services.AddScoped<GetClanHistoryUseCase>();
