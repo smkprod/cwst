@@ -121,6 +121,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(b => b.Type).HasMaxLength(48);
             e.Property(b => b.DeckKey).HasMaxLength(128);
             e.Property(b => b.OppDeckKey).HasMaxLength(128);
+            e.Property(b => b.OppTag).HasMaxLength(16);
+            e.Property(b => b.OppName).HasMaxLength(32);
+            e.Property(b => b.DeckSelection).HasMaxLength(24);
+            e.Property(b => b.OppArchetype).HasMaxLength(24);
         });
 
         mb.Entity<MetaMatchupDay>(e =>
