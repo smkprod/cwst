@@ -15,24 +15,25 @@ public static class PlusSales
     public const string PaywallKey = "plus.paywall";
     public const string Price7Key = "plus.price7";
     public const string Price30Key = "plus.price30";
-    public const string TrialDaysKey = "plus.trialDays";
-
-    public const int DefaultPrice7 = 49;
-    public const int DefaultPrice30 = 149;
-    public const int DefaultTrialDays = 3;
 
     /// <summary>
-    /// Сколько сохранённых боёв нужно, чтобы выдать триал. Раньше триал был бы пустым:
-    /// разбору нечего показать, и три дня уходят впустую.
+    /// Цены совпадают с пачками звёзд в Telegram (50 и 100): купить меньше пачки
+    /// нельзя, и лишние звёзды на счету у школьника - это недоплаченная покупка.
+    /// 149 для украинского подростка оказалось слишком много.
     /// </summary>
-    public const int TrialMinBattles = 20;
+    public const int DefaultPrice7 = 49;
+    public const int DefaultPrice30 = 99;
+
+    /// <summary>Сколько бесплатных недель в месяц спонсор дарит соклановцам.</summary>
+    public const int SponsorFreeGiftsPerMonth = 2;
+    public const int SponsorFreeGiftDays = 7;
 
     public const int MaxStars = 10_000;
 
     /// <summary>Срок пропусков. Только эти два: счёт с другим сроком собран не нами.</summary>
     public static readonly int[] PassDays = [7, 30];
 
-    public record Offer(bool Paywall, int Price7, int Price30, int TrialDays)
+    public record Offer(bool Paywall, int Price7, int Price30)
     {
         public int PriceFor(int days) => days switch { 7 => Price7, 30 => Price30, _ => 0 };
         public bool OnSale => Paywall && Price7 > 0 && Price30 > 0;
@@ -45,8 +46,7 @@ public static class PlusSales
         return new Offer(
             paywall,
             await IntAsync(settings, Price7Key, DefaultPrice7, ct),
-            await IntAsync(settings, Price30Key, DefaultPrice30, ct),
-            Math.Clamp(await IntAsync(settings, TrialDaysKey, DefaultTrialDays, ct), 0, 30));
+            await IntAsync(settings, Price30Key, DefaultPrice30, ct));
     }
 
     private static async Task<int> IntAsync(IServiceSettingRepository settings, string key, int fallback, CancellationToken ct) =>

@@ -40,6 +40,61 @@ public class TelegramNotificationSender(ITelegramBotClient bot) : INotificationS
         catch (HttpRequestException) { return false; }
     }
 
+    public async Task<int?> SendToUserWithButtonsAsync(
+        long telegramUserId, string text, IReadOnlyList<IReadOnlyList<BotButton>> rows, CancellationToken ct = default)
+    {
+        try
+        {
+            var keyboard = await KeyboardAsync(rows, ct);
+            var message = await bot.SendMessage(telegramUserId, text, replyMarkup: keyboard, cancellationToken: ct);
+            return message.MessageId;
+        }
+        catch (ApiRequestException) { return null; }
+        catch (HttpRequestException) { return null; }
+    }
+
+    public async Task<bool> EditUserMessageAsync(
+        long chatId, int messageId, string text, IReadOnlyList<IReadOnlyList<BotButton>>? rows = null,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            // Пустая клавиатура, а не null: null оставил бы прежние кнопки под новым текстом
+            var keyboard = rows is { Count: > 0 }
+                ? await KeyboardAsync(rows, ct)
+                : new InlineKeyboardMarkup(Array.Empty<InlineKeyboardButton[]>());
+            await bot.EditMessageText(chatId, messageId, text, replyMarkup: keyboard, cancellationToken: ct);
+            return true;
+        }
+        catch (ApiRequestException) { return false; }
+        catch (HttpRequestException) { return false; }
+    }
+
+    private async Task<InlineKeyboardMarkup?> KeyboardAsync(IReadOnlyList<IReadOnlyList<BotButton>> rows, CancellationToken ct)
+    {
+        if (rows.Count == 0) return null;
+        var appUrl = await GetAppUrlAsync(ct);
+        var built = new List<InlineKeyboardButton[]>();
+        foreach (var row in rows)
+        {
+            var buttons = new List<InlineKeyboardButton>();
+            foreach (var b in row)
+            {
+                if (b.CallbackData is { } data)
+                    buttons.Add(InlineKeyboardButton.WithCallbackData(b.Text, data));
+                else if (b.Url is { } url && url.StartsWith("startapp:", StringComparison.Ordinal))
+                {
+                    // Ссылка на приложение с параметром запуска; без юзернейма бота кнопку пропускаем
+                    if (appUrl is not null) buttons.Add(InlineKeyboardButton.WithUrl(b.Text, appUrl + "=" + url["startapp:".Length..]));
+                }
+                else if (b.Url is { } plain)
+                    buttons.Add(InlineKeyboardButton.WithUrl(b.Text, plain));
+            }
+            if (buttons.Count > 0) built.Add(buttons.ToArray());
+        }
+        return built.Count == 0 ? null : new InlineKeyboardMarkup(built);
+    }
+
     public Task SendToChatAsync(
         long chatId, string text, int? threadId = null, bool html = false, CancellationToken ct = default) =>
         SendAsync(chatId, text, threadId, html, ct);

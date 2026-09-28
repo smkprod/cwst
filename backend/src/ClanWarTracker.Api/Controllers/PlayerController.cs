@@ -48,10 +48,11 @@ public class PlayerController(
     /// часам игрока, а не сервера.
     /// </summary>
     [HttpGet("me/battles")]
-    public async Task<IActionResult> MyBattles([FromQuery] int tz = 0, CancellationToken ct = default)
+    public async Task<IActionResult> MyBattles([FromQuery] int tz = 0, [FromQuery] string? lang = null,
+        CancellationToken ct = default)
     {
         var userId = (long)HttpContext.Items["TelegramUserId"]!;
-        var dto = await battleAnalysis.ExecuteAsync(userId, Math.Clamp(tz, -720, 840), ct);
+        var dto = await battleAnalysis.ExecuteAsync(userId, Math.Clamp(tz, -720, 840), ct, lang);
         return dto is null ? NotFound(new { error = "player_not_linked" }) : Ok(dto);
     }
 

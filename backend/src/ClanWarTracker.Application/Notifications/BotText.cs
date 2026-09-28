@@ -273,6 +273,76 @@ public sealed class BotText
     public required string QuickFooter { get; init; }
     public required string QuickShareText { get; init; }
     public required string QuickShareButton { get; init; }
+    /// <summary>Сигнал: {0} - поражений подряд, {1} - « · −58🏆» или пусто.</summary>
+    public required string TiltHead { get; init; }
+    /// <summary>Дописка, когда после двух поражений меньше 45%.</summary>
+    public required string TiltCoin { get; init; }
+    /// <summary>{0} - карта, которая была у соперника в каждом бою серии.</summary>
+    public required string TiltSameCard { get; init; }
+    /// <summary>Советы через «|», идут по кругу.</summary>
+    public required string TiltTips { get; init; }
+    /// <summary>{0} - сколько бесплатных сигналов осталось.</summary>
+    public required string TiltFreeLeft { get; init; }
+    /// <summary>Последний бесплатный сигнал.</summary>
+    public required string TiltFreeLast { get; init; }
+    /// <summary>Кнопка паузы.</summary>
+    public required string TiltBtnPause { get; init; }
+    /// <summary>Кнопка «играю дальше».</summary>
+    public required string TiltBtnGo { get; init; }
+    /// <summary>Кнопка «сегодня не писать».</summary>
+    public required string TiltBtnMute { get; init; }
+    /// <summary>{0} - время конца паузы.</summary>
+    public required string TiltPausedLine { get; init; }
+    /// <summary>Ответ на «играю дальше».</summary>
+    public required string TiltGoLine { get; init; }
+    /// <summary>Ответ на «сегодня не писать».</summary>
+    public required string TiltMutedLine { get; init; }
+    /// <summary>{0} - главная карта колоды, {1} - % побед.</summary>
+    public required string TiltResume { get; init; }
+    /// <summary>Пауза закончилась, лучшей колоды не нашлось.</summary>
+    public required string TiltResumeGeneric { get; init; }
+    /// <summary>Заголовок итога захода.</summary>
+    public required string TiltSummaryHead { get; init; }
+    /// <summary>{0} побед, {1} поражений, {2} - « · +34🏆» или пусто.</summary>
+    public required string TiltSummaryScore { get; init; }
+    /// <summary>{0}–{1} после паузы.</summary>
+    public required string TiltSummaryPause { get; init; }
+    /// <summary>{0}–{1} после сигнала без паузы.</summary>
+    public required string TiltSummaryAfter { get; init; }
+    /// <summary>Остановился после сигнала.</summary>
+    public required string TiltSummaryStopped { get; init; }
+    /// <summary>{0}% после паузы, {1}% без паузы.</summary>
+    public required string TiltSummaryWorks { get; init; }
+    /// <summary>{0} - поражений сегодня.</summary>
+    public required string TiltLimitHead { get; init; }
+    /// <summary>Текст лимита на вечер.</summary>
+    public required string TiltLimitBody { get; init; }
+    /// <summary>{0} тип, {1}% после двух, {2}% обычно, {3} бесплатных сигналов.</summary>
+    public required string TiltIntro { get; init; }
+    /// <summary>Кнопка включить.</summary>
+    public required string TiltIntroOn { get; init; }
+    /// <summary>Кнопка не надо.</summary>
+    public required string TiltIntroOff { get; init; }
+    /// <summary>{0} - бесплатных сигналов.</summary>
+    public required string TiltIntroEnabled { get; init; }
+    /// <summary>Включено с Плюсом.</summary>
+    public required string TiltIntroEnabledPlus { get; init; }
+    /// <summary>Отказался.</summary>
+    public required string TiltIntroDeclined { get; init; }
+    /// <summary>Тип Лёд.</summary>
+    public required string TiltTypeIce { get; init; }
+    /// <summary>Тип Закипаешь.</summary>
+    public required string TiltTypeBoiling { get; init; }
+    /// <summary>Тип Вулкан.</summary>
+    public required string TiltTypeVolcano { get; init; }
+    /// <summary>{0} - кто подарил, {1} - до какой даты.</summary>
+    public required string GiftReceived { get; init; }
+    /// <summary>{0} - кому, {1} - до какой даты.</summary>
+    public required string GiftSent { get; init; }
+    /// <summary>{0} - дата конца.</summary>
+    public required string PlusEnding { get; init; }
+    /// <summary>Кнопка продлить.</summary>
+    public required string PlusRenewButton { get; init; }
     /// <summary>«Стоп-тильт»: первая строка, {0} - поражений подряд.</summary>
     public required string TiltAlertHead { get; init; }
     /// <summary>Личная статистика: {0} - % побед после двух поражений, {1} - обычный %.</summary>
@@ -597,6 +667,41 @@ public sealed class BotText
         QuickFooter = "Полная статистика — в Mini App: история, прогнозы, рейтинг 👇",
         QuickShareText = "⚔️ Слежу за Clan War через этот бот — отправь свой тег CR и сразу увидишь статистику войны своего клана",
         QuickShareButton = "📤 Поделиться с кланом",
+        TiltHead = "🧊 Стоп-тильт · поражений подряд: {0}{1}",
+        TiltCoin = " Это хуже монетки 🪙",
+        TiltSameCard = "Каждый раз у соперника был «{0}».",
+        TiltTips = "Пауза 10–15 минут — и шансы вернутся.|Выдохни, выпей воды и вернись с холодной головой.|Даже топ-1000 делает паузы после двух сливов.|Серия — не приговор. Пауза — тоже часть игры.|Кубки никуда не денутся, если отойти на 15 минут.",
+        TiltFreeLeft = "Бесплатных сигналов осталось: {0}.",
+        TiltFreeLast = "Это последний бесплатный сигнал — дальше с Плюсом.",
+        TiltBtnPause = "⏸ Пауза 15 мин",
+        TiltBtnGo = "▶️ Играю дальше",
+        TiltBtnMute = "🔕 Сегодня не писать",
+        TiltPausedLine = "⏸ Пауза до {0}. Напишу, когда можно.",
+        TiltGoLine = "▶️ Понял, молчу до конца захода.",
+        TiltMutedLine = "🔕 Сегодня больше не пишу.",
+        TiltResume = "🟢 Можно. Начни с колоды с «{0}» — {1}% побед за месяц.",
+        TiltResumeGeneric = "🟢 Пауза закончилась — можно играть. Удачи!",
+        TiltSummaryHead = "🧊 Стоп-тильт · итог захода",
+        TiltSummaryScore = "{0}–{1}{2}",
+        TiltSummaryPause = "⏸ Пауза → после неё {0}–{1}",
+        TiltSummaryAfter = "После сигнала: {0}–{1}",
+        TiltSummaryStopped = "✅ Ты остановился после сигнала — кубки целы.",
+        TiltSummaryWorks = "После паузы ты выигрываешь {0}%, без паузы — {1}%.",
+        TiltLimitHead = "🛑 Лимит на вечер: поражений сегодня — {0}.",
+        TiltLimitBody = "Ты сам поставил этот лимит. Может, на сегодня хватит?",
+        TiltIntro = "🧊 Готово: твой тильт-тип — {0}.\nПосле двух поражений подряд ты выигрываешь {1}%, обычно — {2}%.\n\nНаписать тебе прямо во время игры, когда начнётся серия? Первые {3} раза — бесплатно.",
+        TiltIntroOn = "🧊 Включить",
+        TiltIntroOff = "Не надо",
+        TiltIntroEnabled = "✅ Включено. Напишу, когда начнётся серия. Бесплатных сигналов: {0}.",
+        TiltIntroEnabledPlus = "✅ Включено. Напишу, когда начнётся серия.",
+        TiltIntroDeclined = "Ок, не буду. Включить можно в приложении: «Я» → «🧊 Стоп-тильт».",
+        TiltTypeIce = "🧊 Лёд",
+        TiltTypeBoiling = "🌡 Закипаешь",
+        TiltTypeVolcano = "🌋 Вулкан",
+        GiftReceived = "🎁 {0} подарил тебе Clanify Плюс до {1}!\n\n🧊 Стоп-тильт уже включён: напишу, когда начнёшь сливать серию.",
+        GiftSent = "🎁 Подарок отправлен: {0} получил Плюс до {1}. Спасибо!",
+        PlusEnding = "⏳ Твой Clanify Плюс закончится {0}. Продлить — одним нажатием 👇",
+        PlusRenewButton = "💎 Продлить",
         TiltAlertHead = "🧊 Стоп-тильт: поражений подряд — {0}.",
         TiltAlertStats = "По твоим же боям после двух поражений подряд ты выигрываешь {0}%, а обычно — {1}%.",
         TiltAlertGeneric = "После серии поражений легко заиграться и слить ещё — дай голове остыть.",
@@ -624,14 +729,14 @@ public sealed class BotText
         MetaHead = "🔥 Лучшие колоды топа за неделю (боёв: {0})",
         MetaRow = "{0}. {1}% побед · {2} игр\n{3}",
         MetaEmpty = "Мета топа ещё собирается — загляни завтра.",
-        PlusInfo = "💎 Clanify Плюс\n\n• полный разбор: все карты, против которых ты проседаешь, контры к каждой твоей колоде по боям топа, дни недели\n• «Стоп-тильт»: напишу, когда начнёшь сливать серию подряд\n\n{0}",
+        PlusInfo = "💎 Clanify Плюс\n\n🧊 Стоп-тильт: напишу «стоп» прямо во время игры, когда начнёшь сливать серию, — с твоими же цифрами, кнопкой паузы и итогом захода.\n🛑 Свои правила: после 2 или 3 поражений, лимит на вечер, тихие часы.\n🔬 И ещё: полный разбор боёв и контры к твоим колодам по боям топа.\n\n{0}",
         PlusActiveLine = "✅ Плюс активен до {0}.",
         PlusOfferLine = "7 дней — {0}⭐ · 30 дней — {1}⭐. Разовый пропуск, без автопродления. Купить — в приложении 👇",
         PlusFreeLine = "Сейчас всё открыто бесплатно — пользуйся 🙂",
         PlusButton = "💎 Открыть Плюс",
         PaySupport = "💬 Помощь с оплатой\n\nЗвёзды списались, а Плюс или спонсорство не включились? Хочешь вернуть звёзды? Напиши {0} и перешли сообщение об оплате — в нём номер платежа. По нему всё включат вручную или вернут звёзды.",
         PaySupportOwnerFallback = "владельцу бота",
-        Terms = "📄 Условия\n\nClanify — неофициальный фан-проект, не связан с Supercell и не одобрен ею. Данные — из официального Clash Royale API.\n\nПлюс и спонсорство — разовые цифровые пропуска на указанный срок, без автопродления. Оплата — звёздами Telegram. Если что-то не работает — /paysupport: включим вручную или вернём звёзды.\n\nМы храним твой тег, бои за 30 дней и настройки уведомлений — только для работы бота.",
+        Terms = "📄 Условия\n\nClanify — неофициальный фан-проект, не связан с Supercell и не одобрен ею. Данные — из официального Clash Royale API.\n\nПлюс и спонсорство — разовые цифровые пропуска на указанный срок, без автопродления. Оплата — звёздами Telegram. Передумал — вернём звёзды без вопросов в течение 48 часов после оплаты: /paysupport. Если что-то не работает — тоже туда, включим вручную.\n\nМы храним твой тег, бои за 30 дней и настройки уведомлений — только для работы бота.",
         InlineWarTitle = "⚔️ Моя война",
         InlineWarDesc = "Медали, место в клане и колоды за сегодня",
         InlineWarText = "⚔️ {0} · {1}\n🏅 {2} медалей · {3} место в клане\n🃏 {4}/4 колод сегодня",
@@ -872,6 +977,41 @@ public sealed class BotText
         QuickFooter = "Повна статистика — у Mini App: історія, прогнози, рейтинг 👇",
         QuickShareText = "⚔️ Стежу за Clan War через цього бота — надішли свій тег CR і одразу побачиш статистику війни свого клану",
         QuickShareButton = "📤 Поділитися з кланом",
+        TiltHead = "🧊 Стоп-тільт · поразок поспіль: {0}{1}",
+        TiltCoin = " Це гірше за монетку 🪙",
+        TiltSameCard = "Щоразу в суперника був «{0}».",
+        TiltTips = "Пауза 10–15 хвилин — і шанси повернуться.|Видихни, випий води й повернися з холодною головою.|Навіть топ-1000 робить паузи після двох поразок.|Серія — не вирок. Пауза — теж частина гри.|Кубки нікуди не дінуться, якщо відійти на 15 хвилин.",
+        TiltFreeLeft = "Безкоштовних сигналів лишилося: {0}.",
+        TiltFreeLast = "Це останній безкоштовний сигнал — далі з Плюсом.",
+        TiltBtnPause = "⏸ Пауза 15 хв",
+        TiltBtnGo = "▶️ Граю далі",
+        TiltBtnMute = "🔕 Сьогодні не писати",
+        TiltPausedLine = "⏸ Пауза до {0}. Напишу, коли можна.",
+        TiltGoLine = "▶️ Зрозумів, мовчу до кінця заходу.",
+        TiltMutedLine = "🔕 Сьогодні більше не пишу.",
+        TiltResume = "🟢 Можна. Почни з колоди з «{0}» — {1}% перемог за місяць.",
+        TiltResumeGeneric = "🟢 Пауза скінчилася — можна грати. Успіху!",
+        TiltSummaryHead = "🧊 Стоп-тільт · підсумок заходу",
+        TiltSummaryScore = "{0}–{1}{2}",
+        TiltSummaryPause = "⏸ Пауза → після неї {0}–{1}",
+        TiltSummaryAfter = "Після сигналу: {0}–{1}",
+        TiltSummaryStopped = "✅ Ти зупинився після сигналу — кубки цілі.",
+        TiltSummaryWorks = "Після паузи ти виграєш {0}%, без паузи — {1}%.",
+        TiltLimitHead = "🛑 Ліміт на вечір: поразок сьогодні — {0}.",
+        TiltLimitBody = "Ти сам поставив цей ліміт. Може, на сьогодні досить?",
+        TiltIntro = "🧊 Готово: твій тільт-тип — {0}.\nПісля двох поразок поспіль ти виграєш {1}%, зазвичай — {2}%.\n\nНаписати тобі просто під час гри, коли почнеться серія? Перші {3} рази — безкоштовно.",
+        TiltIntroOn = "🧊 Увімкнути",
+        TiltIntroOff = "Не треба",
+        TiltIntroEnabled = "✅ Увімкнено. Напишу, коли почнеться серія. Безкоштовних сигналів: {0}.",
+        TiltIntroEnabledPlus = "✅ Увімкнено. Напишу, коли почнеться серія.",
+        TiltIntroDeclined = "Гаразд, не буду. Увімкнути можна в застосунку: «Я» → «🧊 Стоп-тільт».",
+        TiltTypeIce = "🧊 Лід",
+        TiltTypeBoiling = "🌡 Закипаєш",
+        TiltTypeVolcano = "🌋 Вулкан",
+        GiftReceived = "🎁 {0} подарував тобі Clanify Плюс до {1}!\n\n🧊 Стоп-тільт уже увімкнено: напишу, коли почнеш програвати серію.",
+        GiftSent = "🎁 Подарунок надіслано: {0} отримав Плюс до {1}. Дякую!",
+        PlusEnding = "⏳ Твій Clanify Плюс закінчиться {0}. Продовжити — одним натисканням 👇",
+        PlusRenewButton = "💎 Продовжити",
         TiltAlertHead = "🧊 Стоп-тільт: поразок поспіль — {0}.",
         TiltAlertStats = "За твоїми ж боями після двох поразок поспіль ти виграєш {0}%, а зазвичай — {1}%.",
         TiltAlertGeneric = "Після серії поразок легко загратися й програти ще — дай голові охолонути.",
@@ -899,14 +1039,14 @@ public sealed class BotText
         MetaHead = "🔥 Найкращі колоди топу за тиждень (боїв: {0})",
         MetaRow = "{0}. {1}% перемог · {2} ігор\n{3}",
         MetaEmpty = "Мета топу ще збирається — зазирни завтра.",
-        PlusInfo = "💎 Clanify Плюс\n\n• повний розбір: усі карти, проти яких ти просідаєш, контри до кожної твоєї колоди за боями топу, дні тижня\n• «Стоп-тільт»: напишу, коли почнеш програвати серію поспіль\n\n{0}",
+        PlusInfo = "💎 Clanify Плюс\n\n🧊 Стоп-тільт: напишу «стоп» просто під час гри, коли почнеш програвати серію, — з твоїми ж цифрами, кнопкою паузи й підсумком заходу.\n🛑 Свої правила: після 2 або 3 поразок, ліміт на вечір, тихі години.\n🔬 І ще: повний розбір боїв і контри до твоїх колод за боями топу.\n\n{0}",
         PlusActiveLine = "✅ Плюс активний до {0}.",
         PlusOfferLine = "7 днів — {0}⭐ · 30 днів — {1}⭐. Разова перепустка, без автопродовження. Купити — у застосунку 👇",
         PlusFreeLine = "Зараз усе відкрито безкоштовно — користуйся 🙂",
         PlusButton = "💎 Відкрити Плюс",
         PaySupport = "💬 Допомога з оплатою\n\nЗірки списалися, а Плюс чи спонсорство не увімкнулися? Хочеш повернути зірки? Напиши {0} і перешли повідомлення про оплату — у ньому номер платежу. За ним усе увімкнуть вручну або повернуть зірки.",
         PaySupportOwnerFallback = "власнику бота",
-        Terms = "📄 Умови\n\nClanify — неофіційний фан-проєкт, не пов’язаний із Supercell і не схвалений нею. Дані — з офіційного Clash Royale API.\n\nПлюс і спонсорство — разові цифрові перепустки на вказаний строк, без автопродовження. Оплата — зірками Telegram. Якщо щось не працює — /paysupport: увімкнемо вручну або повернемо зірки.\n\nМи зберігаємо твій тег, бої за 30 днів і налаштування сповіщень — лише для роботи бота.",
+        Terms = "📄 Умови\n\nClanify — неофіційний фан-проєкт, не пов’язаний із Supercell і не схвалений нею. Дані — з офіційного Clash Royale API.\n\nПлюс і спонсорство — разові цифрові перепустки на вказаний строк, без автопродовження. Оплата — зірками Telegram. Передумав — повернемо зірки без питань протягом 48 годин після оплати: /paysupport. Якщо щось не працює — теж туди, увімкнемо вручну.\n\nМи зберігаємо твій тег, бої за 30 днів і налаштування сповіщень — лише для роботи бота.",
         InlineWarTitle = "⚔️ Моя війна",
         InlineWarDesc = "Медалі, місце в клані та колоди за сьогодні",
         InlineWarText = "⚔️ {0} · {1}\n🏅 {2} медалей · {3} місце в клані\n🃏 {4}/4 колод сьогодні",
@@ -1147,6 +1287,41 @@ public sealed class BotText
         QuickFooter = "Full stats — in the Mini App: history, forecasts, rating 👇",
         QuickShareText = "⚔️ I track Clan War with this bot — send your CR tag and you'll see your clan's war stats right away",
         QuickShareButton = "📤 Share with the clan",
+        TiltHead = "🧊 Stop-tilt · {0} losses in a row{1}",
+        TiltCoin = " That's worse than a coin flip 🪙",
+        TiltSameCard = "Every time the opponent had «{0}».",
+        TiltTips = "A 10–15 minute break — and your odds come back.|Breathe, grab some water and come back with a clear head.|Even the top 1000 take breaks after two losses.|A streak isn't a verdict. A break is part of the game too.|Your trophies won't go anywhere in 15 minutes.",
+        TiltFreeLeft = "Free signals left: {0}.",
+        TiltFreeLast = "That was the last free signal — next ones come with Plus.",
+        TiltBtnPause = "⏸ Break 15 min",
+        TiltBtnGo = "▶️ Keep playing",
+        TiltBtnMute = "🔕 Not today",
+        TiltPausedLine = "⏸ Break until {0}. I'll tell you when.",
+        TiltGoLine = "▶️ Got it, quiet until this session ends.",
+        TiltMutedLine = "🔕 No more messages today.",
+        TiltResume = "🟢 Go ahead. Start with your «{0}» deck — {1}% wins this month.",
+        TiltResumeGeneric = "🟢 Break's over — you can play. Good luck!",
+        TiltSummaryHead = "🧊 Stop-tilt · session summary",
+        TiltSummaryScore = "{0}–{1}{2}",
+        TiltSummaryPause = "⏸ Break → after it {0}–{1}",
+        TiltSummaryAfter = "After the signal: {0}–{1}",
+        TiltSummaryStopped = "✅ You stopped after the signal — trophies saved.",
+        TiltSummaryWorks = "After a break you win {0}%, without one — {1}%.",
+        TiltLimitHead = "🛑 Evening limit: {0} losses today.",
+        TiltLimitBody = "You set this limit yourself. Maybe that's enough for today?",
+        TiltIntro = "🧊 Ready: your tilt type is {0}.\nAfter two losses in a row you win {1}%, usually {2}%.\n\nShould I message you mid-game when a losing streak starts? The first {3} are free.",
+        TiltIntroOn = "🧊 Turn on",
+        TiltIntroOff = "No thanks",
+        TiltIntroEnabled = "✅ On. I'll message you when a streak starts. Free signals: {0}.",
+        TiltIntroEnabledPlus = "✅ On. I'll message you when a streak starts.",
+        TiltIntroDeclined = "OK, I won't. You can turn it on in the app: «Me» → «🧊 Stop-tilt».",
+        TiltTypeIce = "🧊 Ice",
+        TiltTypeBoiling = "🌡 Simmering",
+        TiltTypeVolcano = "🌋 Volcano",
+        GiftReceived = "🎁 {0} gifted you Clanify Plus until {1}!\n\n🧊 Stop-tilt is on: I'll message you when a losing streak starts.",
+        GiftSent = "🎁 Gift sent: {0} has Plus until {1}. Thank you!",
+        PlusEnding = "⏳ Your Clanify Plus ends on {0}. Renew in one tap 👇",
+        PlusRenewButton = "💎 Renew",
         TiltAlertHead = "🧊 Stop-tilt: {0} losses in a row.",
         TiltAlertStats = "Your own battles say: after two losses in a row you win {0}%, usually {1}%.",
         TiltAlertGeneric = "After a losing streak it's easy to keep chasing and lose more — let your head cool down.",
@@ -1174,14 +1349,14 @@ public sealed class BotText
         MetaHead = "🔥 The top's best decks this week ({0} battles)",
         MetaRow = "{0}. {1}% wins · {2} games\n{3}",
         MetaEmpty = "The top meta is still being collected — check back tomorrow.",
-        PlusInfo = "💎 Clanify Plus\n\n• the full review: every card you struggle against, counters to each of your decks from top battles, weekdays\n• Stop-tilt: I'll message you when a losing streak starts\n\n{0}",
+        PlusInfo = "💎 Clanify Plus\n\n🧊 Stop-tilt: I'll say «stop» mid-game when a losing streak starts — with your own numbers, a break button and a session summary.\n🛑 Your rules: after 2 or 3 losses, an evening limit, quiet hours.\n🔬 Plus: the full battle review and counters to your decks from top battles.\n\n{0}",
         PlusActiveLine = "✅ Plus is active until {0}.",
         PlusOfferLine = "7 days — {0}⭐ · 30 days — {1}⭐. One-time pass, no auto-renewal. Buy it in the app 👇",
         PlusFreeLine = "Everything is free right now — enjoy 🙂",
         PlusButton = "💎 Open Plus",
         PaySupport = "💬 Payment help\n\nStars were charged but Plus or sponsorship didn't turn on? Want your stars back? Message {0} and forward the payment message — it has the payment number. We'll switch it on manually or refund the stars.",
         PaySupportOwnerFallback = "the bot owner",
-        Terms = "📄 Terms\n\nClanify is an unofficial fan project, not affiliated with or endorsed by Supercell. Data comes from the official Clash Royale API.\n\nPlus and sponsorship are one-time digital passes for the stated period, with no auto-renewal. Payment is in Telegram Stars. If something doesn't work — /paysupport: we'll switch it on manually or refund the stars.\n\nWe store your tag, 30 days of battles and notification settings — only to run the bot.",
+        Terms = "📄 Terms\n\nClanify is an unofficial fan project, not affiliated with or endorsed by Supercell. Data comes from the official Clash Royale API.\n\nPlus and sponsorship are one-time digital passes for the stated period, with no auto-renewal. Payment is in Telegram Stars. Changed your mind? We refund the stars, no questions asked, within 48 hours of payment: /paysupport. If something doesn't work — same place, we'll switch it on manually.\n\nWe store your tag, 30 days of battles and notification settings — only to run the bot.",
         InlineWarTitle = "⚔️ My war",
         InlineWarDesc = "Medals, place in the clan and decks today",
         InlineWarText = "⚔️ {0} · {1}\n🏅 {2} medals · #{3} in the clan\n🃏 {4}/4 decks today",

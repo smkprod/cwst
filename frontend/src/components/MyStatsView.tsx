@@ -10,6 +10,7 @@ import { TournamentHistoryCard } from './TournamentHistoryCard'
 import { PlayerProfileCard } from './PlayerProfileCard'
 import { DecksButton } from './DecksButton'
 import { BattleAnalysisView } from './BattleAnalysisView'
+import { TiltCard } from './TiltCard'
 
 type State =
   | { kind: 'loading' }
@@ -80,6 +81,8 @@ export function MyStatsView({ defaultSection = 'clan' }: { defaultSection?: MeSe
   // Пока это два отдельных места вставки, они разъедутся снова.
   const sectionTabs = (
     <>
+    {/* «Стоп-тильт» — первой карточкой: это то, за чем игрок сюда приходит */}
+    <TiltCard />
     <PlayerLooksCard />
     <div className="me-sections">
       <button

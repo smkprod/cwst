@@ -75,7 +75,7 @@ export function MoreView({ canManage, isLeader, onOpenNotifications, initialSect
       <section className="card" style={{ marginTop: 10 }}>
         <div className="card-title">{t.more.sectionsTitle}</div>
 
-        <button className="more-row" onClick={openPlus}>
+        <button className="more-row" onClick={() => openPlus()}>
           <span className="more-row-icon">💎</span>
           <span className="more-row-text">
             <span className="more-row-title">{t.more.plus}</span>

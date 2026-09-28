@@ -1173,7 +1173,6 @@ function PlusSection({ t }: { t: Translations }) {
   const [paywall, setPaywall] = useState(true)
   const [price7, setPrice7] = useState('')
   const [price30, setPrice30] = useState('')
-  const [trialDays, setTrialDays] = useState('')
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState<string | null>(null)
   const [grantTag, setGrantTag] = useState('')
@@ -1187,20 +1186,19 @@ function PlusSection({ t }: { t: Translations }) {
         setPaywall(d.paywall)
         setPrice7(String(d.price7))
         setPrice30(String(d.price30))
-        setTrialDays(String(d.trialDays))
       })
       .catch(() => setData(null))
   }, [])
   useEffect(load, [load])
 
   const save = async () => {
-    const p7 = Number(price7), p30 = Number(price30), td = Number(trialDays)
-    if (!(p7 >= 1 && p30 >= 1 && td >= 0 && td <= 30)) { setNote(o.salesBad); return }
+    const p7 = Number(price7), p30 = Number(price30)
+    if (!(p7 >= 1 && p30 >= 1)) { setNote(o.salesBad); return }
     haptic('medium')
     setBusy(true)
     setNote(null)
     try {
-      await api.ownerSetPlus(paywall, p7, p30, td)
+      await api.ownerSetPlus(paywall, p7, p30)
       hapticNotify('success')
       setNote(o.plusSaved)
       load()
@@ -1231,7 +1229,7 @@ function PlusSection({ t }: { t: Translations }) {
     }
   }
 
-  const src = (s: string) => s === 'purchase' ? o.srcPurchase : s === 'trial' ? o.srcTrial : s === 'gift' ? o.srcGift : o.srcGrant
+  const src = (s: string) => s === 'purchase' ? o.srcPurchase : s === 'gift' ? o.srcGift : s === 'sponsor' ? '★' : o.srcGrant
 
   return (
     <>
@@ -1245,10 +1243,19 @@ function PlusSection({ t }: { t: Translations }) {
             <div className="adm-kv"><span className="muted small">{o.plusStars}</span><b>{data.stars} ⭐</b></div>
             <div className="adm-kv"><span className="muted small">{o.plusActive}</span><b>{data.active}</b></div>
             <div className="adm-kv"><span className="muted small">{o.plusBuyers}</span><b>{data.buyers}</b></div>
-            <div className="adm-kv"><span className="muted small">{o.plusTrials}</span><b>{data.trials}</b></div>
+            <div className="adm-kv"><span className="muted small">{o.plusGifts}</span><b>{data.gifts}</b></div>
+            {/* Главное — работает ли сам «Стоп-тильт»: цель — от 30% сигналов с паузой,
+                «🔕» не растёт, из получивших бесплатные сигналы покупает каждый десятый */}
+            <div className="adm-kv"><span className="muted small">{o.plusAlertsWeek}</span><b>{data.alertsWeek}</b></div>
             <div className="adm-kv">
-              <span className="muted small">{o.plusTrialsPaid}</span>
-              <b>{data.trialsPaid}{data.trials > 0 ? ` · ${Math.round((data.trialsPaid / data.trials) * 100)}%` : ''}</b>
+              <span className="muted small">{o.plusPausedWeek}</span>
+              <b>{data.pausedWeek}{data.alertsWeek > 0 ? ` · ${Math.round((data.pausedWeek / data.alertsWeek) * 100)}%` : ''}</b>
+            </div>
+            <div className="adm-kv"><span className="muted small">{o.plusMutedWeek}</span><b>{data.mutedWeek}</b></div>
+            <div className="adm-kv"><span className="muted small">{o.plusFreeUsers}</span><b>{data.freeUsers}</b></div>
+            <div className="adm-kv">
+              <span className="muted small">{o.plusFreeThenBought}</span>
+              <b>{data.freeThenBought}{data.freeUsers > 0 ? ` · ${Math.round((data.freeThenBought / data.freeUsers) * 100)}%` : ''}</b>
             </div>
           </div>
         )}
@@ -1268,11 +1275,6 @@ function PlusSection({ t }: { t: Translations }) {
             <label className="muted small">{o.plusPrice30}</label>
             <input className="search-input" inputMode="numeric" value={price30}
               onChange={e => setPrice30(e.target.value.replace(/\D/g, ''))} maxLength={5} />
-          </div>
-          <div className="form-field">
-            <label className="muted small">{o.plusTrialDays}</label>
-            <input className="search-input" inputMode="numeric" value={trialDays}
-              onChange={e => setTrialDays(e.target.value.replace(/\D/g, ''))} maxLength={2} />
           </div>
         </div>
 

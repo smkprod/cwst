@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, ApiError } from '../lib/api'
-import type { BattleAnalysis, MyDeck, PlusStatus, ReviewLocked, TimeSlot } from '../types'
-import { haptic, hapticNotify, requestWriteAccess } from '../lib/telegram'
+import type { BattleAnalysis, MyDeck, ReviewLocked, TimeSlot } from '../types'
+import { haptic } from '../lib/telegram'
 import { useT, type Translations } from '../lib/i18n'
 import { PLUS_CHANGED, usePlusSheet } from '../lib/plusSheet'
 import { CardIcon } from './MetaDecksView'
@@ -19,21 +19,21 @@ type PartKey = 'morning' | 'day' | 'evening' | 'night'
  * не читают, а один верный запоминают.
  */
 export function BattleAnalysisView() {
-  const { t } = useT()
+  const { t, lang } = useT()
   const [data, setData] = useState<BattleAnalysis | null>(null)
   const [state, setState] = useState<'loading' | 'ready' | 'error' | 'unlinked'>('loading')
   const openPlus = usePlusSheet()
 
   const load = useCallback(() => {
     let alive = true
-    api.getMyBattles()
+    api.getMyBattles(lang)
       .then(d => { if (alive) { setData(d); setState('ready') } })
       .catch(e => {
         if (!alive) return
         setState(e instanceof ApiError && e.code === 'player_not_linked' ? 'unlinked' : 'error')
       })
     return () => { alive = false }
-  }, [])
+  }, [lang])
 
   useEffect(load, [load])
 
@@ -90,116 +90,26 @@ export function BattleAnalysisView() {
         </section>
       )}
 
-      <TiltAlertsCard unlocked={data.access.unlocked} onOpenPlus={openPlus} t={t} />
       <ElixirCard data={data} t={t} />
       <DecksCard decks={data.decks} locked={data.locked} onOpenPlus={openPlus} t={t} />
       <TimeCard data={data} onOpenPlus={openPlus} t={t} />
       <TiltCard data={data} t={t} />
       <ToughCard data={data} onOpenPlus={openPlus} t={t} />
       {data.locked && (
-        <button className="btn plus-cta" onClick={openPlus}>{b.unlockBtn}</button>
+        <button className="btn plus-cta" onClick={() => openPlus()}>{b.unlockBtn}</button>
       )}
     </div>
   )
 }
 
-/**
- * Строка доступа под шапкой: только что выданный триал, срок Плюса или сколько
- * боёв осталось до бесплатного триала. Без Плюса и без надежды на триал — молчим:
- * замки ниже скажут всё сами.
- */
+/** Под шапкой — срок Плюса: нажатие открывает окно Плюса (продлить, подарить). */
 function AccessLine({ data, onOpen, t }: { data: BattleAnalysis; onOpen: () => void; t: Translations }) {
-  const b = t.battles
   const a = data.access
-  if (a.trialStarted) {
-    return <p className="ba-access ba-access-gift">{b.trialStarted.replace('{days}', String(a.trialDays))}</p>
-  }
-  if (a.paywall && a.active && a.until) {
-    return (
-      <button className="ba-access ba-access-plus" onClick={onOpen}>
-        {b.plusActive.replace('{date}', new Date(a.until).toLocaleDateString())}
-      </button>
-    )
-  }
-  if (!a.unlocked && !a.trialUsed && a.trialDays > 0 && data.games < a.trialMinBattles) {
-    return (
-      <p className="ba-access">
-        🎁 {b.trialHint.replace('{n}', String(a.trialMinBattles - data.games)).replace('{days}', String(a.trialDays))}
-      </p>
-    )
-  }
-  return null
-}
-
-/**
- * «Стоп-тильт» — главное, за что платят, поэтому стоит выше подробностей. С Плюсом
- * это переключатель, без него — объяснение и кнопка. Перед включением просим у
- * Telegram право писать в личку: без него бот не достучится до того, кто открыл
- * приложение, но ни разу не нажимал «Старт» в чате.
- */
-function TiltAlertsCard({ unlocked, onOpenPlus, t }: { unlocked: boolean; onOpenPlus: () => void; t: Translations }) {
-  const b = t.battles
-  const [plus, setPlus] = useState<PlusStatus | null>(null)
-  const [busy, setBusy] = useState(false)
-
-  useEffect(() => {
-    if (!unlocked) return
-    let alive = true
-    api.getPlus().then(s => { if (alive) setPlus(s) }).catch(() => { /* переключатель просто не появится */ })
-    return () => { alive = false }
-  }, [unlocked])
-
-  if (!unlocked) {
-    return (
-      <section className="card ba-alerts ba-alerts-locked">
-        <div className="card-title">{b.alertsTitle}</div>
-        <p className="muted small" style={{ margin: '0 0 10px' }}>{b.alertsPlusOnly}</p>
-        <button className="btn-mini" onClick={onOpenPlus}>{b.unlockBtn}</button>
-      </section>
-    )
-  }
-  if (!plus) return null
-
-  const on = plus.tiltAlerts && !plus.dmBlocked
-  const toggle = async () => {
-    haptic('medium')
-    setBusy(true)
-    try {
-      const next = !on
-      if (next && !(await requestWriteAccess())) {
-        hapticNotify('error')
-        setPlus({ ...plus, dmBlocked: true })
-        return
-      }
-      await api.setTiltAlerts(next)
-      hapticNotify('success')
-      setPlus({ ...plus, tiltAlerts: next, dmBlocked: false })
-    } catch {
-      hapticNotify('error')
-    } finally {
-      setBusy(false)
-    }
-  }
-
+  if (!(a.paywall && a.active && a.until)) return null
   return (
-    <section className="card ba-alerts">
-      <div className="ba-alerts-row">
-        <div className="ba-alerts-text">
-          <div className="card-title" style={{ margin: 0 }}>{b.alertsTitle}</div>
-          <span className="muted small">{on ? b.alertsOn : b.alertsOff}</span>
-        </div>
-        <button
-          className={`ba-switch ${on ? 'ba-switch-on' : ''}`}
-          role="switch"
-          aria-checked={on}
-          disabled={busy}
-          onClick={toggle}
-        >
-          <span className="ba-switch-knob" />
-        </button>
-      </div>
-      {plus.dmBlocked && <p className="muted small" style={{ margin: '8px 0 0' }}>{b.alertsBlocked}</p>}
-    </section>
+    <button className="ba-access ba-access-plus" onClick={onOpen}>
+      {t.battles.plusActive.replace('{date}', new Date(a.until).toLocaleDateString())}
+    </button>
   )
 }
 

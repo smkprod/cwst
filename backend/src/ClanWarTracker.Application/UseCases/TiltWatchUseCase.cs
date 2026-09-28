@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using ClanWarTracker.Application.Battles;
 using ClanWarTracker.Application.Notifications;
 using ClanWarTracker.Domain.Entities;
@@ -6,134 +7,347 @@ using ClanWarTracker.Domain.Interfaces;
 namespace ClanWarTracker.Application.UseCases;
 
 /// <summary>
-/// «Стоп-тильт»: пишет игроку с Плюсом, когда он прямо сейчас сливает серию.
+/// «Стоп-тильт»: пишет игроку прямо во время серии поражений и подводит итог захода.
 ///
-/// Это главное, за что платят: ни игра, ни сайты со статистикой не напишут посреди
-/// захода «ты проиграл два подряд, а после двух подряд ты обычно выигрываешь
-/// треть - сделай паузу». Для этого журнал таких игроков читается каждые десять
-/// минут, а не раз в три часа, как у остальных.
+/// Главное здесь - успеть. Сигнал, пришедший посреди четвёртого боя, стоит тех самых
+/// кубков, которые он должен был сберечь. Поэтому журнал «горячих» игроков (последний
+/// бой не старше 15 минут) читается раз в полторы минуты почти без кэша, остальных -
+/// раз в десять минут: так видно, что человек сел играть.
 ///
-/// Пишем только тем, кто этого хочет: у кого Плюс (или спонсорство) и кто не
-/// выключил оповещения, - и не чаще раза за заход и трёх раз в сутки.
+/// Кому пишем: у кого Плюс (или спонсорство), и кто не выключил; без Плюса - тем, кто
+/// сам включил «Стоп-тильт» и ещё не израсходовал бесплатные сигналы. Один сигнал за
+/// заход, не больше трёх в сутки, ночью молчим.
 /// </summary>
 public class TiltWatchUseCase(
     IEntitlementRepository entitlements,
     IPlayerRepository players,
     IPlayerAlertPrefsRepository alertPrefs,
     IPlayerBattleRepository battles,
+    ITiltAlertRepository alerts,
     IClanRepository clans,
+    IClashRoyaleApi crApi,
     CollectPlayerBattlesUseCase collect,
     IServiceSettingRepository settings,
     INotificationSender sender)
 {
-    /// <summary>Последний бой не старше этого - значит, человек ещё в игре.</summary>
-    public static readonly TimeSpan Freshness = TimeSpan.FromMinutes(20);
+    /// <summary>Последний бой не старше этого - человек ещё в игре.</summary>
+    public static readonly TimeSpan Freshness = TimeSpan.FromMinutes(15);
+
+    /// <summary>Как часто перечитываем журнал того, кто сейчас играет.</summary>
+    public static readonly TimeSpan HotPoll = TimeSpan.FromSeconds(90);
+
+    /// <summary>Как часто - всех остальных: чтобы заметить начало захода.</summary>
+    public static readonly TimeSpan ColdPoll = TimeSpan.FromMinutes(10);
+
+    /// <summary>Столько без боёв - заход закончен, пора подводить итог.</summary>
+    public static readonly TimeSpan SessionEnd = TimeSpan.FromMinutes(30);
+
+    public static readonly TimeSpan PauseLength = TimeSpan.FromMinutes(15);
 
     public const int MaxAlertsPerDay = 3;
 
-    /// <summary>Сколько наблюдений «после двух поражений» нужно, чтобы назвать личный процент.</summary>
-    private const int MinTiltSamples = 8;
+    /// <summary>
+    /// Когда журнал игрока читали последний раз. В памяти процесса, а не в базе: после
+    /// рестарта воркера лишнее чтение стоит одного запроса, а запись в базу на каждый
+    /// опрос стоила бы сотен.
+    /// </summary>
+    private static readonly ConcurrentDictionary<long, DateTime> LastSync = new();
 
-    public record Summary(int Watched, int Alerts, int Undelivered);
+    public record Summary(int Watched, int Synced, int Alerts, int Undelivered, int Resumes, int Summaries);
+
+    private sealed class Counters
+    {
+        public int Synced, Alerts, Undelivered, Resumes, Summaries;
+    }
 
     public async Task<Summary> ExecuteAsync(CancellationToken ct = default)
     {
         var now = DateTime.UtcNow;
         var offer = await PlusSales.ReadAsync(settings, ct);
 
-        // Кому: купившие или получившие Плюс, спонсоры (им Плюс входит в спонсорство),
-        // а когда платное выключено - ещё и все, кто явно включил оповещения сам.
-        var watch = new HashSet<long>(await entitlements.ActiveUsersAsync(Entitlement.Skus.Plus, now, ct));
+        // Платные: Плюс, купленный или подаренный, и спонсоры - им Плюс входит в спонсорство.
+        var paid = new HashSet<long>(await entitlements.ActiveUsersAsync(Entitlement.Skus.Plus, now, ct));
         foreach (var p in await players.GetAllLinkedAsync(ct))
-            if (p.TelegramUserId is long tg && p.IsSponsor(now)) watch.Add(tg);
-        if (!offer.Paywall) watch.UnionWith(await alertPrefs.OptedInAsync(ct));
+            if (p.TelegramUserId is long tg && p.IsSponsor(now)) paid.Add(tg);
+        // Платное выключено владельцем - всё открыто: пишем всем, кто включил сам.
+        if (!offer.Paywall) paid.UnionWith(await alertPrefs.OptedInAsync(ct));
 
-        int alerts = 0, undelivered = 0;
+        var watch = new HashSet<long>(paid);
+        watch.UnionWith(await alertPrefs.FreeSignalUsersAsync(ct));
+        // Незакрытые итоги и паузы дописываем даже тем, у кого Плюс уже кончился.
+        watch.UnionWith(await alerts.UsersWithOpenAsync(ct));
+        watch.UnionWith(await alertPrefs.PausedUsersAsync(ct));
+
+        var c = new Counters();
         foreach (var tg in watch)
+        {
+            try { await CheckOneAsync(tg, paid.Contains(tg), now, c, ct); }
+            catch { /* один сломанный журнал не должен лишать сигналов остальных */ }
+        }
+        return new Summary(watch.Count, c.Synced, c.Alerts, c.Undelivered, c.Resumes, c.Summaries);
+    }
+
+    private async Task CheckOneAsync(long tg, bool paid, DateTime now, Counters c, CancellationToken ct)
+    {
+        var prefs = await alertPrefs.GetAsync(tg, ct);
+        if (prefs is { DmBlocked: true }) return;
+
+        var player = await players.GetByTelegramIdAsync(tg, ct);
+        if (player is null) return;
+        var tag = player.PlayerTag;
+
+        var open = await alerts.GetOpenAsync(tg, ct);
+        var canAlert = paid
+            ? prefs?.TiltAlerts != false
+            : prefs is { TiltAlerts: true, FreeSignalsLeft: > 0 };
+        if (!canAlert && open.Count == 0 && prefs?.PauseUntilUtc is null) return;
+
+        // Читаем журнал: часто - пока человек играет, редко - пока нет.
+        var recent = await battles.GetSinceAsync(tag, now.AddHours(-6), ct);
+        var hot = recent.Count > 0 && now - recent[^1].BattleTimeUtc <= Freshness;
+        var last = LastSync.GetValueOrDefault(tg);
+        if (now - last >= (hot || open.Count > 0 ? HotPoll : ColdPoll))
         {
             try
             {
-                var sent = await CheckOneAsync(tg, now, ct);
-                if (sent == true) alerts++;
-                else if (sent == false) undelivered++;
+                await collect.SyncFreshAsync(tag, ct);
+                LastSync[tg] = now;
+                c.Synced++;
+                recent = await battles.GetSinceAsync(tag, now.AddHours(-6), ct);
             }
-            catch
-            {
-                // Один сломанный журнал не должен лишать оповещений остальных
-            }
+            catch { /* API игры недоступен - работаем с тем, что уже есть */ }
         }
-        return new Summary(watch.Count, alerts, undelivered);
+        var eligible = recent.Where(b => BattleAnalyzer.IsTiltEligible(b.Type)).ToList();
+
+        var lang = await TiltMessages.LangAsync(prefs, player, clans, ct);
+        var t = BotText.For(lang);
+        var tz = prefs?.TzOffsetMinutes ?? TiltMessages.DefaultTzOffsetMinutes;
+        List<PlayerBattle>? month = null;
+        async Task<List<PlayerBattle>> MonthAsync() => month ??= (await battles.GetSinceAsync(
+                tag, now - CollectPlayerBattlesUseCase.Keep, ct))
+            .Where(b => BattleAnalyzer.IsTiltEligible(b.Type)).ToList();
+
+        // 1. Пауза кончилась - «можно», и с какой колоды начать.
+        if (prefs?.PauseUntilUtc is { } pauseUntil && pauseUntil <= now)
+        {
+            prefs.PauseUntilUtc = null;
+            var text = await ResumeTextAsync(t, await MonthAsync(), ct);
+            await sender.SendToUserWithButtonsAsync(tg, text, [], ct);
+            foreach (var a in open.Where(a => a.Choice == "pause" && a.ResumeSentUtc is null))
+                a.ResumeSentUtc = now;
+            c.Resumes++;
+        }
+
+        // 2. Заход закончился - итог правкой того же сообщения, без нового уведомления.
+        foreach (var a in open)
+        {
+            var session = BattleAnalyzer.SessionAround(eligible, a.TriggerBattleUtc);
+            if (session.Count == 0)
+            {
+                // Бой-причина выпал из окна: итог уже не посчитать честно, просто закрываем.
+                if (now - a.SentUtc > TimeSpan.FromHours(6)) a.SummaryUtc = now;
+                continue;
+            }
+            if (now - session[^1].BattleTimeUtc < SessionEnd) continue;
+
+            a.SessionWins = session.Count(b => b.Result > 0);
+            a.SessionLosses = session.Count(b => b.Result < 0);
+            a.SessionTrophies = session.Sum(b => b.TrophyChange ?? 0);
+            var after = session.Where(b => b.BattleTimeUtc > a.TriggerBattleUtc).ToList();
+            a.AfterWins = after.Count(b => b.Result > 0);
+            a.AfterLosses = after.Count(b => b.Result < 0);
+            a.SummaryUtc = now;
+
+            if (a.Kind == "streak" && a.MessageId is int messageId)
+            {
+                var works = await PauseWorksAsync(tg, a, now, ct);
+                var summaryLang = BotText.For(a.Lang);
+                await sender.EditUserMessageAsync(tg, messageId, TiltMessages.Summary(summaryLang, a, works), null, ct);
+            }
+            c.Summaries++;
+        }
+
+        // 3. Новый сигнал.
+        if (canAlert) await TryAlertAsync(tg, player, prefs, paid, eligible, t, lang, tz, now, MonthAsync, c, ct);
+
+        // 4. «Лимит на вечер» - только с Плюсом: это правило, которое человек поставил себе сам.
+        if (paid && prefs is { DailyLossLimit: int limit } && canAlert)
+            await TryLimitAsync(tg, player, prefs, limit, t, lang, tz, now, c, ct);
+
+        await alerts.SaveChangesAsync(ct);
     }
 
-    /// <returns>true - написали, false - написать не удалось, null - писать было незачем.</returns>
-    private async Task<bool?> CheckOneAsync(long tg, DateTime now, CancellationToken ct)
+    private async Task TryAlertAsync(
+        long tg, Player player, PlayerAlertPrefs? prefs, bool paid, List<PlayerBattle> eligible,
+        BotText t, string lang, int tz, DateTime now, Func<Task<List<PlayerBattle>>> monthAsync,
+        Counters c, CancellationToken ct)
     {
-        var prefs = await alertPrefs.GetAsync(tg, ct);
-        if (prefs is { TiltAlerts: false } or { DmBlocked: true }) return null;
+        if (prefs?.PauseUntilUtc > now || prefs?.MutedUntilUtc > now) return;
+        if ((prefs?.QuietHours ?? true) && TiltMessages.IsQuietHour(now, tz)) return;
 
-        var player = await players.GetByTelegramIdAsync(tg, ct);
-        if (player is null) return null;
+        var threshold = Math.Clamp(prefs?.LossThreshold ?? 2, 2, 3);
+        var check = BattleAnalyzer.ShouldAlertTilt(eligible, now, prefs?.LastAlertBattleUtc, Freshness, threshold);
+        if (!check.Alert || check.LastBattleUtc is not DateTime trigger) return;
 
-        try { await collect.SyncAsync(player.PlayerTag, ct); }
-        catch { /* API игры недоступен - посмотрим на то, что уже есть */ }
+        var today = await alerts.GetSinceAsync(tg, TiltMessages.LocalMidnightUtc(now, tz), ct);
+        if (today.Count(a => a.Kind == "streak") >= MaxAlertsPerDay) return;
 
-        var recent = await battles.GetSinceAsync(player.PlayerTag, now.AddHours(-3), ct);
-        var check = BattleAnalyzer.ShouldAlertTilt(recent, now, prefs?.LastAlertBattleUtc, Freshness);
-        if (!check.Alert) return null;
-
-        var day = now.ToString("yyyy-MM-dd");
-        if (prefs is not null && prefs.AlertDay == day && prefs.AlertsToday >= MaxAlertsPerDay) return null;
-
-        var history = await battles.GetSinceAsync(player.PlayerTag, now - CollectPlayerBattlesUseCase.Keep, ct);
-        var t = await TextAsync(player, ct);
-        var text = Compose(t, check.LossStreak, history);
-
-        var delivered = await sender.TrySendToUserAsync(tg, text, ct);
-
-        prefs = await alertPrefs.GetOrCreateAsync(tg, ct);
-        // Запоминаем и неудачную попытку: про эту серию больше не пытаемся.
-        prefs.LastAlertBattleUtc = check.LastBattleUtc;
-        if (delivered)
+        // Бои серии - с конца, ничьи пропускаем: по ним и кубки, и «каждый раз был Хог».
+        var streakBattles = new List<PlayerBattle>();
+        for (var i = eligible.Count - 1; i >= 0 && streakBattles.Count < check.LossStreak; i--)
         {
+            if (eligible[i].Result > 0) break;
+            if (eligible[i].Result < 0) streakBattles.Add(eligible[i]);
+        }
+        int? trophiesLost = streakBattles.All(b => b.TrophyChange is not null)
+            ? streakBattles.Sum(b => b.TrophyChange!.Value)
+            : null;
+        var sameCard = await SameCardAsync(streakBattles, ct);
+
+        var profile = BattleAnalyzer.Profile(await monthAsync());
+        int? freeLeftAfter = paid ? null : Math.Max(0, (prefs?.FreeSignalsLeft ?? 0) - 1);
+        var text = TiltMessages.Alert(t, check.LossStreak, trophiesLost, profile, sameCard,
+            now.DayOfYear + today.Count, freeLeftAfter);
+
+        var session = BattleAnalyzer.SessionAround(eligible, trigger);
+        var alert = new TiltAlert
+        {
+            TelegramUserId = tg,
+            PlayerTag = player.PlayerTag,
+            Kind = "streak",
+            SentUtc = now,
+            TriggerBattleUtc = trigger,
+            SessionStartUtc = session.Count > 0 ? session[0].BattleTimeUtc : trigger,
+            LossStreak = check.LossStreak,
+            Free = !paid,
+            Lang = lang,
+            Text = text,
+        };
+        await alerts.AddAsync(alert, ct);
+        await alerts.SaveChangesAsync(ct);   // номер сигнала нужен кнопкам
+
+        var messageId = await sender.SendToUserWithButtonsAsync(tg, text, TiltMessages.AlertButtons(t, alert.Id), ct);
+
+        prefs ??= await alertPrefs.GetOrCreateAsync(tg, ct);
+        prefs.LastAlertBattleUtc = trigger;
+        if (messageId is int id)
+        {
+            alert.MessageId = id;
             prefs.LastAlertSentUtc = now;
-            prefs.AlertsToday = prefs.AlertDay == day ? prefs.AlertsToday + 1 : 1;
-            prefs.AlertDay = day;
+            if (!paid) prefs.FreeSignalsLeft = Math.Max(0, prefs.FreeSignalsLeft - 1);
+            c.Alerts++;
         }
         else
         {
+            // Человек не запускал бота или заблокировал его: не пытаемся, пока не вернётся.
             prefs.DmBlocked = true;
+            alert.SummaryUtc = now;
+            c.Undelivered++;
         }
-        await alertPrefs.SaveChangesAsync(ct);
-        return delivered;
+    }
+
+    private async Task TryLimitAsync(
+        long tg, Player player, PlayerAlertPrefs prefs, int limit, BotText t, string lang, int tz, DateTime now,
+        Counters c, CancellationToken ct)
+    {
+        var day = now.AddMinutes(tz).ToString("yyyy-MM-dd");
+        if (prefs.LimitAlertDay == day || prefs.MutedUntilUtc > now) return;
+        if (prefs.QuietHours && TiltMessages.IsQuietHour(now, tz)) return;
+
+        var todayBattles = (await battles.GetSinceAsync(player.PlayerTag, TiltMessages.LocalMidnightUtc(now, tz), ct))
+            .Where(b => BattleAnalyzer.IsTiltEligible(b.Type)).ToList();
+        if (todayBattles.Count == 0 || now - todayBattles[^1].BattleTimeUtc > Freshness) return;
+
+        var losses = todayBattles.Count(b => b.Result < 0);
+        if (losses < limit) return;
+
+        var text = string.Format(t.TiltLimitHead, losses) + "\n" + t.TiltLimitBody;
+        var alert = new TiltAlert
+        {
+            TelegramUserId = tg,
+            PlayerTag = player.PlayerTag,
+            Kind = "limit",
+            SentUtc = now,
+            TriggerBattleUtc = todayBattles[^1].BattleTimeUtc,
+            SessionStartUtc = todayBattles[0].BattleTimeUtc,
+            LossStreak = 0,
+            Lang = lang,
+            Text = text,
+            // Итога у лимита нет: он про весь день, а не про заход.
+            SummaryUtc = now,
+        };
+        await alerts.AddAsync(alert, ct);
+        await alerts.SaveChangesAsync(ct);
+
+        var messageId = await sender.SendToUserWithButtonsAsync(tg, text,
+            [[new BotButton(t.TiltBtnMute, $"tilt|m|{alert.Id}")]], ct);
+        alert.MessageId = messageId;
+        prefs.LimitAlertDay = day;
+        if (messageId is null) prefs.DmBlocked = true;
+        else c.Alerts++;
     }
 
     /// <summary>
-    /// Текст с личной цифрой, когда её уже можно назвать честно, и общий - пока рано.
-    /// Личная цифра убеждает сильнее любого совета: это его собственные бои.
+    /// Карта, которая была у соперника в каждом бою серии. Из общих - самая дорогая:
+    /// дешёвые заклинания есть почти у всех, а «каждый раз был Хог» - это уже наблюдение.
     /// </summary>
-    public static string Compose(BotText t, int lossStreak, IReadOnlyList<PlayerBattle> history)
+    private async Task<string?> SameCardAsync(List<PlayerBattle> streak, CancellationToken ct)
     {
-        var tilt = BattleAnalyzer.Tilt(history);
-        var totals = BattleAnalyzer.Count(history);
-        var overall = BattleAnalyzer.Percent(totals.Wins, totals.Games);
-        var after2 = BattleAnalyzer.Percent(tilt.AfterTwoLossesWins, tilt.AfterTwoLosses);
+        if (streak.Count < 2) return null;
+        HashSet<int>? common = null;
+        foreach (var b in streak)
+        {
+            var ids = MetaCard.ParseDeckKey(b.OppDeckKey).Select(k => Math.Abs(k)).ToHashSet();
+            if (common is null) common = ids;
+            else common.IntersectWith(ids);
+        }
+        if (common is not { Count: > 0 }) return null;
 
-        var body = tilt.AfterTwoLosses >= MinTiltSamples && after2 < overall
-            ? string.Format(t.TiltAlertStats, after2.ToString("0"), overall.ToString("0"))
-            : t.TiltAlertGeneric;
-
-        return string.Format(t.TiltAlertHead, lossStreak) + "\n\n" + body + "\n\n" + t.TiltAlertTail;
+        var catalog = await GetMetaDecksUseCase.SafeCatalogAsync(crApi, ct);
+        return common
+            .Select(id => catalog.GetValueOrDefault(id))
+            .Where(card => card is not null)
+            .OrderByDescending(card => card!.ElixirCost)
+            .Select(card => card!.Name)
+            .FirstOrDefault();
     }
 
-    /// <summary>Язык - клана игрока, если он есть; иначе русский, как у остальных личных сообщений.</summary>
-    private async Task<BotText> TextAsync(Player player, CancellationToken ct)
+    /// <summary>«🟢 Можно. Начни с колоды с «Хогом» — 58% за месяц.»</summary>
+    private async Task<string> ResumeTextAsync(BotText t, List<PlayerBattle> month, CancellationToken ct)
     {
-        try
-        {
-            if (player.ClanId is int clanId && await clans.GetByIdAsync(clanId, ct) is { } clan)
-                return NotificationSettings.Parse(clan.NotificationSettingsJson).Text;
-        }
-        catch { /* язык - не повод промолчать */ }
-        return BotText.Ru;
+        if (BattleAnalyzer.BestDeck(month) is not { } best) return t.TiltResumeGeneric;
+
+        var catalog = await GetMetaDecksUseCase.SafeCatalogAsync(crApi, ct);
+        var keyCard = MetaCard.ParseDeckKey(best.Key)
+            .Select(k => catalog.GetValueOrDefault(Math.Abs(k)))
+            .Where(card => card is not null)
+            .OrderByDescending(card => card!.ElixirCost)
+            .Select(card => card!.Name)
+            .FirstOrDefault();
+        return keyCard is null
+            ? t.TiltResumeGeneric
+            : string.Format(t.TiltResume, keyCard, best.Percent.ToString("0"));
+    }
+
+    /// <summary>
+    /// «Пауза работает»: % побед после сигналов с паузой и без неё. Показываем, когда
+    /// сигналов не меньше пяти и в каждой группе есть хотя бы три боя - на меньшем
+    /// любая разница случайна, а неправда в главном доводе хуже его отсутствия.
+    /// </summary>
+    private async Task<(double Paused, double NotPaused)?> PauseWorksAsync(
+        long tg, TiltAlert current, DateTime now, CancellationToken ct)
+    {
+        var history = (await alerts.GetSinceAsync(tg, now.AddDays(-60), ct))
+            .Where(a => a.Kind == "streak" && a.SummaryUtc is not null && a.Id != current.Id)
+            .Append(current)
+            .ToList();
+        if (history.Count < 5) return null;
+
+        var paused = history.Where(a => a.Choice == "pause").ToList();
+        var other = history.Where(a => a.Choice != "pause").ToList();
+        int pw = paused.Sum(a => a.AfterWins), pl = paused.Sum(a => a.AfterLosses);
+        int ow = other.Sum(a => a.AfterWins), ol = other.Sum(a => a.AfterLosses);
+        if (pw + pl < 3 || ow + ol < 3) return null;
+        return (100.0 * pw / (pw + pl), 100.0 * ow / (ow + ol));
     }
 }

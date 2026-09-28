@@ -44,6 +44,17 @@ public class EntitlementRepository(AppDbContext db) : IEntitlementRepository
     public Task<List<Entitlement>> GetAllAsync(string sku, CancellationToken ct = default) =>
         db.Entitlements.AsNoTracking().Where(e => e.Sku == sku).ToListAsync(ct);
 
+    public Task<int> CountFreeGiftsSinceAsync(long giverTelegramUserId, DateTime sinceUtc, CancellationToken ct = default) =>
+        db.Entitlements.AsNoTracking()
+            .CountAsync(e => e.GiverTelegramUserId == giverTelegramUserId && e.Source == Entitlement.Sources.Gift
+                             && e.Stars == 0 && e.CreatedAtUtc >= sinceUtc && e.RevokedAtUtc == null, ct);
+
+    public Task<List<Entitlement>> GetEndingAsync(DateTime fromUtc, DateTime toUtc, CancellationToken ct = default) =>
+        db.Entitlements
+            .Where(e => e.RevokedAtUtc == null && e.ReminderSentUtc == null
+                        && e.UntilUtc >= fromUtc && e.UntilUtc <= toUtc)
+            .ToListAsync(ct);
+
     public Task SaveChangesAsync(CancellationToken ct = default) => db.SaveChangesAsync(ct);
 }
 
@@ -68,6 +79,24 @@ public class PlayerAlertPrefsRepository(AppDbContext db) : IPlayerAlertPrefsRepo
             .Select(p => p.TelegramUserId)
             .ToListAsync(ct);
 
+    public Task<List<long>> FreeSignalUsersAsync(CancellationToken ct = default) =>
+        db.PlayerAlertPrefs.AsNoTracking()
+            .Where(p => p.TiltAlerts == true && !p.DmBlocked && p.FreeSignalsLeft > 0)
+            .Select(p => p.TelegramUserId)
+            .ToListAsync(ct);
+
+    public Task<List<long>> PausedUsersAsync(CancellationToken ct = default) =>
+        db.PlayerAlertPrefs.AsNoTracking()
+            .Where(p => p.PauseUntilUtc != null)
+            .Select(p => p.TelegramUserId)
+            .ToListAsync(ct);
+
+    public async Task<HashSet<long>> IntroducedAsync(CancellationToken ct = default) =>
+        (await db.PlayerAlertPrefs.AsNoTracking()
+            .Where(p => p.IntroSentUtc != null)
+            .Select(p => p.TelegramUserId)
+            .ToListAsync(ct)).ToHashSet();
+
     public async Task SaveChangesAsync(CancellationToken ct = default)
     {
         try
@@ -81,4 +110,37 @@ public class PlayerAlertPrefsRepository(AppDbContext db) : IPlayerAlertPrefsRepo
             db.ChangeTracker.Clear();
         }
     }
+}
+
+public class TiltAlertRepository(AppDbContext db) : ITiltAlertRepository
+{
+    public async Task AddAsync(TiltAlert alert, CancellationToken ct = default) =>
+        await db.TiltAlerts.AddAsync(alert, ct);
+
+    public Task<TiltAlert?> GetAsync(int id, CancellationToken ct = default) =>
+        db.TiltAlerts.FirstOrDefaultAsync(a => a.Id == id, ct);
+
+    public Task<List<TiltAlert>> GetOpenAsync(long telegramUserId, CancellationToken ct = default) =>
+        db.TiltAlerts
+            .Where(a => a.TelegramUserId == telegramUserId && a.SummaryUtc == null)
+            .OrderBy(a => a.SentUtc)
+            .ToListAsync(ct);
+
+    public Task<List<TiltAlert>> GetSinceAsync(long telegramUserId, DateTime sinceUtc, CancellationToken ct = default) =>
+        db.TiltAlerts.AsNoTracking()
+            .Where(a => a.TelegramUserId == telegramUserId && a.SentUtc >= sinceUtc)
+            .OrderBy(a => a.SentUtc)
+            .ToListAsync(ct);
+
+    public Task<List<TiltAlert>> GetAllSinceAsync(DateTime sinceUtc, CancellationToken ct = default) =>
+        db.TiltAlerts.AsNoTracking().Where(a => a.SentUtc >= sinceUtc).ToListAsync(ct);
+
+    public Task<List<long>> UsersWithOpenAsync(CancellationToken ct = default) =>
+        db.TiltAlerts.AsNoTracking()
+            .Where(a => a.SummaryUtc == null)
+            .Select(a => a.TelegramUserId)
+            .Distinct()
+            .ToListAsync(ct);
+
+    public Task SaveChangesAsync(CancellationToken ct = default) => db.SaveChangesAsync(ct);
 }

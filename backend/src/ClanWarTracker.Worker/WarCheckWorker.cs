@@ -59,7 +59,36 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
             RunPeriodicChecksAsync(stoppingToken),
             RunSnapshotLoopAsync(stoppingToken),
             RunFinalCallLoopAsync(stoppingToken),
-            RunTournamentResultsLoopAsync(stoppingToken));
+            RunTournamentResultsLoopAsync(stoppingToken),
+            RunTiltLoopAsync(stoppingToken));
+    }
+
+    /// <summary>
+    /// «Стоп-тильт» - своим циклом раз в минуту, а не в десятиминутном цикле снимков:
+    /// сигнал, пришедший через десять минут после второго поражения, приходит посреди
+    /// четвёртого боя. Кого читать часто, а кого редко, решает сам use case.
+    /// </summary>
+    private async Task RunTiltLoopAsync(CancellationToken stoppingToken)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromMinutes(1));
+        do
+        {
+            try
+            {
+                using var scope = scopeFactory.CreateScope();
+                var tilt = scope.ServiceProvider.GetRequiredService<TiltWatchUseCase>();
+                var s = await tilt.ExecuteAsync(stoppingToken);
+                if (s.Alerts > 0 || s.Undelivered > 0 || s.Summaries > 0 || s.Resumes > 0)
+                    logger.LogInformation(
+                        "Stop-tilt: watched {Watched}, synced {Synced}, sent {Sent}, undelivered {Undelivered}, resumes {Resumes}, summaries {Summaries}",
+                        s.Watched, s.Synced, s.Alerts, s.Undelivered, s.Resumes, s.Summaries);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Stop-tilt watch failed");
+            }
+        }
+        while (await timer.WaitForNextTickAsync(stoppingToken));
     }
 
     /// <summary>Автозачёт результатов турниров по боевому логу участников.</summary>
@@ -347,22 +376,6 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
                 logger.LogError(ex, "Top players harvest failed");
             }
 
-            try
-            {
-                // «Стоп-тильт» для Плюса: журнал таких игроков читаем каждые 10 минут,
-                // иначе серия поражений закончится раньше, чем мы о ней узнаем.
-                using var scope = scopeFactory.CreateScope();
-                var tilt = scope.ServiceProvider.GetRequiredService<TiltWatchUseCase>();
-                var s = await tilt.ExecuteAsync(stoppingToken);
-                if (s.Alerts > 0 || s.Undelivered > 0)
-                    logger.LogInformation("Stop-tilt: watched {Watched}, sent {Sent}, undelivered {Undelivered}",
-                        s.Watched, s.Alerts, s.Undelivered);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Stop-tilt watch failed");
-            }
-
             if (DateTime.UtcNow - _lastBattleSyncUtc >= BattleSyncInterval)
             {
                 _lastBattleSyncUtc = DateTime.UtcNow;
@@ -379,6 +392,24 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
                 catch (Exception ex)
                 {
                     logger.LogError(ex, "Player battles sync failed");
+                }
+
+                try
+                {
+                    // Знакомство с тильт-типом - тем, у кого он только что стал известен.
+                    // Небольшими порциями: это не рассылка, а по сообщению тому, кто готов.
+                    using var scope = scopeFactory.CreateScope();
+                    var intro = scope.ServiceProvider.GetRequiredService<TiltIntroUseCase>();
+                    var sent = await intro.ExecuteAsync(15, stoppingToken);
+                    if (sent > 0) logger.LogInformation("Tilt intro sent to {Count} players", sent);
+
+                    var reminder = scope.ServiceProvider.GetRequiredService<PlusReminderUseCase>();
+                    var reminded = await reminder.ExecuteAsync(stoppingToken);
+                    if (reminded > 0) logger.LogInformation("Plus ending reminders: {Count}", reminded);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Tilt intro / Plus reminders failed");
                 }
             }
 

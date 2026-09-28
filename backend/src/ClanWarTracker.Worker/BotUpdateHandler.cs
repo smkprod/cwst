@@ -361,11 +361,26 @@ public class BotUpdateHandler(
         await TraceAsync(PaymentTrace.PaidKey, payload, charge,
             $"ok — Плюс до {applied.Until:dd.MM.yyyy} (tg {applied.RecipientTelegramUserId})", ct);
 
+        if (applied.Gift)
+        {
+            // Подарок или оплаченная просьба «подари мне»: спасибо тому, кто платил,
+            // и новость тому, кому досталось, - на его языке.
+            var payerText = BotText.For(msg.From?.LanguageCode);
+            await TellAsync(msg.Chat.Id, string.Format(payerText.GiftSent,
+                applied.RecipientName ?? "—", applied.Until.ToString("dd.MM.yyyy")), ct);
+
+            var giver = msg.From?.Username is { Length: > 0 } u ? "@" + u : msg.From?.FirstName ?? "—";
+            var recipientText = BotText.For(applied.RecipientLang);
+            await TellAsync(applied.RecipientTelegramUserId, string.Format(recipientText.GiftReceived,
+                giver, applied.Until.ToString("dd.MM.yyyy")), ct);
+            return;
+        }
+
         await TellAsync(msg.Chat.Id,
             $"💎 Спасибо! Clanify Плюс активен до {applied.Until:dd.MM.yyyy}.\n\n" +
-            "• Полный разбор боёв — во вкладке «Я» → «⚔️ Разбор боёв»\n" +
-            "• «Стоп-тильт» уже включён: напишу, если начнёшь сливать серию подряд. " +
-            "Выключить можно там же, в разборе.", ct);
+            "🧊 «Стоп-тильт» уже включён: напишу «стоп» прямо во время серии поражений — с паузой и итогом захода.\n" +
+            "🔬 Полный разбор боёв — во вкладке «Я».\n\n" +
+            "Правила (после 2 или 3 поражений, лимит на вечер, тихие часы) — в приложении: «Я» → «🧊 Стоп-тильт».", ct);
     }
 
     /// <summary>След оплаты для панели — в своём контексте, чтобы упавшая выдача его не утянула.</summary>
@@ -743,6 +758,7 @@ public class BotUpdateHandler(
             // Любое сообщение — повод освежить @username: он нужен, чтобы тегать человека
             // в чате, а меняться может в любой момент (и раньше писался только при /link).
             await RefreshUsernameAsync(msg, sp, ct);
+            if (msg.Chat.Type == ChatType.Private) await UnblockDmAsync(msg, sp, ct);
 
             // Быстрый поиск по тегу: пользователь просто отправляет #ТЕГ без команды
             if (msg.Chat.Type == ChatType.Private && !text.StartsWith('/') && IsLikelyCrTag(text))
@@ -1293,11 +1309,6 @@ public class BotUpdateHandler(
             sb.AppendLine(t.LinkedNoBattles);
         }
 
-        if (analysis.Access.TrialStarted)
-        {
-            sb.AppendLine();
-            sb.AppendLine(string.Format(t.LinkedTrial, analysis.Access.TrialDays));
-        }
         if (noClan)
         {
             sb.AppendLine();
@@ -1350,6 +1361,22 @@ public class BotUpdateHandler(
         using var scope = scopeFactory.CreateScope();
         var sp = scope.ServiceProvider;
         var data = callback.Data ?? "";
+
+        if (data.StartsWith("tilt|", StringComparison.Ordinal) || data.StartsWith("tintro|", StringComparison.Ordinal))
+        {
+            var result = await sp.GetRequiredService<TiltActionsUseCase>()
+                .HandleAsync(callback.From.Id, data, callback.From.LanguageCode, ct);
+            await bot.AnswerCallbackQuery(callback.Id, cancellationToken: ct);
+            if (result is null || callback.Message is not { } message) return;
+            try
+            {
+                // Ответ там же, где нажали: без кнопок, чтобы второй раз не нажать
+                await bot.EditMessageText(message.Chat.Id, message.MessageId, result.Text,
+                    replyMarkup: new InlineKeyboardMarkup(Array.Empty<InlineKeyboardButton[]>()), cancellationToken: ct);
+            }
+            catch (Exception ex) { logger.LogDebug(ex, "Could not edit tilt message"); }
+            return;
+        }
 
         if (data.StartsWith("relink|", StringComparison.Ordinal))
         {
@@ -1504,6 +1531,26 @@ public class BotUpdateHandler(
     /// «привет» или «hello» больше не уходят в поиск игрока (а раньше уходили и
     /// получали в ответ «игрок не найден» вместо справки).
     /// </summary>
+    /// <summary>
+    /// Человек сам написал боту - значит, писать ему в личку можно. Если раньше доставка
+    /// не удалась (он не запускал бота), «Стоп-тильт» снова может до него достучаться.
+    /// </summary>
+    private static async Task UnblockDmAsync(Message msg, IServiceProvider sp, CancellationToken ct)
+    {
+        if (msg.From is null) return;
+        try
+        {
+            var prefsRepo = sp.GetRequiredService<IPlayerAlertPrefsRepository>();
+            var prefs = await prefsRepo.GetAsync(msg.From.Id, ct);
+            if (prefs is { DmBlocked: true })
+            {
+                prefs.DmBlocked = false;
+                await prefsRepo.SaveChangesAsync(ct);
+            }
+        }
+        catch { /* не критично — обработка сообщения важнее */ }
+    }
+
     private static bool IsLikelyCrTag(string text)
     {
         var t = text.Trim().ToUpperInvariant();

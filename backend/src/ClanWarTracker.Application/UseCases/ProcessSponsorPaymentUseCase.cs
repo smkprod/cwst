@@ -14,7 +14,8 @@ namespace ClanWarTracker.Application.UseCases;
 public class ProcessSponsorPaymentUseCase(
     IPlayerRepository players,
     ISponsorPaymentRepository payments,
-    IServiceSettingRepository settings)
+    IServiceSettingRepository settings,
+    PlusAccess plus)
 {
     /// <summary>
     /// Можно ли принимать этот платёж. null — можно, иначе причина: Telegram
@@ -87,6 +88,13 @@ public class ProcessSponsorPaymentUseCase(
             TelegramChargeId = chargeId,
             PaidAtUtc = now,
         }, ct);
+
+        // Спонсор получает весь Плюс - и дни складываются с уже купленным Плюсом, а
+        // не перекрываются им: иначе купивший спонсорство поверх Плюса сжигал бы
+        // оплаченные дни. Звёзды в выдаче - ноль: они уже учтены в платеже спонсорства.
+        var recipientTg = player.TelegramUserId ?? payerTelegramUserId;
+        await plus.GrantAsync(recipientTg, days, Entitlement.Sources.Sponsor, player.PlayerTag, 0, chargeId,
+            ct, save: false);
 
         // Один контекст на оба репозитория: платёж и новый срок сохраняются вместе
         // или не сохраняются вовсе. Повтор того же платежа упрётся в уникальный

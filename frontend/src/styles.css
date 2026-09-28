@@ -2953,3 +2953,44 @@ button.hall-step {
 .adm-pay-refunded { opacity: 0.5; }
 .adm-pay-refunded .adm-pay-stars { text-decoration: line-through; }
 .adm-refund { margin-top: 4px; }
+
+/* Линейка: Плюс и Спонсор карточками одна под другой */
+.plus-card { padding: 12px; border-radius: 14px; background: var(--bg-card); margin-bottom: 10px; }
+.plus-card-sponsor { border: 1px solid rgba(255, 196, 0, 0.45); background: linear-gradient(135deg, rgba(255, 196, 0, 0.12), transparent), var(--bg-card); }
+.plus-card-head { display: flex; flex-direction: column; gap: 2px; margin-bottom: 10px; }
+.plus-card-title { font-size: 17px; font-weight: 800; }
+.plus-card .plus-features { margin-bottom: 10px; }
+.plus-card .plus-feature { background: rgba(255, 255, 255, 0.04); }
+.plus-perks { margin: 0 0 8px; padding-left: 18px; display: grid; gap: 4px; font-size: 13px; }
+.plus-buy-sponsor { width: 100%; background: linear-gradient(135deg, #ffcc33, #ff9a3c); color: #1c1210; }
+.plus-gift-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.plus-gift .search-input { width: 100%; margin-top: 8px; }
+
+/* ===== «🧊 Стоп-тильт» во вкладке «Я» ===== */
+.tilt-card { border: 1px solid rgba(90, 190, 255, 0.35); background: linear-gradient(135deg, rgba(90, 190, 255, 0.12), transparent 60%), var(--bg-card); }
+.tilt-boiling { border-color: rgba(255, 170, 60, 0.45); background: linear-gradient(135deg, rgba(255, 170, 60, 0.14), transparent 60%), var(--bg-card); }
+.tilt-volcano { border-color: rgba(255, 80, 60, 0.5); background: linear-gradient(135deg, rgba(255, 80, 60, 0.16), transparent 60%), var(--bg-card); }
+.tilt-head { display: flex; flex-direction: column; gap: 2px; margin-bottom: 10px; }
+.tilt-type { display: flex; flex-direction: column; gap: 3px; }
+.tilt-type-name { font-size: 22px; font-weight: 800; }
+.tilt-shift { color: var(--green); font-weight: 700; }
+.tilt-shift-hot { color: var(--red); }
+.tilt-tax { margin: 10px 0 0; font-weight: 700; }
+.tilt-progress { display: flex; flex-direction: column; gap: 6px; }
+.tilt-series { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
+.tilt-series-cells { display: flex; gap: 3px; }
+.tilt-cell { width: 12px; height: 12px; border-radius: 3px; background: var(--muted); opacity: 0.5; }
+.tilt-cell-W { background: var(--green); opacity: 1; }
+.tilt-cell-L { background: var(--red); opacity: 1; }
+.tilt-banner { margin: 10px 0 0; padding: 8px 10px; border-radius: 10px; font-size: 13px; background: rgba(255, 80, 60, 0.12); }
+.tilt-toggle { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.06); }
+.tilt-toggle-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.tilt-rules, .tilt-works, .tilt-feed { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.06); display: flex; flex-direction: column; gap: 8px; }
+.tilt-rules-title { font-size: 13px; font-weight: 800; }
+.tilt-rule { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tilt-seg { display: inline-flex; gap: 4px; flex-shrink: 0; }
+.tilt-seg-btn { min-width: 32px; padding: 5px 7px; border-radius: 8px; border: none; background: rgba(255, 255, 255, 0.08); color: var(--text); font-size: 12px; font-weight: 700; cursor: pointer; }
+.tilt-seg-on { background: var(--accent); color: #fff; }
+.tilt-feed-row { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: baseline; }
+.tilt-feed-after { white-space: nowrap; }
+.tilt-share { display: block; margin: 12px auto 0; }

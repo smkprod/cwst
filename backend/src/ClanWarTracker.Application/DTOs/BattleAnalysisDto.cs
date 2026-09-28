@@ -37,17 +37,12 @@ public record ToughCardDto(MetaCardDto Card, int Games, double WinPercent, doubl
 
 /// <summary>Доступ к полному разбору.</summary>
 /// <param name="Unlocked">Полный разбор открыт: Плюс есть или платное выключено.</param>
-/// <param name="TrialStarted">Триал выдан только что, этим самым открытием разбора.</param>
 public record ReviewAccessDto(
     bool Paywall,
     bool Unlocked,
     bool Active,
     string? Until,
-    string? Source,
-    bool TrialStarted,
-    bool TrialUsed,
-    int TrialDays,
-    int TrialMinBattles);
+    string? Source);
 
 /// <summary>
 /// Что спрятано за Плюсом - цифрами самого игрока. «Найдено 4 карты, против которых

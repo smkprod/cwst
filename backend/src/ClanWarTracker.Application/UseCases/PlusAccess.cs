@@ -19,8 +19,7 @@ public class PlusAccess(
     /// <param name="Active">Плюс действует: куплен, выдан, триал или спонсорство.</param>
     /// <param name="Until">До какого момента, если действует.</param>
     /// <param name="Source">Откуда: purchase, trial, gift, grant или sponsor.</param>
-    /// <param name="TrialUsed">Триал уже был - второй раз не выдаётся.</param>
-    public record Status(bool Paywall, bool Active, DateTime? Until, string? Source, bool TrialUsed)
+    public record Status(bool Paywall, bool Active, DateTime? Until, string? Source)
     {
         /// <summary>Открыты ли платные функции: либо Плюс есть, либо платное выключено вовсе.</summary>
         public bool Unlocked => !Paywall || Active;
@@ -53,28 +52,7 @@ public class PlusAccess(
             ? null
             : sponsorUntil is { } su && su >= (bought ?? DateTime.MinValue) ? SponsorSource : latest!.Source;
 
-        var trialUsed = await entitlements.HadTrialAsync(telegramUserId, player?.PlayerTag, Entitlement.Skus.Plus, ct);
-        return new Status(offer.Paywall, until is not null, until, source, trialUsed);
-    }
-
-    /// <summary>
-    /// Выдаёт триал, если он положен: платное включено, Плюса нет, триала ещё не
-    /// было ни у этого аккаунта, ни у этого тега, и боёв уже достаточно, чтобы
-    /// разбору было что показать. true - выдан только что.
-    /// </summary>
-    public async Task<bool> TryStartTrialAsync(
-        long telegramUserId, string playerTag, int storedBattles, CancellationToken ct = default)
-    {
-        if (storedBattles < PlusSales.TrialMinBattles) return false;
-
-        var offer = await PlusSales.ReadAsync(settings, ct);
-        if (!offer.Paywall || offer.TrialDays <= 0) return false;
-
-        var status = await GetAsync(telegramUserId, ct);
-        if (status.Active || status.TrialUsed) return false;
-
-        await GrantAsync(telegramUserId, offer.TrialDays, Entitlement.Sources.Trial, playerTag, 0, null, ct);
-        return true;
+        return new Status(offer.Paywall, until is not null, until, source);
     }
 
     /// <summary>
@@ -83,9 +61,10 @@ public class PlusAccess(
     /// </summary>
     /// <param name="save">false - запись добавлена в контекст, сохранит вызывающий
     /// вместе со своими изменениями (оплата пишет платёж и доступ одной транзакцией).</param>
+    /// <param name="giverTelegramUserId">Кто подарил (для подарков) - по нему считаются подарки спонсора.</param>
     public async Task<DateTime> GrantAsync(
         long telegramUserId, int days, string source, string? playerTag, int stars, string? chargeId,
-        CancellationToken ct = default, bool save = true)
+        CancellationToken ct = default, bool save = true, long? giverTelegramUserId = null)
     {
         var now = DateTime.UtcNow;
         var current = await entitlements.UntilAsync(telegramUserId, Entitlement.Skus.Plus, ct);
@@ -103,6 +82,7 @@ public class PlusAccess(
             Stars = stars,
             ChargeId = chargeId,
             CreatedAtUtc = now,
+            GiverTelegramUserId = giverTelegramUserId,
         }, ct);
 
         if (save) await entitlements.SaveChangesAsync(ct);

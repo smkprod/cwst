@@ -1,7 +1,7 @@
-import { useState } from 'react'
-import { api } from '../lib/api'
+import { useEffect } from 'react'
 import type { AppConfig } from '../types'
-import { haptic, hapticNotify, openInvoice, tg } from '../lib/telegram'
+import { haptic, tg } from '../lib/telegram'
+import { PLUS_CHANGED, usePlusSheet } from '../lib/plusSheet'
 import { useT } from '../lib/i18n'
 
 /**
@@ -20,7 +20,13 @@ export function SponsorBuyButton({ config, onBought, className = 'btn hall-spons
   className?: string
 }) {
   const { t } = useT()
-  const [state, setState] = useState<'idle' | 'paying' | 'waiting' | 'failed'>('idle')
+  const openPlus = usePlusSheet()
+
+  // Покупка идёт в общем окне линейки; после неё оно шлёт событие — перечитываем своё
+  useEffect(() => {
+    window.addEventListener(PLUS_CHANGED, onBought)
+    return () => window.removeEventListener(PLUS_CHANGED, onBought)
+  }, [onBought])
 
   const canPay = config.sponsorPriceStars > 0 && Boolean(tg?.openInvoice)
 
@@ -38,53 +44,15 @@ export function SponsorBuyButton({ config, onBought, className = 'btn hall-spons
     ) : null
   }
 
-  const buy = async () => {
-    haptic('medium')
-    setState('paying')
-    try {
-      const { link } = await api.createSponsorInvoice()
-      const status = await openInvoice(link)
-      if (status === 'cancelled') { setState('idle'); return }
-      if (status !== 'paid') { setState('failed'); hapticNotify('error'); return }
-
-      // Списано — но выдаёт бот, получив подтверждение отдельным сообщением. Ждём,
-      // пока срок на сервере действительно сдвинется, а не рисуем звезду заранее:
-      // иначе при сбое выдачи человек увидел бы спонсорство, которого нет.
-      setState('waiting')
-      const before = config.sponsorUntil
-      for (let i = 0; i < 15; i++) {
-        await new Promise(r => setTimeout(r, 1000))
-        const fresh = await api.getAppConfig().catch(() => null)
-        if (fresh?.isSponsor && fresh.sponsorUntil !== before) {
-          hapticNotify('success')
-          setState('idle')
-          onBought()
-          return
-        }
-      }
-      // Не дождались за 15 секунд — не значит, что пропало: бот мог выдать позже.
-      // Обновляем как есть и говорим честно, что делать, если звезды так и нет.
-      setState('failed')
-      onBought()
-    } catch {
-      hapticNotify('error')
-      setState('failed')
-    }
-  }
-
-  const renew = config.isSponsor
-  const label = state === 'paying' ? t.sponsor.opening
-    : state === 'waiting' ? t.sponsor.waiting
-    : (renew ? t.sponsor.renew : t.sponsor.buy)
-        .replace('{stars}', String(config.sponsorPriceStars))
-        .replace('{days}', String(config.sponsorDays))
+  // Одна линейка: спонсорство покупается в том же окне, что и Плюс, — рядом видно,
+  // что Спонсор включает весь Плюс и подарки соклановцам.
+  const label = (config.isSponsor ? t.sponsor.renew : t.sponsor.buy)
+    .replace('{stars}', String(config.sponsorPriceStars))
+    .replace('{days}', String(config.sponsorDays))
 
   return (
-    <>
-      <button className={className} disabled={state === 'paying' || state === 'waiting'} onClick={buy}>
-        {label}
-      </button>
-      {state === 'failed' && <p className="muted small">{t.sponsor.failed}</p>}
-    </>
+    <button className={className} onClick={() => openPlus('sponsor')}>
+      {label}
+    </button>
   )
 }

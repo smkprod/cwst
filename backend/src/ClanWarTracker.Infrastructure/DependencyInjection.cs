@@ -79,6 +79,7 @@ public static class DependencyInjection
         services.AddScoped<IPlayerBattleRepository, PlayerBattleRepository>();
         services.AddScoped<IEntitlementRepository, EntitlementRepository>();
         services.AddScoped<IPlayerAlertPrefsRepository, PlayerAlertPrefsRepository>();
+        services.AddScoped<ITiltAlertRepository, TiltAlertRepository>();
         services.AddScoped<IServiceModeratorRepository, ServiceModeratorRepository>();
         services.AddScoped<IServiceSettingRepository, ServiceSettingRepository>();
         services.AddScoped<IClanMessageRepository, ClanMessageRepository>();
@@ -758,6 +759,57 @@ CREATE TABLE IF NOT EXISTS ""PlayerAlertPrefs"" (
 );");
         await db.Database.ExecuteSqlRawAsync(
             "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_PlayerAlertPrefs_TelegramUserId\" ON \"PlayerAlertPrefs\" (\"TelegramUserId\");");
+
+        // «Стоп-тильт» v2: правила, пауза, бесплатные сигналы, язык и часовой пояс.
+        foreach (var column in new[]
+        {
+            "\"Lang\" varchar(8)",
+            "\"TzOffsetMinutes\" integer",
+            "\"FreeSignalsLeft\" integer NOT NULL DEFAULT 2",
+            "\"LossThreshold\" integer NOT NULL DEFAULT 2",
+            "\"DailyLossLimit\" integer",
+            "\"QuietHours\" boolean NOT NULL DEFAULT TRUE",
+            "\"PauseUntilUtc\" timestamptz",
+            "\"MutedUntilUtc\" timestamptz",
+            "\"IntroSentUtc\" timestamptz",
+            "\"LimitAlertDay\" varchar(10)",
+        })
+            await db.Database.ExecuteSqlRawAsync($"ALTER TABLE \"PlayerAlertPrefs\" ADD COLUMN IF NOT EXISTS {column};");
+
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Entitlements\" ADD COLUMN IF NOT EXISTS \"GiverTelegramUserId\" bigint;");
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Entitlements\" ADD COLUMN IF NOT EXISTS \"ReminderSentUtc\" timestamptz;");
+
+        // Журнал сигналов «Стоп-тильта»: итог захода и «пауза работает».
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""TiltAlerts"" (
+    ""Id"" serial PRIMARY KEY,
+    ""TelegramUserId"" bigint NOT NULL,
+    ""PlayerTag"" varchar(16) NOT NULL,
+    ""Kind"" varchar(16) NOT NULL,
+    ""SentUtc"" timestamptz NOT NULL,
+    ""TriggerBattleUtc"" timestamptz NOT NULL,
+    ""SessionStartUtc"" timestamptz NOT NULL,
+    ""LossStreak"" integer NOT NULL DEFAULT 0,
+    ""MessageId"" integer,
+    ""Free"" boolean NOT NULL DEFAULT FALSE,
+    ""Lang"" varchar(8) NOT NULL DEFAULT 'ru',
+    ""Text"" text,
+    ""Choice"" varchar(8),
+    ""ChoiceUtc"" timestamptz,
+    ""ResumeSentUtc"" timestamptz,
+    ""SummaryUtc"" timestamptz,
+    ""SessionWins"" integer NOT NULL DEFAULT 0,
+    ""SessionLosses"" integer NOT NULL DEFAULT 0,
+    ""SessionTrophies"" integer NOT NULL DEFAULT 0,
+    ""AfterWins"" integer NOT NULL DEFAULT 0,
+    ""AfterLosses"" integer NOT NULL DEFAULT 0
+);");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_TiltAlerts_TelegramUserId_SentUtc\" ON \"TiltAlerts\" (\"TelegramUserId\", \"SentUtc\");");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_TiltAlerts_SentUtc\" ON \"TiltAlerts\" (\"SentUtc\");");
 
         // Страница клана на Аллее: оформление и девиз.
         await db.Database.ExecuteSqlRawAsync(
