@@ -1,5 +1,5 @@
 import { initData } from './telegram'
-import type { AppConfig, AppTab, BackgroundKey, ClanDesignKey, ClanPage, PlayerPage, HallOfFame, OwnerSponsor, Moderator, ServiceIdentity, ServicePermission, BroadcastResult, BroadcastTarget, TopStatus, SponsorSales, CampaignFunnel, ClanDiscipline, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, MetaDecks, BattleAnalysis, PlayerSheet, PlusStatus, OwnerPlus, TiltProfile, Challenge, OwnerChallenge, TrackerState, MatchHistory, MatchReport, TopPlayerRow, TopPlayerDetail, Tournament, TournamentSummary, WarJournal } from '../types'
+import type { AppConfig, AppTab, BackgroundKey, ClanDesignKey, ClanPage, PlayerPage, HallOfFame, OwnerSponsor, Moderator, ServiceIdentity, ServicePermission, BroadcastTarget, TopStatus, SponsorSales, CampaignFunnel, ClanDiscipline, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, MetaDecks, BattleAnalysis, PlayerSheet, PlusStatus, OwnerPlus, TiltProfile, Challenge, OwnerChallenge, TrackerState, MatchHistory, MatchReport, TopPlayerRow, TopPlayerDetail, Tournament, TournamentSummary, WarJournal } from '../types'
 
 // Если мы на Render (production), BASE должен быть пустой строкой '', чтобы запросы шли на тот же домен.
 // Для локальной разработки (Development) оставляем localhost:5000.
@@ -48,13 +48,13 @@ export const adminClan = {
   },
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+async function request<T>(path: string, init?: RequestInit, timeoutMs = REQUEST_TIMEOUT_MS): Promise<T> {
   // КРИТИЧЕСКИЙ ФИКС: Достаем свежайший initData из window прямо в секунду отправки запроса.
   // Теперь заголовок больше никогда не уйдет на сервер пустым.
   const liveInitData = window.Telegram?.WebApp?.initData ?? '';
 
   const ctrl = new AbortController()
-  const timer = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS)
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs)
 
   // Ручки самой панели шлём всегда от своего имени: иначе, зайдя в чужой клан,
   // ты перестал бы видеть в панели список кланов и не смог бы из него выйти.
@@ -369,11 +369,19 @@ export const api = {
   ownerDeleteClan: (clanId: number) =>
     request<{ ok: boolean }>(`/api/owner/clans/${clanId}`, { method: 'DELETE' }),
   ownerBroadcast: (text: string, target: BroadcastTarget) =>
-    request<BroadcastResult>('/api/owner/broadcast', {
+    request<{ started: boolean }>('/api/owner/broadcast', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text, target }),
     }),
+  /** Рассылка со скринами: multipart, заголовок Content-Type браузер ставит сам. */
+  ownerBroadcastMedia: (text: string, target: BroadcastTarget, photos: Blob[]) => {
+    const form = new FormData()
+    form.append('text', text)
+    form.append('target', target)
+    photos.forEach((p, i) => form.append('photos', p, `shot-${i + 1}.jpg`))
+    return request<{ started: boolean; photos: number }>('/api/owner/broadcast/media', { method: 'POST', body: form }, 60_000)
+  },
 
   // Турниры
   /** Привязать себя к игроку, не выходя из приложения. */

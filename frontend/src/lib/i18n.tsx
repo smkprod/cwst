@@ -1357,6 +1357,11 @@ const ru = {
   },
 
   owner: {
+    bcStarted: '✅ Рассылка пошла. Итог пришлю тебе в личку, когда закончу.',
+    bcAddPhotos: '📷 Добавить скрины',
+    bcPhotosHint: 'До 10 картинок. Сначала они придут тебе в личку — это превью, потом всем.',
+    bcUploadFail: 'Не удалось загрузить картинки. Нажми «Старт» в личке с ботом и попробуй ещё раз.',
+    bcPreparing: 'Готовлю картинки…',
     chTitle: '🎟 Уикенд-челлендж',
     chHint: 'Название, приз и время. Время — по твоему часовому поясу. Сдвинул даты — это новое событие с новой таблицей.',
     chName: 'Название (пусто — по умолчанию)',
@@ -2907,6 +2912,11 @@ const uk: Translations = {
   },
 
   owner: {
+    bcStarted: '✅ Розсилка пішла. Підсумок надішлю тобі в особисті, коли закінчу.',
+    bcAddPhotos: '📷 Додати скріни',
+    bcPhotosHint: 'До 10 картинок. Спершу вони прийдуть тобі в особисті — це прев’ю, потім усім.',
+    bcUploadFail: 'Не вдалося завантажити картинки. Натисни «Старт» в особистих із ботом і спробуй ще раз.',
+    bcPreparing: 'Готую картинки…',
     chTitle: '🎟 Вікенд-челендж',
     chHint: 'Назва, приз і час. Час — за твоїм часовим поясом. Зсунув дати — це нова подія з новою таблицею.',
     chName: 'Назва (порожньо — за замовчуванням)',
@@ -4455,6 +4465,11 @@ const en: Translations = {
   },
 
   owner: {
+    bcStarted: '✅ Broadcast started. I’ll DM you the result when it’s done.',
+    bcAddPhotos: '📷 Add screenshots',
+    bcPhotosHint: 'Up to 10 images. They come to your DM first as a preview, then to everyone.',
+    bcUploadFail: 'Couldn’t upload the images. Press «Start» in your chat with the bot and try again.',
+    bcPreparing: 'Preparing images…',
     chTitle: '🎟 Weekend challenge',
     chHint: 'Title, prize and time. Time is in your time zone. Moving the dates makes a new event with a new table.',
     chName: 'Title (empty — default)',

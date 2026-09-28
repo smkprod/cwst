@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, ApiError, adminClan } from '../lib/api'
 import type { AppTab, BroadcastTarget, Moderator, OwnerClan, OwnerClanDetail, OwnerPlus, OwnerChallenge, OwnerSponsor, OwnerStats, ServiceIdentity, ServicePermission, SponsorSales, TopStatus, CampaignFunnel } from '../types'
 
@@ -442,6 +442,35 @@ function BroadcastBox({ dmCount, chatCount, t }: { dmCount: number; chatCount: n
   const [busy, setBusy] = useState(false)
   const [confirm, setConfirm] = useState(false)
   const [result, setResult] = useState<string | null>(null)
+  const [photos, setPhotos] = useState<{ blob: Blob; url: string }[]>([])
+  const [preparing, setPreparing] = useState(false)
+
+  // Превью живут как object URL — освобождаем, когда картинку убрали или окно закрыли.
+  // Ref, а не зависимость от photos: иначе при добавлении новой гасли бы старые превью.
+  const photosRef = useRef(photos)
+  photosRef.current = photos
+  useEffect(() => () => photosRef.current.forEach(p => URL.revokeObjectURL(p.url)), [])
+
+  const addPhotos = async (files: FileList | null) => {
+    if (!files?.length) return
+    setPreparing(true)
+    setConfirm(false)
+    try {
+      const room = 10 - photos.length
+      const shrunk = await Promise.all(Array.from(files).slice(0, room).map(shrinkImage))
+      setPhotos(prev => [...prev, ...shrunk.map(blob => ({ blob, url: URL.createObjectURL(blob) }))])
+    } finally {
+      setPreparing(false)
+    }
+  }
+  const removePhoto = (i: number) => {
+    haptic('light')
+    setConfirm(false)
+    setPhotos(prev => {
+      URL.revokeObjectURL(prev[i].url)
+      return prev.filter((_, k) => k !== i)
+    })
+  }
 
   const willDm = target === 'dm' || target === 'both'
   const willChats = target === 'chats' || target === 'both'
@@ -456,13 +485,15 @@ function BroadcastBox({ dmCount, chatCount, t }: { dmCount: number; chatCount: n
     setBusy(true)
     setResult(null)
     try {
-      const r = await api.ownerBroadcast(text.trim(), target)
+      if (photos.length > 0) await api.ownerBroadcastMedia(text.trim(), target, photos.map(p => p.blob))
+      else await api.ownerBroadcast(text.trim(), target)
       hapticNotify('success')
-      setResult(`${t.owner.bcDone} ${r.sentDm} ${t.owner.bcDmUnit} · ${r.sentChats} ${t.owner.bcChatsUnit}`)
+      setResult(t.owner.bcStarted)
       setText('')
-    } catch {
+      setPhotos([])
+    } catch (e) {
       hapticNotify('error')
-      setResult(t.owner.bcError)
+      setResult(e instanceof ApiError && e.code === 'upload_failed' ? t.owner.bcUploadFail : t.owner.bcError)
     } finally {
       setBusy(false)
       setConfirm(false)
@@ -486,6 +517,22 @@ function BroadcastBox({ dmCount, chatCount, t }: { dmCount: number; chatCount: n
         value={text}
         onChange={e => { setText(e.target.value); setConfirm(false) }}
       />
+      {photos.length > 0 && (
+        <div className="owner-bc-photos">
+          {photos.map((p, i) => (
+            <span key={p.url} className="owner-bc-photo">
+              <img src={p.url} alt="" />
+              <button aria-label="✕" onClick={() => removePhoto(i)}>✕</button>
+            </span>
+          ))}
+        </div>
+      )}
+      <label className={`btn-mini owner-bc-add ${photos.length >= 10 || preparing ? 'owner-bc-add-off' : ''}`}>
+        {preparing ? t.owner.bcPreparing : `${t.owner.bcAddPhotos}${photos.length ? ` · ${photos.length}/10` : ''}`}
+        <input type="file" accept="image/*" multiple hidden disabled={photos.length >= 10 || preparing}
+          onChange={e => { addPhotos(e.target.files); e.target.value = '' }} />
+      </label>
+      <p className="muted small" style={{ margin: '4px 0 8px' }}>{t.owner.bcPhotosHint}</p>
       <div className="owner-bc-targets">
         {targets.map(tg => (
           <button
@@ -500,7 +547,7 @@ function BroadcastBox({ dmCount, chatCount, t }: { dmCount: number; chatCount: n
       <p className="muted small owner-bc-recipients">{t.owner.bcRecipients} {recipients}</p>
       <button
         className="btn btn-nudge"
-        disabled={busy || text.trim().length === 0}
+        disabled={busy || preparing || (text.trim().length === 0 && photos.length === 0)}
         onClick={send}
         onBlur={() => setConfirm(false)}
       >
@@ -1557,4 +1604,26 @@ function TrackerOwner({ tracker }: { tracker: NonNullable<OwnerPlus['tracker']> 
       <button className="btn btn-ghost" disabled={busy} onClick={save}>{saved ? '✓' : o.trkSave}</button>
     </div>
   )
+}
+
+/**
+ * Скрин с телефона весит 3–5 МБ: ужимаем до 1600 px по большей стороне в JPEG. Для
+ * Telegram этого с запасом, а загрузка идёт секунды, а не минуту, и не упирается в
+ * лимиты сервера на размер запроса.
+ */
+async function shrinkImage(file: File): Promise<Blob> {
+  const MAX = 1600
+  try {
+    const bmp = await createImageBitmap(file)
+    const k = Math.min(1, MAX / Math.max(bmp.width, bmp.height))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.round(bmp.width * k)
+    canvas.height = Math.round(bmp.height * k)
+    canvas.getContext('2d')!.drawImage(bmp, 0, 0, canvas.width, canvas.height)
+    bmp.close()
+    const blob = await new Promise<Blob | null>(res => canvas.toBlob(res, 'image/jpeg', 0.87))
+    return blob ?? file
+  } catch {
+    return file // старый вебвью не умеет createImageBitmap — шлём как есть
+  }
 }

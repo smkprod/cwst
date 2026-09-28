@@ -149,8 +149,90 @@ public class OwnerController(
         var toChats = target is "chats" or "both";
         if (!toDm && !toChats) return BadRequest(new { error = "bad_target", message = "target: dm | chats | both" });
 
-        var r = await broadcast.ExecuteAsync(text, toDm, toChats, ct);
-        return Ok(new { sentDm = r.SentDm, sentChats = r.SentChats, failedDm = r.FailedDm, failedChats = r.FailedChats });
+        StartBroadcast(text, toDm, toChats, null);
+        return Accepted(new { started = true });
+    }
+
+    /// <summary>
+    /// POST /api/owner/broadcast/media — рассылка со скринами. multipart: text, target,
+    /// photos (до 10 картинок по 10 МБ). Картинки сначала уходят тебе в личку - это и
+    /// превью, и загрузка в Telegram: дальше всем шлются уже готовые file_id.
+    /// </summary>
+    [HttpPost("broadcast/media")]
+    [RequestSizeLimit(110_000_000)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 110_000_000)]
+    public async Task<IActionResult> BroadcastMedia(
+        [FromForm] string? text, [FromForm] string? target, [FromForm] List<IFormFile>? photos, CancellationToken ct)
+    {
+        if (await DenyAsync(ServicePermission.Broadcast, ct) is { } deny) return deny;
+
+        var files = (photos ?? []).Where(f => f.Length > 0).ToList();
+        if (files.Count == 0) return BadRequest(new { error = "no_photos" });
+        if (files.Count > 10) return BadRequest(new { error = "too_many_photos", message = "Не больше 10 картинок" });
+        if (files.Any(f => f.Length > 10_000_000)) return BadRequest(new { error = "photo_too_big", message = "Картинка больше 10 МБ" });
+        if (files.Any(f => !(f.ContentType ?? "").StartsWith("image/", StringComparison.OrdinalIgnoreCase)))
+            return BadRequest(new { error = "not_image" });
+
+        var body = text?.Trim() ?? "";
+        if (body.Length > 4000) return BadRequest(new { error = "too_long", message = "Макс 4000 символов" });
+        var t = target?.ToLowerInvariant();
+        var toDm = t is "dm" or "both";
+        var toChats = t is "chats" or "both";
+        if (!toDm && !toChats) return BadRequest(new { error = "bad_target" });
+
+        var ownerId = (long)HttpContext.Items["TelegramUserId"]!;
+        IReadOnlyList<string> ids;
+        var streams = new List<Stream>();
+        try
+        {
+            var list = new List<(Stream, string)>();
+            foreach (var f in files)
+            {
+                var s = f.OpenReadStream();
+                streams.Add(s);
+                list.Add((s, string.IsNullOrWhiteSpace(f.FileName) ? "photo.jpg" : Path.GetFileName(f.FileName)));
+            }
+            ids = await HttpContext.RequestServices.GetRequiredService<INotificationSender>()
+                .UploadPhotosAsync(ownerId, list, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Broadcast photo upload failed");
+            // Чаще всего - владелец ни разу не нажал «Старт» в личке с ботом
+            return StatusCode(502, new { error = "upload_failed", message = ex.Message });
+        }
+        finally
+        {
+            foreach (var s in streams) await s.DisposeAsync();
+        }
+
+        StartBroadcast(body, toDm, toChats, ids);
+        return Accepted(new { started = true, photos = ids.Count });
+    }
+
+    /// <summary>
+    /// Рассылка идёт в фоне: на двести с лишним человек она дольше, чем приложение
+    /// ждёт ответа, и раньше обрыв запроса останавливал её на полпути. Итог приходит
+    /// владельцу в личку.
+    /// </summary>
+    private void StartBroadcast(string text, bool toDm, bool toChats, IReadOnlyList<string>? photoIds)
+    {
+        var ownerId = (long)HttpContext.Items["TelegramUserId"]!;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var scope = scopes.CreateScope();
+                var r = await scope.ServiceProvider.GetRequiredService<OwnerBroadcastUseCase>()
+                    .ExecuteAsync(text, toDm, toChats, CancellationToken.None, photoIds);
+                await scope.ServiceProvider.GetRequiredService<INotificationSender>().TrySendToUserAsync(ownerId,
+                    $"📣 Рассылка готова: в личку {r.SentDm} (не дошло {r.FailedDm}), в чаты {r.SentChats} (не дошло {r.FailedChats}).");
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Broadcast failed");
+            }
+        });
     }
 
     /// <summary>
