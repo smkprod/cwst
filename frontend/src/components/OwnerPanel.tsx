@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, ApiError, adminClan } from '../lib/api'
-import type { AppTab, BroadcastTarget, Moderator, OwnerClan, OwnerClanDetail, OwnerPlus, OwnerSponsor, OwnerStats, ServiceIdentity, ServicePermission, SponsorSales, TopStatus, CampaignFunnel } from '../types'
+import type { AppTab, BroadcastTarget, Moderator, OwnerClan, OwnerClanDetail, OwnerPlus, OwnerChallenge, OwnerSponsor, OwnerStats, ServiceIdentity, ServicePermission, SponsorSales, TopStatus, CampaignFunnel } from '../types'
 
 /** «Можно ли мне вот это». Прокидывается вниз, чтобы правила жили в одном месте. */
 type Can = (p: ServicePermission) => boolean
@@ -856,6 +856,7 @@ const ALL_TABS: { key: AppTab; label: string }[] = [
   { key: 'tournament', label: '🏆 Турнир' },
   { key: 'search', label: '🔍 Поиск' },
   { key: 'more', label: '⚙️ Ещё' },
+  { key: 'challenge', label: '🎟 Челлендж' },
 ]
 
 /**
@@ -920,6 +921,75 @@ function TabsSection({ t }: { t: Translations }) {
       <button className="btn" disabled={busy || picked.length === 0} onClick={save}>
         {busy ? t.owner.saving : t.owner.tabsSave}
       </button>
+
+      <ChallengeSettings t={t} />
+    </div>
+  )
+}
+
+/** Время для поля datetime-local: оно понимает только местное время без зоны. */
+function toLocalInput(iso: string) {
+  const d = new Date(iso)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+/** Настройки уикенд-челленджа: название, приз и время. Время вводится по своему поясу. */
+function ChallengeSettings({ t }: { t: Translations }) {
+  const o = t.owner
+  const [cur, setCur] = useState<OwnerChallenge | null>(null)
+  const [title, setTitle] = useState('')
+  const [prize, setPrize] = useState('')
+  const [start, setStart] = useState('')
+  const [end, setEnd] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    api.ownerGetChallenge().then(c => {
+      setCur(c)
+      setTitle(c.title ?? '')
+      setPrize(c.prize ?? '')
+      setStart(toLocalInput(c.startUtc))
+      setEnd(toLocalInput(c.endUtc))
+    }).catch(() => setCur(null))
+  }, [])
+
+  const save = async () => {
+    haptic('medium')
+    setBusy(true)
+    try {
+      const c = await api.ownerSetChallenge({
+        title: title.trim() || null,
+        prize: prize.trim() || null,
+        startUtc: new Date(start).toISOString(),
+        endUtc: new Date(end).toISOString(),
+      })
+      setCur(c)
+      setSaved(true)
+      hapticNotify('success')
+    } catch {
+      hapticNotify('error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (!cur) return null
+  return (
+    <div className="tilt-rules" style={{ marginTop: 16 }}>
+      <div className="tilt-rules-title">{o.chTitle}</div>
+      <span className="muted small">{o.chHint}</span>
+      {cur.participants !== undefined && <span className="small">{o.chParticipants.replace('{n}', String(cur.participants))}</span>}
+      <label className="muted small">{o.chName}</label>
+      <input className="search-input" value={title} maxLength={60} onChange={e => { setTitle(e.target.value); setSaved(false) }} />
+      <label className="muted small">{o.chPrize}</label>
+      <input className="search-input" value={prize} maxLength={60} onChange={e => { setPrize(e.target.value); setSaved(false) }} />
+      <label className="muted small">{o.chStart}</label>
+      <input className="search-input" type="datetime-local" value={start} onChange={e => { setStart(e.target.value); setSaved(false) }} />
+      <label className="muted small">{o.chEnd}</label>
+      <input className="search-input" type="datetime-local" value={end} onChange={e => { setEnd(e.target.value); setSaved(false) }} />
+      <button className="btn btn-ghost" disabled={busy || !start || !end} onClick={save}>{saved ? '✓' : o.chSave}</button>
     </div>
   )
 }

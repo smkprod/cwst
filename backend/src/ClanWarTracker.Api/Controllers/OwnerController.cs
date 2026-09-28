@@ -41,8 +41,40 @@ public class OwnerController(
     ITiltAlertRepository tiltAlerts,
     IPlayerAlertPrefsRepository alertPrefs,
     ISentNotificationRepository sentLog,
+    ChallengeUseCase challenge,
+    IChallengeRepository challengeEntries,
     ILogger<OwnerController> logger) : ControllerBase
 {
+    public record ChallengeRequest(string? Title, string? Prize, DateTime StartUtc, DateTime EndUtc);
+
+    /// <summary>GET /api/owner/challenge — текущий челлендж и сколько вступило.</summary>
+    [HttpGet("challenge")]
+    public async Task<IActionResult> GetChallenge(CancellationToken ct)
+    {
+        if (await DenyAsync(ServicePermission.AppSettings, ct) is { } deny) return deny;
+        var e = await challenge.CurrentAsync(ct);
+        var count = (await challengeEntries.GetEntriesAsync(e.Id, ct)).Count;
+        return Ok(new { e.Id, e.Title, e.Prize, e.StartUtc, e.EndUtc, status = e.Status(DateTime.UtcNow), participants = count });
+    }
+
+    /// <summary>
+    /// POST /api/owner/challenge — название, приз и время. Id события - по дате старта:
+    /// сдвинул выходные - это новое событие с новой таблицей.
+    /// </summary>
+    [HttpPost("challenge")]
+    public async Task<IActionResult> SetChallenge([FromBody] ChallengeRequest req, CancellationToken ct)
+    {
+        if (await DenyAsync(ServicePermission.AppSettings, ct) is { } deny) return deny;
+        var start = DateTime.SpecifyKind(req.StartUtc.ToUniversalTime(), DateTimeKind.Utc);
+        var end = DateTime.SpecifyKind(req.EndUtc.ToUniversalTime(), DateTimeKind.Utc);
+        if (end <= start || end - start > TimeSpan.FromDays(14)) return BadRequest(new { error = "bad_dates" });
+        var title = string.IsNullOrWhiteSpace(req.Title) ? null : req.Title.Trim()[..Math.Min(60, req.Title.Trim().Length)];
+        var prize = string.IsNullOrWhiteSpace(req.Prize) ? null : req.Prize.Trim()[..Math.Min(60, req.Prize.Trim().Length)];
+        var e = new ChallengeUseCase.Event($"ch-{start:yyyyMMddHHmm}", title, prize, start, end);
+        await challenge.SaveAsync(e, ct);
+        return Ok(new { e.Id, e.Title, e.Prize, e.StartUtc, e.EndUtc, status = e.Status(DateTime.UtcNow) });
+    }
+
     public record PlusSettingsRequest(bool Paywall, int Price7, int Price30);
     public record TrackerSettingsRequest(bool Dm, string? Beta);
     public record GrantPlusRequest(string PlayerTag, int Days);
