@@ -1405,6 +1405,11 @@ public class BotUpdateHandler(
         {
             var result = await sp.GetRequiredService<TrackerActionsUseCase>()
                 .HandleAsync(callback.From.Id, data, callback.From.LanguageCode, ct);
+            if (result is { Toast: true })
+            {
+                await bot.AnswerCallbackQuery(callback.Id, text: result.Text, showAlert: true, cancellationToken: ct);
+                return;
+            }
             await bot.AnswerCallbackQuery(callback.Id, cancellationToken: ct);
             if (result is null || callback.Message is not { } message) return;
             // Правка того же сообщения, без нового - тихо, как и весь трекер

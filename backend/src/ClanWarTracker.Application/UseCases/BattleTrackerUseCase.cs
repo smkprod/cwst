@@ -119,7 +119,10 @@ public class BattleTrackerUseCase(
                     var text = TrackerText.Card(c.T, report, session, c.Tz, catalog, plusLine,
                         p.PauseUntilUtc > c.Now ? p.PauseUntilUtc : null,
                         TrackerText.Matchup(c.T, await MatchupAsync(newest, catalog, ct)));
-                    var buttons = TrackerText.CardButtons(c.T, newest.Id);
+                    var lossStreak = 0;
+                    for (var i = session.Count - 1; i >= 0 && session[i].Result < 0; i--) lossStreak++;
+                    var buttons = TrackerText.CardButtons(c.T, newest.Id,
+                        lossStreak >= 2 ? TrackerText.TiltOffer(p, c.Paid) : null);
 
                     // Под карточкой уже громкий тильт-сигнал - переносим карточку под него,
                     // иначе свежий счёт окажется выше сигнала и его не увидят.
@@ -252,7 +255,9 @@ public class BattleTrackerUseCase(
             MatchReport.Build(b, MatchDetailCodec.Decode(b.DetailJson), month, false, catalog).LockedCount);
         var moment = c.Paid ? null : TrackerText.Moment(session, c.Threshold);
         var summary = TrackerText.Summary(c.T, session, c.Tz, c.Paid, catalog, locked, moment);
-        var buttons = TrackerText.SummaryButtons(c.T, summary.Upsell);
+        // Стоп-тильт «остановил бы тебя» - сразу и кнопка его включить.
+        var buttons = TrackerText.SummaryButtons(c.T, summary.Upsell,
+            moment is not null ? TrackerText.TiltOffer(p, c.Paid) : null);
 
         if (session.Count == 1 || await s.KilledAsync())
         {

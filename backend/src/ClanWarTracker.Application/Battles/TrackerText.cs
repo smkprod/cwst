@@ -105,21 +105,42 @@ public static class TrackerText
         return string.Join("\n", lines);
     }
 
-    public static IReadOnlyList<IReadOnlyList<BotButton>> CardButtons(BotText t, int battleId) =>
-    [
-        [
-            new BotButton(t.TrkBtnReport, Url: $"startapp:m_{battleId}"),
-            new BotButton(t.TrkBtnAll, Url: "startapp:matches"),
-        ],
-        [new BotButton(t.TrkBtnMute, "trk|m")],
-    ];
-
-    public static IReadOnlyList<IReadOnlyList<BotButton>> SummaryButtons(BotText t, bool upsell)
+    /// <param name="tiltFree">Предложить Стоп-тильт: сколько бесплатных сигналов; null - не предлагать.</param>
+    public static IReadOnlyList<IReadOnlyList<BotButton>> CardButtons(BotText t, int battleId, int? tiltFree = null)
     {
+        var rows = new List<IReadOnlyList<BotButton>>
+        {
+            new[]
+            {
+                new BotButton(t.TrkBtnReport, Url: $"startapp:m_{battleId}"),
+                new BotButton(t.TrkBtnAll, Url: "startapp:matches"),
+            },
+        };
+        // Серия поражений - ровно тот момент, когда Стоп-тильт нужен: предлагаем здесь,
+        // а не в настройках, куда новый игрок сам не дойдёт.
+        if (tiltFree is int n) rows.Add([new BotButton(string.Format(t.TrkBtnTilt, n), TiltCallback)]);
+        rows.Add([new BotButton(t.TrkBtnMute, "trk|m")]);
+        return rows;
+    }
+
+    public const string TiltCallback = "trk|tilt";
+
+    public static IReadOnlyList<IReadOnlyList<BotButton>> SummaryButtons(BotText t, bool upsell, int? tiltFree = null)
+    {
+        var rows = new List<IReadOnlyList<BotButton>>();
+        if (tiltFree is int n) rows.Add([new BotButton(string.Format(t.TrkBtnTilt, n), TiltCallback)]);
         var row = new List<BotButton> { new(t.TrkBtnSession, Url: "startapp:matches") };
         if (upsell) row.Add(new(t.TrkBtnPlus, Url: "startapp:plus_trk"));
-        return [row];
+        rows.Add(row);
+        return rows;
     }
+
+    /// <summary>
+    /// Предлагать ли Стоп-тильт: без Плюса, ещё не включён и бесплатные сигналы есть.
+    /// Тем, кто его выключил сам с Плюсом, не навязываем.
+    /// </summary>
+    public static int? TiltOffer(PlayerAlertPrefs p, bool paid) =>
+        !paid && p.TiltAlerts != true && p.FreeSignalsLeft > 0 ? p.FreeSignalsLeft : null;
 
     /// <param name="Upsell">В итоге есть строка продажи - под ним кнопка Плюса.</param>
     public record SummaryText(string Text, bool Upsell);

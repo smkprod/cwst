@@ -493,6 +493,10 @@ public sealed class BotText
     public required string TrkInGroup { get; init; }
     /// <summary>Строка матчапа в карточке: {0}% побед таких колод против таких, {1} боёв в топ-500.</summary>
     public required string TrkMatchup { get; init; }
+    /// <summary>Кнопка включить Стоп-тильт из трекера; {0} - бесплатных сигналов.</summary>
+    public required string TrkBtnTilt { get; init; }
+    /// <summary>Всплывающее подтверждение; {0} - бесплатных сигналов.</summary>
+    public required string TrkTiltOnToast { get; init; }
     /// <summary>Кнопка: открыть трекер в личке.</summary>
     public required string TrkBtnDm { get; init; }
 
@@ -893,6 +897,8 @@ public sealed class BotText
         TrkBtnPlus = "⭐ Плюс",
         TrkBtnOn = "Включить",
         TrkBtnOff = "Выключить",
+        TrkBtnTilt = "🧊 Включить Стоп-тильт — {0} сигнала бесплатно",
+        TrkTiltOnToast = "🧊 Стоп-тильт включён! Напишу «стоп», когда пойдёт серия поражений — пока не слил кубки. Бесплатных сигналов: {0}.",
         TrkMatchup = "📊 В топ-500 такой матчап: {0}% побед ({1} боёв)",
         TrkInGroup = "🎯 Трекер боёв работает в личке: там я после каждого боя тихо присылаю разбор. Нажми кнопку ниже — и включи в один тап.",
         TrkBtnDm = "🎯 Включить в личке",
@@ -1243,6 +1249,8 @@ public sealed class BotText
         TrkBtnPlus = "⭐ Плюс",
         TrkBtnOn = "Увімкнути",
         TrkBtnOff = "Вимкнути",
+        TrkBtnTilt = "🧊 Увімкнути Стоп-тільт — {0} сигнали безкоштовно",
+        TrkTiltOnToast = "🧊 Стоп-тільт увімкнено! Напишу «стоп», коли піде серія поразок — поки не злив кубки. Безкоштовних сигналів: {0}.",
         TrkMatchup = "📊 У топ-500 такий матчап: {0}% перемог ({1} боїв)",
         TrkInGroup = "🎯 Трекер боїв працює в особистих: там я після кожного бою тихо надсилаю розбір. Натисни кнопку нижче — і увімкни в один тап.",
         TrkBtnDm = "🎯 Увімкнути в особистих",
@@ -1593,6 +1601,8 @@ public sealed class BotText
         TrkBtnPlus = "⭐ Plus",
         TrkBtnOn = "Turn on",
         TrkBtnOff = "Turn off",
+        TrkBtnTilt = "🧊 Turn on Stop-tilt — {0} free signals",
+        TrkTiltOnToast = "🧊 Stop-tilt is on! I'll say «stop» when a losing streak starts — before you throw away your trophies. Free signals: {0}.",
         TrkMatchup = "📊 In the top 500 this matchup wins {0}% ({1} battles)",
         TrkInGroup = "🎯 The battle tracker works in private chat: that's where I quietly send a breakdown after every battle. Tap the button below to turn it on.",
         TrkBtnDm = "🎯 Turn on in private chat",
