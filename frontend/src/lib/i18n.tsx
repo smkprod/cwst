@@ -67,6 +67,9 @@ const ru = {
   },
 
   trk: {
+    radarProgress: 'Радар появится, когда против 3 разных колод наберётся хотя бы по 5 боёв. Готово: {n} из 3.',
+    aggEmpty: 'Пока мало боёв, чтобы сказать, кому ты проигрываешь: нужно хотя бы 5 встреч с одной колодой.',
+    heatProgress: 'Карта заполнится после {need} боёв — сейчас {n}. Играй как обычно, бот всё запишет.',
     chartTitle: '📈 Кубки по ходу захода',
     chartTilt: '🧊 здесь написал бы Стоп-тильт',
     heatTitle: '🗓 Когда ты играешь лучше',
@@ -1570,6 +1573,9 @@ const uk: Translations = {
   },
 
   trk: {
+    radarProgress: 'Радар з’явиться, коли проти 3 різних колод набереться хоча б по 5 боїв. Готово: {n} з 3.',
+    aggEmpty: 'Поки замало боїв, щоб сказати, кому ти програєш: потрібно хоча б 5 зустрічей з однією колодою.',
+    heatProgress: 'Карта заповниться після {need} боїв — зараз {n}. Грай як завжди, бот усе запише.',
     chartTitle: '📈 Кубки протягом заходу',
     chartTilt: '🧊 тут написав би Стоп-тільт',
     heatTitle: '🗓 Коли ти граєш краще',
@@ -3069,6 +3075,9 @@ const en: Translations = {
   },
 
   trk: {
+    radarProgress: 'The radar appears once you have at least 5 battles against 3 different decks. Ready: {n} of 3.',
+    aggEmpty: 'Not enough battles yet to tell who you lose to: at least 5 games against one deck are needed.',
+    heatProgress: 'The map fills in after {need} battles — {n} so far. Just play, the bot records everything.',
     chartTitle: '📈 Trophies through the session',
     chartTilt: '🧊 Stop-tilt would have written here',
     heatTitle: '🗓 When you play best',
