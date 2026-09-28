@@ -31,14 +31,13 @@ public static class MatchupWindow
         if (latest is null) return null;
 
         var cached = _cached;
-        if (cached is not null && cached.ToDayUtc == latest && DateTime.UtcNow - _loadedAtUtc < Ttl)
-            return cached.Count == 0 ? null : cached;
+        if (Fresh(cached, latest)) return cached!.Count == 0 ? null : cached;
 
         await Gate.WaitAsync(ct);
         try
         {
             cached = _cached;
-            if (cached is null || cached.ToDayUtc != latest || DateTime.UtcNow - _loadedAtUtc >= Ttl)
+            if (!Fresh(cached, latest))
             {
                 var from = DateOnly.Parse(latest).AddDays(-(MetaWindow.Days - 1)).ToString("yyyy-MM-dd");
                 var rows = await meta.GetBattlesSinceAsync(from, ct);
@@ -64,6 +63,15 @@ public static class MatchupWindow
             Gate.Release();
         }
     }
+
+    /// <summary>
+    /// Пустую неделю перепроверяем через минуту, а не через четверть часа: снимок
+    /// за тот же день, собранный из панели, иначе был бы не виден до 15 минут, и
+    /// выглядело бы так, будто сбор ничего не дал.
+    /// </summary>
+    private static bool Fresh(Data? cached, string latest) =>
+        cached is not null && cached.ToDayUtc == latest
+        && DateTime.UtcNow - _loadedAtUtc < (cached.Count == 0 ? TimeSpan.FromMinutes(1) : Ttl);
 
     /// <summary>Карты колоды без различия эволюции, по возрастанию: так сравнивать дёшево.</summary>
     public static int[] Ids(string deckKey) =>

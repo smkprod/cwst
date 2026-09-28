@@ -99,6 +99,8 @@ export function SessionChart({ session, t }: { session: MatchSession; t: Transla
 
 const MIN_CELL = 3
 const MIN_BEST = 5
+/** Меньше боёв за месяц - карта из одной-двух клеток и «обычные 100%», это шум. */
+const MIN_TOTAL = 12
 /** Порядок строк: утро, день, вечер, ночь — так сутки читаются сверху вниз. */
 const ROWS = [1, 2, 3, 0]
 
@@ -120,7 +122,18 @@ export function HeatMap({ cells, basePct, t }: {
 
   const grid = new Map(cells.map(c => [`${c.weekday}:${c.part}`, c]))
   const rated = cells.filter(c => c.games >= MIN_BEST).map(c => ({ ...c, pct: (100 * c.wins) / c.games }))
-  if (cells.every(c => c.games < MIN_CELL)) return null
+  const total = cells.reduce((n, c) => n + c.games, 0)
+  if (total < MIN_TOTAL) {
+    return (
+      <section className="card hm">
+        <div className="card-title" style={{ marginBottom: 6 }}>{s.heatTitle}</div>
+        <div className="rd-progress">
+          <span className="rd-progress-bar"><span style={{ width: `${(total / MIN_TOTAL) * 100}%` }} /></span>
+          <span className="muted small">{s.heatProgress.replace('{need}', String(MIN_TOTAL)).replace('{n}', String(total))}</span>
+        </div>
+      </section>
+    )
+  }
   const best = rated.length ? rated.reduce((a, b) => (b.pct > a.pct ? b : a)) : null
   const worst = rated.length > 1 ? rated.reduce((a, b) => (b.pct < a.pct ? b : a)) : null
   const slot = (c: { weekday: number; part: number }) => `${days[c.weekday]} ${parts[c.part]}`
@@ -194,7 +207,19 @@ export function ArchRadar({ rows, basePct, locked, onUnlock, t }: {
 }) {
   const [ref, on] = useReveal<HTMLDivElement>()
   const axes = (locked ? TEASER : [...rows].sort((a, b) => b.games - a.games).slice(0, 6))
-  if (axes.length < 3) return null
+  if (axes.length < 3) {
+    // Мало данных - не прячем радар, а показываем, сколько осталось: пустое место
+    // выглядело как поломка.
+    return (
+      <div className="rd">
+        <div className="tilt-rules-title">{t.trk.radarTitle}</div>
+        <div className="rd-progress">
+          <span className="rd-progress-bar"><span style={{ width: `${(axes.length / 3) * 100}%` }} /></span>
+          <span className="muted small">{t.trk.radarProgress.replace('{n}', String(axes.length))}</span>
+        </div>
+      </div>
+    )
+  }
 
   const C = 110, R = 78
   const pt = (i: number, v: number) => {

@@ -3165,3 +3165,8 @@ button.hall-step {
 @media (prefers-reduced-motion: reduce) {
   .sc-line, .sc-area, .sc-tilt, .sc-dot, .sc-ice, .hm-cell, .rd-shape { transition: none; }
 }
+
+.rd-progress { display: flex; flex-direction: column; gap: 6px; margin: 6px 0 8px; }
+.rd-progress-bar { display: block; height: 8px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+.rd-progress-bar span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #5a8cff, #a67bff);
+  transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1); }

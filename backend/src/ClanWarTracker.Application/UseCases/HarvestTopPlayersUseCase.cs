@@ -215,7 +215,7 @@ public class HarvestTopPlayersUseCase(
 
             var read = logs.Take(MetaPlayers).Count(l => l is not null);
             return $"мета: журналов {read}, не открылось {failures}, боёв {result.Battles}, " +
-                   $"колод {decks.Count}, пар карт {matchups.Count}";
+                   $"колод {decks.Count}, пар карт {matchups.Count}, боёв для матчапа {games.Count}";
         }
         catch (Exception ex)
         {
