@@ -20,7 +20,8 @@ public class GetMatchHistoryUseCase(
     IPlayerBattleRepository battles,
     CollectPlayerBattlesUseCase collect,
     PlusAccess plus,
-    TrackerActionsUseCase tracker)
+    TrackerActionsUseCase tracker,
+    IMetaRepository meta)
 {
     public const int FreeDays = 7;
     public const int PageSize = 50;
@@ -32,7 +33,8 @@ public class GetMatchHistoryUseCase(
 
     /// <returns>null - игрок не привязан.</returns>
     public async Task<MatchHistoryDto?> ExecuteAsync(
-        long tg, DateTime? before, string? result, string? mode, string? arch, string? lang, CancellationToken ct = default)
+        long tg, DateTime? before, string? result, string? mode, string? arch, string? lang, CancellationToken ct = default,
+        int tz = TiltMessages.DefaultTzOffsetMinutes)
     {
         var player = await players.GetByTelegramIdAsync(tg, ct);
         if (player is null) return null;
@@ -56,7 +58,22 @@ public class GetMatchHistoryUseCase(
         var visible = all.Where(b => b.BattleTimeUtc >= since).ToList();
         var lockedOlder = unlocked ? 0 : all.Count - visible.Count;
 
-        var aggregates = firstPage ? Aggregates(all, unlocked, catalog, t) : null;
+        var aggregates = firstPage ? Aggregates(all, unlocked, catalog, t, tz) : null;
+
+        // Матчап по топ-500 на каждую строку: видно сразу, какие бои были тяжёлыми
+        // «на бумаге». Одна и та же пара колод считается один раз.
+        MatchupWindow.Data? window = null;
+        try { window = await MatchupWindow.LoadAsync(meta, ct); }
+        catch { /* без меты строки просто без плашки */ }
+        var matchupCache = new Dictionary<(string, string), MatchupStats.Result>();
+        MatchupStats.Result? TopFor(PlayerBattle b)
+        {
+            if (window is null) return null;
+            var key = (b.DeckKey, b.OppDeckKey);
+            if (!matchupCache.TryGetValue(key, out var r))
+                matchupCache[key] = r = MatchupStats.FromTop(b.DeckKey, b.OppDeckKey, window, catalog);
+            return r;
+        }
 
         // Фильтры. Архетип - только с Плюсом: это и есть «кому проигрываешь» по-настоящему.
         IEnumerable<PlayerBattle> rows = visible;
@@ -85,7 +102,7 @@ public class GetMatchHistoryUseCase(
                 session.Sum(b => b.TrophyChange ?? 0),
                 LongestLossStreak(session) >= 3,
                 new string(session.Select(b => b.Result > 0 ? 'W' : b.Result < 0 ? 'L' : 'D').ToArray()),
-                group.Select(b => Row(b, all, catalog, t)).ToList()));
+                group.Select(b => Row(b, all, catalog, t, TopFor(b))).ToList()));
         }
 
         var state = await tracker.GetAsync(tg, ct);
@@ -106,13 +123,15 @@ public class GetMatchHistoryUseCase(
     }
 
     private static MatchRowDto Row(
-        PlayerBattle b, List<PlayerBattle> all, Dictionary<int, CrCatalogCard> catalog, BotText t)
+        PlayerBattle b, List<PlayerBattle> all, Dictionary<int, CrCatalogCard> catalog, BotText t,
+        MatchupStats.Result? top)
     {
         var report = MatchReport.Build(b, MatchDetailCodec.Decode(b.DetailJson), all, false, catalog);
         return new MatchRowDto(
             b.Id, b.BattleTimeUtc, report.ModeKey, b.Result, b.CrownsFor, b.CrownsAgainst, b.TrophyChange,
             b.OppName, Arch(report.Arch, catalog, t), KeyCards(b.OppDeckKey, report.Arch, catalog),
-            report.Verdict?.Code, b.LevelGap);
+            report.Verdict?.Code, b.LevelGap,
+            top?.Headline?.WinPercent, top?.Headline?.Games ?? 0);
     }
 
     public static ArchDto? Arch(MatchReport.Arch? arch, Dictionary<int, CrCatalogCard> catalog, BotText t)
@@ -141,7 +160,7 @@ public class GetMatchHistoryUseCase(
     /// Плюса: бесплатно видна одна худшая строка, остальные - под замком.
     /// </summary>
     private static MatchAggregatesDto? Aggregates(
-        List<PlayerBattle> all, bool unlocked, Dictionary<int, CrCatalogCard> catalog, BotText t)
+        List<PlayerBattle> all, bool unlocked, Dictionary<int, CrCatalogCard> catalog, BotText t, int tz)
     {
         var own = all.Where(b => b.DeckSelection is null or "collection").ToList();
         if (own.Count == 0) return null;
@@ -174,7 +193,10 @@ public class GetMatchHistoryUseCase(
         var hasLevels = levels.LossAvg is not null || levels.WinAvg is not null
                         || levels.UnderWinPct is not null || levels.EvenWinPct is not null;
 
-        return new MatchAggregatesDto(shown, table.Count - shown.Count, hasLevels ? levels : null);
+        var heat = BattleAnalyzer.Heat(own, tz)
+            .Select(c => new HeatCellDto(c.Weekday, c.Part, c.Games, c.Wins)).ToList();
+        return new MatchAggregatesDto(shown, table.Count - shown.Count, hasLevels ? levels : null,
+            heat, Math.Round(baseRate * 100, 1));
     }
 }
 

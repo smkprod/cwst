@@ -68,11 +68,13 @@ public class PlayerController(
     [HttpGet("me/matches")]
     public async Task<IActionResult> MyMatches(
         [FromQuery] DateTime? before = null, [FromQuery] string? result = null, [FromQuery] string? mode = null,
-        [FromQuery] string? arch = null, [FromQuery] string? lang = null, CancellationToken ct = default)
+        [FromQuery] string? arch = null, [FromQuery] string? lang = null, [FromQuery] int? tz = null,
+        CancellationToken ct = default)
     {
         var userId = (long)HttpContext.Items["TelegramUserId"]!;
         var cursor = before is DateTime b ? DateTime.SpecifyKind(b.ToUniversalTime(), DateTimeKind.Utc) : (DateTime?)null;
-        var dto = await matchHistory.ExecuteAsync(userId, cursor, result, mode, arch, lang, ct);
+        var dto = await matchHistory.ExecuteAsync(userId, cursor, result, mode, arch, lang, ct,
+            Math.Clamp(tz ?? 180, -720, 840));
         return dto is null ? NotFound(new { error = "player_not_linked" }) : Ok(dto);
     }
 

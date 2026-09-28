@@ -19,7 +19,9 @@ public record MatchRowDto(
     ArchDto? Arch,
     List<MetaCardDto> KeyCards,
     string? Verdict,
-    double? LevelGap);
+    double? LevelGap,
+    double? TopPct = null,
+    int TopGames = 0);
 
 /// <param name="Tilt">В заходе была серия из трёх поражений и больше.</param>
 public record MatchSessionDto(
@@ -34,7 +36,15 @@ public record ArchetypeRowDto(ArchDto Arch, int Games, int Wins, int Losses, dou
 /// <param name="EvenWinPct">% побед при равных уровнях.</param>
 public record LevelSplitDto(double? LossAvg, double? WinAvg, double? UnderWinPct, double? EvenWinPct);
 
-public record MatchAggregatesDto(List<ArchetypeRowDto> Archetypes, int ArchetypesLocked, LevelSplitDto? Levels);
+/// <param name="Weekday">0 - понедельник.</param>
+/// <param name="Part">0 - ночь, 1 - утро, 2 - день, 3 - вечер.</param>
+public record HeatCellDto(int Weekday, int Part, int Games, int Wins);
+
+/// <param name="Heat">«Когда ты играешь лучше»: 7 дней × 4 части суток за 30 дней.</param>
+/// <param name="BasePct">Свой обычный процент побед за 30 дней - нулевая точка для цвета карты и радара.</param>
+public record MatchAggregatesDto(
+    List<ArchetypeRowDto> Archetypes, int ArchetypesLocked, LevelSplitDto? Levels,
+    List<HeatCellDto>? Heat = null, double BasePct = 0);
 
 /// <param name="Aggregates">Только на первой странице.</param>
 /// <param name="LockedOlder">Боёв старше 7 дней, которые видны в Плюсе.</param>
