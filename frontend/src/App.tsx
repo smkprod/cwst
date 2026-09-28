@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { api, ApiError, adminClan } from './lib/api'
 import { haptic, startMatchId, startParam, startToMatches } from './lib/telegram'
+import { ChallengeView } from './components/ChallengeView'
 import { usePlusSheet } from './lib/plusSheet'
 import { useT, type Translations } from './lib/i18n'
 import type { AppConfig, AppTab, ClanStatus, ServiceIdentity } from './types'
@@ -57,7 +58,7 @@ const TRANSIENT_TOLERANCE = 3
  * редкое собрано в «Ещё». Панель владельца — пятая и только у владельца: она невидима
  * для остальных, так что места в баре ни у кого не занимает.
  */
-type Tab = 'clan' | 'me' | 'hall' | 'tournament' | 'search' | 'more' | 'owner'
+type Tab = 'clan' | 'me' | 'hall' | 'tournament' | 'search' | 'more' | 'challenge' | 'owner'
 
 /** Набор вкладок, пока сервер не ответил. Совпадает с умолчанием на сервере. */
 const DEFAULT_TABS: AppTab[] = ['clan', 'me', 'hall', 'search', 'more']
@@ -70,6 +71,7 @@ const TAB_LOOKS = (t: Translations): Record<AppTab, { icon: string; label: strin
   tournament: { icon: '🏆', label: t.tabs.tournament },
   search: { icon: '🔍', label: t.tabs.search },
   more: { icon: '⚙️', label: t.tabs.more },
+  challenge: { icon: '🎟', label: t.tabs.challenge },
 })
 
 /**
@@ -116,7 +118,7 @@ function ClanSectionTabs({ value, onChange, t }: {
  * Куда вести по параметру запуска из бота: «Открыть разбор» — во вкладку «Я» на
  * разбор, «/meta» — в мировой топ, «/plus» — в окно Плюса. Без параметра — как раньше.
  */
-const START_TAB: Tab = startParam === 'review' || startToMatches ? 'me' : startParam === 'meta' ? 'more' : 'clan'
+const START_TAB: Tab = startParam === 'challenge' ? 'challenge' : startParam === 'review' || startToMatches ? 'me' : startParam === 'meta' ? 'more' : 'clan'
 
 /** «Разбор» из бота — разбор за 30 дней, трекер и «Все бои» — история. */
 const START_BATTLES_VIEW = startParam === 'review' ? 'review' : 'history'
@@ -296,8 +298,10 @@ export default function App() {
       // а заход в чужой клан из неё вернёт обычные экраны.
       return me.role !== 'none'
         ? <OwnerPanel me={me} />
-        : <ClanlessView reason={state.reason} initialTab={startParam === 'meta' ? 'meta' : 'me'}
-            battlesView={START_BATTLES_VIEW} openMatchId={startMatchId} />
+        : <ClanlessView reason={state.reason}
+            initialTab={startParam === 'meta' ? 'meta' : startParam === 'challenge' ? 'challenge' : 'me'}
+            battlesView={START_BATTLES_VIEW} openMatchId={startMatchId}
+            showChallenge={Boolean(config?.tabs.includes('challenge')) || startParam === 'challenge'} />
     case 'notInTelegram':
       return (
         <div className="center">
@@ -423,6 +427,7 @@ export default function App() {
             {tab === 'hall' && (
               <HallOfFame config={config} onConfigChanged={loadConfig} />
             )}
+            {tab === 'challenge' && <ChallengeView />}
             {tab === 'owner' && me.role !== 'none' && (
               <div className="fade-in">
                 <OwnerPanel me={me} />

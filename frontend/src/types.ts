@@ -1261,7 +1261,7 @@ export type BackgroundKey =
   | 'kingdomSun' | 'kingdom' | 'kingdom2' | 'kingdomFire'
 
 /** Вкладки нижней панели. Состав задаёт владелец из админки. */
-export type AppTab = 'clan' | 'me' | 'hall' | 'tournament' | 'search' | 'more'
+export type AppTab = 'clan' | 'me' | 'hall' | 'tournament' | 'search' | 'more' | 'challenge'
 
 export interface AppConfig {
   botUsername: string
@@ -1608,4 +1608,39 @@ export interface Matchup {
   ownLocked: boolean
   me: { avgElixir: number; cycle: number } | null
   them: { avgElixir: number; cycle: number } | null
+}
+
+/* --- Уикенд-челлендж --- */
+
+export interface ChallengeRow {
+  rank: number
+  name: string
+  tag: string
+  tickets: number
+  wins: number
+  losses: number
+  /** Текущая серия побед — сколько до бонусного билета. */
+  streak: number
+  bestStreak: number
+  isMe: boolean
+}
+
+export interface Challenge {
+  event: { id: string; title: string | null; prize: string | null; startUtc: string; endUtc: string; status: 'upcoming' | 'live' | 'ended' }
+  linked: boolean
+  joined: boolean
+  me: ChallengeRow | null
+  leaders: ChallengeRow[]
+  participants: number
+  updatedUtc: string
+}
+
+export interface OwnerChallenge {
+  id: string
+  title: string | null
+  prize: string | null
+  startUtc: string
+  endUtc: string
+  status: 'upcoming' | 'live' | 'ended'
+  participants?: number
 }

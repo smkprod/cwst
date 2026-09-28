@@ -188,6 +188,10 @@ public interface IPlayerBattleRepository
     /// <summary>Бои игрока начиная с момента, по времени.</summary>
     Task<List<PlayerBattle>> GetSinceAsync(string playerTag, DateTime sinceUtc, CancellationToken ct = default);
 
+    /// <summary>Бои нескольких игроков за период - для таблицы челленджа, одним запросом.</summary>
+    Task<List<PlayerBattle>> GetForTagsBetweenAsync(
+        IReadOnlyCollection<string> playerTags, DateTime fromUtc, DateTime toUtc, CancellationToken ct = default);
+
     /// <summary>Бой по номеру. null - такого нет (или стёрт за давностью).</summary>
     Task<PlayerBattle?> GetAsync(int id, CancellationToken ct = default);
 
@@ -483,4 +487,11 @@ public interface IClanMessageRepository
 
     Task AddAsync(ClanMessage message, CancellationToken ct = default);
     Task SaveChangesAsync(CancellationToken ct = default);
+}
+
+public interface IChallengeRepository
+{
+    Task<List<ChallengeEntry>> GetEntriesAsync(string eventId, CancellationToken ct = default);
+    Task<ChallengeEntry?> GetEntryAsync(string eventId, long telegramUserId, CancellationToken ct = default);
+    Task AddAsync(ChallengeEntry entry, CancellationToken ct = default);
 }

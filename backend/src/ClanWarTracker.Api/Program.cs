@@ -34,6 +34,7 @@ builder.Services.AddScoped<PlusAccess>();
 builder.Services.AddScoped<RevokePurchaseUseCase>();
 builder.Services.AddScoped<GetTiltProfileUseCase>();
 builder.Services.AddScoped<TrackerActionsUseCase>();
+builder.Services.AddScoped<ChallengeUseCase>();
 builder.Services.AddScoped<GetMatchHistoryUseCase>();
 builder.Services.AddScoped<GetMatchReportUseCase>();
 builder.Services.AddScoped<GetRaceScoutUseCase>();

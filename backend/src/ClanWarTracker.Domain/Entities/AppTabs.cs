@@ -17,9 +17,10 @@ public static class AppTabs
     public const string Tournament = "tournament";
     public const string Search = "search";
     public const string More = "more";
+    public const string Challenge = "challenge";
 
     /// <summary>Все вкладки, какие есть. Порядок — предлагаемый по умолчанию.</summary>
-    public static readonly string[] Known = [Clan, Me, Hall, Tournament, Search, More];
+    public static readonly string[] Known = [Clan, Me, Hall, Tournament, Search, More, Challenge];
 
     /// <summary>
     /// Что показываем, пока владелец ничего не выбрал. Пять из шести: внизу больше

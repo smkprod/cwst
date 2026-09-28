@@ -22,6 +22,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<MetaDeckDay> MetaDeckDays => Set<MetaDeckDay>();
     public DbSet<MetaMatchupDay> MetaMatchupDays => Set<MetaMatchupDay>();
     public DbSet<MetaBattle> MetaBattles => Set<MetaBattle>();
+    public DbSet<ChallengeEntry> ChallengeEntries => Set<ChallengeEntry>();
     public DbSet<PlayerBattle> PlayerBattles => Set<PlayerBattle>();
     public DbSet<Entitlement> Entitlements => Set<Entitlement>();
     public DbSet<PlayerAlertPrefs> PlayerAlertPrefs => Set<PlayerAlertPrefs>();
@@ -126,6 +127,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(b => b.OppName).HasMaxLength(32);
             e.Property(b => b.DeckSelection).HasMaxLength(24);
             e.Property(b => b.OppArchetype).HasMaxLength(24);
+        });
+
+        mb.Entity<ChallengeEntry>(e =>
+        {
+            // Один человек - одна запись на событие: двойное нажатие не удваивает участника.
+            e.HasIndex(x => new { x.EventId, x.TelegramUserId }).IsUnique();
+            e.Property(x => x.EventId).HasMaxLength(32);
+            e.Property(x => x.PlayerTag).HasMaxLength(16);
+            e.Property(x => x.Name).HasMaxLength(64);
         });
 
         mb.Entity<MetaBattle>(e =>
