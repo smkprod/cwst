@@ -1497,6 +1497,9 @@ export interface MatchRow {
   keyCards: MetaCard[]
   verdict: string | null
   levelGap: number | null
+  /** Как этот матчап играет в топ-500; null — боёв мало или меты нет. */
+  topPct?: number | null
+  topGames?: number
 }
 
 export interface MatchSession {
@@ -1528,6 +1531,9 @@ export interface MatchHistory {
     archetypes: ArchetypeRow[]
     archetypesLocked: number
     levels: { lossAvg: number | null; winAvg: number | null; underWinPct: number | null; evenWinPct: number | null } | null
+    /** 7 дней × 4 части суток: weekday 0 — понедельник, part 0 — ночь … 3 — вечер. */
+    heat?: { weekday: number; part: number; games: number; wins: number }[] | null
+    basePct?: number
   } | null
   sessions: MatchSession[]
   lockedOlder: number
