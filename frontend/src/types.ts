@@ -822,6 +822,15 @@ export interface OwnerPlus {
   mutedWeek: number
   freeUsers: number
   freeThenBought: number
+  tracker?: {
+    enabled: number
+    total: number
+    offWeek: number
+    mutesWeek: number
+    cardsWeek: number
+    dm: boolean
+    beta: string
+  }
   recent: {
     telegramUserId: number
     playerTag: string | null
@@ -1453,4 +1462,122 @@ export interface OwnerSponsor {
   until: string
   background: BackgroundKey | null
   daysLeft: number
+}
+
+/* --- Трекер боёв --- */
+
+export interface TrackerState {
+  /** Трекер открыт этому человеку (закрытый тест). */
+  available: boolean
+  enabled: boolean
+  dmBlocked: boolean
+  mutedToday: boolean
+}
+
+export interface MatchArch {
+  key: string
+  /** Уже с «колода с «X»» для колод вне архетипов. */
+  label: string
+  card: MetaCard | null
+}
+
+export type MatchMode = 'ladder' | 'pol' | 'war' | 'trail' | 'tourney' | 'other'
+
+export interface MatchRow {
+  id: number
+  timeUtc: string
+  mode: MatchMode
+  /** 1 победа, 0 ничья, −1 поражение. */
+  result: number
+  crownsFor: number
+  crownsAgainst: number
+  trophyChange: number | null
+  oppName: string | null
+  arch: MatchArch | null
+  keyCards: MetaCard[]
+  verdict: string | null
+  levelGap: number | null
+}
+
+export interface MatchSession {
+  startUtc: string
+  endUtc: string
+  wins: number
+  losses: number
+  draws: number
+  trophies: number
+  tilt: boolean
+  /** W / L / D по порядку. */
+  strip: string
+  matches: MatchRow[]
+}
+
+export interface ArchetypeRow {
+  arch: MatchArch
+  games: number
+  wins: number
+  losses: number
+  deltaPp: number
+}
+
+export interface MatchHistory {
+  tracker: TrackerState
+  unlocked: boolean
+  historyDays: number
+  aggregates: {
+    archetypes: ArchetypeRow[]
+    archetypesLocked: number
+    levels: { lossAvg: number | null; winAvg: number | null; underWinPct: number | null; evenWinPct: number | null } | null
+  } | null
+  sessions: MatchSession[]
+  lockedOlder: number
+  nextBefore: string | null
+}
+
+export interface MatchCard {
+  cardId: number
+  name: string
+  iconUrl: string
+  /** Игровой уровень; 0 — неизвестен. */
+  level: number
+  /** 0 обычная, 1 эволюция, 2 герой. */
+  form: number
+  elixir: number
+}
+
+export interface MatchSide {
+  deck: MatchCard[]
+  towerTroop: MatchCard | null
+  kingHp: number | null
+  princessHp: number[] | null
+  leak: number | null
+  trophies: number | null
+  copyLink: string | null
+}
+
+export interface MatchReport {
+  id: number
+  timeUtc: string
+  mode: MatchMode
+  modeName: string | null
+  result: number
+  crownsFor: number
+  crownsAgainst: number
+  trophyChange: number | null
+  opp: { name: string | null; tag: string | null; clan: string | null; trophies: number | null; diff: number | null; globalRank: number | null }
+  arch: MatchArch | null
+  oppAvgElixir: number | null
+  me: MatchSide
+  them: MatchSide
+  levels: { myAvg: number; oppAvg: number; gap: number; lowestMine: MatchCard | null } | null
+  leak: { mine: number | null; theirs: number | null; usual: number | null } | null
+  verdictCode: string | null
+  verdict: string | null
+  session: { startUtc: string; index: number; count: number; wins: number; losses: number; draws: number; trophies: number; strip: string }
+  plus: { vsArch: string | null; betterDeck: string | null; deckVsArchWins: number | null; deckVsArchLosses: number | null } | null
+  /** Строки Плюса открыты бесплатной подсказкой дня. */
+  hint: boolean
+  lockedCount: number
+  hasDetail: boolean
+  unlocked: boolean
 }

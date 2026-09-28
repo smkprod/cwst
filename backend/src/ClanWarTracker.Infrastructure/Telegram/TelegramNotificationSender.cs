@@ -81,6 +81,23 @@ public class TelegramNotificationSender(ITelegramBotClient bot) : INotificationS
             await bot.EditMessageText(chatId, messageId, text, replyMarkup: keyboard, cancellationToken: ct);
             return true;
         }
+        // Тот же текст - сообщение на месте и уже правильное: для вызывающего это успех,
+        // иначе трекер решил бы, что карточки нет, и прислал новую.
+        catch (ApiRequestException ex) when (ex.Message.Contains("message is not modified", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+        catch (ApiRequestException) { return false; }
+        catch (HttpRequestException) { return false; }
+    }
+
+    public async Task<bool> DeleteUserMessageAsync(long chatId, int messageId, CancellationToken ct = default)
+    {
+        try
+        {
+            await bot.DeleteMessage(chatId, messageId, cancellationToken: ct);
+            return true;
+        }
         catch (ApiRequestException) { return false; }
         catch (HttpRequestException) { return false; }
     }

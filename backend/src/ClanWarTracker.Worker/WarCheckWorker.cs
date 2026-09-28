@@ -82,6 +82,9 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
                     logger.LogInformation(
                         "Stop-tilt: watched {Watched}, synced {Synced}, sent {Sent}, undelivered {Undelivered}, resumes {Resumes}, summaries {Summaries}",
                         s.Watched, s.Synced, s.Alerts, s.Undelivered, s.Resumes, s.Summaries);
+                if (s.Cards > 0 || s.TrackerSummaries > 0)
+                    logger.LogInformation("Battle tracker: cards {Cards}, edits {Edits}, summaries {Summaries}",
+                        s.Cards, s.CardEdits, s.TrackerSummaries);
             }
             catch (Exception ex)
             {

@@ -725,7 +725,9 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         // Эволюции: maxEvolutionLevel > 0 — у карты вообще есть эволюция,
         // evolutionLevel > 0 — игрок её разблокировал. У старых карт полей нет.
         [property: JsonPropertyName("evolutionLevel")] int EvolutionLevel = 0,
-        [property: JsonPropertyName("maxEvolutionLevel")] int MaxEvolutionLevel = 0);
+        [property: JsonPropertyName("maxEvolutionLevel")] int MaxEvolutionLevel = 0,
+        [property: JsonPropertyName("elixirCost")] int? ElixirCost = null,
+        [property: JsonPropertyName("rarity")] string? Rarity = null);
 
     /// <summary>
     /// CR API отдаёт уровень карты в шкале её редкости: у легендарки потолок это 8,
@@ -1304,6 +1306,11 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
                 var crownsAgainst = opp?.Crowns ?? 0;
                 var isBoat = (b.Type ?? "").Contains("boat", StringComparison.OrdinalIgnoreCase);
 
+                // Потолок игровой шкалы для этого боя - как в профиле: наибольший maxLevel
+                // (он у обычных карт). Уровни в журнале - относительно редкости.
+                var levelCap = (me.Cards ?? []).Concat(opp?.Cards ?? [])
+                    .Where(c => c is not null).Select(c => c!.MaxLevel).DefaultIfEmpty(0).Max();
+
                 result.Add(new CrRecentBattle
                 {
                     BattleTimeUtc = time.Value,
@@ -1315,10 +1322,17 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
                     OpponentTag = opp?.Tag,
                     TeamTags = (b.Team ?? []).Select(x => x.Tag).Where(x => x is not null).ToList(),
                     OpponentTags = (b.Opponent ?? []).Select(x => x.Tag).Where(x => x is not null).ToList(),
-                    MyDeck = Deck(me.Cards),
-                    OpponentDeck = Deck(opp?.Cards),
+                    MyDeck = Deck(me.Cards, levelCap),
+                    OpponentDeck = Deck(opp?.Cards, levelCap),
                     ElixirLeaked = me.ElixirLeaked,
                     TrophyChange = me.TrophyChange,
+                    GameModeId = b.GameMode?.Id,
+                    GameModeName = b.GameMode?.Name,
+                    LeagueNumber = b.LeagueNumber,
+                    DeckSelection = b.DeckSelection,
+                    ArenaName = b.Arena?.Name,
+                    Me = Side(me, levelCap),
+                    Opp = opp is null ? null : Side(opp, levelCap),
                 });
             }
             return result;
@@ -1327,31 +1341,68 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
     }
 
     /// <summary>
-    /// Колода из боя. Уровень оставляем как пришёл: в бою у каждого свой потолок
-    /// по редкости, и переводить его в игровую шкалу без данных о карте нечем.
+    /// Колода из боя. Level оставляем как пришёл (в шкале редкости), а GameLevel -
+    /// в игровой шкале: потолок боя минус отставание карты от своего потолка.
     /// </summary>
-    private static List<CrDeckCard> Deck(List<CardResponse>? cards) =>
+    private static List<CrDeckCard> Deck(List<CardResponse>? cards, int levelCap = 0) =>
         (cards ?? [])
             .Where(c => c is not null)
-            .Select(c => new CrDeckCard
-            {
-                Id = c!.Id,
-                Name = c.Name,
-                Level = c.Level,
-                MaxLevel = c.MaxLevel,
-                IconUrl = CardIcon(c.IconUrls),
-                EvolutionLevel = c.EvolutionLevel,
-                MaxEvolutionLevel = c.MaxEvolutionLevel,
-                EvoIconUrl = c.IconUrls?.EvolutionMedium,
-            })
+            .Select(c => BattleCard(c!, levelCap))
             .ToList();
+
+    private static CrDeckCard BattleCard(CardResponse c, int levelCap) => new()
+    {
+        Id = c.Id,
+        Name = c.Name,
+        Level = c.Level,
+        MaxLevel = c.MaxLevel,
+        IconUrl = CardIcon(c.IconUrls),
+        EvolutionLevel = c.EvolutionLevel,
+        MaxEvolutionLevel = c.MaxEvolutionLevel,
+        EvoIconUrl = c.IconUrls?.EvolutionMedium,
+        GameLevel = levelCap > 0 && c.MaxLevel > 0 ? c.Level + (levelCap - c.MaxLevel) : 0,
+        Form = Math.Clamp(c.EvolutionLevel, 0, 2),
+        ElixirCost = c.ElixirCost,
+    };
+
+    private static CrBattleSide Side(BattlePlayer p, int levelCap) => new(
+        Tag: p.Tag,
+        Name: p.Name,
+        ClanTag: p.Clan?.Tag,
+        ClanName: p.Clan?.Name,
+        ClanBadgeId: p.Clan?.BadgeId,
+        StartingTrophies: p.StartingTrophies,
+        TrophyChange: p.TrophyChange,
+        ElixirLeaked: p.ElixirLeaked,
+        KingHp: p.KingTowerHitPoints,
+        PrincessHp: p.PrincessTowersHitPoints,
+        GlobalRank: p.GlobalRank,
+        TowerTroop: p.SupportCards?.FirstOrDefault() is { } troop ? BattleCard(troop, levelCap) : null);
 
     private record BattlelogEntry(
         [property: JsonPropertyName("type")] string? Type,
         [property: JsonPropertyName("battleTime")] string? BattleTime,
         [property: JsonPropertyName("boatBattleWon")] bool? BoatBattleWon,
         [property: JsonPropertyName("team")] List<BattlePlayer>? Team,
-        [property: JsonPropertyName("opponent")] List<BattlePlayer>? Opponent);
+        [property: JsonPropertyName("opponent")] List<BattlePlayer>? Opponent,
+        // Для отчёта о матче. Необязательные: в старых режимах их нет.
+        [property: JsonPropertyName("gameMode")] BattleGameModeRef? GameMode = null,
+        [property: JsonPropertyName("arena")] BattleArenaRef? Arena = null,
+        [property: JsonPropertyName("deckSelection")] string? DeckSelection = null,
+        [property: JsonPropertyName("leagueNumber")] int? LeagueNumber = null);
+
+    private record BattleGameModeRef(
+        [property: JsonPropertyName("id")] int Id,
+        [property: JsonPropertyName("name")] string? Name = null);
+
+    private record BattleArenaRef(
+        [property: JsonPropertyName("id")] int Id,
+        [property: JsonPropertyName("name")] string? Name = null);
+
+    private record BattleClanRef(
+        [property: JsonPropertyName("tag")] string? Tag = null,
+        [property: JsonPropertyName("name")] string? Name = null,
+        [property: JsonPropertyName("badgeId")] int? BadgeId = null);
 
     private record BattlePlayer(
         [property: JsonPropertyName("tag")] string Tag,
@@ -1362,7 +1413,13 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         // Для разбора боёв. Необязательные: в части режимов API их не присылает, и
         // отсутствие поля не должно ронять разбор всего журнала.
         [property: JsonPropertyName("elixirLeaked")] double? ElixirLeaked = null,
-        [property: JsonPropertyName("trophyChange")] int? TrophyChange = null);
+        [property: JsonPropertyName("trophyChange")] int? TrophyChange = null,
+        [property: JsonPropertyName("startingTrophies")] int? StartingTrophies = null,
+        [property: JsonPropertyName("kingTowerHitPoints")] int? KingTowerHitPoints = null,
+        [property: JsonPropertyName("princessTowersHitPoints")] List<int>? PrincessTowersHitPoints = null,
+        [property: JsonPropertyName("globalRank")] int? GlobalRank = null,
+        [property: JsonPropertyName("clan")] BattleClanRef? Clan = null,
+        [property: JsonPropertyName("supportCards")] List<CardResponse>? SupportCards = null);
 
     private record NamedEntity([property: JsonPropertyName("name")] string Name);
     private record ClanProfile([property: JsonPropertyName("clanWarTrophies")] int? ClanWarTrophies);

@@ -1260,6 +1260,8 @@ function PlusSection({ t }: { t: Translations }) {
           </div>
         )}
 
+        {data?.tracker && <TrackerOwner tracker={data.tracker} />}
+
         <label className="adm-switch-row">
           <input type="checkbox" checked={paywall} onChange={e => setPaywall(e.target.checked)} />
           <span>{o.plusPaywall}</span>
@@ -1439,6 +1441,50 @@ function CampaignsSection({ t }: { t: Translations }) {
           ))}
         </ul>
       )}
+    </div>
+  )
+}
+
+/** Трекер боёв в панели: как им пользуются, аварийный рубильник карточек и закрытый тест. */
+function TrackerOwner({ tracker }: { tracker: NonNullable<OwnerPlus['tracker']> }) {
+  const { t } = useT()
+  const o = t.owner
+  const [dm, setDm] = useState(tracker.dm)
+  const [beta, setBeta] = useState(tracker.beta)
+  const [busy, setBusy] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  const save = async () => {
+    haptic('medium')
+    setBusy(true)
+    try {
+      const r = await api.ownerSetTracker(dm, beta)
+      setBeta(r.beta)
+      setSaved(true)
+      hapticNotify('success')
+    } catch {
+      hapticNotify('error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="tilt-rules" style={{ marginBottom: 12 }}>
+      <div className="tilt-rules-title">{o.trkTitle}</div>
+      <span className="small">
+        {o.trkStats.replace('{on}', String(tracker.enabled)).replace('{total}', String(tracker.total))
+          .replace('{off}', String(tracker.offWeek)).replace('{mutes}', String(tracker.mutesWeek))
+          .replace('{cards}', String(tracker.cardsWeek))}
+      </span>
+      <label className="adm-switch-row">
+        <input type="checkbox" checked={dm} onChange={e => { setDm(e.target.checked); setSaved(false) }} />
+        <span>{o.trkDm}</span>
+      </label>
+      <label className="muted small">{o.trkBeta}</label>
+      <input className="search-input" value={beta} inputMode="numeric"
+        onChange={e => { setBeta(e.target.value); setSaved(false) }} />
+      <button className="btn btn-ghost" disabled={busy} onClick={save}>{saved ? '✓' : o.trkSave}</button>
     </div>
   )
 }

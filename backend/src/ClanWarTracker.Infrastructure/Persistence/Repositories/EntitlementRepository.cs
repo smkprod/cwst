@@ -91,6 +91,20 @@ public class PlayerAlertPrefsRepository(AppDbContext db) : IPlayerAlertPrefsRepo
             .Select(p => p.TelegramUserId)
             .ToListAsync(ct);
 
+    public Task<List<long>> TrackerUsersAsync(CancellationToken ct = default) =>
+        db.PlayerAlertPrefs.AsNoTracking()
+            .Where(p => (p.TrackerEnabled && !p.DmBlocked) || p.TrackerCardMessageId != null)
+            .Select(p => p.TelegramUserId)
+            .ToListAsync(ct);
+
+    public async Task<(int Enabled, int Total)> TrackerCountsAsync(CancellationToken ct = default)
+    {
+        var enabled = await db.PlayerAlertPrefs.CountAsync(p => p.TrackerEnabled, ct);
+        // «Трогали трекер» - есть отметка боя: её ставит включение.
+        var total = await db.PlayerAlertPrefs.CountAsync(p => p.TrackerWatermarkUtc != null, ct);
+        return (enabled, total);
+    }
+
     public async Task<HashSet<long>> IntroducedAsync(CancellationToken ct = default) =>
         (await db.PlayerAlertPrefs.AsNoTracking()
             .Where(p => p.IntroSentUtc != null)

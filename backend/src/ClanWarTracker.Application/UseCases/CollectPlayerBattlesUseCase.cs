@@ -1,3 +1,4 @@
+using ClanWarTracker.Application.Battles;
 using ClanWarTracker.Domain.Entities;
 using ClanWarTracker.Domain.Interfaces;
 
@@ -99,17 +100,30 @@ public class CollectPlayerBattlesUseCase(
         return battles.AddNewAsync(playerTag, rows, ct);
     }
 
-    private static PlayerBattle ToRow(string playerTag, CrRecentBattle b) => new()
+    public static PlayerBattle ToRow(string playerTag, CrRecentBattle b)
     {
-        PlayerTag = playerTag,
-        BattleTimeUtc = DateTime.SpecifyKind(b.BattleTimeUtc, DateTimeKind.Utc),
-        Type = b.Type.Length > 48 ? b.Type[..48] : b.Type,
-        Result = b.CrownsFor == b.CrownsAgainst ? 0 : b.Won ? 1 : -1,
-        CrownsFor = b.CrownsFor,
-        CrownsAgainst = b.CrownsAgainst,
-        DeckKey = MetaCard.DeckKey(b.MyDeck.Select(MetaCard.Key)),
-        OppDeckKey = MetaCard.DeckKey(b.OpponentDeck.Select(MetaCard.Key)),
-        ElixirLeaked = b.ElixirLeaked,
-        TrophyChange = b.TrophyChange,
-    };
+        var detail = MatchDetailCodec.From(b);
+        return new PlayerBattle
+        {
+            PlayerTag = playerTag,
+            BattleTimeUtc = DateTime.SpecifyKind(b.BattleTimeUtc, DateTimeKind.Utc),
+            Type = b.Type.Length > 48 ? b.Type[..48] : b.Type,
+            Result = b.CrownsFor == b.CrownsAgainst ? 0 : b.Won ? 1 : -1,
+            CrownsFor = b.CrownsFor,
+            CrownsAgainst = b.CrownsAgainst,
+            DeckKey = MetaCard.DeckKey(b.MyDeck.Select(MetaCard.Key)),
+            OppDeckKey = MetaCard.DeckKey(b.OpponentDeck.Select(MetaCard.Key)),
+            ElixirLeaked = b.ElixirLeaked,
+            TrophyChange = b.TrophyChange,
+            OppTag = Cut(b.OpponentTag, 16),
+            OppName = Cut(b.OpponentName ?? b.Opp?.Name, 32),
+            GameModeId = b.GameModeId,
+            DeckSelection = Cut(b.DeckSelection, 24),
+            OppArchetype = Archetypes.Classify(b.OpponentDeck.Select(c => (c.Name, c.Id, c.ElixirCost)).ToList()),
+            LevelGap = MatchReport.LevelGap(b.GameModeId, b.DeckSelection, detail),
+            DetailJson = detail is null ? null : MatchDetailCodec.Encode(detail),
+        };
+    }
+
+    private static string? Cut(string? s, int max) => s is null ? null : s.Length > max ? s[..max] : s;
 }

@@ -188,6 +188,9 @@ public interface IPlayerBattleRepository
     /// <summary>Бои игрока начиная с момента, по времени.</summary>
     Task<List<PlayerBattle>> GetSinceAsync(string playerTag, DateTime sinceUtc, CancellationToken ct = default);
 
+    /// <summary>Бой по номеру. null - такого нет (или стёрт за давностью).</summary>
+    Task<PlayerBattle?> GetAsync(int id, CancellationToken ct = default);
+
     /// <summary>Стирает бои старше момента. Возвращает, сколько стёрто.</summary>
     Task<int> PurgeOlderThanAsync(DateTime utc, CancellationToken ct = default);
 }
@@ -453,6 +456,12 @@ public interface IPlayerAlertPrefsRepository
 
     /// <summary>У кого стоит пауза — после неё надо написать «можно».</summary>
     Task<List<long>> PausedUsersAsync(CancellationToken ct = default);
+
+    /// <summary>Кого ведёт трекер боёв: включён и личка открыта, или ещё висит карточка захода.</summary>
+    Task<List<long>> TrackerUsersAsync(CancellationToken ct = default);
+
+    /// <summary>Для панели владельца: у скольких трекер включён сейчас и сколько его вообще включали.</summary>
+    Task<(int Enabled, int Total)> TrackerCountsAsync(CancellationToken ct = default);
 
     Task SaveChangesAsync(CancellationToken ct = default);
 }

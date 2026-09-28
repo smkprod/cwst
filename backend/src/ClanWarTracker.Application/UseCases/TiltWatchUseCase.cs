@@ -28,6 +28,7 @@ public class TiltWatchUseCase(
     IClashRoyaleApi crApi,
     CollectPlayerBattlesUseCase collect,
     IServiceSettingRepository settings,
+    BattleTrackerUseCase tracker,
     INotificationSender sender)
 {
     /// <summary>Последний бой не старше этого - человек ещё в игре.</summary>
@@ -47,17 +48,28 @@ public class TiltWatchUseCase(
     public const int MaxAlertsPerDay = 3;
 
     /// <summary>
+    /// Сколько «холодных» чтений журнала за проход. После рестарта воркера память о
+    /// последнем чтении пуста, и без предела первый проход прочитал бы всех разом.
+    /// </summary>
+    public const int MaxColdSyncsPerTick = 60;
+
+    /// <summary>
     /// Когда журнал игрока читали последний раз. В памяти процесса, а не в базе: после
     /// рестарта воркера лишнее чтение стоит одного запроса, а запись в базу на каждый
     /// опрос стоила бы сотен.
     /// </summary>
     private static readonly ConcurrentDictionary<long, DateTime> LastSync = new();
 
-    public record Summary(int Watched, int Synced, int Alerts, int Undelivered, int Resumes, int Summaries);
+    public record Summary(
+        int Watched, int Synced, int Alerts, int Undelivered, int Resumes, int Summaries,
+        int Cards = 0, int CardEdits = 0, int TrackerSummaries = 0);
 
     private sealed class Counters
     {
-        public int Synced, Alerts, Undelivered, Resumes, Summaries;
+        public int Synced, ColdSyncs, Alerts, Undelivered, Resumes, Summaries, Cards, CardEdits, TrackerSummaries;
+
+        /// <summary>Платное включено. Выключено владельцем - строки Плюса в трекере видят все.</summary>
+        public bool Paywall = true;
     }
 
     public async Task<Summary> ExecuteAsync(CancellationToken ct = default)
@@ -77,17 +89,21 @@ public class TiltWatchUseCase(
         // Незакрытые итоги и паузы дописываем даже тем, у кого Плюс уже кончился.
         watch.UnionWith(await alerts.UsersWithOpenAsync(ct));
         watch.UnionWith(await alertPrefs.PausedUsersAsync(ct));
+        // Трекер боёв - тот же опрос: без Плюса тоже, это не платная функция.
+        var beta = await BattleTrackerUseCase.BetaAsync(settings, ct);
+        watch.UnionWith((await alertPrefs.TrackerUsersAsync(ct)).Where(tg => BattleTrackerUseCase.Allowed(beta, tg)));
 
-        var c = new Counters();
+        var c = new Counters { Paywall = offer.Paywall };
         foreach (var tg in watch)
         {
-            try { await CheckOneAsync(tg, paid.Contains(tg), now, c, ct); }
+            try { await CheckOneAsync(tg, paid.Contains(tg), BattleTrackerUseCase.Allowed(beta, tg), now, c, ct); }
             catch { /* один сломанный журнал не должен лишать сигналов остальных */ }
         }
-        return new Summary(watch.Count, c.Synced, c.Alerts, c.Undelivered, c.Resumes, c.Summaries);
+        return new Summary(watch.Count, c.Synced, c.Alerts, c.Undelivered, c.Resumes, c.Summaries,
+            c.Cards, c.CardEdits, c.TrackerSummaries);
     }
 
-    private async Task CheckOneAsync(long tg, bool paid, DateTime now, Counters c, CancellationToken ct)
+    private async Task CheckOneAsync(long tg, bool paid, bool trackerAllowed, DateTime now, Counters c, CancellationToken ct)
     {
         var prefs = await alertPrefs.GetAsync(tg, ct);
         if (prefs is { DmBlocked: true }) return;
@@ -100,16 +116,19 @@ public class TiltWatchUseCase(
         var canAlert = paid
             ? prefs?.TiltAlerts != false
             : prefs is { TiltAlerts: true, FreeSignalsLeft: > 0 };
-        if (!canAlert && open.Count == 0 && prefs?.PauseUntilUtc is null) return;
+        var tracking = trackerAllowed && BattleTrackerUseCase.Tracking(prefs);
+        if (!canAlert && open.Count == 0 && prefs?.PauseUntilUtc is null && !tracking) return;
 
         // Читаем журнал: часто - пока человек играет, редко - пока нет.
         var recent = await battles.GetSinceAsync(tag, now.AddHours(-6), ct);
-        var hot = recent.Count > 0 && now - recent[^1].BattleTimeUtc <= Freshness;
+        var hot = (recent.Count > 0 && now - recent[^1].BattleTimeUtc <= Freshness)
+                  || open.Count > 0 || prefs?.TrackerCardMessageId is not null;
         var last = LastSync.GetValueOrDefault(tg);
-        if (now - last >= (hot || open.Count > 0 ? HotPoll : ColdPoll))
+        if (now - last >= (hot ? HotPoll : ColdPoll) && (hot || c.ColdSyncs < MaxColdSyncsPerTick))
         {
             try
             {
+                if (!hot) c.ColdSyncs++;
                 await collect.SyncFreshAsync(tag, ct);
                 LastSync[tg] = now;
                 c.Synced++;
@@ -167,8 +186,21 @@ public class TiltWatchUseCase(
             c.Summaries++;
         }
 
+        // 2½. Трекер боёв: карточка захода. До сигнала - чтобы сигнал знал строку о последнем бое.
+        string? alertPrefix = null;
+        if (tracking)
+        {
+            var threshold = Math.Clamp(prefs!.LossThreshold, 2, 3);
+            var tick = await tracker.StepAsync(
+                new BattleTrackerUseCase.Ctx(tg, player, prefs, paid || !c.Paywall, recent, t, tz, now, threshold), ct);
+            alertPrefix = tick.AlertPrefix;
+            if (tick.Created) c.Cards++;
+            if (tick.Edited) c.CardEdits++;
+            if (tick.Summarized) c.TrackerSummaries++;
+        }
+
         // 3. Новый сигнал.
-        if (canAlert) await TryAlertAsync(tg, player, prefs, paid, eligible, t, lang, tz, now, MonthAsync, c, ct);
+        if (canAlert) await TryAlertAsync(tg, player, prefs, paid, eligible, t, lang, tz, now, MonthAsync, c, ct, alertPrefix);
 
         // 4. «Лимит на вечер» - только с Плюсом: это правило, которое человек поставил себе сам.
         if (paid && prefs is { DailyLossLimit: int limit } && canAlert)
@@ -180,7 +212,7 @@ public class TiltWatchUseCase(
     private async Task TryAlertAsync(
         long tg, Player player, PlayerAlertPrefs? prefs, bool paid, List<PlayerBattle> eligible,
         BotText t, string lang, int tz, DateTime now, Func<Task<List<PlayerBattle>>> monthAsync,
-        Counters c, CancellationToken ct)
+        Counters c, CancellationToken ct, string? prefix = null)
     {
         if (prefs?.PauseUntilUtc > now || prefs?.MutedUntilUtc > now) return;
         if ((prefs?.QuietHours ?? true) && TiltMessages.IsQuietHour(now, tz)) return;
@@ -208,6 +240,8 @@ public class TiltWatchUseCase(
         int? freeLeftAfter = paid ? null : Math.Max(0, (prefs?.FreeSignalsLeft ?? 0) - 1);
         var text = TiltMessages.Alert(t, check.LossStreak, trophiesLost, profile, sameCard,
             now.DayOfYear + today.Count, freeLeftAfter);
+        // С трекером сигнал начинается с того самого боя: «Бой 4: 0–1 против Golem · −29🏆».
+        if (prefix is not null) text = prefix + "\n\n" + text;
 
         var session = BattleAnalyzer.SessionAround(eligible, trigger);
         var alert = new TiltAlert

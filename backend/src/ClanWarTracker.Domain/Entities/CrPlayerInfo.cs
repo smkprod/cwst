@@ -62,7 +62,36 @@ public class CrDeckCard
     /// <summary>У карты вообще есть эволюция (0 — её не существует).</summary>
     public int MaxEvolutionLevel { get; set; }
     public string? EvoIconUrl { get; set; }
+
+    /// <summary>
+    /// Уровень в игровой шкале для карт из журнала боёв: там API отдаёт уровень
+    /// относительно редкости (легендарка «5 из 8»), а игрок видит «14». 0 - неизвестен.
+    /// </summary>
+    public int GameLevel { get; set; }
+
+    /// <summary>0 - обычная, 1 - эволюция, 2 - герой.</summary>
+    public int Form { get; set; }
+
+    public int? ElixirCost { get; set; }
 }
+
+/// <summary>
+/// Одна сторона боя со всем, что журнал о ней знает: башни, кубки, клан, башенный
+/// войска. Нужно отчёту о матче - «насколько близко было», «кто соперник».
+/// </summary>
+public record CrBattleSide(
+    string Tag,
+    string Name,
+    string? ClanTag,
+    string? ClanName,
+    int? ClanBadgeId,
+    int? StartingTrophies,
+    int? TrophyChange,
+    double? ElixirLeaked,
+    int? KingHp,
+    IReadOnlyList<int>? PrincessHp,
+    int? GlobalRank,
+    CrDeckCard? TowerTroop);
 
 /// <inheritdoc cref="CrDeckCard"/>
 public class CrCard

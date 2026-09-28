@@ -26,8 +26,13 @@ public class PlayerController(
     IServiceSettingRepository settings,
     IRespectRepository respects,
     GetBattleAnalysisUseCase battleAnalysis,
-    GetPlayerSheetUseCase playerSheet) : ControllerBase
+    GetPlayerSheetUseCase playerSheet,
+    GetMatchHistoryUseCase matchHistory,
+    GetMatchReportUseCase matchReport,
+    TrackerActionsUseCase trackerActions) : ControllerBase
 {
+    public record TrackerRequest(bool Enabled, int? Tz, string? Lang);
+
     /// <summary>GET /api/players/{tag}/sheet — единая карточка игрока для любого экрана.</summary>
     [HttpGet("{tag}/sheet")]
     public async Task<IActionResult> Sheet(string tag, CancellationToken ct)
@@ -54,6 +59,59 @@ public class PlayerController(
         var userId = (long)HttpContext.Items["TelegramUserId"]!;
         var dto = await battleAnalysis.ExecuteAsync(userId, Math.Clamp(tz, -720, 840), ct, lang);
         return dto is null ? NotFound(new { error = "player_not_linked" }) : Ok(dto);
+    }
+
+    /// <summary>
+    /// GET /api/players/me/matches?before=&amp;result=all|win|loss&amp;mode=all|ladder|pol|war|other&amp;arch=&amp;lang=
+    /// — история боёв заходами. Без Плюса 7 дней, с Плюсом 30.
+    /// </summary>
+    [HttpGet("me/matches")]
+    public async Task<IActionResult> MyMatches(
+        [FromQuery] DateTime? before = null, [FromQuery] string? result = null, [FromQuery] string? mode = null,
+        [FromQuery] string? arch = null, [FromQuery] string? lang = null, CancellationToken ct = default)
+    {
+        var userId = (long)HttpContext.Items["TelegramUserId"]!;
+        var cursor = before is DateTime b ? DateTime.SpecifyKind(b.ToUniversalTime(), DateTimeKind.Utc) : (DateTime?)null;
+        var dto = await matchHistory.ExecuteAsync(userId, cursor, result, mode, arch, lang, ct);
+        return dto is null ? NotFound(new { error = "player_not_linked" }) : Ok(dto);
+    }
+
+    /// <summary>GET /api/players/me/matches/{id}?lang= — полный отчёт об одном бое.</summary>
+    [HttpGet("me/matches/{id:int}")]
+    public async Task<IActionResult> MyMatch(int id, [FromQuery] string? lang = null, CancellationToken ct = default)
+    {
+        var userId = (long)HttpContext.Items["TelegramUserId"]!;
+        var (outcome, dto) = await matchReport.ExecuteAsync(userId, id, lang, ct);
+        return outcome switch
+        {
+            GetMatchReportUseCase.Outcome.Ok => Ok(dto),
+            GetMatchReportUseCase.Outcome.NotLinked => NotFound(new { error = "player_not_linked" }),
+            GetMatchReportUseCase.Outcome.Locked => StatusCode(403, new { error = "plus_required" }),
+            _ => NotFound(new { error = "match_not_found" }),
+        };
+    }
+
+    /// <summary>GET /api/players/me/tracker — включён ли трекер боёв.</summary>
+    [HttpGet("me/tracker")]
+    public async Task<IActionResult> MyTracker(CancellationToken ct)
+    {
+        var userId = (long)HttpContext.Items["TelegramUserId"]!;
+        var s = await trackerActions.GetAsync(userId, ct);
+        return Ok(new TrackerStateDto(s.Available, s.Enabled, s.DmBlocked, s.MutedToday));
+    }
+
+    /// <summary>
+    /// POST /api/players/me/tracker — включить или выключить. Body: { enabled, tz?, lang? }.
+    /// Не платное: трекер - для всех, Плюс только добавляет строки в разбор.
+    /// </summary>
+    [HttpPost("me/tracker")]
+    public async Task<IActionResult> SetMyTracker([FromBody] TrackerRequest req, CancellationToken ct)
+    {
+        var userId = (long)HttpContext.Items["TelegramUserId"]!;
+        var s = await trackerActions.SetAsync(userId, req.Enabled, req.Tz, req.Lang, notify: true, ct);
+        if (s is null) return NotFound(new { error = "player_not_linked" });
+        if (req.Enabled && !s.Available) return StatusCode(403, new { error = "tracker_closed" });
+        return Ok(new TrackerStateDto(s.Available, s.Enabled, s.DmBlocked, s.MutedToday));
     }
 
     /// <summary>

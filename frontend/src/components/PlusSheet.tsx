@@ -178,6 +178,7 @@ function PlusCard({ status, pay, onBuy, t }: {
       </div>
       <ul className="plus-features">
         <Feature title={p.f1Title} text={p.f1} />
+        <Feature title={t.trk.title} text={t.trk.plusRow} />
         <Feature title={p.f2Title} text={p.f2} />
         <Feature title={p.f3Title} text={p.f3} />
         <Feature title={p.f4Title} text={p.f4} />

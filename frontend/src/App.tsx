@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { api, ApiError, adminClan } from './lib/api'
-import { haptic, startParam } from './lib/telegram'
+import { haptic, startMatchId, startParam, startToMatches } from './lib/telegram'
 import { usePlusSheet } from './lib/plusSheet'
 import { useT, type Translations } from './lib/i18n'
 import type { AppConfig, AppTab, ClanStatus, ServiceIdentity } from './types'
@@ -116,7 +116,10 @@ function ClanSectionTabs({ value, onChange, t }: {
  * Куда вести по параметру запуска из бота: «Открыть разбор» — во вкладку «Я» на
  * разбор, «/meta» — в мировой топ, «/plus» — в окно Плюса. Без параметра — как раньше.
  */
-const START_TAB: Tab = startParam === 'review' ? 'me' : startParam === 'meta' ? 'more' : 'clan'
+const START_TAB: Tab = startParam === 'review' || startToMatches ? 'me' : startParam === 'meta' ? 'more' : 'clan'
+
+/** «Разбор» из бота — разбор за 30 дней, трекер и «Все бои» — история. */
+const START_BATTLES_VIEW = startParam === 'review' ? 'review' : 'history'
 
 export default function App() {
   const [state, setState] = useState<State>({ kind: 'loading' })
@@ -126,7 +129,7 @@ export default function App() {
   // Кнопка «💎 Открыть Плюс» в боте: окно Плюса сразу при запуске, один раз.
   const plusOpenedRef = useRef(false)
   useEffect(() => {
-    if (startParam !== 'plus' || plusOpenedRef.current) return
+    if ((startParam !== 'plus' && startParam !== 'plus_trk') || plusOpenedRef.current) return
     if (state.kind === 'loading') return
     plusOpenedRef.current = true
     openPlus()
@@ -293,7 +296,8 @@ export default function App() {
       // а заход в чужой клан из неё вернёт обычные экраны.
       return me.role !== 'none'
         ? <OwnerPanel me={me} />
-        : <ClanlessView reason={state.reason} initialTab={startParam === 'meta' ? 'meta' : 'me'} />
+        : <ClanlessView reason={state.reason} initialTab={startParam === 'meta' ? 'meta' : 'me'}
+            battlesView={START_BATTLES_VIEW} openMatchId={startMatchId} />
     case 'notInTelegram':
       return (
         <div className="center">
@@ -394,7 +398,8 @@ export default function App() {
             )}
             {tab === 'me' && (
               <div className="fade-in">
-                <MyStatsView defaultSection={startParam === 'review' ? 'battles' : 'clan'} />
+                <MyStatsView defaultSection={startParam === 'review' || startToMatches ? 'battles' : 'clan'}
+                  battlesView={START_BATTLES_VIEW} openMatchId={startMatchId} />
               </div>
             )}
             {tab === 'tournament' && (

@@ -41,4 +41,17 @@ public class CrRecentBattle
 
     /// <summary>Изменение кубков или рейтинга за бой. null — режим без счёта.</summary>
     public int? TrophyChange { get; set; }
+
+    /// <summary>Правила боя (id режима игры) и его название, как их присылает API.</summary>
+    public int? GameModeId { get; set; }
+    public string? GameModeName { get; set; }
+    public int? LeagueNumber { get; set; }
+
+    /// <summary>Откуда колода: collection - своя; draft и прочее - выданная режимом.</summary>
+    public string? DeckSelection { get; set; }
+    public string? ArenaName { get; set; }
+
+    /// <summary>Своя сторона и соперник целиком - для отчёта о матче.</summary>
+    public CrBattleSide? Me { get; set; }
+    public CrBattleSide? Opp { get; set; }
 }

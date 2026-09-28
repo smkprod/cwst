@@ -9,7 +9,7 @@ import { PlayerSearchView } from './PlayerSearchView'
 import { TopPlayersTeaser } from './TopPlayersTeaser'
 import { RegionTopCard } from './RegionTopCard'
 import { BotTourCard } from './BotTourCard'
-import { MyStatsView, type MeSection } from './MyStatsView'
+import { MyStatsView, type BattlesView, type MeSection } from './MyStatsView'
 import { WorldTopView } from './WorldTopView'
 import { MoreView } from './MoreView'
 
@@ -26,10 +26,12 @@ export type SoloReason = 'noClan' | 'noWar'
  * Теперь это то же приложение для игрока: разбор своих боёв первым, мета топа,
  * поиск, «Ещё» с языком и Плюсом. Клан — одна из вкладок, а не условие входа.
  */
-export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection = 'battles' }: {
+export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection = 'battles', battlesView = 'history', openMatchId = null }: {
   reason?: SoloReason
   initialTab?: SoloTab
   meSection?: MeSection
+  battlesView?: BattlesView
+  openMatchId?: number | null
 } = {}) {
   const { t } = useT()
   const botUsername = useBotUsername()
@@ -89,7 +91,7 @@ export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection =
       <main className="with-tabbar fade-in">
         {tab === 'me' && (
           <div className="fade-in">
-            <MyStatsView defaultSection={meSection} />
+            <MyStatsView defaultSection={meSection} battlesView={battlesView} openMatchId={openMatchId} />
           </div>
         )}
 

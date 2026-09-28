@@ -132,6 +132,23 @@ public class PlayerAlertPrefs
 
     /// <summary>День (местный, yyyy-MM-dd), когда уже написали про «лимит на вечер».</summary>
     public string? LimitAlertDay { get; set; }
+
+    // Трекер боёв: одна тихая карточка захода, которая правится после каждого боя.
+
+    public bool TrackerEnabled { get; set; }
+
+    /// <summary>Последний бой, который трекер уже учёл. Пишется до отправки: лучше пропустить, чем повторить.</summary>
+    public DateTime? TrackerWatermarkUtc { get; set; }
+
+    /// <summary>Открытая карточка захода и начало захода, к которому она относится.</summary>
+    public int? TrackerCardMessageId { get; set; }
+    public DateTime? TrackerCardStartUtc { get; set; }
+
+    /// <summary>«Сегодня без карточек» - до местной полуночи.</summary>
+    public DateTime? TrackerMutedUntilUtc { get; set; }
+
+    /// <summary>Бой, на котором сегодня показана бесплатная подсказка Плюса.</summary>
+    public DateTime? TrackerHintBattleUtc { get; set; }
 }
 
 /// <summary>

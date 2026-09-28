@@ -414,6 +414,82 @@ public sealed class BotText
     /// <summary>Условия.</summary>
     public required string Terms { get; init; }
 
+    /* --- Трекер боёв --- */
+    /// <summary>Карточка захода: {0} - начало, {1}–{2} - счёт, {3} - кубки со знаком.</summary>
+    public required string TrkCardHead { get; init; }
+    /// <summary>Последний бой: {0} - ✅/❌/➖, {1}–{2} короны, {3} кубки, {4} соперник, {5} архетип.</summary>
+    public required string TrkLast { get; init; }
+    /// <summary>{0} - утекло эликсира.</summary>
+    public required string TrkVAfk { get; init; }
+    /// <summary>{0} - на сколько уровней, {1} - карта, {2} - её уровень.</summary>
+    public required string TrkVLevels { get; init; }
+    /// <summary>{0} - HP его башни.</summary>
+    public required string TrkVClose { get; init; }
+    /// <summary>{0} - утекло, {1} - обычно.</summary>
+    public required string TrkVLeak { get; init; }
+    /// <summary>Причины не видно.</summary>
+    public required string TrkVEven { get; init; }
+    /// <summary>{0} - разница уровней со знаком.</summary>
+    public required string TrkVWinLevels { get; init; }
+    /// <summary>{0} - на сколько кубков соперник выше.</summary>
+    public required string TrkVWinUpset { get; init; }
+    /// <summary>{0} - место соперника в мире.</summary>
+    public required string TrkVWinRank { get; init; }
+    /// <summary>{0} - HP своей башни.</summary>
+    public required string TrkVWinClose { get; init; }
+    /// <summary>Плюс: {0} - архетип, {1}–{2} - счёт за месяц, {3} - обычный %.</summary>
+    public required string TrkPVsArch { get; init; }
+    /// <summary>Плюс: {0} - архетип, {1} - главная карта другой колоды, {2}–{3} - её счёт.</summary>
+    public required string TrkPBetterDeck { get; init; }
+    /// <summary>{0} - до скольки пауза.</summary>
+    public required string TrkTiltPause { get; init; }
+    /// <summary>Строка боя над тильт-сигналом: {0} - номер боя, {1}–{2} короны, {3} архетип, {4} кубки.</summary>
+    public required string TrkAlertPrefix { get; init; }
+    /// <summary>Итог: {0}–{1} - время, {2}–{3} - счёт, {4} - кубки.</summary>
+    public required string TrkSumHead { get; init; }
+    /// <summary>{0}–{1} короны, {2} - соперник, {3} - кубки.</summary>
+    public required string TrkSumBest { get; init; }
+    /// <summary>{0} - архетип, {1}–{2} - счёт за заход.</summary>
+    public required string TrkSumWorst { get; init; }
+    /// <summary>{0} - средняя разница в поражениях, {1} - в победах.</summary>
+    public required string TrkSumLevels { get; init; }
+    /// <summary>{0} - после какого боя, {1}–{2} - что было дальше, {3} - кубки.</summary>
+    public required string TrkSumMoment { get; init; }
+    /// <summary>{0} - сколько подсказок Плюса было за заход.</summary>
+    public required string TrkSumLocked { get; init; }
+    /// <summary>Карточки выключены до конца дня.</summary>
+    public required string TrkMuted { get; init; }
+    /// <summary>Старая карточка, когда новая ниже.</summary>
+    public required string TrkBelow { get; init; }
+    /// <summary>Трекер включён.</summary>
+    public required string TrkOn { get; init; }
+    /// <summary>Трекер выключен.</summary>
+    public required string TrkOff { get; init; }
+    /// <summary>{0} - включён/выключен.</summary>
+    public required string TrkStatus { get; init; }
+    /// <summary>Слово «включён».</summary>
+    public required string TrkStatusOn { get; init; }
+    /// <summary>Слово «выключен».</summary>
+    public required string TrkStatusOff { get; init; }
+    /// <summary>Трекер пока в закрытом тесте.</summary>
+    public required string TrkUnavailable { get; init; }
+    /// <summary>Колода вне архетипов: {0} - её самая дорогая карта.</summary>
+    public required string TrkOther { get; init; }
+    /// <summary>Кнопка.</summary>
+    public required string TrkBtnReport { get; init; }
+    /// <summary>Кнопка.</summary>
+    public required string TrkBtnAll { get; init; }
+    /// <summary>Кнопка.</summary>
+    public required string TrkBtnMute { get; init; }
+    /// <summary>Кнопка.</summary>
+    public required string TrkBtnSession { get; init; }
+    /// <summary>Кнопка.</summary>
+    public required string TrkBtnPlus { get; init; }
+    /// <summary>Кнопка.</summary>
+    public required string TrkBtnOn { get; init; }
+    /// <summary>Кнопка.</summary>
+    public required string TrkBtnOff { get; init; }
+
     /* --- Inline-режим: карточка в любом чате Telegram --- */
     public required string InlineWarTitle { get; init; }
     public required string InlineWarDesc { get; init; }
@@ -774,6 +850,43 @@ public sealed class BotText
         InlineTopDecksDesc = "Чем играют лучшие в мире прямо сейчас",
         InlineTopDecksText = "🌍 Что играет мировой топ ({0} игроков)\n\n{1}",
         InlineTopDeckOne = "🎮 Открыть первую колоду",
+        TrkCardHead = "🎯 Заход с {0} · {1}–{2} · {3}🏆",
+        TrkLast = "{0} {1}–{2} · {3}🏆 · {4} · {5}",
+        TrkVAfk = "💡 Похоже на вылет или АФК: утекло {0} эликсира.",
+        TrkVLevels = "💡 Соперник прокачан сильнее: +{0} уровня в среднем. Ниже всего у тебя «{1}» ({2}).",
+        TrkVClose = "💡 Близко: у его башни оставалось {0} HP.",
+        TrkVLeak = "💡 Утекло {0} эликсира — обычно у тебя {1}.",
+        TrkVEven = "💡 Уровни и колоды на равных — решилось в самом бою. Повтор есть в журнале боёв в игре.",
+        TrkVWinLevels = "💡 Победа с уровнями {0} — сильно.",
+        TrkVWinUpset = "💡 Обыграл соперника на {0}🏆 выше.",
+        TrkVWinRank = "💡 Обыграл №{0} в мире.",
+        TrkVWinClose = "💡 Вытащил: у твоей башни оставалось {0} HP.",
+        TrkPVsArch = "Против {0} за месяц {1}–{2} (обычно ты {3}%)",
+        TrkPBetterDeck = "Против {0} лучше идёт твоя колода с «{1}»: {2}–{3}",
+        TrkTiltPause = "🧊 Пауза до {0}",
+        TrkAlertPrefix = "Бой {0}: {1}–{2} против {3} · {4}🏆",
+        TrkSumHead = "🏁 Заход {0}–{1} · {2}–{3} · {4}🏆",
+        TrkSumBest = "⭐ Лучший: {0}–{1} против {2} ({3}🏆)",
+        TrkSumWorst = "😖 Тяжелее всего: {0} — {1}–{2} за вечер",
+        TrkSumLevels = "Уровни: в поражениях {0}, в победах {1}",
+        TrkSumMoment = "🧊 Стоп-тильт остановил бы тебя после {0}-го боя — дальше было {1}–{2}, {3}🏆",
+        TrkSumLocked = "🔒 За заход {0} подсказки «против кого и чем играть» — в Плюсе",
+        TrkMuted = "🔕 Сегодня без карточек. Бои всё равно сохраняются в историю.",
+        TrkBelow = "↓ Карточка захода ниже",
+        TrkOn = "🎯 Трекер боёв включён. После каждого боя я тихо обновляю одну карточку захода — без звука. Разбор каждого боя и история — в приложении. Выключить — /tracker.",
+        TrkOff = "Трекер выключен. История боёв в приложении остаётся.",
+        TrkStatus = "🎯 Трекер боёв: {0}\n\nПосле каждого боя — тихая карточка захода: счёт, соперник, что решило бой. Все бои с разбором — в приложении.",
+        TrkStatusOn = "включён ✅",
+        TrkStatusOff = "выключен",
+        TrkUnavailable = "🎯 Трекер боёв пока в закрытом тесте — скоро откроем всем.",
+        TrkOther = "колода с «{0}»",
+        TrkBtnReport = "📖 Разбор",
+        TrkBtnAll = "📜 Все бои",
+        TrkBtnMute = "🔕 Сегодня без карточек",
+        TrkBtnSession = "📜 Разбор захода",
+        TrkBtnPlus = "⭐ Плюс",
+        TrkBtnOn = "Включить",
+        TrkBtnOff = "Выключить",
     };
 
     public static readonly BotText Uk = new()
@@ -1084,6 +1197,43 @@ public sealed class BotText
         InlineTopDecksDesc = "Чим грають найкращі у світі просто зараз",
         InlineTopDecksText = "🌍 Що грає світовий топ ({0} гравців)\n\n{1}",
         InlineTopDeckOne = "🎮 Відкрити першу колоду",
+        TrkCardHead = "🎯 Захід з {0} · {1}–{2} · {3}🏆",
+        TrkLast = "{0} {1}–{2} · {3}🏆 · {4} · {5}",
+        TrkVAfk = "💡 Схоже на виліт або АФК: витекло {0} еліксиру.",
+        TrkVLevels = "💡 Суперник прокачаний сильніше: +{0} рівня в середньому. Найнижча в тебе «{1}» ({2}).",
+        TrkVClose = "💡 Близько: у його вежі лишалося {0} HP.",
+        TrkVLeak = "💡 Витекло {0} еліксиру — зазвичай у тебе {1}.",
+        TrkVEven = "💡 Рівні й колоди на рівних — вирішилося в самому бою. Повтор є в журналі боїв у грі.",
+        TrkVWinLevels = "💡 Перемога з рівнями {0} — сильно.",
+        TrkVWinUpset = "💡 Обіграв суперника на {0}🏆 вище.",
+        TrkVWinRank = "💡 Обіграв №{0} у світі.",
+        TrkVWinClose = "💡 Витягнув: у твоєї вежі лишалося {0} HP.",
+        TrkPVsArch = "Проти {0} за місяць {1}–{2} (зазвичай ти {3}%)",
+        TrkPBetterDeck = "Проти {0} краще йде твоя колода з «{1}»: {2}–{3}",
+        TrkTiltPause = "🧊 Пауза до {0}",
+        TrkAlertPrefix = "Бій {0}: {1}–{2} проти {3} · {4}🏆",
+        TrkSumHead = "🏁 Захід {0}–{1} · {2}–{3} · {4}🏆",
+        TrkSumBest = "⭐ Найкращий: {0}–{1} проти {2} ({3}🏆)",
+        TrkSumWorst = "😖 Найважче: {0} — {1}–{2} за вечір",
+        TrkSumLevels = "Рівні: у поразках {0}, у перемогах {1}",
+        TrkSumMoment = "🧊 Стоп-тільт зупинив би тебе після {0}-го бою — далі було {1}–{2}, {3}🏆",
+        TrkSumLocked = "🔒 За захід {0} підказки «проти кого й чим грати» — у Плюсі",
+        TrkMuted = "🔕 Сьогодні без карток. Бої все одно зберігаються в історію.",
+        TrkBelow = "↓ Картка заходу нижче",
+        TrkOn = "🎯 Трекер боїв увімкнено. Після кожного бою я тихо оновлюю одну картку заходу — без звуку. Розбір кожного бою й історія — у застосунку. Вимкнути — /tracker.",
+        TrkOff = "Трекер вимкнено. Історія боїв у застосунку лишається.",
+        TrkStatus = "🎯 Трекер боїв: {0}\n\nПісля кожного бою — тиха картка заходу: рахунок, суперник, що вирішило бій. Усі бої з розбором — у застосунку.",
+        TrkStatusOn = "увімкнено ✅",
+        TrkStatusOff = "вимкнено",
+        TrkUnavailable = "🎯 Трекер боїв поки в закритому тесті — скоро відкриємо всім.",
+        TrkOther = "колода з «{0}»",
+        TrkBtnReport = "📖 Розбір",
+        TrkBtnAll = "📜 Усі бої",
+        TrkBtnMute = "🔕 Сьогодні без карток",
+        TrkBtnSession = "📜 Розбір заходу",
+        TrkBtnPlus = "⭐ Плюс",
+        TrkBtnOn = "Увімкнути",
+        TrkBtnOff = "Вимкнути",
     };
 
     public static readonly BotText En = new()
@@ -1394,5 +1544,42 @@ public sealed class BotText
         InlineTopDecksDesc = "What the best in the world play right now",
         InlineTopDecksText = "🌍 What the world's top plays ({0} players)\n\n{1}",
         InlineTopDeckOne = "🎮 Open the first deck",
+        TrkCardHead = "🎯 Session since {0} · {1}–{2} · {3}🏆",
+        TrkLast = "{0} {1}–{2} · {3}🏆 · {4} · {5}",
+        TrkVAfk = "💡 Looks like a disconnect or AFK: {0} elixir leaked.",
+        TrkVLevels = "💡 Opponent's cards were higher: +{0} levels on average. Your lowest: «{1}» ({2}).",
+        TrkVClose = "💡 Close one: their tower had {0} HP left.",
+        TrkVLeak = "💡 {0} elixir leaked — you usually leak {1}.",
+        TrkVEven = "💡 Levels and decks were even — it was decided in the battle itself. The replay is in your in-game battle log.",
+        TrkVWinLevels = "💡 Won while {0} levels down — strong.",
+        TrkVWinUpset = "💡 Beat an opponent {0}🏆 above you.",
+        TrkVWinRank = "💡 Beat world #{0}.",
+        TrkVWinClose = "💡 Clutch: your tower had {0} HP left.",
+        TrkPVsArch = "Vs {0} this month {1}–{2} (you usually win {3}%)",
+        TrkPBetterDeck = "Vs {0} your «{1}» deck does better: {2}–{3}",
+        TrkTiltPause = "🧊 Break until {0}",
+        TrkAlertPrefix = "Battle {0}: {1}–{2} vs {3} · {4}🏆",
+        TrkSumHead = "🏁 Session {0}–{1} · {2}–{3} · {4}🏆",
+        TrkSumBest = "⭐ Best: {0}–{1} vs {2} ({3}🏆)",
+        TrkSumWorst = "😖 Toughest: {0} — {1}–{2} tonight",
+        TrkSumLevels = "Levels: {0} in losses, {1} in wins",
+        TrkSumMoment = "🧊 Stop-tilt would have stopped you after battle {0} — then it went {1}–{2}, {3}🏆",
+        TrkSumLocked = "🔒 {0} «who you lose to and what to play» tips this session — in Plus",
+        TrkMuted = "🔕 No cards today. Battles are still saved to your history.",
+        TrkBelow = "↓ Session card is below",
+        TrkOn = "🎯 Battle tracker is on. After each battle I quietly update one session card — no sound. Every battle's breakdown and your history are in the app. Turn off — /tracker.",
+        TrkOff = "Tracker is off. Your battle history stays in the app.",
+        TrkStatus = "🎯 Battle tracker: {0}\n\nAfter each battle — a silent session card: score, opponent, what decided it. Every battle with a breakdown is in the app.",
+        TrkStatusOn = "on ✅",
+        TrkStatusOff = "off",
+        TrkUnavailable = "🎯 The battle tracker is in closed testing — opening to everyone soon.",
+        TrkOther = "«{0}» deck",
+        TrkBtnReport = "📖 Breakdown",
+        TrkBtnAll = "📜 All battles",
+        TrkBtnMute = "🔕 No cards today",
+        TrkBtnSession = "📜 Session breakdown",
+        TrkBtnPlus = "⭐ Plus",
+        TrkBtnOn = "Turn on",
+        TrkBtnOff = "Turn off",
     };
 }

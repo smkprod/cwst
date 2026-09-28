@@ -639,6 +639,19 @@ CREATE TABLE IF NOT EXISTS ""PlayerBattles"" (
         await db.Database.ExecuteSqlRawAsync(
             "CREATE INDEX IF NOT EXISTS \"IX_PlayerBattles_BattleTimeUtc\" ON \"PlayerBattles\" (\"BattleTimeUtc\");");
 
+        // Трекер боёв: соперник, режим, архетип, разница уровней и подробности боя.
+        foreach (var column in new[]
+        {
+            "\"OppTag\" varchar(16)",
+            "\"OppName\" varchar(32)",
+            "\"GameModeId\" integer",
+            "\"DeckSelection\" varchar(24)",
+            "\"OppArchetype\" varchar(24)",
+            "\"LevelGap\" double precision",
+            "\"DetailJson\" text",
+        })
+            await db.Database.ExecuteSqlRawAsync($"ALTER TABLE \"PlayerBattles\" ADD COLUMN IF NOT EXISTS {column};");
+
         // Настройки сервиса, которые владелец меняет из панели без передеплоя.
         await db.Database.ExecuteSqlRawAsync(@"
 CREATE TABLE IF NOT EXISTS ""ServiceSettings"" (
@@ -773,6 +786,13 @@ CREATE TABLE IF NOT EXISTS ""PlayerAlertPrefs"" (
             "\"MutedUntilUtc\" timestamptz",
             "\"IntroSentUtc\" timestamptz",
             "\"LimitAlertDay\" varchar(10)",
+            // Трекер боёв
+            "\"TrackerEnabled\" boolean NOT NULL DEFAULT FALSE",
+            "\"TrackerWatermarkUtc\" timestamptz",
+            "\"TrackerCardMessageId\" integer",
+            "\"TrackerCardStartUtc\" timestamptz",
+            "\"TrackerMutedUntilUtc\" timestamptz",
+            "\"TrackerHintBattleUtc\" timestamptz",
         })
             await db.Database.ExecuteSqlRawAsync($"ALTER TABLE \"PlayerAlertPrefs\" ADD COLUMN IF NOT EXISTS {column};");
 

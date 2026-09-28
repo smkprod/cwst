@@ -1040,6 +1040,18 @@ public class BotUpdateHandler(
                     await SendPlusInfoAsync(msg, sp, t, ct);
                     break;
 
+                case "/tracker":
+                case "/трекер":
+                {
+                    if (msg.Chat.Type != ChatType.Private) { await Reply(msg, t.HelpText, ct); return; }
+                    var tracker = await sp.GetRequiredService<TrackerActionsUseCase>()
+                        .StatusAsync(msg.From!.Id, msg.From.LanguageCode, ct);
+                    if (tracker is null) { await Reply(msg, t.NotLinkedYet, ct); return; }
+                    await sp.GetRequiredService<INotificationSender>()
+                        .SendDmAsync(msg.Chat.Id, tracker.Text, tracker.Rows, silent: false, ct);
+                    break;
+                }
+
                 case "/paysupport":
                     var owner = config["Owner:Username"]?.Trim().TrimStart('@');
                     await Reply(msg, string.Format(t.PaySupport,
@@ -1378,6 +1390,18 @@ public class BotUpdateHandler(
             return;
         }
 
+        if (data.StartsWith("trk|", StringComparison.Ordinal))
+        {
+            var result = await sp.GetRequiredService<TrackerActionsUseCase>()
+                .HandleAsync(callback.From.Id, data, callback.From.LanguageCode, ct);
+            await bot.AnswerCallbackQuery(callback.Id, cancellationToken: ct);
+            if (result is null || callback.Message is not { } message) return;
+            // Правка того же сообщения, без нового - тихо, как и весь трекер
+            await sp.GetRequiredService<INotificationSender>()
+                .EditUserMessageAsync(message.Chat.Id, message.MessageId, result.Text, result.Rows, ct);
+            return;
+        }
+
         if (data.StartsWith("relink|", StringComparison.Ordinal))
         {
             var tag = data["relink|".Length..];
@@ -1471,19 +1495,22 @@ public class BotUpdateHandler(
             (null, new[]
             {
                 new[] { "me", "Короткий разбор твоих боёв" }, new[] { "deck", "Твоя колода из последнего боя" },
-                new[] { "meta", "Лучшие колоды топа за неделю" }, new[] { "plus", "Clanify Плюс" },
+                new[] { "meta", "Лучшие колоды топа за неделю" }, new[] { "tracker", "Трекер боёв: разбор после каждого боя" },
+                new[] { "plus", "Clanify Плюс" },
                 new[] { "help", "Что умеет бот" }, new[] { "paysupport", "Помощь с оплатой" }, new[] { "terms", "Условия" },
             }),
             ("uk", new[]
             {
                 new[] { "me", "Короткий розбір твоїх боїв" }, new[] { "deck", "Твоя колода з останнього бою" },
-                new[] { "meta", "Найкращі колоди топу за тиждень" }, new[] { "plus", "Clanify Плюс" },
+                new[] { "meta", "Найкращі колоди топу за тиждень" }, new[] { "tracker", "Трекер боїв: розбір після кожного бою" },
+                new[] { "plus", "Clanify Плюс" },
                 new[] { "help", "Що вміє бот" }, new[] { "paysupport", "Допомога з оплатою" }, new[] { "terms", "Умови" },
             }),
             ("en", new[]
             {
                 new[] { "me", "A short review of your battles" }, new[] { "deck", "Your deck from the last battle" },
-                new[] { "meta", "The top's best decks this week" }, new[] { "plus", "Clanify Plus" },
+                new[] { "meta", "The top's best decks this week" }, new[] { "tracker", "Battle tracker: a breakdown after every battle" },
+                new[] { "plus", "Clanify Plus" },
                 new[] { "help", "What the bot can do" }, new[] { "paysupport", "Payment help" }, new[] { "terms", "Terms" },
             }),
         };

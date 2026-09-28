@@ -39,9 +39,12 @@ public class OwnerController(
     IEntitlementRepository entitlements,
     RevokePurchaseUseCase revokePurchase,
     ITiltAlertRepository tiltAlerts,
+    IPlayerAlertPrefsRepository alertPrefs,
+    ISentNotificationRepository sentLog,
     ILogger<OwnerController> logger) : ControllerBase
 {
     public record PlusSettingsRequest(bool Paywall, int Price7, int Price30);
+    public record TrackerSettingsRequest(bool Dm, string? Beta);
     public record GrantPlusRequest(string PlayerTag, int Days);
     public record RefundRequest(string ChargeId);
 
@@ -347,6 +350,19 @@ public class OwnerController(
         var freeThenBought = freeUsers.Count(tg => purchases.Any(e => e.TelegramUserId == tg
             && e.CreatedAtUtc >= alerts.Where(a => a.TelegramUserId == tg && a.Free).Min(a => a.SentUtc)));
 
+        // Трекер боёв: сколько включено, сколько выключили и нажали «🔕» за неделю, сколько карточек.
+        var (trackerOn, trackerTotal) = await alertPrefs.TrackerCountsAsync(ct);
+        var tracker = new
+        {
+            enabled = trackerOn,
+            total = trackerTotal,
+            offWeek = (await sentLog.GetKeysAsync(TrackerActionsUseCase.OffKind, weekAgo, ct)).Count,
+            mutesWeek = (await sentLog.GetKeysAsync(TrackerActionsUseCase.MuteKind, weekAgo, ct)).Count,
+            cardsWeek = (await sentLog.GetKeysAsync(BattleTrackerUseCase.SentKind, weekAgo, ct)).Count,
+            dm = !string.Equals(await settings.GetAsync(BattleTrackerUseCase.KillSwitchKey, ct), "off", StringComparison.OrdinalIgnoreCase),
+            beta = await settings.GetAsync(BattleTrackerUseCase.BetaKey, ct) ?? "",
+        };
+
         return Ok(new
         {
             paywall = offer.Paywall,
@@ -363,6 +379,7 @@ public class OwnerController(
             mutedWeek = week.Count(a => a.Choice == "mute"),
             freeUsers = freeUsers.Count,
             freeThenBought,
+            tracker,
             recent = all.OrderByDescending(e => e.CreatedAtUtc).Take(30).Select(e => new
             {
                 e.TelegramUserId, e.PlayerTag, e.Source, e.Days, e.Stars, e.UntilUtc, e.CreatedAtUtc,
@@ -385,6 +402,22 @@ public class OwnerController(
         await settings.SetAsync(PlusSales.Price7Key, req.Price7.ToString(), ct);
         await settings.SetAsync(PlusSales.Price30Key, req.Price30.ToString(), ct);
         return Ok(new { paywall = req.Paywall, price7 = req.Price7, price30 = req.Price30 });
+    }
+
+    /// <summary>
+    /// POST /api/owner/tracker/settings — рубильник карточек трекера и закрытый тест.
+    /// Body: { dm, beta }: dm=false - новых карточек нет; beta - id Telegram через запятую, пусто - у всех.
+    /// </summary>
+    [HttpPost("tracker/settings")]
+    public async Task<IActionResult> SetTracker([FromBody] TrackerSettingsRequest req, CancellationToken ct)
+    {
+        if (await DenyAsync(ServicePermission.Sponsors, ct) is { } deny) return deny;
+        var beta = string.Join(",", (req.Beta ?? "")
+            .Split(new[] { ',', ';', ' ', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+            .Where(x => long.TryParse(x, out _)));
+        await settings.SetAsync(BattleTrackerUseCase.KillSwitchKey, req.Dm ? "on" : "off", ct);
+        await settings.SetAsync(BattleTrackerUseCase.BetaKey, beta, ct);
+        return Ok(new { dm = req.Dm, beta });
     }
 
     /// <summary>

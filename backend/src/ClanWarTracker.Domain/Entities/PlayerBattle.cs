@@ -32,4 +32,27 @@ public class PlayerBattle
     public double? ElixirLeaked { get; set; }
 
     public int? TrophyChange { get; set; }
+
+    // Всё ниже - для трекера боёв. У боёв, записанных до него, пусто.
+
+    public string? OppTag { get; set; }
+    public string? OppName { get; set; }
+
+    /// <summary>Правила боя (id режима игры): по нему отличаем ладдер от испытаний.</summary>
+    public int? GameModeId { get; set; }
+
+    /// <summary>collection - своя колода; draft и прочее - выданная режимом.</summary>
+    public string? DeckSelection { get; set; }
+
+    /// <summary>Архетип колоды соперника, см. Archetypes.Classify.</summary>
+    public string? OppArchetype { get; set; }
+
+    /// <summary>
+    /// Средний уровень своих карт минус средний у соперника. null - уровни в этом бою
+    /// ничего не значат (турнирные, выданные колоды) или неизвестны.
+    /// </summary>
+    public double? LevelGap { get; set; }
+
+    /// <summary>Подробности боя одной строкой: башни, уровни, клан соперника (MatchDetailCodec).</summary>
+    public string? DetailJson { get; set; }
 }
