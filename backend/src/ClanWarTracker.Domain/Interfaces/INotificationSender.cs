@@ -51,6 +51,21 @@ public interface INotificationSender
         long chatId, int messageId, string text, IReadOnlyList<IReadOnlyList<BotButton>>? rows = null,
         CancellationToken ct = default);
 
+    /// <summary>
+    /// Загружает картинки в Telegram, отправив их в этот чат (владельцу - как превью
+    /// рассылки), и возвращает их file_id: дальше рассылка шлёт уже их, не гоняя
+    /// файлы по сети сотни раз. Бросает исключение, если загрузить не вышло.
+    /// </summary>
+    Task<IReadOnlyList<string>> UploadPhotosAsync(
+        long chatId, IReadOnlyList<(Stream Content, string FileName)> photos, CancellationToken ct = default);
+
+    /// <summary>
+    /// Картинки по file_id: одна - фото с подписью, несколько - альбом с подписью у
+    /// первой. Бросает исключение при недоставке - вызывающий считает неудачи.
+    /// </summary>
+    Task SendPhotosAsync(
+        long chatId, IReadOnlyList<string> fileIds, string? caption, int? threadId = null, CancellationToken ct = default);
+
     /// <summary>Удаляет своё сообщение в личке. false - не вышло (старше 48 часов или уже удалено).</summary>
     Task<bool> DeleteUserMessageAsync(long chatId, int messageId, CancellationToken ct = default);
 
