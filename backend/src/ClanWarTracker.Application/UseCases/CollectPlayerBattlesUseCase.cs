@@ -40,6 +40,17 @@ public class CollectPlayerBattlesUseCase(
         return await SaveAsync(playerTag, log, ct);
     }
 
+    /// <summary>
+    /// То же, но журнал берётся почти без кэша (20 секунд вместо пяти минут) - для
+    /// «Стоп-тильта» во время захода. С пятиминутным кэшем сигнал приходил посреди
+    /// третьего-четвёртого боя, когда серия уже стоила лишних кубков.
+    /// </summary>
+    public async Task<int> SyncFreshAsync(string playerTag, CancellationToken ct = default)
+    {
+        var log = await crApi.GetBattlesForAutoResultAsync(playerTag, ct);
+        return await SaveAsync(playerTag, log, ct);
+    }
+
     public record Summary(int Players, int Added, int Failed, int Purged);
 
     /// <summary>Проход по всем привязанным игрокам и чистка старого.</summary>

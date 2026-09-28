@@ -1,6 +1,7 @@
 using ClanWarTracker.Application.Battles;
 using ClanWarTracker.Application.DTOs;
 using ClanWarTracker.Application.Meta;
+using ClanWarTracker.Application.Notifications;
 using ClanWarTracker.Domain.Entities;
 using ClanWarTracker.Domain.Interfaces;
 
@@ -20,7 +21,7 @@ public class GetBattleAnalysisUseCase(
     IMetaRepository meta,
     CollectPlayerBattlesUseCase collect,
     PlusAccess plus,
-    IServiceSettingRepository settings)
+    IPlayerAlertPrefsRepository alertPrefs)
 {
     /// <summary>Своих колод показываем не больше - остальные сыграны по разу-два.</summary>
     private const int DecksShown = 3;
@@ -33,7 +34,9 @@ public class GetBattleAnalysisUseCase(
     private const int ToughShownFree = 1;
 
     /// <returns>null - игрок не привязан.</returns>
-    public async Task<BattleAnalysisDto?> ExecuteAsync(long telegramUserId, int tzOffsetMinutes, CancellationToken ct = default)
+    /// <param name="lang">Язык интерфейса приложения (ru/uk/en). null - запрос не из приложения.</param>
+    public async Task<BattleAnalysisDto?> ExecuteAsync(
+        long telegramUserId, int tzOffsetMinutes, CancellationToken ct = default, string? lang = null)
     {
         var player = await players.GetByTelegramIdAsync(telegramUserId, ct);
         if (player is null) return null;
@@ -47,13 +50,12 @@ public class GetBattleAnalysisUseCase(
         var list = await battles.GetSinceAsync(tag, DateTime.UtcNow - CollectPlayerBattlesUseCase.Keep, ct);
         var totals = BattleAnalyzer.Count(list);
 
-        // Триал - в момент, когда разбору уже есть что показать, а не при привязке:
-        // три дня Плюса на пустой истории ничего бы человеку не дали.
-        var trialStarted = false;
-        try { trialStarted = await plus.TryStartTrialAsync(telegramUserId, tag, list.Count, ct); }
-        catch { /* триал - подарок, его сбой не должен ронять сам разбор */ }
         var access = await plus.GetAsync(telegramUserId, ct);
-        var offer = await PlusSales.ReadAsync(settings, ct);
+
+        // Часовой пояс и язык - из приложения: по ним «Стоп-тильт» знает, когда у
+        // человека ночь и на каком языке ему писать. Без них ночь считалась бы по
+        // серверу, а украинцу бот писал бы по-русски.
+        if (lang is not null) await RememberLocaleAsync(telegramUserId, tzOffsetMinutes, lang, ct);
 
         var window = await MetaWindow.LoadAsync(meta, ct);
         var catalog = await GetMetaDecksUseCase.SafeCatalogAsync(crApi, ct);
@@ -78,9 +80,9 @@ public class GetBattleAnalysisUseCase(
             .Select(s => new TimeSlotDto(s.Key, s.Games, BattleAnalyzer.Percent(s.Wins, s.Games)))
             .ToList();
 
-        // Без Плюса разбор короткий: одна худшая карта, одна колода без контр, без
-        // дней недели. Режем здесь, на сервере: спрятанное на клиенте всё равно
-        // уезжало бы в ответе, и открыть его мог бы любой, кто заглянет в запрос.
+        // Без Плюса разбор короткий: одна худшая карта, одна колода без контр. Режем
+        // здесь, на сервере: спрятанное на клиенте всё равно уезжало бы в ответе.
+        // Дни недели - бесплатно: сами по себе они не продают, а без них разбор беднее.
         ReviewLockedDto? locked = null;
         if (!access.Unlocked)
         {
@@ -89,10 +91,9 @@ public class GetBattleAnalysisUseCase(
                 ToughCards: Math.Max(0, tough.Count - ToughShownFree),
                 Decks: Math.Max(0, decks.Count - 1),
                 Counters: hiddenCounters,
-                Weekdays: weekdays.Any(w => w.Games > 0));
+                Weekdays: false);
             tough = tough.Take(ToughShownFree).ToList();
             decks = decks.Take(1).Select(d => d with { MetaCounters = [] }).ToList();
-            weekdays = [];
         }
 
         return new BattleAnalysisDto(
@@ -122,12 +123,23 @@ public class GetBattleAnalysisUseCase(
                 Unlocked: access.Unlocked,
                 Active: access.Active,
                 Until: access.Until?.ToString("O"),
-                Source: access.Source,
-                TrialStarted: trialStarted,
-                TrialUsed: access.TrialUsed,
-                TrialDays: offer.TrialDays,
-                TrialMinBattles: PlusSales.TrialMinBattles),
+                Source: access.Source),
             Locked: locked);
+    }
+
+    private async Task RememberLocaleAsync(long tg, int tzOffsetMinutes, string lang, CancellationToken ct)
+    {
+        try
+        {
+            var code = TiltMessages.Code(BotText.ParseLang(lang));
+            var prefs = await alertPrefs.GetAsync(tg, ct);
+            if (prefs is not null && prefs.Lang == code && prefs.TzOffsetMinutes == tzOffsetMinutes) return;
+            prefs ??= await alertPrefs.GetOrCreateAsync(tg, ct);
+            prefs.Lang = code;
+            prefs.TzOffsetMinutes = tzOffsetMinutes;
+            await alertPrefs.SaveChangesAsync(ct);
+        }
+        catch { /* язык и пояс - удобство, не повод ронять разбор */ }
     }
 
     private static MyDeckDto MyDeck(

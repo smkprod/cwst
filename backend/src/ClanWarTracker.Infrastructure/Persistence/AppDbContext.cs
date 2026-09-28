@@ -24,6 +24,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<PlayerBattle> PlayerBattles => Set<PlayerBattle>();
     public DbSet<Entitlement> Entitlements => Set<Entitlement>();
     public DbSet<PlayerAlertPrefs> PlayerAlertPrefs => Set<PlayerAlertPrefs>();
+    public DbSet<TiltAlert> TiltAlerts => Set<TiltAlert>();
     public DbSet<ServiceModerator> ServiceModerators => Set<ServiceModerator>();
     public DbSet<ServiceSetting> ServiceSettings => Set<ServiceSetting>();
     public DbSet<ClanMessage> ClanMessages => Set<ClanMessage>();
@@ -171,6 +172,21 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             // Одни настройки на человека
             e.HasIndex(x => x.TelegramUserId).IsUnique();
             e.Property(x => x.AlertDay).HasMaxLength(10);
+            e.Property(x => x.LimitAlertDay).HasMaxLength(10);
+            e.Property(x => x.Lang).HasMaxLength(8);
+            // Умолчаний базы у FreeSignalsLeft, LossThreshold и QuietHours в модели нет
+            // намеренно: с ними EF не отправил бы при вставке значение, совпадающее с
+            // умолчанием C# (0/false), и «тихие часы: выкл.» в новой строке стали бы «вкл.».
+        });
+
+        mb.Entity<TiltAlert>(e =>
+        {
+            e.HasIndex(x => new { x.TelegramUserId, x.SentUtc });
+            e.HasIndex(x => x.SentUtc);
+            e.Property(x => x.PlayerTag).HasMaxLength(16);
+            e.Property(x => x.Kind).HasMaxLength(16);
+            e.Property(x => x.Lang).HasMaxLength(8);
+            e.Property(x => x.Choice).HasMaxLength(8);
         });
 
         mb.Entity<ClanMessage>(e =>
