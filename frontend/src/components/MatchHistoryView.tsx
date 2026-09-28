@@ -82,12 +82,15 @@ export function MatchHistoryView({ openMatchId }: { openMatchId?: number | null 
     <div className="fade-in">
       <TrackerCard state={data.tracker} onChange={setTracker} />
 
-      {agg && (agg.archetypes.length > 0 || agg.levels) && (
+      {agg && (
         <section className="card">
           <div className="card-title" style={{ marginBottom: 2 }}>{s.aggTitle}</div>
           <p className="muted small" style={{ margin: '0 0 8px' }}>{s.aggHint}</p>
           <ArchRadar rows={agg.archetypes} basePct={agg.basePct ?? 50} locked={!data.unlocked}
             onUnlock={() => openPlus()} t={t} />
+          {agg.archetypes.length === 0 && agg.archetypesLocked === 0 && (
+            <p className="muted small" style={{ margin: '4px 0 0' }}>{s.aggEmpty}</p>
+          )}
           {agg.archetypes.map(r => (
             <button
               key={r.arch.key}
