@@ -7,6 +7,16 @@ namespace ClanWarTracker.Domain.Interfaces;
 /// </summary>
 public record BotButton(string Text, string? CallbackData = null, string? Url = null);
 
+/// <summary>
+/// Итог личного сообщения. Blocked - человек не запускал бота или заблокировал его:
+/// писать ему бесполезно. Временный сбой (429, 5xx, таймаут) - это MessageId null
+/// без Blocked: пропускаем это сообщение, но не замолкаем навсегда.
+/// </summary>
+public record DmResult(int? MessageId, bool Blocked)
+{
+    public bool Delivered => MessageId is not null;
+}
+
 public interface INotificationSender
 {
     Task SendToUserAsync(long telegramUserId, string text, CancellationToken ct = default);
@@ -23,6 +33,14 @@ public interface INotificationSender
     /// </summary>
     Task<int?> SendToUserWithButtonsAsync(
         long telegramUserId, string text, IReadOnlyList<IReadOnlyList<BotButton>> rows, CancellationToken ct = default);
+
+    /// <summary>
+    /// То же, но с разбором неудачи и тихой отправкой (silent - без звука и вибрации:
+    /// так трекер боёв не пищит посреди захода).
+    /// </summary>
+    Task<DmResult> SendDmAsync(
+        long telegramUserId, string text, IReadOnlyList<IReadOnlyList<BotButton>> rows, bool silent = false,
+        CancellationToken ct = default);
 
     /// <summary>
     /// Переписывает своё сообщение в личке. rows null или пустые - кнопки убираются.

@@ -146,11 +146,13 @@ public class TiltIntroUseCase(
                 var t = BotText.For(lang);
                 var text = string.Format(t.TiltIntro, TiltMessages.TypeName(t, profile.Type),
                     after2.ToString("0"), profile.BasePercent.ToString("0"), prefs.FreeSignalsLeft);
-                var messageId = await sender.SendToUserWithButtonsAsync(tg, text,
-                    [[new BotButton(t.TiltIntroOn, "tintro|on"), new BotButton(t.TiltIntroOff, "tintro|off")]], ct);
+                var result = await sender.SendDmAsync(tg, text,
+                    [[new BotButton(t.TiltIntroOn, "tintro|on"), new BotButton(t.TiltIntroOff, "tintro|off")]], false, ct);
 
-                if (messageId is null) prefs.DmBlocked = true;
-                else sent++;
+                if (result.Blocked) prefs.DmBlocked = true;
+                else if (result.Delivered) sent++;
+                // Временный сбой: знакомство не повторяем (IntroSentUtc уже стоит) - одно
+                // пропущенное сообщение лучше риска написать человеку дважды.
                 await alertPrefs.SaveChangesAsync(ct);
             }
             catch

@@ -41,16 +41,31 @@ public class TelegramNotificationSender(ITelegramBotClient bot) : INotificationS
     }
 
     public async Task<int?> SendToUserWithButtonsAsync(
-        long telegramUserId, string text, IReadOnlyList<IReadOnlyList<BotButton>> rows, CancellationToken ct = default)
+        long telegramUserId, string text, IReadOnlyList<IReadOnlyList<BotButton>> rows, CancellationToken ct = default) =>
+        (await SendDmAsync(telegramUserId, text, rows, false, ct)).MessageId;
+
+    public async Task<DmResult> SendDmAsync(
+        long telegramUserId, string text, IReadOnlyList<IReadOnlyList<BotButton>> rows, bool silent = false,
+        CancellationToken ct = default)
     {
         try
         {
             var keyboard = await KeyboardAsync(rows, ct);
-            var message = await bot.SendMessage(telegramUserId, text, replyMarkup: keyboard, cancellationToken: ct);
-            return message.MessageId;
+            var message = await bot.SendMessage(telegramUserId, text, replyMarkup: keyboard,
+                disableNotification: silent, cancellationToken: ct);
+            return new DmResult(message.MessageId, false);
         }
-        catch (ApiRequestException) { return null; }
-        catch (HttpRequestException) { return null; }
+        catch (ApiRequestException ex)
+        {
+            // Заблокирован - только 403 и «чата нет / аккаунт удалён». Лимит (429) и
+            // сбои Telegram - временные: раньше они глушили платящего до его же сообщения боту.
+            var blocked = ex.ErrorCode == 403
+                || (ex.ErrorCode == 400 && (ex.Message.Contains("chat not found", StringComparison.OrdinalIgnoreCase)
+                                            || ex.Message.Contains("user is deactivated", StringComparison.OrdinalIgnoreCase)));
+            return new DmResult(null, blocked);
+        }
+        catch (HttpRequestException) { return new DmResult(null, false); }
+        catch (TaskCanceledException) when (!ct.IsCancellationRequested) { return new DmResult(null, false); }
     }
 
     public async Task<bool> EditUserMessageAsync(

@@ -106,8 +106,12 @@ public class PlayerAlertPrefsRepository(AppDbContext db) : IPlayerAlertPrefsRepo
         catch (DbUpdateException) when (db.ChangeTracker.Entries<PlayerAlertPrefs>().Any(e => e.State == EntityState.Added))
         {
             // Две вкладки одновременно завели настройки одному человеку: вторая упрётся
-            // в уникальный индекс. Первая уже записала то же самое - повторять незачем.
-            db.ChangeTracker.Clear();
+            // в уникальный индекс. Первая уже записала то же самое - отпускаем только
+            // нашу лишнюю строку и сохраняем остальное: сигналы и прочие изменения,
+            // ушедшие в тот же SaveChanges, иначе пропали бы вместе с ней.
+            foreach (var entry in db.ChangeTracker.Entries<PlayerAlertPrefs>().Where(e => e.State == EntityState.Added).ToList())
+                entry.State = EntityState.Detached;
+            await db.SaveChangesAsync(ct);
         }
     }
 }
