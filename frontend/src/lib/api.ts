@@ -1,5 +1,5 @@
 import { initData } from './telegram'
-import type { AppConfig, AppTab, BackgroundKey, ClanDesignKey, ClanPage, PlayerPage, HallOfFame, OwnerSponsor, Moderator, ServiceIdentity, ServicePermission, BroadcastResult, BroadcastTarget, TopStatus, SponsorSales, CampaignFunnel, ClanDiscipline, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, MetaDecks, BattleAnalysis, PlayerSheet, PlusStatus, OwnerPlus, TopPlayerRow, TopPlayerDetail, Tournament, TournamentSummary, WarJournal } from '../types'
+import type { AppConfig, AppTab, BackgroundKey, ClanDesignKey, ClanPage, PlayerPage, HallOfFame, OwnerSponsor, Moderator, ServiceIdentity, ServicePermission, BroadcastResult, BroadcastTarget, TopStatus, SponsorSales, CampaignFunnel, ClanDiscipline, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, MetaDecks, BattleAnalysis, PlayerSheet, PlusStatus, OwnerPlus, TiltProfile, TopPlayerRow, TopPlayerDetail, Tournament, TournamentSummary, WarJournal } from '../types'
 
 // Если мы на Render (production), BASE должен быть пустой строкой '', чтобы запросы шли на тот же домен.
 // Для локальной разработки (Development) оставляем localhost:5000.
@@ -166,24 +166,34 @@ export const api = {
   /** «Clanify Плюс»: статус, цены, оповещения. */
   getPlus: () => request<PlusStatus>('/api/plus'),
   /** Счёт на пропуск Плюса (7 или 30 дней) — ссылка для openInvoice. */
-  createPlusInvoice: (days: number) =>
+  /** С тегом получателя — подарок; без — себе (или «попросить в подарок»: ссылку пересылают). */
+  createPlusInvoice: (days: number, recipientTag?: string) =>
     request<{ link: string }>('/api/plus/invoice', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ days }),
+      body: JSON.stringify({ days, recipientTag: recipientTag ?? null }),
     }),
-  setTiltAlerts: (enabled: boolean) =>
-    request<{ tiltAlerts: boolean }>('/api/plus/alerts', {
+  /** Бесплатная подарочная неделя спонсора. */
+  giftFreePlus: (recipientTag: string) =>
+    request<{ recipient: string; until: string; freeGiftsLeft: number }>('/api/plus/gift-free', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ enabled }),
+      body: JSON.stringify({ recipientTag }),
+    }),
+  getTilt: () => request<TiltProfile>('/api/plus/tilt'),
+  /** Настройки «Стоп-тильта»: передаются только меняемые поля. dailyLossLimit 0 — выключить. */
+  setTiltPrefs: (prefs: { enabled?: boolean; lossThreshold?: number; dailyLossLimit?: number; quietHours?: boolean }) =>
+    request<{ tiltAlerts: boolean | null }>('/api/plus/alerts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(prefs),
     }),
   ownerGetPlus: () => request<OwnerPlus>('/api/owner/plus'),
-  ownerSetPlus: (paywall: boolean, price7: number, price30: number, trialDays: number) =>
+  ownerSetPlus: (paywall: boolean, price7: number, price30: number) =>
     request<{ paywall: boolean }>('/api/owner/plus/settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ paywall, price7, price30, trialDays }),
+      body: JSON.stringify({ paywall, price7, price30 }),
     }),
   ownerGrantPlus: (playerTag: string, days: number) =>
     request<{ playerTag: string; name: string; until: string }>('/api/owner/plus/grant', {
@@ -201,8 +211,8 @@ export const api = {
   getPlayerSheet: (tag: string) =>
     request<PlayerSheet>(`/api/players/${encodeURIComponent(tag.replace('#', ''))}/sheet`),
   /** Личный разбор боёв. tz — смещение местного времени от UTC в минутах. */
-  getMyBattles: () =>
-    request<BattleAnalysis>(`/api/players/me/battles?tz=${-new Date().getTimezoneOffset()}`),
+  getMyBattles: (lang?: string) =>
+    request<BattleAnalysis>(`/api/players/me/battles?tz=${-new Date().getTimezoneOffset()}${lang ? `&lang=${lang}` : ''}`),
   getPlayerDecks: (tag: string) =>
     request<DeckSuggestions>(`/api/players/${encodeURIComponent(tag.replace('#', ''))}/decks`),
   getClanOverview: (tag: string) =>

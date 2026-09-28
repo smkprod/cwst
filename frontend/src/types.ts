@@ -727,11 +727,6 @@ export interface ReviewAccess {
   active: boolean
   until: string | null
   source: string | null
-  /** Триал выдан только что — этим открытием. */
-  trialStarted: boolean
-  trialUsed: boolean
-  trialDays: number
-  trialMinBattles: number
 }
 
 /** Что спрятано за Плюсом — цифрами самого игрока. */
@@ -742,37 +737,91 @@ export interface ReviewLocked {
   weekdays: boolean
 }
 
-/** «Clanify Плюс»: статус, цены, оповещения. */
+/** «Clanify Плюс» и спонсорство — одна линейка: статус, цены, подарки, оповещения. */
 export interface PlusStatus {
   paywall: boolean
   active: boolean
   unlocked: boolean
   until: string | null
-  /** purchase / trial / gift / grant / sponsor */
+  /** purchase / gift / grant / sponsor */
   source: string | null
-  trialUsed: boolean
-  trialDays: number
-  trialMinBattles: number
   price7: number
   price30: number
   onSale: boolean
   linked: boolean
+  myTag: string | null
   tiltAlerts: boolean
   dmBlocked: boolean
+  freeSignalsLeft: number
+  /** 0 — спонсорство звёздами не продаётся. */
+  sponsorPrice: number
+  sponsorDays: number
+  isSponsor: boolean
+  sponsorUntil: string | null
+  /** Бесплатные подарочные недели спонсора на этот месяц. */
+  freeGiftsLeft: number
+}
+
+/** Экран «🧊 Стоп-тильт». */
+export interface TiltProfile {
+  games: number
+  minBattles: number
+  after2Games: number
+  minSamples: number
+  /** ice / boiling / volcano; null — рано судить. */
+  type: string | null
+  prevType: string | null
+  basePercent: number
+  after2Percent: number | null
+  weekTiltBattles: number
+  weekExtraLosses: number
+  weekTiltTrophies: number
+  prevWeekExtraLosses: number
+  /** W / L / D от старых к новым. */
+  lastSeries: string
+  moments14: number
+  moments14Wins: number
+  moments14Losses: number
+  recentStreak: { atUtc: string; length: number; trophies: number } | null
+  paywall: boolean
+  unlocked: boolean
+  active: boolean
+  enabled: boolean
+  freeSignalsLeft: number
+  dmBlocked: boolean
+  lossThreshold: number
+  dailyLossLimit: number | null
+  quietHours: boolean
+  pauseUntil: string | null
+  alerts: number
+  pausedPercent: number | null
+  notPausedPercent: number | null
+  recentAlerts: {
+    sentUtc: string
+    kind: string
+    lossStreak: number
+    choice: string | null
+    afterWins: number
+    afterLosses: number
+    summarized: boolean
+  }[]
 }
 
 export interface OwnerPlus {
   paywall: boolean
   price7: number
   price30: number
-  trialDays: number
   active: number
-  trials: number
-  trialsPaid: number
   buyers: number
   purchases: number
   stars: number
   starsWeek: number
+  gifts: number
+  alertsWeek: number
+  pausedWeek: number
+  mutedWeek: number
+  freeUsers: number
+  freeThenBought: number
   recent: {
     telegramUserId: number
     playerTag: string | null
