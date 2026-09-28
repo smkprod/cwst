@@ -196,7 +196,8 @@ function Deck({ side, t }: { side: MatchSide; t: Translations }) {
   return (
     <div className="trk-deck">
       {side.deck.map((c, i) => <Card key={`${c.cardId}-${i}`} c={c} t={t} />)}
-      {side.towerTroop && <Card c={side.towerTroop} t={t} tower />}
+      {/* Без иконки войско башни выглядело пустой девятой картой — такое не показываем */}
+      {side.towerTroop?.iconUrl && <Card c={side.towerTroop} t={t} tower />}
     </div>
   )
 }
@@ -209,6 +210,7 @@ export function Card({ c, t, tower = false }: { c: MatchCard; t: Translations; t
       title={`${c.name}${c.form === 2 ? ` · ${t.trk.hero}` : c.form === 1 ? ` · ${t.trk.evo}` : ''}`}>
       {c.iconUrl ? <img src={c.iconUrl} alt={c.name} loading="lazy" /> : <span className="wtop-card-blank" />}
       {badge && <span className="trk-card-badge">{badge}</span>}
+      {tower && <span className="trk-card-tower-mark">🏰</span>}
       {c.level > 0 && <span className="trk-card-level">{c.level}</span>}
     </span>
   )
