@@ -76,6 +76,7 @@ public static class DependencyInjection
         services.AddScoped<IActivityRepository, ActivityRepository>();
         services.AddScoped<ITopPlayerRepository, TopPlayerRepository>();
         services.AddScoped<IMetaRepository, MetaRepository>();
+        services.AddScoped<IChallengeRepository, ChallengeRepository>();
         services.AddScoped<IPlayerBattleRepository, PlayerBattleRepository>();
         services.AddScoped<IEntitlementRepository, EntitlementRepository>();
         services.AddScoped<IPlayerAlertPrefsRepository, PlayerAlertPrefsRepository>();
@@ -618,6 +619,19 @@ CREATE TABLE IF NOT EXISTS ""MetaMatchupDays"" (
 );");
         await db.Database.ExecuteSqlRawAsync(
             "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_MetaMatchupDays_DayUtc_CardKey_OppCardKey\" ON \"MetaMatchupDays\" (\"DayUtc\", \"CardKey\", \"OppCardKey\");");
+        // Участники уикенд-челленджа. Билеты считаются из журнала боёв, здесь только кто вступил.
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""ChallengeEntries"" (
+    ""Id"" serial PRIMARY KEY,
+    ""EventId"" varchar(32) NOT NULL,
+    ""TelegramUserId"" bigint NOT NULL,
+    ""PlayerTag"" varchar(16) NOT NULL,
+    ""Name"" varchar(64) NOT NULL,
+    ""JoinedUtc"" timestamptz NOT NULL
+);");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_ChallengeEntries_EventId_TelegramUserId\" ON \"ChallengeEntries\" (\"EventId\", \"TelegramUserId\");");
+
         // Бои топа колода против колоды - для статистики матчапа в разборе боя.
         await db.Database.ExecuteSqlRawAsync(@"
 CREATE TABLE IF NOT EXISTS ""MetaBattles"" (

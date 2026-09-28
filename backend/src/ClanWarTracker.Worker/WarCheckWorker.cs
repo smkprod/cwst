@@ -90,6 +90,18 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
             {
                 logger.LogError(ex, "Stop-tilt watch failed");
             }
+
+            // Уикенд-челлендж: пока идёт, по кругу подтягиваем бои участников, чтобы
+            // таблица жила и у тех, кто страницу не открывает.
+            try
+            {
+                using var scope = scopeFactory.CreateScope();
+                await scope.ServiceProvider.GetRequiredService<ChallengeUseCase>().SyncAsync(40, stoppingToken);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Challenge sync failed");
+            }
         }
         while (await timer.WaitForNextTickAsync(stoppingToken));
     }
