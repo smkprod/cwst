@@ -91,6 +91,36 @@ public class TelegramNotificationSender(ITelegramBotClient bot) : INotificationS
         catch (HttpRequestException) { return false; }
     }
 
+    public async Task<IReadOnlyList<string>> UploadPhotosAsync(
+        long chatId, IReadOnlyList<(Stream Content, string FileName)> photos, CancellationToken ct = default)
+    {
+        if (photos.Count == 1)
+        {
+            var m = await bot.SendPhoto(chatId,
+                global::Telegram.Bot.Types.InputFile.FromStream(photos[0].Content, photos[0].FileName), cancellationToken: ct);
+            return [m.Photo!.Last().FileId];
+        }
+        var album = photos.Select(p => (global::Telegram.Bot.Types.IAlbumInputMedia)new global::Telegram.Bot.Types.InputMediaPhoto(
+            global::Telegram.Bot.Types.InputFile.FromStream(p.Content, p.FileName)));
+        var sent = await bot.SendMediaGroup(chatId, album, cancellationToken: ct);
+        // Самый крупный размер - последний в списке
+        return sent.Select(m => m.Photo!.Last().FileId).ToList();
+    }
+
+    public async Task SendPhotosAsync(
+        long chatId, IReadOnlyList<string> fileIds, string? caption, int? threadId = null, CancellationToken ct = default)
+    {
+        if (fileIds.Count == 1)
+        {
+            await bot.SendPhoto(chatId, global::Telegram.Bot.Types.InputFile.FromFileId(fileIds[0]),
+                caption: caption, messageThreadId: threadId, cancellationToken: ct);
+            return;
+        }
+        var album = fileIds.Select((id, i) => (global::Telegram.Bot.Types.IAlbumInputMedia)new global::Telegram.Bot.Types.InputMediaPhoto(
+            global::Telegram.Bot.Types.InputFile.FromFileId(id)) { Caption = i == 0 ? caption : null });
+        await bot.SendMediaGroup(chatId, album, messageThreadId: threadId, cancellationToken: ct);
+    }
+
     public async Task<bool> DeleteUserMessageAsync(long chatId, int messageId, CancellationToken ct = default)
     {
         try
