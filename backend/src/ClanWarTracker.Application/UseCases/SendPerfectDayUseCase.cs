@@ -21,6 +21,8 @@ public class SendPerfectDayUseCase(
     /// <summary>4 атаки × 225 (все победы) — максимум и «идеальный день».</summary>
     private const int PerfectDayFame = 900;
 
+    private const int MaxDecksPerDay = 4;
+
     /// <summary>
     /// Кто уже получал карточку за первый идеальный день. Ключ — тег игрока.
     ///
@@ -67,9 +69,9 @@ public class SendPerfectDayUseCase(
                 : await snapshots.GetSnapshotAsync(clan.Id, war.SeasonId, war.SectionIndex, war.PeriodIndex - 1, ct);
             if (!isFirstWarDay && prevDay is null) continue;   // базы нет — пропускаем клан
 
-            var prevFameByTag = (prevDay?.Players ?? [])
+            var prevByTag = (prevDay?.Players ?? [])
                 .GroupBy(p => p.PlayerTag, StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(g => g.Key, g => g.First().Fame, StringComparer.OrdinalIgnoreCase);
+                .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
             // Ушедших из клана не чествуем
             Dictionary<string, string> memberRoles;
@@ -84,13 +86,23 @@ public class SendPerfectDayUseCase(
                 // В остальные дни игрока обязано быть во вчерашнем снимке — иначе он вступил
                 // среди недели, его вчерашняя слава неизвестна, и ноль подставлять нельзя
                 // (см. комментарий выше).
-                int prevFame;
-                if (isFirstWarDay) prevFame = 0;
-                else if (!prevFameByTag.TryGetValue(p.PlayerTag, out prevFame)) continue;
+                int prevFame, prevDecks;
+                if (isFirstWarDay) { prevFame = 0; prevDecks = 0; }
+                else if (prevByTag.TryGetValue(p.PlayerTag, out var prev)) { prevFame = prev.Fame; prevDecks = prev.DecksUsed; }
+                else continue;
 
                 // Ровно максимум: меньше — не идеальный день, а больше за день физически
                 // не набрать, значит база врёт — и это не повод писать в чат.
                 if (p.Fame - prevFame != PerfectDayFame) continue;
+
+                // И ровно четыре колоды с момента вчерашнего снимка. Снимок делается раз в
+                // несколько минут, и бои, доигранные в последние минуты прошлого дня, в него
+                // не попадают — их медали прибавлялись к сегодняшним. Так игрок с 800 за день
+                // и 100 за вчерашний добор получил «900» на весь чат. Лишняя колода в дельте
+                // значит, что в ней сидит вчерашний день, и честного «за сегодня» тут нет.
+                // В первый военный день вчерашнего снимка нет (а DecksUsed включает колоды
+                // тренировки) — там вся недельная слава и так сегодняшняя, проверять нечего.
+                if (!isFirstWarDay && p.DecksUsed - prevDecks != MaxDecksPerDay) continue;
 
                 var key = $"{clan.Id}:{war.SeasonId}:{war.SectionIndex}:{war.PeriodIndex}:{p.PlayerTag}";
                 if (congratulatedKeys.Contains(key)) continue;
