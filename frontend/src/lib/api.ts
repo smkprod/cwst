@@ -1,5 +1,5 @@
 import { initData } from './telegram'
-import type { AppConfig, AppTab, BackgroundKey, ClanDesignKey, ClanPage, PlayerPage, HallOfFame, OwnerSponsor, Moderator, ServiceIdentity, ServicePermission, BroadcastResult, BroadcastTarget, TopStatus, SponsorSales, CampaignFunnel, ClanDiscipline, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, MetaDecks, BattleAnalysis, PlayerSheet, PlusStatus, OwnerPlus, TiltProfile, TopPlayerRow, TopPlayerDetail, Tournament, TournamentSummary, WarJournal } from '../types'
+import type { AppConfig, AppTab, BackgroundKey, ClanDesignKey, ClanPage, PlayerPage, HallOfFame, OwnerSponsor, Moderator, ServiceIdentity, ServicePermission, BroadcastResult, BroadcastTarget, TopStatus, SponsorSales, CampaignFunnel, ClanDiscipline, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, MetaDecks, BattleAnalysis, PlayerSheet, PlusStatus, OwnerPlus, TiltProfile, TrackerState, MatchHistory, MatchReport, TopPlayerRow, TopPlayerDetail, Tournament, TournamentSummary, WarJournal } from '../types'
 
 // Если мы на Render (production), BASE должен быть пустой строкой '', чтобы запросы шли на тот же домен.
 // Для локальной разработки (Development) оставляем localhost:5000.
@@ -181,6 +181,28 @@ export const api = {
       body: JSON.stringify({ recipientTag }),
     }),
   getTilt: () => request<TiltProfile>('/api/plus/tilt'),
+  getTracker: () => request<TrackerState>('/api/players/me/tracker'),
+  setTracker: (enabled: boolean, tz: number, lang: string) =>
+    request<TrackerState>('/api/players/me/tracker', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled, tz, lang }),
+    }),
+  getMatches: (q: { before?: string | null; result?: string; mode?: string; arch?: string | null; lang: string }) => {
+    const p = new URLSearchParams({ lang: q.lang })
+    if (q.before) p.set('before', q.before)
+    if (q.result && q.result !== 'all') p.set('result', q.result)
+    if (q.mode && q.mode !== 'all') p.set('mode', q.mode)
+    if (q.arch) p.set('arch', q.arch)
+    return request<MatchHistory>(`/api/players/me/matches?${p}`)
+  },
+  getMatch: (id: number, lang: string) => request<MatchReport>(`/api/players/me/matches/${id}?lang=${lang}`),
+  ownerSetTracker: (dm: boolean, beta: string) =>
+    request<{ dm: boolean; beta: string }>('/api/owner/tracker/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dm, beta }),
+    }),
   /** Настройки «Стоп-тильта»: передаются только меняемые поля. dailyLossLimit 0 — выключить. */
   setTiltPrefs: (prefs: { enabled?: boolean; lossThreshold?: number; dailyLossLimit?: number; quietHours?: boolean }) =>
     request<{ tiltAlerts: boolean | null }>('/api/plus/alerts', {

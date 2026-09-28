@@ -44,11 +44,15 @@ public interface INotificationSender
 
     /// <summary>
     /// Переписывает своё сообщение в личке. rows null или пустые - кнопки убираются.
-    /// false - сообщение удалено или текст не изменился.
+    /// false - сообщение удалено или недоступно. Тот же текст, что уже стоит, - успех.
+    /// Правка не даёт уведомления - на этом держится тихая карточка трекера.
     /// </summary>
     Task<bool> EditUserMessageAsync(
         long chatId, int messageId, string text, IReadOnlyList<IReadOnlyList<BotButton>>? rows = null,
         CancellationToken ct = default);
+
+    /// <summary>Удаляет своё сообщение в личке. false - не вышло (старше 48 часов или уже удалено).</summary>
+    Task<bool> DeleteUserMessageAsync(long chatId, int messageId, CancellationToken ct = default);
 
     /// <param name="threadId">ID темы (Topic) форума группы — если клан настроен через /setup
     /// внутри темы, сообщение нужно слать туда, а не в общий чат. Null — общий чат/группа без тем.</param>

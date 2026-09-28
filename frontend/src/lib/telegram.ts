@@ -42,6 +42,15 @@ export const startParam: string =
   ?? new URLSearchParams(window.location.search).get('tgWebAppStartParam')
   ?? ''
 
+/** Бой из карточки трекера: startapp=m_123 открывает отчёт об этом бое. */
+export const startMatchId: number | null = (() => {
+  const m = /^m_(\d+)$/.exec(startParam)
+  return m ? Number(m[1]) : null
+})()
+
+/** Параметр ведёт в историю боёв: «📜 Все бои», «📖 Разбор» из карточки трекера. */
+export const startToMatches = startParam === 'matches' || startMatchId !== null
+
 /**
  * Попросить разрешение писать в личку — для «Стоп-тильта». Без него бот не может
  * написать тому, кто открыл приложение, но ни разу не нажал «Старт» в чате с ним.

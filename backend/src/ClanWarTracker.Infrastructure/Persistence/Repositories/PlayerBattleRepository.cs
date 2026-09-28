@@ -58,6 +58,9 @@ public class PlayerBattleRepository(AppDbContext db) : IPlayerBattleRepository
             .OrderBy(b => b.BattleTimeUtc)
             .ToListAsync(ct);
 
+    public Task<PlayerBattle?> GetAsync(int id, CancellationToken ct = default) =>
+        db.PlayerBattles.AsNoTracking().FirstOrDefaultAsync(b => b.Id == id, ct);
+
     public Task<int> PurgeOlderThanAsync(DateTime utc, CancellationToken ct = default) =>
         db.PlayerBattles.Where(b => b.BattleTimeUtc < utc).ExecuteDeleteAsync(ct);
 }
