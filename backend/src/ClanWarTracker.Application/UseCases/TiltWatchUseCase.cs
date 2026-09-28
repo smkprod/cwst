@@ -226,11 +226,11 @@ public class TiltWatchUseCase(
         await alerts.AddAsync(alert, ct);
         await alerts.SaveChangesAsync(ct);   // номер сигнала нужен кнопкам
 
-        var messageId = await sender.SendToUserWithButtonsAsync(tg, text, TiltMessages.AlertButtons(t, alert.Id), ct);
+        var sent = await sender.SendDmAsync(tg, text, TiltMessages.AlertButtons(t, alert.Id), false, ct);
 
         prefs ??= await alertPrefs.GetOrCreateAsync(tg, ct);
         prefs.LastAlertBattleUtc = trigger;
-        if (messageId is int id)
+        if (sent.MessageId is int id)
         {
             alert.MessageId = id;
             prefs.LastAlertSentUtc = now;
@@ -239,8 +239,9 @@ public class TiltWatchUseCase(
         }
         else
         {
-            // Человек не запускал бота или заблокировал его: не пытаемся, пока не вернётся.
-            prefs.DmBlocked = true;
+            // Не запускал бота или заблокировал - не пытаемся, пока не вернётся. Временный
+            // сбой Telegram - просто пропускаем эту серию, не замолкая навсегда.
+            if (sent.Blocked) prefs.DmBlocked = true;
             alert.SummaryUtc = now;
             c.Undelivered++;
         }
@@ -279,12 +280,11 @@ public class TiltWatchUseCase(
         await alerts.AddAsync(alert, ct);
         await alerts.SaveChangesAsync(ct);
 
-        var messageId = await sender.SendToUserWithButtonsAsync(tg, text,
-            [[new BotButton(t.TiltBtnMute, $"tilt|m|{alert.Id}")]], ct);
-        alert.MessageId = messageId;
+        var sent = await sender.SendDmAsync(tg, text, [[new BotButton(t.TiltBtnMute, $"tilt|m|{alert.Id}")]], false, ct);
+        alert.MessageId = sent.MessageId;
         prefs.LimitAlertDay = day;
-        if (messageId is null) prefs.DmBlocked = true;
-        else c.Alerts++;
+        if (sent.Blocked) prefs.DmBlocked = true;
+        else if (sent.Delivered) c.Alerts++;
     }
 
     /// <summary>

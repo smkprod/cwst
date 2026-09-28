@@ -33,11 +33,23 @@ public class PlayerBattleRepository(AppDbContext db) : IPlayerBattleRepository
         {
             // Гонка двух сборов одного игрока (воркер и открытый разбор): второй
             // упрётся в индекс. Бои уже записаны первым - терять нечего.
-            db.ChangeTracker.Clear();
+            DetachBattles();
             return 0;
         }
-        db.ChangeTracker.Clear();
+        DetachBattles();
         return fresh.Count;
+    }
+
+    /// <summary>
+    /// Отпускаем из контекста только бои. Раньше здесь был ChangeTracker.Clear(), и он
+    /// отпускал всё подряд - в том числе настройки «Стоп-тильта», загруженные тем же
+    /// запросом до записи боёв. Их изменения потом молча не сохранялись: сигнал
+    /// приходил второй раз, а бесплатные сигналы не списывались.
+    /// </summary>
+    private void DetachBattles()
+    {
+        foreach (var entry in db.ChangeTracker.Entries<PlayerBattle>().ToList())
+            entry.State = EntityState.Detached;
     }
 
     public Task<List<PlayerBattle>> GetSinceAsync(string playerTag, DateTime sinceUtc, CancellationToken ct = default) =>
