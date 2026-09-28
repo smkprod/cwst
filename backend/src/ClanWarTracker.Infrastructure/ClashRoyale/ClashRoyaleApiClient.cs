@@ -466,8 +466,10 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
             }
 
             var data = await resp.Content.ReadFromJsonAsync<CardCatalogResponse>(cancellationToken: ct);
-            // items — обычные карты, supportItems — башенные войска (в колодах они не участвуют)
-            var all = (data?.Items ?? []).Where(c => CardIcon(c.IconUrls) != "");
+            // items — обычные карты, supportItems — башенные войска. Войска в колоды не
+            // входят, но нужны разбору боя: без них у «башни» в отчёте не было иконки.
+            // Поиск в справочнике везде идёт по имени или id, так что лишние записи не мешают.
+            var all = (data?.Items ?? []).Concat(data?.SupportItems ?? []).Where(c => CardIcon(c.IconUrls) != "");
 
             return all
                 .GroupBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
@@ -490,7 +492,8 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
     }
 
     private record CardCatalogResponse(
-        [property: JsonPropertyName("items")] List<CatalogCardResponse>? Items);
+        [property: JsonPropertyName("items")] List<CatalogCardResponse>? Items,
+        [property: JsonPropertyName("supportItems")] List<CatalogCardResponse>? SupportItems = null);
 
     private record CatalogCardResponse(
         [property: JsonPropertyName("name")] string Name,
