@@ -1580,4 +1580,26 @@ export interface MatchReport {
   lockedCount: number
   hasDetail: boolean
   unlocked: boolean
+  matchup?: Matchup | null
+}
+
+export interface MatchupTier {
+  /** exact | seven | six | wincon4 | wincon */
+  key: string
+  wins: number
+  draws: number
+  losses: number
+  games: number
+  winPercent: number
+  reliability: 'reliable' | 'adequate' | 'low'
+}
+
+export interface Matchup {
+  top: MatchupTier[] | null
+  topBattles: number
+  headline: string | null
+  own: MatchupTier[] | null
+  ownLocked: boolean
+  me: { avgElixir: number; cycle: number } | null
+  them: { avgElixir: number; cycle: number } | null
 }
