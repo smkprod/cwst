@@ -39,7 +39,10 @@ function ago(iso: string | null): string {
 
 export function OwnerPanel({ me }: { me: ServiceIdentity }) {
   const [state, setState] = useState<State>({ kind: 'loading' })
-  const [section, setSection] = useState<Section>('overview')
+  const [section, setSection] = useState<Section>(() => {
+    try { return (localStorage.getItem('cwst_owner_section') as Section | null) ?? 'overview' } catch { return 'overview' }
+  })
+  const [menuOpen, setMenuOpen] = useState(false)
   const { t } = useT()
 
   // Права разбираются здесь один раз и дальше передаются вниз. Сервер всё равно
@@ -62,49 +65,72 @@ export function OwnerPanel({ me }: { me: ServiceIdentity }) {
   if (state.kind === 'error') return <p className="center muted">{t.owner.error}</p>
 
   const { stats, clans } = state
-  const sections: { key: Section; label: string }[] = [
-    { key: 'overview', label: '📊 Сводка' },
-    { key: 'clans', label: `🏰 Кланы ${clans.length}` },
-    // Рассылка и модераторы — только владельцу. Вкладки, которые всё равно
-    // ответят отказом, лучше не рисовать вовсе.
-    ...(can('Broadcast') ? [{ key: 'broadcast' as Section, label: '📣 Рассылка' }] : []),
-    ...(can('Sponsors') ? [{ key: 'plus' as Section, label: '💎 Плюс' }] : []),
-    ...(can('Sponsors') ? [{ key: 'sponsors' as Section, label: '★ Спонсоры' }] : []),
-    ...(can('ManageModerators') ? [{ key: 'moderators' as Section, label: '🛡 Модераторы' }] : []),
-    ...(can('AppSettings') ? [{ key: 'settings' as Section, label: '⚙️ Вкладки' }] : []),
-    ...(can('Maintenance') ? [{ key: 'top' as Section, label: '🌍 Топ' }] : []),
-    ...(can('AppSettings') ? [{ key: 'campaigns' as Section, label: '📈 Кампании' }] : []),
+  // Рассылка и модераторы — только владельцу. Разделы, которые всё равно
+  // ответят отказом, лучше не рисовать вовсе.
+  const sections: { key: Section; icon: string; label: string; hint: string }[] = [
+    { key: 'overview', icon: '📊', label: 'Сводка', hint: 'Игроки, кланы, активность' },
+    { key: 'clans', icon: '🏰', label: `Кланы · ${clans.length}`, hint: 'Список, вход в клан, удаление' },
+    ...(can('Broadcast') ? [{ key: 'broadcast' as Section, icon: '📣', label: 'Рассылка', hint: 'Текст и скрины всем' }] : []),
+    ...(can('Sponsors') ? [{ key: 'plus' as Section, icon: '💎', label: 'Плюс', hint: 'Цены, продажи, трекер' }] : []),
+    ...(can('Sponsors') ? [{ key: 'sponsors' as Section, icon: '★', label: 'Спонсоры', hint: 'Выдача и оплаты' }] : []),
+    ...(can('AppSettings') ? [{ key: 'settings' as Section, icon: '⚙️', label: 'Вкладки', hint: 'Меню и челлендж' }] : []),
+    ...(can('AppSettings') ? [{ key: 'campaigns' as Section, icon: '📈', label: 'Кампании', hint: 'Реклама и ссылки' }] : []),
+    ...(can('Maintenance') ? [{ key: 'top' as Section, icon: '🌍', label: 'Топ', hint: 'Снимок и мета' }] : []),
+    ...(can('ManageModerators') ? [{ key: 'moderators' as Section, icon: '🛡', label: 'Модераторы', hint: 'Права помощников' }] : []),
   ]
+  // Запомненный раздел мог пропасть (права сняли) — тогда сводка
+  const current = sections.find(s => s.key === section) ?? sections[0]
+  const pick = (key: Section) => {
+    haptic('light')
+    setSection(key)
+    setMenuOpen(false)
+    try { localStorage.setItem('cwst_owner_section', key) } catch { /* без памяти — не страшно */ }
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   return (
     <div>
-      <h2 className="section-title">{t.owner.title}</h2>
+      <div className="adm-head">
+        <h2 className="section-title" style={{ margin: 0 }}>{t.owner.title}</h2>
+        <button className={`adm-burger ${menuOpen ? 'adm-burger-on' : ''}`} aria-expanded={menuOpen}
+          onClick={() => { haptic('light'); setMenuOpen(o => !o) }}>
+          <span className="adm-burger-lines"><i /><i /><i /></span>
+          <span className="adm-burger-cur">{current.icon} {current.label}</span>
+          <span className="adm-burger-chev">▾</span>
+        </button>
+      </div>
 
       {me.role !== 'owner' && <p className="muted small adm-role-note">{t.owner.moderatorNote}</p>}
 
-      <div className="adm-tabs">
-        {sections.map(s => (
-          <button
-            key={s.key}
-            className={`adm-tab ${section === s.key ? 'adm-tab-on' : ''}`}
-            onClick={() => { haptic('light'); setSection(s.key) }}
-          >
-            {s.label}
-          </button>
-        ))}
-      </div>
+      {menuOpen && (
+        <>
+          <div className="adm-menu-backdrop" onClick={() => setMenuOpen(false)} />
+          <nav className="adm-menu fade-up">
+            {sections.map(s => (
+              <button key={s.key} className={`adm-menu-item ${current.key === s.key ? 'adm-menu-on' : ''}`}
+                onClick={() => pick(s.key)}>
+                <span className="adm-menu-ic">{s.icon}</span>
+                <span className="adm-menu-text">
+                  <b>{s.label}</b>
+                  <span className="muted small">{s.hint}</span>
+                </span>
+              </button>
+            ))}
+          </nav>
+        </>
+      )}
 
-      {section === 'overview' && <Overview stats={stats} clans={clans} />}
-      {section === 'clans' && <ClansSection clans={clans} onChanged={load} can={can} t={t} />}
-      {section === 'broadcast' && can('Broadcast') && (
+      {current.key === 'overview' && <Overview stats={stats} clans={clans} />}
+      {current.key === 'clans' && <ClansSection clans={clans} onChanged={load} can={can} t={t} />}
+      {current.key === 'broadcast' && can('Broadcast') && (
         <BroadcastBox dmCount={stats.usersReachableByDm} chatCount={stats.chatsWithBot} t={t} />
       )}
-      {section === 'plus' && can('Sponsors') && <PlusSection t={t} />}
-      {section === 'sponsors' && can('Sponsors') && <><SponsorSalesCard t={t} /><SponsorsSection t={t} /></>}
-      {section === 'moderators' && can('ManageModerators') && <ModeratorsSection can={can} t={t} />}
-      {section === 'settings' && can('AppSettings') && <TabsSection t={t} />}
-      {section === 'top' && can('Maintenance') && <TopSection t={t} />}
-      {section === 'campaigns' && can('AppSettings') && <CampaignsSection t={t} />}
+      {current.key === 'plus' && can('Sponsors') && <PlusSection t={t} />}
+      {current.key === 'sponsors' && can('Sponsors') && <><SponsorSalesCard t={t} /><SponsorsSection t={t} /></>}
+      {current.key === 'moderators' && can('ManageModerators') && <ModeratorsSection can={can} t={t} />}
+      {current.key === 'settings' && can('AppSettings') && <TabsSection t={t} />}
+      {current.key === 'top' && can('Maintenance') && <TopSection t={t} />}
+      {current.key === 'campaigns' && can('AppSettings') && <CampaignsSection t={t} />}
     </div>
   )
 }
