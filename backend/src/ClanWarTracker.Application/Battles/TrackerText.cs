@@ -72,6 +72,12 @@ public static class TrackerText
     public static string Trophies(int? change) =>
         change is int c ? TiltMessages.Signed(c) : "±0";
 
+    /// <summary>«📊 В топ-500 такой матчап: 58% побед (224 боя)» - только при достаточной выборке.</summary>
+    public static string? Matchup(BotText t, MatchupStats.Result? r) =>
+        r?.Headline is { } h
+            ? string.Format(t.TrkMatchup, h.WinPercent.ToString("0", CultureInfo.InvariantCulture), h.Games)
+            : null;
+
     /// <summary>Строка боя над тильт-сигналом: «Бой 4: 0–1 против Golem · −29🏆».</summary>
     public static string AlertPrefix(BotText t, MatchReport.Report r) =>
         string.Format(t.TrkAlertPrefix, r.Session.Index, r.CrownsFor, r.CrownsAgainst, ArchLabel(t, r.Arch), Trophies(r.TrophyChange));
@@ -80,7 +86,8 @@ public static class TrackerText
     /// <param name="plusLine">Строка Плюса уже со значком (📈 или 🎁) или null.</param>
     public static string Card(
         BotText t, MatchReport.Report r, IReadOnlyList<PlayerBattle> session, int tz,
-        IReadOnlyDictionary<int, CrCatalogCard> catalog, string? plusLine, DateTime? pauseUntilUtc)
+        IReadOnlyDictionary<int, CrCatalogCard> catalog, string? plusLine, DateTime? pauseUntilUtc,
+        string? matchupLine = null)
     {
         var lines = new List<string>
         {
@@ -92,6 +99,7 @@ public static class TrackerText
                 r.Opp.Name ?? "?", ArchLabel(t, r.Arch)),
         };
         if (Verdict(t, r.Verdict, catalog) is { } verdict) lines.Add(verdict);
+        if (matchupLine is not null) lines.Add(matchupLine);
         if (plusLine is not null) lines.Add(plusLine);
         if (pauseUntilUtc is DateTime pause) lines.Add(string.Format(t.TrkTiltPause, pause.AddMinutes(tz).ToString("HH:mm")));
         return string.Join("\n", lines);

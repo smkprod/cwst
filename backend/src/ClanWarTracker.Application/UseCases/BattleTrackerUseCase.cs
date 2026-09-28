@@ -1,4 +1,5 @@
 using ClanWarTracker.Application.Battles;
+using ClanWarTracker.Application.Meta;
 using ClanWarTracker.Application.Notifications;
 using ClanWarTracker.Domain.Entities;
 using ClanWarTracker.Domain.Interfaces;
@@ -25,6 +26,7 @@ public class BattleTrackerUseCase(
     ISentNotificationRepository sentLog,
     IServiceSettingRepository settings,
     IClashRoyaleApi crApi,
+    IMetaRepository meta,
     INotificationSender sender)
 {
     /// <summary>Рубильник владельца: «off» - новых карточек и итогов нет, правки остаются.</summary>
@@ -115,7 +117,8 @@ public class BattleTrackerUseCase(
 
                     var plusLine = PlusLine(c, newest, session, report, catalog);
                     var text = TrackerText.Card(c.T, report, session, c.Tz, catalog, plusLine,
-                        p.PauseUntilUtc > c.Now ? p.PauseUntilUtc : null);
+                        p.PauseUntilUtc > c.Now ? p.PauseUntilUtc : null,
+                        TrackerText.Matchup(c.T, await MatchupAsync(newest, catalog, ct)));
                     var buttons = TrackerText.CardButtons(c.T, newest.Id);
 
                     // Под карточкой уже громкий тильт-сигнал - переносим карточку под него,
@@ -169,6 +172,21 @@ public class BattleTrackerUseCase(
         if (newest.Result >= 0 || p.TrackerHintBattleUtc >= midnight) return null;
         p.TrackerHintBattleUtc = newest.BattleTimeUtc;
         return "🎁 " + line;
+    }
+
+    /// <summary>Матчап по боям топа. Сбой или пустая неделя - просто без строки.</summary>
+    private async Task<MatchupStats.Result?> MatchupAsync(
+        PlayerBattle b, IReadOnlyDictionary<int, CrCatalogCard> catalog, CancellationToken ct)
+    {
+        try
+        {
+            var window = await MatchupWindow.LoadAsync(meta, ct);
+            return window is null ? null : MatchupStats.FromTop(b.DeckKey, b.OppDeckKey, window, catalog);
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     /// <summary>После карточки пришёл тильт-сигнал (он ниже карточки в чате).</summary>

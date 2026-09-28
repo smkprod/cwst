@@ -207,7 +207,10 @@ public class HarvestTopPlayersUseCase(
                 .ToList();
 
             var keepFrom = DateOnly.Parse(day).AddDays(-(MetaKeepDays - 1)).ToString("yyyy-MM-dd");
-            await meta.ReplaceDayAsync(day, decks, matchups, keepFrom, ct);
+            var games = (result.Games ?? [])
+                .Select(g => new MetaBattle { DayUtc = day, DeckA = g.DeckA, DeckB = g.DeckB, Result = g.Result })
+                .ToList();
+            await meta.ReplaceDayAsync(day, decks, matchups, keepFrom, ct, games);
 
             var read = logs.Take(MetaPlayers).Count(l => l is not null);
             return $"мета: журналов {read}, не открылось {failures}, боёв {result.Battles}, " +
