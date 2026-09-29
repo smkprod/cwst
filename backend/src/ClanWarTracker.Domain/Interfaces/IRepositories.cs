@@ -494,4 +494,7 @@ public interface IChallengeRepository
     Task<List<ChallengeEntry>> GetEntriesAsync(string eventId, CancellationToken ct = default);
     Task<ChallengeEntry?> GetEntryAsync(string eventId, long telegramUserId, CancellationToken ct = default);
     Task AddAsync(ChallengeEntry entry, CancellationToken ct = default);
+
+    /// <summary>Все события, в которых кто-то участвует, и сколько там участников.</summary>
+    Task<List<(string EventId, int Count, DateTime LastJoinedUtc)>> GetEventCountsAsync(CancellationToken ct = default);
 }
