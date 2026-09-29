@@ -68,7 +68,8 @@ public class OwnerController(
 
     /// <summary>
     /// POST /api/owner/challenge/restore — вернуть участников другой версии события: текущий
-    /// челлендж (с его временем и призом) продолжается под её номером.
+    /// челлендж (с его временем и призом) продолжается под её номером, а вступившие в
+    /// текущую версию переносятся туда же - таблицы объединяются.
     /// </summary>
     [HttpPost("challenge/restore")]
     public async Task<IActionResult> RestoreChallenge([FromBody] ChallengeRestoreRequest req, CancellationToken ct)
@@ -77,6 +78,9 @@ public class OwnerController(
         var known = (await challengeEntries.GetEventCountsAsync(ct)).Any(x => x.EventId == req.EventId);
         if (!known) return NotFound(new { error = "event_not_found" });
         var e = await challenge.CurrentAsync(ct);
+        // Кто успел вступить в текущую версию, переезжает вместе со всеми - иначе
+        // возврат старых участников выбросил бы из таблицы новых.
+        await challengeEntries.MergeAsync(e.Id, req.EventId, ct);
         await challenge.SaveAsync(e with { Id = req.EventId }, ct);
         return await GetChallenge(ct);
     }

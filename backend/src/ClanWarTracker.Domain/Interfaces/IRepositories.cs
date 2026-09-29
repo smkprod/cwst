@@ -497,4 +497,10 @@ public interface IChallengeRepository
 
     /// <summary>Все события, в которых кто-то участвует, и сколько там участников.</summary>
     Task<List<(string EventId, int Count, DateTime LastJoinedUtc)>> GetEventCountsAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Переносит участников одного события в другое. Кто есть в обоих - остаётся одна
+    /// запись, с более ранним вступлением. Возвращает, сколько перенесено.
+    /// </summary>
+    Task<int> MergeAsync(string fromEventId, string toEventId, CancellationToken ct = default);
 }
