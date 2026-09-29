@@ -1643,4 +1643,6 @@ export interface OwnerChallenge {
   endUtc: string
   status: 'upcoming' | 'live' | 'ended'
   participants?: number
+  /** Участники других версий события — их можно вернуть. */
+  others?: { id: string; participants: number; lastJoinedUtc: string }[]
 }

@@ -45,7 +45,10 @@ public class OwnerController(
     IChallengeRepository challengeEntries,
     ILogger<OwnerController> logger) : ControllerBase
 {
-    public record ChallengeRequest(string? Title, string? Prize, DateTime StartUtc, DateTime EndUtc);
+    /// <param name="NewEvent">Начать новый челлендж с пустой таблицей. Без него правка времени
+    /// оставляет тех же участников.</param>
+    public record ChallengeRequest(string? Title, string? Prize, DateTime StartUtc, DateTime EndUtc, bool NewEvent = false);
+    public record ChallengeRestoreRequest(string EventId);
 
     /// <summary>GET /api/owner/challenge — текущий челлендж и сколько вступило.</summary>
     [HttpGet("challenge")]
@@ -53,13 +56,35 @@ public class OwnerController(
     {
         if (await DenyAsync(ServicePermission.AppSettings, ct) is { } deny) return deny;
         var e = await challenge.CurrentAsync(ct);
-        var count = (await challengeEntries.GetEntriesAsync(e.Id, ct)).Count;
-        return Ok(new { e.Id, e.Title, e.Prize, e.StartUtc, e.EndUtc, status = e.Status(DateTime.UtcNow), participants = count });
+        var events = await challengeEntries.GetEventCountsAsync(ct);
+        var count = events.FirstOrDefault(x => x.EventId == e.Id).Count;
+        // Участники других версий события - чтобы случайная смена времени не теряла людей
+        var others = events.Where(x => x.EventId != e.Id)
+            .OrderByDescending(x => x.LastJoinedUtc)
+            .Select(x => new { id = x.EventId, participants = x.Count, lastJoinedUtc = x.LastJoinedUtc })
+            .Take(5).ToList();
+        return Ok(new { e.Id, e.Title, e.Prize, e.StartUtc, e.EndUtc, status = e.Status(DateTime.UtcNow), participants = count, others });
     }
 
     /// <summary>
-    /// POST /api/owner/challenge — название, приз и время. Id события - по дате старта:
-    /// сдвинул выходные - это новое событие с новой таблицей.
+    /// POST /api/owner/challenge/restore — вернуть участников другой версии события: текущий
+    /// челлендж (с его временем и призом) продолжается под её номером.
+    /// </summary>
+    [HttpPost("challenge/restore")]
+    public async Task<IActionResult> RestoreChallenge([FromBody] ChallengeRestoreRequest req, CancellationToken ct)
+    {
+        if (await DenyAsync(ServicePermission.AppSettings, ct) is { } deny) return deny;
+        var known = (await challengeEntries.GetEventCountsAsync(ct)).Any(x => x.EventId == req.EventId);
+        if (!known) return NotFound(new { error = "event_not_found" });
+        var e = await challenge.CurrentAsync(ct);
+        await challenge.SaveAsync(e with { Id = req.EventId }, ct);
+        return await GetChallenge(ct);
+    }
+
+    /// <summary>
+    /// POST /api/owner/challenge — название, приз и время. Правка времени оставляет тех же
+    /// участников: раньше номер события зависел от старта, и сдвиг часа терял всю таблицу.
+    /// Новая пустая таблица - только с newEvent.
     /// </summary>
     [HttpPost("challenge")]
     public async Task<IActionResult> SetChallenge([FromBody] ChallengeRequest req, CancellationToken ct)
@@ -70,7 +95,9 @@ public class OwnerController(
         if (end <= start || end - start > TimeSpan.FromDays(14)) return BadRequest(new { error = "bad_dates" });
         var title = string.IsNullOrWhiteSpace(req.Title) ? null : req.Title.Trim()[..Math.Min(60, req.Title.Trim().Length)];
         var prize = string.IsNullOrWhiteSpace(req.Prize) ? null : req.Prize.Trim()[..Math.Min(60, req.Prize.Trim().Length)];
-        var e = new ChallengeUseCase.Event($"ch-{start:yyyyMMddHHmm}", title, prize, start, end);
+        var current = await challenge.CurrentAsync(ct);
+        var id = req.NewEvent ? $"ch-{DateTime.UtcNow:yyyyMMddHHmmss}" : current.Id;
+        var e = new ChallengeUseCase.Event(id, title, prize, start, end);
         await challenge.SaveAsync(e, ct);
         return Ok(new { e.Id, e.Title, e.Prize, e.StartUtc, e.EndUtc, status = e.Status(DateTime.UtcNow) });
     }

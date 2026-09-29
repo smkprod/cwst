@@ -184,7 +184,13 @@ export const api = {
   getChallenge: () => request<Challenge>('/api/challenge'),
   joinChallenge: () => request<Challenge>('/api/challenge/join', { method: 'POST' }),
   ownerGetChallenge: () => request<OwnerChallenge>('/api/owner/challenge'),
-  ownerSetChallenge: (c: { title: string | null; prize: string | null; startUtc: string; endUtc: string }) =>
+  ownerRestoreChallenge: (eventId: string) =>
+    request<OwnerChallenge>('/api/owner/challenge/restore', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ eventId }),
+    }),
+  ownerSetChallenge: (c: { title: string | null; prize: string | null; startUtc: string; endUtc: string; newEvent?: boolean }) =>
     request<OwnerChallenge>('/api/owner/challenge', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
