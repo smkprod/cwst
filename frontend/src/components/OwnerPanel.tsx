@@ -1017,6 +1017,20 @@ function ChallengeSettings({ t }: { t: Translations }) {
   const [end, setEnd] = useState('')
   const [busy, setBusy] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [fresh, setFresh] = useState(false)
+
+  const restore = async (id: string) => {
+    haptic('medium')
+    setBusy(true)
+    try {
+      setCur(await api.ownerRestoreChallenge(id))
+      hapticNotify('success')
+    } catch {
+      hapticNotify('error')
+    } finally {
+      setBusy(false)
+    }
+  }
 
   useEffect(() => {
     api.ownerGetChallenge().then(c => {
@@ -1037,8 +1051,10 @@ function ChallengeSettings({ t }: { t: Translations }) {
         prize: prize.trim() || null,
         startUtc: new Date(start).toISOString(),
         endUtc: new Date(end).toISOString(),
+        newEvent: fresh,
       })
-      setCur(c)
+      setCur(prev => ({ ...c, participants: fresh ? 0 : prev?.participants, others: prev?.others }))
+      setFresh(false)
       setSaved(true)
       hapticNotify('success')
     } catch {
@@ -1062,7 +1078,17 @@ function ChallengeSettings({ t }: { t: Translations }) {
       <input className="search-input" type="datetime-local" value={start} onChange={e => { setStart(e.target.value); setSaved(false) }} />
       <label className="muted small">{o.chEnd}</label>
       <input className="search-input" type="datetime-local" value={end} onChange={e => { setEnd(e.target.value); setSaved(false) }} />
+      <label className="adm-switch-row">
+        <input type="checkbox" checked={fresh} onChange={e => { setFresh(e.target.checked); setSaved(false) }} />
+        <span className="small">Начать новый челлендж с пустой таблицей</span>
+      </label>
       <button className="btn btn-ghost" disabled={busy || !start || !end} onClick={save}>{saved ? '✓' : o.chSave}</button>
+      {(cur.others ?? []).filter(x => x.participants > 0).map(x => (
+        <div key={x.id} className="adm-kv" style={{ alignItems: 'center' }}>
+          <span className="small">⚠️ В другой версии челленджа: {x.participants} участн.</span>
+          <button className="btn-mini" disabled={busy} onClick={() => restore(x.id)}>🔄 Вернуть</button>
+        </div>
+      ))}
     </div>
   )
 }
