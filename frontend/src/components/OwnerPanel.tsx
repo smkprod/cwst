@@ -1018,6 +1018,7 @@ function ChallengeSettings({ t }: { t: Translations }) {
   const [busy, setBusy] = useState(false)
   const [saved, setSaved] = useState(false)
   const [fresh, setFresh] = useState(false)
+  const [giftNote, setGiftNote] = useState<string | null>(null)
 
   const restore = async (id: string) => {
     haptic('medium')
@@ -1083,6 +1084,21 @@ function ChallengeSettings({ t }: { t: Translations }) {
         <span className="small">Начать новый челлендж с пустой таблицей</span>
       </label>
       <button className="btn btn-ghost" disabled={busy || !start || !end} onClick={save}>{saved ? '✓' : o.chSave}</button>
+      {cur.giftPlus
+        ? <span className="small">{o.chGiftOn}</span>
+        : (
+          <button className="btn" disabled={busy || cur.status === 'ended'} onClick={async () => {
+            haptic('medium')
+            setBusy(true)
+            try {
+              const r = await api.ownerGiftChallengePlus()
+              setCur(c => c && { ...c, giftPlus: true })
+              setGiftNote(o.chGiftDone.replace('{n}', String(r.granted)))
+              hapticNotify('success')
+            } catch { hapticNotify('error') } finally { setBusy(false) }
+          }}>{o.chGift}</button>
+        )}
+      {giftNote && <span className="muted small">{giftNote}</span>}
       {(cur.others ?? []).filter(x => x.participants > 0).map(x => (
         <div key={x.id} className="adm-kv" style={{ alignItems: 'center' }}>
           <span className="small">⚠️ В другой версии челленджа: {x.participants} участн.</span>
