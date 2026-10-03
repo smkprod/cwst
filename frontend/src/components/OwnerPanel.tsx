@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, ApiError, adminClan } from '../lib/api'
-import type { AppTab, BroadcastTarget, Moderator, OwnerClan, OwnerClanDetail, OwnerPlus, OwnerChallenge, OwnerSponsor, OwnerStats, ServiceIdentity, ServicePermission, SponsorSales, TopStatus, CampaignFunnel } from '../types'
+import type { AppTab, BroadcastTarget, Moderator, OwnerClan, OwnerClanDetail, OwnerPlus, OwnerChallenge, OwnerFoundPlayer, OwnerSponsor, OwnerStats, ServiceIdentity, ServicePermission, SponsorSales, TopStatus, CampaignFunnel } from '../types'
 
 /** «Можно ли мне вот это». Прокидывается вниз, чтобы правила жили в одном месте. */
 type Can = (p: ServicePermission) => boolean
-import { botStartLink, copyText, haptic, hapticNotify, openExternalLink } from '../lib/telegram'
+import { botStartLink, copyText, haptic, hapticNotify, openExternalLink, openTelegramLink } from '../lib/telegram'
 import { useT, type Translations } from '../lib/i18n'
 import { SignupsChart } from './SignupsChart'
 
@@ -20,7 +20,7 @@ const ROLE_LABEL: Record<string, string> = {
   elder: '⭐ Старейшина',
 }
 
-type Section = 'overview' | 'clans' | 'broadcast' | 'moderators' | 'plus' | 'sponsors' | 'settings' | 'top' | 'campaigns'
+type Section = 'overview' | 'clans' | 'find' | 'broadcast' | 'moderators' | 'plus' | 'sponsors' | 'settings' | 'top' | 'campaigns'
 type ClanFilter = 'all' | 'silent'
 
 /** Сколько дней назад (для «активность» и «подключён»). null — даты нет. */
@@ -70,6 +70,8 @@ export function OwnerPanel({ me }: { me: ServiceIdentity }) {
   const sections: { key: Section; icon: string; label: string; hint: string }[] = [
     { key: 'overview', icon: '📊', label: 'Сводка', hint: 'Игроки, кланы, активность' },
     { key: 'clans', icon: '🏰', label: `Кланы · ${clans.length}`, hint: 'Список, вход в клан, удаление' },
+    // Личные данные — только владельцу
+    ...(me.role === 'owner' ? [{ key: 'find' as Section, icon: '🔎', label: 'Найти игрока', hint: 'Telegram по тегу из игры' }] : []),
     ...(can('Broadcast') ? [{ key: 'broadcast' as Section, icon: '📣', label: 'Рассылка', hint: 'Текст и скрины всем' }] : []),
     ...(can('Sponsors') ? [{ key: 'plus' as Section, icon: '💎', label: 'Плюс', hint: 'Цены, продажи, трекер' }] : []),
     ...(can('Sponsors') ? [{ key: 'sponsors' as Section, icon: '★', label: 'Спонсоры', hint: 'Выдача и оплаты' }] : []),
@@ -121,6 +123,7 @@ export function OwnerPanel({ me }: { me: ServiceIdentity }) {
       )}
 
       {current.key === 'overview' && <Overview stats={stats} clans={clans} />}
+      {current.key === 'find' && me.role === 'owner' && <FindPlayerSection />}
       {current.key === 'clans' && <ClansSection clans={clans} onChanged={load} can={can} t={t} />}
       {current.key === 'broadcast' && can('Broadcast') && (
         <BroadcastBox dmCount={stats.usersReachableByDm} chatCount={stats.chatsWithBot} t={t} />
@@ -1694,4 +1697,80 @@ async function shrinkImage(file: File): Promise<Blob> {
   } catch {
     return file // старый вебвью не умеет createImageBitmap — шлём как есть
   }
+}
+
+/**
+ * Поиск по игровому тегу: кто это в Telegram. Нужен, чтобы связаться с победителем
+ * челленджа или с тем, кто писал про оплату. Только владельцу.
+ */
+function FindPlayerSection() {
+  const [tag, setTag] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [found, setFound] = useState<OwnerFoundPlayer | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
+
+  const find = async () => {
+    const q = tag.trim()
+    if (!q) return
+    haptic('light')
+    setBusy(true)
+    setError(null)
+    setFound(null)
+    setCopied(false)
+    try {
+      setFound(await api.ownerFindPlayer(q.startsWith('#') ? q : '#' + q))
+    } catch (e) {
+      setError(e instanceof ApiError && e.status === 404 ? 'Игрок с таким тегом в боте не найден' : 'Не удалось найти')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const write = () => {
+    if (!found) return
+    haptic('medium')
+    if (found.telegramUsername) openTelegramLink(`https://t.me/${found.telegramUsername}`)
+    else if (found.telegramUserId) window.location.href = `tg://user?id=${found.telegramUserId}`
+  }
+
+  const fmt = (iso: string | null) => iso ? new Date(iso).toLocaleDateString() : null
+
+  return (
+    <div className="card">
+      <p className="adm-block-title">🔎 Найти игрока</p>
+      <p className="muted small">Тег из профиля в игре — покажу, кто это в Telegram.</p>
+      <div className="adm-sales-row" style={{ alignItems: 'flex-end' }}>
+        <input className="search-input" placeholder="#2VUPLPU0R" value={tag} autoCapitalize="characters"
+          onChange={e => setTag(e.target.value.toUpperCase())} onKeyDown={e => { if (e.key === 'Enter') find() }} />
+        <button className="btn" disabled={busy || !tag.trim()} onClick={find}>{busy ? '…' : 'Найти'}</button>
+      </div>
+      {error && <p className="form-error small">{error}</p>}
+      {found && (
+        <div className="tilt-rules" style={{ marginTop: 12 }}>
+          <div className="tilt-rules-title">{found.name} · {found.playerTag}</div>
+          {found.clanName && <span className="small">🏰 {found.clanName}</span>}
+          {found.telegramUserId ? (
+            <>
+              <span className="small">
+                Telegram: {found.telegramUsername ? <b>@{found.telegramUsername}</b> : <span className="muted">без @username</span>}
+                {' · '}ID <b>{found.telegramUserId}</b>
+              </span>
+              {found.dmBlocked && <span className="muted small">⚠️ Бот не может писать ему в личку</span>}
+              {found.plusUntil && <span className="small">💎 Плюс до {fmt(found.plusUntil)}</span>}
+              {found.sponsorUntil && <span className="small">★ Спонсор до {fmt(found.sponsorUntil)}</span>}
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button className="btn" onClick={write}>✉️ Написать</button>
+                <button className="btn btn-ghost" onClick={async () => {
+                  if (await copyText(String(found.telegramUserId))) { setCopied(true); hapticNotify('success') }
+                }}>{copied ? '✓ Скопировано' : '📋 Скопировать ID'}</button>
+              </div>
+            </>
+          ) : (
+            <span className="muted small">Тег привязан без Telegram — связаться через бота нельзя.</span>
+          )}
+        </div>
+      )}
+    </div>
+  )
 }

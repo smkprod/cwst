@@ -184,3 +184,9 @@ export async function askDmOnce(): Promise<boolean> {
   try { localStorage.setItem(DM_ASK_KEY, allowed ? 'granted' : String(Date.now())) } catch { /* не страшно */ }
   return allowed
 }
+
+/** Открыть ссылку t.me внутри Telegram (профиль, канал) — без выхода в браузер. */
+export function openTelegramLink(url: string) {
+  if (tg?.openTelegramLink) tg.openTelegramLink(url)
+  else window.open(url, '_blank')
+}
