@@ -1651,3 +1651,15 @@ export interface OwnerChallenge {
   /** Участники других версий события — их можно вернуть. */
   others?: { id: string; participants: number; lastJoinedUtc: string }[]
 }
+
+/** Поиск игрока в панели владельца: кто в Telegram за игровым тегом. */
+export interface OwnerFoundPlayer {
+  playerTag: string
+  name: string
+  clanName: string | null
+  telegramUserId: number | null
+  telegramUsername: string | null
+  plusUntil: string | null
+  sponsorUntil: string | null
+  dmBlocked: boolean | null
+}

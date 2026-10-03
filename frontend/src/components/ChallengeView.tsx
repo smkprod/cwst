@@ -5,6 +5,7 @@ import { haptic, hapticNotify } from '../lib/telegram'
 import { useT, type Translations } from '../lib/i18n'
 import { REDUCED, useCountUp } from '../lib/anim'
 import { usePlusSheet } from '../lib/plusSheet'
+import { usePlayerSheet } from '../lib/playerSheet'
 
 /** Пока челлендж идёт — таблица обновляется каждые 15 секунд, иначе раз в минуту. */
 const LIVE_POLL = 15_000
@@ -228,6 +229,7 @@ const MEDAL = ['🥇', '🥈', '🥉']
  * у кого прибавились билеты — вспыхивает.
  */
 function Board({ rows, me }: { rows: ChallengeRow[]; me: ChallengeRow | null }) {
+  const openPlayer = usePlayerSheet()
   const leader = Math.max(1, rows[0]?.tickets ?? 1)
   const refs = useRef(new Map<string, HTMLDivElement>())
   const lastTop = useRef(new Map<string, number>())
@@ -267,7 +269,8 @@ function Board({ rows, me }: { rows: ChallengeRow[]; me: ChallengeRow | null }) 
     <div className="ch-rows">
       {rows.map(r => (
         <div key={r.tag} ref={el => { if (el) refs.current.set(r.tag, el); else refs.current.delete(r.tag) }}
-          className={`ch-row ${r.isMe ? 'ch-row-me' : ''} ${r.rank <= 3 ? `ch-top ch-top-${r.rank}` : ''} ${flash.has(r.tag) ? 'ch-flash' : ''}`}>
+          role="button" tabIndex={0} onClick={() => openPlayer(r.tag)}
+          className={`ch-row ch-row-click ${r.isMe ? 'ch-row-me' : ''} ${r.rank <= 3 ? `ch-top ch-top-${r.rank}` : ''} ${flash.has(r.tag) ? 'ch-flash' : ''}`}>
           <span className="ch-rank">{r.rank <= 3 ? MEDAL[r.rank - 1] : r.rank}</span>
           <span className="ch-name">
             <b>{r.name}</b>
@@ -280,7 +283,7 @@ function Board({ rows, me }: { rows: ChallengeRow[]; me: ChallengeRow | null }) 
       {showMeBelow && me && (
         <>
           <div className="ch-gap">⋯</div>
-          <div className="ch-row ch-row-me">
+          <div className="ch-row ch-row-me ch-row-click" role="button" tabIndex={0} onClick={() => openPlayer(me.tag)}>
             <span className="ch-rank">{me.rank}</span>
             <span className="ch-name"><b>{me.name}</b></span>
             <span className="ch-sub muted small">{me.wins}–{me.losses}</span>
