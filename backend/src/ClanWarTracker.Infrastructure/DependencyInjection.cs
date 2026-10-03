@@ -818,6 +818,10 @@ CREATE TABLE IF NOT EXISTS ""PlayerAlertPrefs"" (
             "\"TrackerCardStartUtc\" timestamptz",
             "\"TrackerMutedUntilUtc\" timestamptz",
             "\"TrackerHintBattleUtc\" timestamptz",
+            // Личная скидка на Плюс
+            "\"PromoPrice7\" integer",
+            "\"PromoPrice30\" integer",
+            "\"PromoUntilUtc\" timestamptz",
         })
             await db.Database.ExecuteSqlRawAsync($"ALTER TABLE \"PlayerAlertPrefs\" ADD COLUMN IF NOT EXISTS {column};");
 

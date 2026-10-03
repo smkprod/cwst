@@ -27,6 +27,7 @@ public class BattleTrackerUseCase(
     IServiceSettingRepository settings,
     IClashRoyaleApi crApi,
     IMetaRepository meta,
+    ChallengeUseCase challenge,
     INotificationSender sender)
 {
     /// <summary>Рубильник владельца: «off» - новых карточек и итогов нет, правки остаются.</summary>
@@ -118,7 +119,8 @@ public class BattleTrackerUseCase(
                     var plusLine = PlusLine(c, newest, session, report, catalog);
                     var text = TrackerText.Card(c.T, report, session, c.Tz, catalog, plusLine,
                         p.PauseUntilUtc > c.Now ? p.PauseUntilUtc : null,
-                        TrackerText.Matchup(c.T, await MatchupAsync(newest, catalog, ct)));
+                        TrackerText.Matchup(c.T, await MatchupAsync(newest, catalog, ct)),
+                        await ChallengeLineAsync(c, ct));
                     var lossStreak = 0;
                     for (var i = session.Count - 1; i >= 0 && session[i].Result < 0; i--) lossStreak++;
                     var buttons = TrackerText.CardButtons(c.T, newest.Id,
@@ -175,6 +177,19 @@ public class BattleTrackerUseCase(
         if (newest.Result >= 0 || p.TrackerHintBattleUtc >= midnight) return null;
         p.TrackerHintBattleUtc = newest.BattleTimeUtc;
         return "🎁 " + line;
+    }
+
+    /// <summary>Строка челленджа: билеты и место. Сбой - карточка просто без неё.</summary>
+    private async Task<string?> ChallengeLineAsync(Ctx c, CancellationToken ct)
+    {
+        try
+        {
+            return await challenge.StandingAsync(c.Tg, ct) is { } s ? TrackerText.Challenge(c.T, s) : null;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     /// <summary>Матчап по боям топа. Сбой или пустая неделя - просто без строки.</summary>
