@@ -67,6 +67,41 @@ public class OwnerController(
     }
 
     /// <summary>
+    /// GET /api/owner/find-player?tag=#ABC — кто в Telegram стоит за игровым тегом.
+    /// Только владельцу: это личные данные, модераторам они не нужны.
+    /// </summary>
+    [HttpGet("find-player")]
+    public async Task<IActionResult> FindPlayer([FromQuery] string? tag, CancellationToken ct)
+    {
+        var userId = (long)HttpContext.Items["TelegramUserId"]!;
+        if (!access.IsOwner(userId)) return StatusCode(403, new { error = "owner_only" });
+        if (string.IsNullOrWhiteSpace(tag)) return BadRequest(new { error = "empty_tag" });
+
+        var p = await players.GetByTagAsync(LinkPlayerUseCase.Normalize(tag), ct);
+        if (p is null) return NotFound(new { error = "player_not_found" });
+
+        string? clanName = null;
+        if (p.ClanId is int clanId) clanName = (await clans.GetByIdAsync(clanId, ct))?.Name;
+        DateTime? plusUntil = null;
+        bool? dmBlocked = null;
+        if (p.TelegramUserId is long tg)
+        {
+            var st = await plusAccess.GetAsync(tg, ct);
+            plusUntil = st.Active ? st.Until : null;
+            dmBlocked = (await alertPrefs.GetAsync(tg, ct))?.DmBlocked;
+        }
+        return Ok(new
+        {
+            p.PlayerTag, p.Name, clanName,
+            telegramUserId = p.TelegramUserId,
+            telegramUsername = p.TelegramUsername,
+            plusUntil,
+            sponsorUntil = p.IsSponsor(DateTime.UtcNow) ? p.SponsorUntilUtc : null,
+            dmBlocked,
+        });
+    }
+
+    /// <summary>
     /// POST /api/owner/challenge/gift-plus — Плюс в подарок всем участникам до конца
     /// челленджа; вступившие позже получают его сами.
     /// </summary>
