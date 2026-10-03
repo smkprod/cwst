@@ -1,3 +1,4 @@
+using ClanWarTracker.Domain.Entities;
 using ClanWarTracker.Domain.Interfaces;
 
 namespace ClanWarTracker.Application.UseCases;
@@ -57,6 +58,12 @@ public static class PlusSales
     /// Префикс «pl» отличает счёт Плюса от спонсорского «sp»: оба приходят в один
     /// и тот же обработчик оплаты.
     /// </summary>
+    /// <summary>Личная скидка, если она ещё действует: (7 дней, 30 дней). null - скидки нет.</summary>
+    public static (int Price7, int Price30, DateTime Until)? Promo(PlayerAlertPrefs? prefs, DateTime now) =>
+        prefs is { PromoUntilUtc: DateTime until, PromoPrice7: int p7, PromoPrice30: int p30 } && until > now && p7 > 0 && p30 > 0
+            ? (p7, p30, until)
+            : null;
+
     public static string Payload(long recipientTelegramUserId, int days, int stars) =>
         $"pl|{recipientTelegramUserId}|{days}|{stars}";
 

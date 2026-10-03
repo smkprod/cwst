@@ -72,6 +72,11 @@ public static class TrackerText
     public static string Trophies(int? change) =>
         change is int c ? TiltMessages.Signed(c) : "±0";
 
+    /// <summary>«🎟 Челлендж: 13 🎟 · #2 · до #1 — 2 🎟».</summary>
+    public static string Challenge(BotText t, UseCases.ChallengeUseCase.Standing s) =>
+        string.Format(t.TrkChallenge, s.Tickets, s.Rank,
+            s.Rank == 1 ? t.TrkChallengeLead : string.Format(t.TrkChallengeGap, s.Rank - 1, s.GapUp));
+
     /// <summary>«📊 В топ-500 такой матчап: 58% побед (224 боя)» - только при достаточной выборке.</summary>
     public static string? Matchup(BotText t, MatchupStats.Result? r) =>
         r?.Headline is { } h
@@ -87,7 +92,7 @@ public static class TrackerText
     public static string Card(
         BotText t, MatchReport.Report r, IReadOnlyList<PlayerBattle> session, int tz,
         IReadOnlyDictionary<int, CrCatalogCard> catalog, string? plusLine, DateTime? pauseUntilUtc,
-        string? matchupLine = null)
+        string? matchupLine = null, string? challengeLine = null)
     {
         var lines = new List<string>
         {
@@ -98,6 +103,7 @@ public static class TrackerText
             string.Format(t.TrkLast, ResultMark(r.Result), r.CrownsFor, r.CrownsAgainst, Trophies(r.TrophyChange),
                 r.Opp.Name ?? "?", ArchLabel(t, r.Arch)),
         };
+        if (challengeLine is not null) lines.Add(challengeLine);
         if (Verdict(t, r.Verdict, catalog) is { } verdict) lines.Add(verdict);
         if (matchupLine is not null) lines.Add(matchupLine);
         if (plusLine is not null) lines.Add(plusLine);

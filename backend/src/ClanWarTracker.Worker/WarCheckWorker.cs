@@ -96,7 +96,10 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
             try
             {
                 using var scope = scopeFactory.CreateScope();
-                await scope.ServiceProvider.GetRequiredService<ChallengeUseCase>().SyncAsync(40, stoppingToken);
+                var ch = scope.ServiceProvider.GetRequiredService<ChallengeUseCase>();
+                await ch.SyncAsync(40, stoppingToken);
+                var finished = await ch.FinishAsync(stoppingToken);
+                if (finished > 0) logger.LogInformation("Challenge results sent to {Count} participants", finished);
             }
             catch (Exception ex)
             {

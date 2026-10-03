@@ -4,6 +4,7 @@ import type { Challenge, ChallengeRow } from '../types'
 import { haptic, hapticNotify } from '../lib/telegram'
 import { useT, type Translations } from '../lib/i18n'
 import { REDUCED, useCountUp } from '../lib/anim'
+import { usePlusSheet } from '../lib/plusSheet'
 
 /** Пока челлендж идёт — таблица обновляется каждые 15 секунд, иначе раз в минуту. */
 const LIVE_POLL = 15_000
@@ -19,6 +20,7 @@ const IDLE_POLL = 60_000
 export function ChallengeView() {
   const { t } = useT()
   const s = t.ch
+  const openPlus = usePlusSheet()
   const [data, setData] = useState<Challenge | null>(null)
   const [error, setError] = useState(false)
   const [joining, setJoining] = useState(false)
@@ -100,6 +102,17 @@ export function ChallengeView() {
         <span>{s.rule2}</span>
         <span>{s.rule3}</span>
       </section>
+
+      {status !== 'ended' && (
+        ev.giftPlus && data.joined
+          ? <section className="card ch-plus ch-plus-gift">{s.chGiftOn}</section>
+          : (
+            <section className="card ch-plus">
+              <span>{s.chPlusPitch}</span>
+              <button className="btn-mini" onClick={() => { haptic('light'); openPlus() }}>{s.chPlusBtn}</button>
+            </section>
+          )
+      )}
 
       {!data.joined ? (
         <section className="card ch-join">

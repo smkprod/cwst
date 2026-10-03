@@ -185,12 +185,19 @@ function PlusCard({ status, pay, onBuy, t }: {
       </ul>
       {!canPay ? <p className="muted small">{p.unavailable}</p> : (
         <div className="plus-buttons">
+          {status.promoUntil && (
+            <span className="plus-promo">
+              {t.ch.promoBadge.replace('{date}', new Date(status.promoUntil).toLocaleString(t.dateLocale, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))}
+            </span>
+          )}
           <button className="btn plus-buy" disabled={busy} onClick={() => onBuy(30)}>
-            {p.buy30.replace('{stars}', String(status.price30))}
+            {status.promo30 ? <s className="plus-old">{status.price30}⭐</s> : null}
+            {p.buy30.replace('{stars}', String(status.promo30 ?? status.price30))}
             <span className="plus-best">{p.best}</span>
           </button>
           <button className="btn btn-ghost plus-buy" disabled={busy} onClick={() => onBuy(7)}>
-            {p.buy7.replace('{stars}', String(status.price7))}
+            {status.promo7 ? <s className="plus-old">{status.price7}⭐</s> : null}
+            {p.buy7.replace('{stars}', String(status.promo7 ?? status.price7))}
           </button>
         </div>
       )}

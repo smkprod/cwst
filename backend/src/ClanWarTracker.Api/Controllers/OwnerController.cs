@@ -63,7 +63,19 @@ public class OwnerController(
             .OrderByDescending(x => x.LastJoinedUtc)
             .Select(x => new { id = x.EventId, participants = x.Count, lastJoinedUtc = x.LastJoinedUtc })
             .Take(5).ToList();
-        return Ok(new { e.Id, e.Title, e.Prize, e.StartUtc, e.EndUtc, status = e.Status(DateTime.UtcNow), participants = count, others });
+        return Ok(new { e.Id, e.Title, e.Prize, e.StartUtc, e.EndUtc, status = e.Status(DateTime.UtcNow), participants = count, others, e.GiftPlus });
+    }
+
+    /// <summary>
+    /// POST /api/owner/challenge/gift-plus — Плюс в подарок всем участникам до конца
+    /// челленджа; вступившие позже получают его сами.
+    /// </summary>
+    [HttpPost("challenge/gift-plus")]
+    public async Task<IActionResult> GiftChallengePlus(CancellationToken ct)
+    {
+        if (await DenyAsync(ServicePermission.Sponsors, ct) is { } deny) return deny;
+        var granted = await challenge.GiftPlusAsync(ct);
+        return Ok(new { granted });
     }
 
     /// <summary>
@@ -101,7 +113,7 @@ public class OwnerController(
         var prize = string.IsNullOrWhiteSpace(req.Prize) ? null : req.Prize.Trim()[..Math.Min(60, req.Prize.Trim().Length)];
         var current = await challenge.CurrentAsync(ct);
         var id = req.NewEvent ? $"ch-{DateTime.UtcNow:yyyyMMddHHmmss}" : current.Id;
-        var e = new ChallengeUseCase.Event(id, title, prize, start, end);
+        var e = current with { Id = id, Title = title, Prize = prize, StartUtc = start, EndUtc = end, GiftPlus = !req.NewEvent && current.GiftPlus };
         await challenge.SaveAsync(e, ct);
         return Ok(new { e.Id, e.Title, e.Prize, e.StartUtc, e.EndUtc, status = e.Status(DateTime.UtcNow) });
     }

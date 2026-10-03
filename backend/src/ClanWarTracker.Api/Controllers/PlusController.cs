@@ -60,6 +60,10 @@ public class PlusController(
             price7 = offer.Price7,
             price30 = offer.Price30,
             onSale = offer.OnSale,
+            // Личная скидка - только на себя: подарок другому по обычной цене
+            promo7 = PlusSales.Promo(prefs, now)?.Price7,
+            promo30 = PlusSales.Promo(prefs, now)?.Price30,
+            promoUntil = PlusSales.Promo(prefs, now)?.Until,
             linked = me is not null,
             myTag = me?.PlayerTag,
             tiltAlerts = status.Unlocked ? prefs?.TiltAlerts != false : prefs?.TiltAlerts == true,
@@ -95,6 +99,10 @@ public class PlusController(
 
         var stars = offer.PriceFor(req.Days);
         if (stars <= 0) return BadRequest(new { error = "bad_days" });
+        // Себе - по личной скидке, если она есть. Сумма зашивается в счёт, оплата её сверит.
+        if (string.IsNullOrWhiteSpace(req.RecipientTag)
+            && PlusSales.Promo(await alertPrefs.GetAsync(UserId, ct), DateTime.UtcNow) is { } promo)
+            stars = req.Days == 7 ? promo.Price7 : req.Days == 30 ? promo.Price30 : stars;
 
         var recipient = UserId;
         string? recipientName = null;

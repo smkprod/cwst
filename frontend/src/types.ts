@@ -760,6 +760,10 @@ export interface PlusStatus {
   sponsorUntil: string | null
   /** Бесплатные подарочные недели спонсора на этот месяц. */
   freeGiftsLeft: number
+  /** Личная скидка на себя (после челленджа); null — нет. */
+  promo7?: number | null
+  promo30?: number | null
+  promoUntil?: string | null
 }
 
 /** Экран «🧊 Стоп-тильт». */
@@ -1626,7 +1630,7 @@ export interface ChallengeRow {
 }
 
 export interface Challenge {
-  event: { id: string; title: string | null; prize: string | null; startUtc: string; endUtc: string; status: 'upcoming' | 'live' | 'ended' }
+  event: { id: string; title: string | null; prize: string | null; startUtc: string; endUtc: string; status: 'upcoming' | 'live' | 'ended'; giftPlus?: boolean }
   linked: boolean
   joined: boolean
   me: ChallengeRow | null
@@ -1643,6 +1647,7 @@ export interface OwnerChallenge {
   endUtc: string
   status: 'upcoming' | 'live' | 'ended'
   participants?: number
+  giftPlus?: boolean
   /** Участники других версий события — их можно вернуть. */
   others?: { id: string; participants: number; lastJoinedUtc: string }[]
 }

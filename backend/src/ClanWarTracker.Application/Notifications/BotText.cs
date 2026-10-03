@@ -493,6 +493,34 @@ public sealed class BotText
     public required string TrkInGroup { get; init; }
     /// <summary>Строка матчапа в карточке: {0}% побед таких колод против таких, {1} боёв в топ-500.</summary>
     public required string TrkMatchup { get; init; }
+    /// <summary>Итог челленджа: первая строка.</summary>
+    public required string ChEndHead { get; init; }
+    /// <summary>{0} билетов, {1} место, {2} участников.</summary>
+    public required string ChEndPlace { get; init; }
+    /// <summary>Без билетов.</summary>
+    public required string ChEndNoTickets { get; init; }
+    /// <summary>{0} - победитель, {1} - билетов.</summary>
+    public required string ChEndWinner { get; init; }
+    /// <summary>Ты победил.</summary>
+    public required string ChEndYouWon { get; init; }
+    /// <summary>{0} - сколько раз сработал Стоп-тильт.</summary>
+    public required string ChEndTilt { get; init; }
+    /// <summary>После паузы: {0}–{1}.</summary>
+    public required string ChEndTiltPause { get; init; }
+    /// <summary>Плюс-подарок кончается: {0}⭐ вместо {1} за неделю, {2}⭐ вместо {3} за месяц, до {4}.</summary>
+    public required string ChEndPromoGift { get; init; }
+    /// <summary>Скидка участникам: те же аргументы.</summary>
+    public required string ChEndPromo { get; init; }
+    /// <summary>Кнопка.</summary>
+    public required string ChBtnResults { get; init; }
+    /// <summary>Кнопка.</summary>
+    public required string ChBtnPromo { get; init; }
+    /// <summary>Строка челленджа в карточке: {0} билетов, {1} место, {2} хвост.</summary>
+    public required string TrkChallenge { get; init; }
+    /// <summary>До места выше: {0} - место, {1} - билетов.</summary>
+    public required string TrkChallengeGap { get; init; }
+    /// <summary>Лидер.</summary>
+    public required string TrkChallengeLead { get; init; }
     /// <summary>Кнопка включить Стоп-тильт из трекера; {0} - бесплатных сигналов.</summary>
     public required string TrkBtnTilt { get; init; }
     /// <summary>Всплывающее подтверждение; {0} - бесплатных сигналов.</summary>
@@ -899,6 +927,20 @@ public sealed class BotText
         TrkBtnOff = "Выключить",
         TrkBtnTilt = "🧊 Включить Стоп-тильт — {0} сигнала бесплатно",
         TrkTiltOnToast = "🧊 Стоп-тильт включён! Напишу «стоп», когда пойдёт серия поражений — пока не слил кубки. Бесплатных сигналов: {0}.",
+        ChEndHead = "🏁 Челлендж завершён!",
+        ChEndPlace = "🎟 У тебя {0} билетов · #{1} из {2}",
+        ChEndNoTickets = "🎟 В этот раз без билетов — следующий челлендж уже скоро",
+        ChEndWinner = "🏆 Победитель: {0} — {1} 🎟",
+        ChEndYouWon = "🥇 Ты победил! Скоро напишем насчёт приза.",
+        ChEndTilt = "🧊 Стоп-тильт останавливал тебя: {0} раз(а)",
+        ChEndTiltPause = "; после паузы {0}–{1}",
+        ChEndPromoGift = "💎 Плюс на выходные заканчивается. Продли со скидкой: неделя — {0}⭐ вместо {1}, месяц — {2}⭐ вместо {3}. Только до {4}.",
+        ChEndPromo = "💎 Участникам — скидка на Плюс: неделя — {0}⭐ вместо {1}, месяц — {2}⭐ вместо {3}. Стоп-тильт, полный разбор и «кому проигрываешь». Только до {4}.",
+        ChBtnResults = "🏆 Итоги",
+        ChBtnPromo = "💎 Продлить со скидкой",
+        TrkChallenge = "🎟 Челлендж: {0} 🎟 · #{1}{2}",
+        TrkChallengeGap = "  · до #{0} — {1} 🎟",
+        TrkChallengeLead = "  · ты лидер! 🔥",
         TrkMatchup = "📊 В топ-500 такой матчап: {0}% побед ({1} боёв)",
         TrkInGroup = "🎯 Трекер боёв работает в личке: там я после каждого боя тихо присылаю разбор. Нажми кнопку ниже — и включи в один тап.",
         TrkBtnDm = "🎯 Включить в личке",
@@ -1251,6 +1293,20 @@ public sealed class BotText
         TrkBtnOff = "Вимкнути",
         TrkBtnTilt = "🧊 Увімкнути Стоп-тільт — {0} сигнали безкоштовно",
         TrkTiltOnToast = "🧊 Стоп-тільт увімкнено! Напишу «стоп», коли піде серія поразок — поки не злив кубки. Безкоштовних сигналів: {0}.",
+        ChEndHead = "🏁 Челендж завершено!",
+        ChEndPlace = "🎟 У тебе {0} квитків · #{1} з {2}",
+        ChEndNoTickets = "🎟 Цього разу без квитків — наступний челендж уже скоро",
+        ChEndWinner = "🏆 Переможець: {0} — {1} 🎟",
+        ChEndYouWon = "🥇 Ти переміг! Скоро напишемо щодо призу.",
+        ChEndTilt = "🧊 Стоп-тільт зупиняв тебе: {0} раз(и)",
+        ChEndTiltPause = "; після паузи {0}–{1}",
+        ChEndPromoGift = "💎 Плюс на вихідні закінчується. Продовж зі знижкою: тиждень — {0}⭐ замість {1}, місяць — {2}⭐ замість {3}. Лише до {4}.",
+        ChEndPromo = "💎 Учасникам — знижка на Плюс: тиждень — {0}⭐ замість {1}, місяць — {2}⭐ замість {3}. Стоп-тільт, повний розбір і «кому програєш». Лише до {4}.",
+        ChBtnResults = "🏆 Підсумки",
+        ChBtnPromo = "💎 Продовжити зі знижкою",
+        TrkChallenge = "🎟 Челендж: {0} 🎟 · #{1}{2}",
+        TrkChallengeGap = "  · до #{0} — {1} 🎟",
+        TrkChallengeLead = "  · ти лідер! 🔥",
         TrkMatchup = "📊 У топ-500 такий матчап: {0}% перемог ({1} боїв)",
         TrkInGroup = "🎯 Трекер боїв працює в особистих: там я після кожного бою тихо надсилаю розбір. Натисни кнопку нижче — і увімкни в один тап.",
         TrkBtnDm = "🎯 Увімкнути в особистих",
@@ -1603,6 +1659,20 @@ public sealed class BotText
         TrkBtnOff = "Turn off",
         TrkBtnTilt = "🧊 Turn on Stop-tilt — {0} free signals",
         TrkTiltOnToast = "🧊 Stop-tilt is on! I'll say «stop» when a losing streak starts — before you throw away your trophies. Free signals: {0}.",
+        ChEndHead = "🏁 The challenge is over!",
+        ChEndPlace = "🎟 You have {0} tickets · #{1} of {2}",
+        ChEndNoTickets = "🎟 No tickets this time — the next challenge is coming soon",
+        ChEndWinner = "🏆 Winner: {0} — {1} 🎟",
+        ChEndYouWon = "🥇 You won! We'll message you about the prize soon.",
+        ChEndTilt = "🧊 Stop-tilt stopped you {0} time(s)",
+        ChEndTiltPause = "; after a break {0}–{1}",
+        ChEndPromoGift = "💎 Your weekend Plus is ending. Extend with a discount: a week for {0}⭐ instead of {1}, a month for {2}⭐ instead of {3}. Until {4} only.",
+        ChEndPromo = "💎 A Plus discount for participants: a week for {0}⭐ instead of {1}, a month for {2}⭐ instead of {3}. Stop-tilt, full reviews and «who you lose to». Until {4} only.",
+        ChBtnResults = "🏆 Results",
+        ChBtnPromo = "💎 Get the discount",
+        TrkChallenge = "🎟 Challenge: {0} 🎟 · #{1}{2}",
+        TrkChallengeGap = "  · {1} 🎟 to #{0}",
+        TrkChallengeLead = "  · you're leading! 🔥",
         TrkMatchup = "📊 In the top 500 this matchup wins {0}% ({1} battles)",
         TrkInGroup = "🎯 The battle tracker works in private chat: that's where I quietly send a breakdown after every battle. Tap the button below to turn it on.",
         TrkBtnDm = "🎯 Turn on in private chat",

@@ -67,6 +67,10 @@ const ru = {
   },
 
   ch: {
+    promoBadge: '🔥 Скидка до {date}',
+    chGiftOn: '💎 Тебе Плюс в подарок до конца челленджа: Стоп-тильт бережёт твои билеты — остановит, пока серия поражений не сожгла вечер.',
+    chPlusPitch: '🧊 Стоп-тильт бережёт билеты: напишет «стоп» посреди серии поражений, пока ты не слил вечер. А полный разбор покажет, кому ты проигрываешь.',
+    chPlusBtn: '💎 Что даёт Плюс',
     promoTitle: 'Новый челлендж на {prize}!',
     promoText: 'Побеждай в ладдере и Пути легенд: каждая победа — 🎟 билет, серия из 3 побед — бонусный. Кто наберёт больше всех — забирает {prize}.',
     promoGo: '🎟 К челленджу',
@@ -1363,6 +1367,9 @@ const ru = {
   },
 
   owner: {
+    chGift: '🎁 Плюс в подарок всем участникам до конца',
+    chGiftOn: '✓ Плюс в подарок включён — новые участники получают его сами',
+    chGiftDone: 'Выдано: {n}',
     bcStarted: '✅ Рассылка пошла. Итог пришлю тебе в личку, когда закончу.',
     bcAddPhotos: '📷 Добавить скрины',
     bcPhotosHint: 'До 10 картинок. Сначала они придут тебе в личку — это превью, потом всем.',
@@ -1630,6 +1637,10 @@ const uk: Translations = {
   },
 
   ch: {
+    promoBadge: '🔥 Знижка до {date}',
+    chGiftOn: '💎 Тобі Плюс у подарунок до кінця челенджу: Стоп-тільт береже твої квитки — зупинить, поки серія поразок не спалила вечір.',
+    chPlusPitch: '🧊 Стоп-тільт береже квитки: напише «стоп» посеред серії поразок, поки ти не злив вечір. А повний розбір покаже, кому ти програєш.',
+    chPlusBtn: '💎 Що дає Плюс',
     promoTitle: 'Новий челендж на {prize}!',
     promoText: 'Перемагай у ладдері та Шляху легенд: кожна перемога — 🎟 квиток, серія з 3 перемог — бонусний. Хто набере найбільше — забирає {prize}.',
     promoGo: '🎟 До челенджу',
@@ -2924,6 +2935,9 @@ const uk: Translations = {
   },
 
   owner: {
+    chGift: '🎁 Плюс у подарунок усім учасникам до кінця',
+    chGiftOn: '✓ Плюс у подарунок увімкнено — нові учасники отримують його самі',
+    chGiftDone: 'Видано: {n}',
     bcStarted: '✅ Розсилка пішла. Підсумок надішлю тобі в особисті, коли закінчу.',
     bcAddPhotos: '📷 Додати скріни',
     bcPhotosHint: 'До 10 картинок. Спершу вони прийдуть тобі в особисті — це прев’ю, потім усім.',
@@ -3189,6 +3203,10 @@ const en: Translations = {
   },
 
   ch: {
+    promoBadge: '🔥 Discount until {date}',
+    chGiftOn: '💎 Plus is a gift for you until the challenge ends: Stop-tilt protects your tickets — it stops you before a losing streak burns the evening.',
+    chPlusPitch: '🧊 Stop-tilt protects your tickets: it says «stop» mid-streak, before you throw the evening away. And the full review shows who you lose to.',
+    chPlusBtn: '💎 What Plus gives',
     promoTitle: 'New challenge for {prize}!',
     promoText: 'Win in Ladder and Path of Legends: every win is a 🎟 ticket, a 3-win streak gives a bonus one. Most tickets takes {prize}.',
     promoGo: '🎟 Go to the challenge',
@@ -4483,6 +4501,9 @@ const en: Translations = {
   },
 
   owner: {
+    chGift: '🎁 Gift Plus to all participants until the end',
+    chGiftOn: '✓ Plus gift is on — new participants get it automatically',
+    chGiftDone: 'Granted: {n}',
     bcStarted: '✅ Broadcast started. I’ll DM you the result when it’s done.',
     bcAddPhotos: '📷 Add screenshots',
     bcPhotosHint: 'Up to 10 images. They come to your DM first as a preview, then to everyone.',

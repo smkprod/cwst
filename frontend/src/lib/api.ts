@@ -184,6 +184,7 @@ export const api = {
   getChallenge: () => request<Challenge>('/api/challenge'),
   joinChallenge: () => request<Challenge>('/api/challenge/join', { method: 'POST' }),
   ownerGetChallenge: () => request<OwnerChallenge>('/api/owner/challenge'),
+  ownerGiftChallengePlus: () => request<{ granted: number }>('/api/owner/challenge/gift-plus', { method: 'POST' }),
   ownerRestoreChallenge: (eventId: string) =>
     request<OwnerChallenge>('/api/owner/challenge/restore', {
       method: 'POST',
