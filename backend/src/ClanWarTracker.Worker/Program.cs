@@ -37,6 +37,7 @@ builder.Services.AddScoped<PlusAccess>();
 builder.Services.AddScoped<ProcessPlusPaymentUseCase>();
 builder.Services.AddScoped<BattleTrackerUseCase>();
 builder.Services.AddScoped<ChallengeUseCase>();
+builder.Services.AddScoped<DuelUseCase>();
 builder.Services.AddScoped<TiltWatchUseCase>();
 builder.Services.AddScoped<TiltActionsUseCase>();
 builder.Services.AddScoped<TrackerActionsUseCase>();
