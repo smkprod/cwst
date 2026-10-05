@@ -3576,6 +3576,31 @@ button.hall-step {
   --ui-surface: rgba(255, 255, 255, 0.04);
   --ui-surface-2: rgba(255, 255, 255, 0.07);
   --ui-line: rgba(255, 255, 255, 0.08);
+  --ui-glow: rgba(156, 107, 255, 0.08);
+  --ui-shadow: rgba(91, 140, 255, 0.35);
+}
+
+/* Темы клана от спонсора: главный градиент, свечение карточек и активная вкладка
+   берут цвет темы, иначе фирменный фиолетовый перебивал бы выбранное оформление. */
+[data-clan-theme="kingdomSun"] {
+  --ui-grad: linear-gradient(135deg, #ffd27a 0%, #e8a72e 55%, #c46f12 100%);
+  --ui-glow: rgba(232, 167, 46, 0.10);
+  --ui-shadow: rgba(232, 167, 46, 0.35);
+}
+[data-clan-theme="kingdom"] {
+  --ui-grad: linear-gradient(135deg, #7fb0ff 0%, #4f7fd4 55%, #2f56a8 100%);
+  --ui-glow: rgba(79, 127, 212, 0.10);
+  --ui-shadow: rgba(79, 127, 212, 0.35);
+}
+[data-clan-theme="kingdom2"] {
+  --ui-grad: linear-gradient(135deg, #b2acff 0%, #7b74e0 55%, #5048b8 100%);
+  --ui-glow: rgba(123, 116, 224, 0.10);
+  --ui-shadow: rgba(123, 116, 224, 0.35);
+}
+[data-clan-theme="kingdomFire"] {
+  --ui-grad: linear-gradient(135deg, #ffa178 0%, #e0603a 55%, #a8341c 100%);
+  --ui-glow: rgba(224, 96, 58, 0.10);
+  --ui-shadow: rgba(224, 96, 58, 0.35);
 }
 
 .ui-icon { display: inline-block; flex-shrink: 0; vertical-align: -0.18em; }
@@ -3583,7 +3608,7 @@ button.hall-step {
 /* Карточка: тонкая граница, мягкий свет в углу, одна тень */
 .card {
   background:
-    radial-gradient(120% 90% at 100% 0%, rgba(156, 107, 255, 0.08), transparent 55%),
+    radial-gradient(120% 90% at 100% 0%, var(--ui-glow), transparent 55%),
     var(--bg-card);
   border: 1px solid var(--ui-line);
   border-radius: 18px;
@@ -3652,9 +3677,9 @@ button.hall-step {
   transition: transform 0.08s ease, filter 0.15s ease; }
 .ui-btn:active:not(:disabled) { transform: scale(0.98); }
 .ui-btn:disabled { opacity: 0.55; cursor: default; }
-.ui-btn-primary { color: #fff; background: var(--ui-grad); box-shadow: 0 8px 22px rgba(91, 140, 255, 0.35); }
+.ui-btn-primary { color: #fff; background: var(--ui-grad); box-shadow: 0 8px 22px var(--ui-shadow); }
 .ui-btn-warm { color: #fff; background: var(--ui-grad-warm); box-shadow: 0 8px 22px rgba(255, 61, 110, 0.35); }
-.btn { border-radius: 14px; font-weight: 800; background: var(--ui-grad); box-shadow: 0 8px 22px rgba(91, 140, 255, 0.3);
+.btn { border-radius: 14px; font-weight: 800; background: var(--ui-grad); box-shadow: 0 8px 22px var(--ui-shadow);
   display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 .btn-ghost { background: var(--ui-surface-2); box-shadow: none; }
 .btn-mini { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-radius: 11px; font-weight: 700;
@@ -3665,7 +3690,7 @@ button.hall-step {
 .tab { gap: 3px; padding: 6px 0 4px; position: relative; }
 .tab-icon { display: grid; place-items: center; width: 40px; height: 28px; border-radius: 10px; font-size: 0;
   transition: background 0.2s, color 0.2s, transform 0.15s; }
-.tab-active .tab-icon { transform: none; color: #fff; background: var(--ui-grad); box-shadow: 0 4px 14px rgba(91, 140, 255, 0.4); }
+.tab-active .tab-icon { transform: none; color: #fff; background: var(--ui-grad); box-shadow: 0 4px 14px var(--ui-shadow); }
 .tab-active .tab-label { color: var(--text); }
 .tab-label { font-size: 10.5px; font-weight: 700; }
 
