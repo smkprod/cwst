@@ -35,25 +35,58 @@ public partial class DuelUseCase(
     /// <summary>Как часто перечитываем журнал идущей дуэли. Кэш API - 20 секунд, чаще бессмысленно.</summary>
     private static readonly TimeSpan PollEvery = TimeSpan.FromSeconds(25);
 
-    /* ---------------- Лиги ---------------- */
+    /* ---------------- Ранги ---------------- */
 
-    /// <summary>Нижние границы лиг: Бронза, Серебро, Золото, Алмаз, Мастер, Легенда. Старт 1000 - Серебро.</summary>
+    /// <summary>
+    /// Нижние границы лиг по кубкам: Бронза, Серебро, Золото, Алмаз, Мастер, Легенда.
+    /// Старт 1000 - Серебро III. Внутри каждой лиги, кроме Легенды, три дивизиона по
+    /// 50 кубков: III → II → I. Бронза снизу открыта, её дивизионы - до 900, 900, 950.
+    /// </summary>
     public static readonly int[] LeagueFloors = [0, 1000, 1150, 1300, 1450, 1600];
     public static readonly string[] LeagueKeys = ["bronze", "silver", "gold", "diamond", "master", "legend"];
-    private static readonly string[] LeagueIcons = ["🥉", "🥈", "🥇", "💎", "👑", "🔥"];
+    private static readonly string[] LeagueIcons = ["🟤", "⚪", "🟡", "🔷", "🟣", "🔥"];
+    private static readonly string[] Roman = ["", "I", "II", "III"];
+    private const int DivisionSpan = 50;
 
-    public static int LeagueIndex(int rating)
+    /// <param name="League">0..5.</param>
+    /// <param name="Division">3, 2, 1 (I - старший); 0 у Легенды.</param>
+    /// <param name="Floor">С каких кубков начинается этот ранг.</param>
+    /// <param name="Next">С каких начинается следующий; null - выше некуда.</param>
+    public record DuelRank(int League, int Division, int Floor, int? Next);
+
+    public static int LeagueIndex(int trophies)
     {
         var i = 0;
-        while (i + 1 < LeagueFloors.Length && rating >= LeagueFloors[i + 1]) i++;
+        while (i + 1 < LeagueFloors.Length && trophies >= LeagueFloors[i + 1]) i++;
         return i;
     }
 
-    public static string LeagueLabel(int rating, DuelText t)
+    public static DuelRank RankOf(int trophies)
     {
-        var i = LeagueIndex(rating);
-        return $"{LeagueIcons[i]} {t.League(i)}";
+        var league = LeagueIndex(trophies);
+        if (league == LeagueFloors.Length - 1) return new DuelRank(league, 0, LeagueFloors[league], null);
+
+        var top = LeagueFloors[league + 1];
+        // Дивизион I - последние 50 кубков лиги, II - перед ними, III - всё остальное
+        var division = trophies >= top - DivisionSpan ? 1 : trophies >= top - 2 * DivisionSpan ? 2 : 3;
+        var floor = division switch
+        {
+            1 => top - DivisionSpan,
+            2 => top - 2 * DivisionSpan,
+            _ => LeagueFloors[league],
+        };
+        var next = division == 1 ? top : top - (division - 1) * DivisionSpan;
+        return new DuelRank(league, division, floor, next);
     }
+
+    public static string RankName(int trophies, DuelText t)
+    {
+        var r = RankOf(trophies);
+        return r.Division == 0 ? t.League(r.League) : $"{t.League(r.League)} {Roman[r.Division]}";
+    }
+
+    public static string LeagueLabel(int trophies, DuelText t) =>
+        $"{LeagueIcons[LeagueIndex(trophies)]} {RankName(trophies, t)}";
 
     /* ---------------- Эло ---------------- */
 
@@ -493,14 +526,14 @@ public partial class DuelUseCase(
     /* ---------------- Для Mini App ---------------- */
 
     public record ProfileView(
-        string Name, string Tag, int Rating, int Peak, string League, int LeagueIndex, int? NextFloor, int Floor,
+        string Name, string Tag, int Rating, int Peak, string League, int LeagueIndex, int Division, int? NextFloor, int Floor,
         int Games, int Wins, int Losses, int Rank, bool HasLink);
 
     public record DuelRowView(
         int Id, string State, int BestOf, string AName, string ATag, string BName, string BTag,
         int ScoreA, int ScoreB, int DeltaA, int DeltaB, bool Rated, DateTime AcceptedUtc, DateTime? FinishedUtc);
 
-    public record TopRowView(int Rank, string Name, string Tag, int Rating, string League, int Wins, int Losses, bool Me);
+    public record TopRowView(int Rank, string Name, string Tag, int Rating, string League, int Division, int Wins, int Losses, bool Me);
 
     public record LeagueView(
         bool Linked, ProfileView? Me, DuelRowView? Active, List<DuelRowView> Mine, List<TopRowView> Top,
@@ -519,20 +552,34 @@ public partial class DuelUseCase(
         var mine = new List<DuelRowView>();
         if (me is not null)
         {
-            var i = LeagueIndex(me.Rating);
-            meView = new ProfileView(me.Name, me.PlayerTag, me.Rating, me.Peak, LeagueKeys[i], i,
-                i + 1 < LeagueFloors.Length ? LeagueFloors[i + 1] : null, LeagueFloors[i],
-                me.Games, me.Wins, me.Losses, await RankOfAsync(me, ct), !string.IsNullOrEmpty(me.FriendLink));
+            var r = RankOf(me.Rating);
+            meView = new ProfileView(me.Name, me.PlayerTag, me.Rating, me.Peak, LeagueKeys[r.League], r.League, r.Division,
+                r.Next, r.Floor, me.Games, me.Wins, me.Losses, await RankOfAsync(me, ct), !string.IsNullOrEmpty(me.FriendLink));
             var list = await duels.GetRecentForUserAsync(telegramUserId, 15, ct);
             mine = list.Where(d => d.State != DuelState.Active).Select(Row).ToList();
             if (list.FirstOrDefault(d => d.State == DuelState.Active) is { } act) active = Row(act);
         }
 
-        var topRows = top.Select((p, n) => new TopRowView(n + 1, p.Name, p.PlayerTag, p.Rating,
-            LeagueKeys[LeagueIndex(p.Rating)], p.Wins, p.Losses, p.TelegramUserId == telegramUserId)).ToList();
+        var topRows = top.Select((p, n) =>
+        {
+            var r = RankOf(p.Rating);
+            return new TopRowView(n + 1, p.Name, p.PlayerTag, p.Rating, LeagueKeys[r.League], r.Division,
+                p.Wins, p.Losses, p.TelegramUserId == telegramUserId);
+        }).ToList();
 
         return new LeagueView(linked, meView, active, mine, topRows, recent.Select(Row).ToList(), count,
             LeagueFloors, LeagueKeys);
+    }
+
+    /// <summary>Ранг в лиге для чужой карточки игрока. null - не в лиге.</summary>
+    public record SheetRank(int Trophies, int Peak, string League, int Division, int Wins, int Losses, int Place);
+
+    public async Task<SheetRank?> GetSheetRankAsync(string playerTag, CancellationToken ct = default)
+    {
+        var p = await duels.GetProfileByTagAsync(LinkPlayerUseCase.Normalize(playerTag), ct);
+        if (p is null) return null;
+        var r = RankOf(p.Rating);
+        return new SheetRank(p.Rating, p.Peak, LeagueKeys[r.League], r.Division, p.Wins, p.Losses, await RankOfAsync(p, ct));
     }
 
     private static DuelRowView Row(Duel d) => new(d.Id, d.State.ToString().ToLowerInvariant(), d.BestOf,

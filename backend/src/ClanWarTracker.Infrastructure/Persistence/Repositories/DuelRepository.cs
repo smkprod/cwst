@@ -13,6 +13,9 @@ public class DuelRepository(AppDbContext db) : IDuelRepository
     public Task<DuelProfile?> GetProfileAsync(long telegramUserId, CancellationToken ct = default) =>
         db.DuelProfiles.FirstOrDefaultAsync(p => p.TelegramUserId == telegramUserId, ct);
 
+    public Task<DuelProfile?> GetProfileByTagAsync(string playerTag, CancellationToken ct = default) =>
+        db.DuelProfiles.AsNoTracking().FirstOrDefaultAsync(p => p.PlayerTag == playerTag, ct);
+
     public Task<List<DuelProfile>> GetProfilesAsync(IReadOnlyCollection<long> telegramUserIds, CancellationToken ct = default) =>
         db.DuelProfiles.Where(p => telegramUserIds.Contains(p.TelegramUserId)).ToListAsync(ct);
 

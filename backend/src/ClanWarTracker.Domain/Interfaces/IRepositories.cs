@@ -509,6 +509,7 @@ public interface IChallengeRepository
 public interface IDuelRepository
 {
     Task<DuelProfile?> GetProfileAsync(long telegramUserId, CancellationToken ct = default);
+    Task<DuelProfile?> GetProfileByTagAsync(string playerTag, CancellationToken ct = default);
     Task<List<DuelProfile>> GetProfilesAsync(IReadOnlyCollection<long> telegramUserIds, CancellationToken ct = default);
     Task AddProfileAsync(DuelProfile profile, CancellationToken ct = default);
 

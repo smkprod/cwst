@@ -492,6 +492,16 @@ export interface PlayerProfile {
   royaleApiUrl: string
 }
 
+export interface DuelSheetRank {
+  trophies: number
+  peak: number
+  league: DuelLeagueKey
+  division: number
+  wins: number
+  losses: number
+  place: number
+}
+
 export type ClanLeague = 'bronze' | 'silver' | 'gold' | 'legendary'
 
 /**
@@ -673,6 +683,8 @@ export interface PlayerSheet {
   games30: number
   winPercent30: number
   royaleApiUrl: string
+  /** Ранг в лиге дуэлей Clanify; null — не вступал. */
+  duel?: DuelSheetRank | null
 }
 
 /* --- Личный разбор боёв --- */
@@ -1675,7 +1687,9 @@ export interface DuelProfileView {
   peak: number
   league: DuelLeagueKey
   leagueIndex: number
-  /** Порог следующей лиги; null — уже Легенда. */
+  /** 3, 2, 1 (I — старший); 0 у Легенды. */
+  division: number
+  /** С каких кубков следующий ранг; null — уже Легенда. */
   nextFloor: number | null
   floor: number
   games: number
@@ -1708,6 +1722,7 @@ export interface DuelTopRow {
   tag: string
   rating: number
   league: DuelLeagueKey
+  division: number
   wins: number
   losses: number
   me: boolean
