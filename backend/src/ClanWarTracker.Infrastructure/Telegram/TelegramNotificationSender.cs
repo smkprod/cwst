@@ -91,6 +91,28 @@ public class TelegramNotificationSender(ITelegramBotClient bot) : INotificationS
         catch (HttpRequestException) { return false; }
     }
 
+    public async Task<bool> EditInlineMessageAsync(
+        string inlineMessageId, string text, IReadOnlyList<IReadOnlyList<BotButton>>? rows = null,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            var keyboard = rows is { Count: > 0 }
+                ? await KeyboardAsync(rows, ct)
+                : new InlineKeyboardMarkup(Array.Empty<InlineKeyboardButton[]>());
+            await bot.EditMessageText(inlineMessageId, text, replyMarkup: keyboard,
+                linkPreviewOptions: new global::Telegram.Bot.Types.LinkPreviewOptions { IsDisabled = true },
+                cancellationToken: ct);
+            return true;
+        }
+        catch (ApiRequestException ex) when (ex.Message.Contains("message is not modified", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+        catch (ApiRequestException) { return false; }
+        catch (HttpRequestException) { return false; }
+    }
+
     public async Task<IReadOnlyList<string>> UploadPhotosAsync(
         long chatId, IReadOnlyList<(Stream Content, string FileName)> photos, CancellationToken ct = default)
     {
@@ -144,6 +166,8 @@ public class TelegramNotificationSender(ITelegramBotClient bot) : INotificationS
             {
                 if (b.CallbackData is { } data)
                     buttons.Add(InlineKeyboardButton.WithCallbackData(b.Text, data));
+                else if (b.SwitchInline is { } query)
+                    buttons.Add(InlineKeyboardButton.WithSwitchInlineQuery(b.Text, query));
                 else if (b.Url is { } url && url.StartsWith("startapp:", StringComparison.Ordinal))
                 {
                     // Ссылка на приложение с параметром запуска; без юзернейма бота кнопку пропускаем

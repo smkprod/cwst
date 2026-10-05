@@ -59,4 +59,8 @@ public record PlayerSheetDto(
     List<SheetBattleDto> Battles,
     int Games30,
     double WinPercent30,
-    string RoyaleApiUrl);
+    string RoyaleApiUrl,
+    DuelSheetDto? Duel = null);
+
+/// <summary>Ранг в лиге дуэлей Clanify. Нет - игрок в лигу не вступал.</summary>
+public record DuelSheetDto(int Trophies, int Peak, string League, int Division, int Wins, int Losses, int Place);

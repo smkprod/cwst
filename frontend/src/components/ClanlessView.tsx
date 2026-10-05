@@ -10,12 +10,13 @@ import { TopPlayersTeaser } from './TopPlayersTeaser'
 import { RegionTopCard } from './RegionTopCard'
 import { BotTourCard } from './BotTourCard'
 import { ChallengeView } from './ChallengeView'
+import { DuelView } from './DuelView'
 import { OPEN_CHALLENGE } from '../lib/promo'
 import { MyStatsView, type BattlesView, type MeSection } from './MyStatsView'
 import { WorldTopView } from './WorldTopView'
 import { MoreView } from './MoreView'
 
-export type SoloTab = 'me' | 'meta' | 'clan' | 'search' | 'more' | 'challenge'
+export type SoloTab = 'me' | 'meta' | 'clan' | 'search' | 'more' | 'challenge' | 'duel'
 
 /** Почему у игрока нет экрана войны: клан не подключён или у подключённого нет войны. */
 export type SoloReason = 'noClan' | 'noWar'
@@ -28,7 +29,7 @@ export type SoloReason = 'noClan' | 'noWar'
  * Теперь это то же приложение для игрока: разбор своих боёв первым, мета топа,
  * поиск, «Ещё» с языком и Плюсом. Клан — одна из вкладок, а не условие входа.
  */
-export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection = 'battles', battlesView = 'history', openMatchId = null, showChallenge = false }: {
+export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection = 'battles', battlesView = 'history', openMatchId = null, showChallenge = false, showDuel = false }: {
   reason?: SoloReason
   initialTab?: SoloTab
   meSection?: MeSection
@@ -36,6 +37,8 @@ export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection =
   openMatchId?: number | null
   /** Владелец включил вкладку челленджа - она нужна и игрокам без клана: они и приходят с рекламы. */
   showChallenge?: boolean
+  /** Вкладка лиги дуэлей - по тому же выбору владельца. */
+  showDuel?: boolean
 } = {}) {
   const { t } = useT()
   const botUsername = useBotUsername()
@@ -91,6 +94,7 @@ export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection =
     { id: 'me', icon: '👤', label: t.tabs.me },
     { id: 'meta', icon: '🔥', label: t.worldTop.tabMeta },
     ...(showChallenge ? [{ id: 'challenge' as SoloTab, icon: '🎟', label: t.tabs.challenge }] : []),
+    ...(showDuel ? [{ id: 'duel' as SoloTab, icon: '⚔️', label: t.tabs.duel }] : []),
     { id: 'clan', icon: '🏰', label: t.clanless.tabClan },
     { id: 'search', icon: '🔍', label: t.tabs.search },
     { id: 'more', icon: '⚙️', label: t.tabs.more },
@@ -107,6 +111,7 @@ export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection =
 
         {tab === 'meta' && <div className="fade-in"><WorldTopView /></div>}
         {tab === 'challenge' && <ChallengeView />}
+        {tab === 'duel' && <DuelView />}
 
         {tab === 'clan' && (
           <div className="fade-in">

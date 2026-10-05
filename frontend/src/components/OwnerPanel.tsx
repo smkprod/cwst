@@ -933,6 +933,7 @@ const ALL_TABS: { key: AppTab; label: string }[] = [
   { key: 'search', label: '🔍 Поиск' },
   { key: 'more', label: '⚙️ Ещё' },
   { key: 'challenge', label: '🎟 Челлендж' },
+  { key: 'duel', label: '⚔️ Дуэли' },
 ]
 
 /**

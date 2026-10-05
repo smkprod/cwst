@@ -432,6 +432,7 @@ public class BotUpdateHandler(
         var t = BotText.For(inline.From.LanguageCode);
         var results = new List<InlineQueryResult>();
         InlineQueryResultsButton? button = null;
+        InlineQueryResultsButton? duelJoin = null;
 
         try
         {
@@ -441,6 +442,25 @@ public class BotUpdateHandler(
             // Набрали тег — значит спрашивают про конкретного игрока, а не про себя.
             // Свои карточки в этом случае только мешали бы: человек ищет чужой профиль.
             var query = inline.Query?.Trim() ?? "";
+
+            // Дуэли: вызов 1х1 карточкой в любой чат. На «duel» - только они и сразу,
+            // на пустой запрос - первыми, перед карточками войны и профиля.
+            var duelQuery = IsDuelQuery(query);
+            var duelProfile = player is null
+                ? null
+                : await sp.GetRequiredService<DuelUseCase>().GetProfileAsync(inline.From.Id, ct);
+            if (duelProfile is not null && (duelQuery || query.Length == 0))
+                results.AddRange(DuelInlineResults(sp.GetRequiredService<DuelUseCase>(), duelProfile));
+            if (player is not null && duelProfile is null)
+                duelJoin = new InlineQueryResultsButton(DuelText.For(inline.From.LanguageCode).InlineJoinButton)
+                    { StartParameter = DuelStartArg };
+            if (duelQuery && player is not null)
+            {
+                await bot.AnswerInlineQuery(inline.Id, results, cacheTime: 10, isPersonal: true,
+                    button: duelJoin, cancellationToken: ct);
+                return;
+            }
+
             if (IsLikelyCrTag(query))
             {
                 using var searchBudget = CancellationTokenSource.CreateLinkedTokenSource(ct);
@@ -516,6 +536,9 @@ public class BotUpdateHandler(
             });
             button = new InlineQueryResultsButton(t.InlineLinkButton) { StartParameter = "inline" };
         }
+
+        // Привязан, но не в лиге - кнопка над выдачей зовёт вступить
+        button ??= duelJoin;
 
         // isPersonal обязателен: карточка своя у каждого, и Telegram не должен
         // показать чужую статистику следующему, кто наберёт то же самое.
@@ -760,6 +783,13 @@ public class BotUpdateHandler(
             await RefreshUsernameAsync(msg, sp, ct);
             if (msg.Chat.Type == ChatType.Private) await UnblockDmAsync(msg, sp, ct);
 
+            // Ссылка «добавить в друзья» из игры - вступление в лигу дуэлей
+            if (msg.Chat.Type == ChatType.Private && !text.StartsWith('/') && DuelUseCase.LooksLikeFriendLink(text))
+            {
+                await HandleFriendLinkAsync(msg, text, sp, ct);
+                return;
+            }
+
             // Быстрый поиск по тегу: пользователь просто отправляет #ТЕГ без команды
             if (msg.Chat.Type == ChatType.Private && !text.StartsWith('/') && IsLikelyCrTag(text))
             {
@@ -793,6 +823,13 @@ public class BotUpdateHandler(
 
                         // Пришёл по кнопке «включить в личке» из группы - сразу трекер, а не приветствие
                         if (arg == TrackerStartArg && await SendTrackerStatusAsync(msg, sp, ct)) return;
+
+                        // Кнопка «Вступить в лигу» из чата или инлайна
+                        if (arg == DuelStartArg)
+                        {
+                            await SendDuelHomeAsync(msg, sp, ct);
+                            return;
+                        }
 
                         // Кнопка приложения прямо под приветствием: раньше её не было, и
                         // человек, не догадавшийся про кнопку меню, приложения не видел.
@@ -1062,6 +1099,12 @@ public class BotUpdateHandler(
                     if (!await SendTrackerStatusAsync(msg, sp, ct)) await Reply(msg, t.NotLinkedYet, ct);
                     break;
                 }
+
+                case "/duel":
+                case "/дуэль":
+                case "/дуель":
+                    await HandleDuelCommandAsync(msg, arg, sp, ct);
+                    break;
 
                 case "/paysupport":
                     var owner = config["Owner:Username"]?.Trim().TrimStart('@');
@@ -1418,6 +1461,12 @@ public class BotUpdateHandler(
             return;
         }
 
+        if (data.StartsWith("dl|", StringComparison.Ordinal))
+        {
+            await HandleDuelCallbackAsync(callback, data, sp, ct);
+            return;
+        }
+
         if (data.StartsWith("relink|", StringComparison.Ordinal))
         {
             var tag = data["relink|".Length..];
@@ -1512,6 +1561,7 @@ public class BotUpdateHandler(
             {
                 new[] { "me", "Короткий разбор твоих боёв" }, new[] { "deck", "Твоя колода из последнего боя" },
                 new[] { "meta", "Лучшие колоды топа за неделю" }, new[] { "tracker", "Трекер боёв: разбор после каждого боя" },
+                new[] { "duel", "Лига дуэлей 1×1" },
                 new[] { "plus", "Clanify Плюс" },
                 new[] { "help", "Что умеет бот" }, new[] { "paysupport", "Помощь с оплатой" }, new[] { "terms", "Условия" },
             }),
@@ -1519,6 +1569,7 @@ public class BotUpdateHandler(
             {
                 new[] { "me", "Короткий розбір твоїх боїв" }, new[] { "deck", "Твоя колода з останнього бою" },
                 new[] { "meta", "Найкращі колоди топу за тиждень" }, new[] { "tracker", "Трекер боїв: розбір після кожного бою" },
+                new[] { "duel", "Ліга дуелей 1×1" },
                 new[] { "plus", "Clanify Плюс" },
                 new[] { "help", "Що вміє бот" }, new[] { "paysupport", "Допомога з оплатою" }, new[] { "terms", "Умови" },
             }),
@@ -1526,6 +1577,7 @@ public class BotUpdateHandler(
             {
                 new[] { "me", "A short review of your battles" }, new[] { "deck", "Your deck from the last battle" },
                 new[] { "meta", "The top's best decks this week" }, new[] { "tracker", "Battle tracker: a breakdown after every battle" },
+                new[] { "duel", "1v1 duel league" },
                 new[] { "plus", "Clanify Plus" },
                 new[] { "help", "What the bot can do" }, new[] { "paysupport", "Payment help" }, new[] { "terms", "Terms" },
             }),
@@ -1863,4 +1915,267 @@ public class BotUpdateHandler(
     private Task Reply(Message msg, string text, CancellationToken ct) =>
         bot.SendMessage(msg.Chat.Id, text, replyParameters: msg.MessageId,
             replyMarkup: AppButton("🎮 Открыть приложение"), cancellationToken: ct);
+
+    /* ---------------- Лига дуэлей ---------------- */
+
+    /// <summary>Параметр /start кнопки «Вступить в лигу дуэлей».</summary>
+    private const string DuelStartArg = "duel";
+
+    private string BotLink(string start) => $"https://t.me/{_botUsername}?start={start}";
+
+    private static bool IsDuelQuery(string query)
+    {
+        var q = query.Trim().ToLowerInvariant();
+        return q is "duel" or "1v1" or "1x1" or "1х1" or "bo1" or "bo3" or "vs"
+               || q.StartsWith("дуэл", StringComparison.Ordinal) || q.StartsWith("дуел", StringComparison.Ordinal)
+               || q.StartsWith("вызов", StringComparison.Ordinal) || q.StartsWith("виклик", StringComparison.Ordinal);
+    }
+
+    /// <summary>Кнопки слоя приложения в клавиатуру Telegram - для сообщений, которые шлёт сам обработчик.</summary>
+    private InlineKeyboardMarkup DuelMarkup(IEnumerable<IReadOnlyList<BotButton>> rows) =>
+        new(rows
+            .Select(r => r.Select(DuelButton).OfType<InlineKeyboardButton>().ToArray())
+            .Where(r => r.Length > 0)
+            .ToArray());
+
+    private InlineKeyboardButton? DuelButton(BotButton b)
+    {
+        if (b.CallbackData is { } data) return InlineKeyboardButton.WithCallbackData(b.Text, data);
+        if (b.SwitchInline is { } q) return InlineKeyboardButton.WithSwitchInlineQuery(b.Text, q);
+        if (b.Url is not { } url) return null;
+        if (!url.StartsWith("startapp:", StringComparison.Ordinal)) return InlineKeyboardButton.WithUrl(b.Text, url);
+        return _botUsername == "bot"
+            ? null
+            : InlineKeyboardButton.WithUrl(b.Text, $"https://t.me/{_botUsername}?startapp={url["startapp:".Length..]}");
+    }
+
+    /// <summary>Две карточки вызова в инлайн-выдаче: Bo1 и Bo3.</summary>
+    private IEnumerable<InlineQueryResult> DuelInlineResults(DuelUseCase uc, DuelProfile me)
+    {
+        var t = DuelText.For(me.Lang);
+        foreach (var bo in new[] { 1, 3 })
+        {
+            var (text, rows) = uc.OpenCard(me, bo, 0, null, DateTime.UtcNow);
+            yield return new InlineQueryResultArticle($"duel{bo}", string.Format(t.InlineTitle, $"Bo{bo}"), PlainText(text))
+            {
+                Description = t.InlineDesc,
+                ReplyMarkup = DuelMarkup(rows),
+            };
+        }
+    }
+
+    private static string DisplayName(User u) =>
+        u.Username is { Length: > 0 } un ? "@" + un : string.Join(' ', new[] { u.FirstName, u.LastName }.Where(x => !string.IsNullOrEmpty(x)));
+
+    private static int? ParseBestOf(string? arg)
+    {
+        var a = arg?.Trim().ToLowerInvariant().Replace("бо", "bo");
+        return a switch
+        {
+            "1" or "bo1" => 1,
+            "3" or "bo3" => 3,
+            _ => null,
+        };
+    }
+
+    /// <summary>Личка: профиль в лиге или как вступить.</summary>
+    private async Task SendDuelHomeAsync(Message msg, IServiceProvider sp, CancellationToken ct)
+    {
+        var lang = msg.From?.LanguageCode;
+        var uc = sp.GetRequiredService<DuelUseCase>();
+        var profile = await uc.GetProfileAsync(msg.From!.Id, ct);
+        if (profile is null)
+        {
+            var t0 = DuelText.For(lang);
+            var linked = await sp.GetRequiredService<IPlayerRepository>().GetByTelegramIdAsync(msg.From.Id, ct);
+            await bot.SendMessage(msg.Chat.Id, linked is null ? t0.NeedLink : t0.HowToJoin,
+                linkPreviewOptions: new LinkPreviewOptions { IsDisabled = true }, cancellationToken: ct);
+            return;
+        }
+
+        var t = DuelText.For(lang ?? profile.Lang);
+        var rank = await uc.RankOfAsync(profile, ct);
+        var text = string.Format(t.Profile, profile.Name, DuelUseCase.LeagueLabel(profile.Rating, t), profile.Rating,
+            rank, profile.Wins, profile.Losses, profile.Peak) + t.HowToChallenge;
+        await bot.SendMessage(msg.Chat.Id, text,
+            replyMarkup: DuelMarkup([
+                [new BotButton(t.BtnChallenge, SwitchInline: "duel")],
+                [new BotButton(t.BtnLeague, Url: "startapp:duel")],
+            ]),
+            cancellationToken: ct);
+    }
+
+    /// <summary>Прислали ссылку «добавить в друзья» - вступление в лигу или новая ссылка.</summary>
+    private async Task HandleFriendLinkAsync(Message msg, string text, IServiceProvider sp, CancellationToken ct)
+    {
+        var lang = msg.From?.LanguageCode;
+        var t = DuelText.For(lang);
+        var r = await sp.GetRequiredService<DuelUseCase>().SetFriendLinkAsync(msg.From!.Id, lang, text, ct);
+        var reply = r.Outcome switch
+        {
+            DuelUseCase.LinkOutcome.NotLinked => t.NeedLink,
+            DuelUseCase.LinkOutcome.BadLink => t.BadLink,
+            DuelUseCase.LinkOutcome.WrongTag => string.Format(t.WrongTag, r.LinkTag, r.PlayerTag),
+            DuelUseCase.LinkOutcome.Updated => t.LinkUpdated,
+            _ => string.Format(t.Joined, r.Profile!.Name, DuelUseCase.LeagueLabel(r.Profile.Rating, t), r.Profile.Rating),
+        };
+        var ok = r.Outcome is DuelUseCase.LinkOutcome.Joined or DuelUseCase.LinkOutcome.Updated;
+        await bot.SendMessage(msg.Chat.Id, reply, replyParameters: msg.MessageId,
+            replyMarkup: ok
+                ? DuelMarkup([
+                    [new BotButton(t.BtnChallenge, SwitchInline: "duel")],
+                    [new BotButton(t.BtnLeague, Url: "startapp:duel")],
+                ])
+                : null,
+            cancellationToken: ct);
+    }
+
+    /// <summary>
+    /// /duel: в личке - профиль, в группе - вызов. Ответом на сообщение - вызов этому
+    /// игроку, иначе любому. Формат (Bo1/Bo3) - аргументом или кнопками.
+    /// </summary>
+    private async Task HandleDuelCommandAsync(Message msg, string? arg, IServiceProvider sp, CancellationToken ct)
+    {
+        if (msg.Chat.Type == ChatType.Private)
+        {
+            await SendDuelHomeAsync(msg, sp, ct);
+            return;
+        }
+
+        var t = DuelText.For(msg.From?.LanguageCode);
+        var uc = sp.GetRequiredService<DuelUseCase>();
+        var me = await uc.GetProfileAsync(msg.From!.Id, ct);
+        if (me is null)
+        {
+            await bot.SendMessage(msg.Chat.Id, t.NeedJoinInGroup, messageThreadId: msg.MessageThreadId,
+                replyParameters: msg.MessageId,
+                replyMarkup: _botUsername == "bot" ? null
+                    : new InlineKeyboardMarkup(InlineKeyboardButton.WithUrl(t.BtnJoin, BotLink(DuelStartArg))),
+                cancellationToken: ct);
+            return;
+        }
+
+        var target = RealReplyAuthor(msg);
+        if (target is { IsBot: true } || target?.Id == msg.From.Id) target = null;
+
+        var bo = ParseBestOf(arg);
+        if (bo is null)
+        {
+            var targetId = target?.Id ?? 0;
+            await bot.SendMessage(msg.Chat.Id,
+                string.Format(t.PickFormat, target is null ? "" : " → " + DisplayName(target)),
+                messageThreadId: msg.MessageThreadId,
+                replyMarkup: new InlineKeyboardMarkup(
+                    InlineKeyboardButton.WithCallbackData("Bo1", $"dl|o|{me.TelegramUserId}|1|{targetId}"),
+                    InlineKeyboardButton.WithCallbackData("Bo3", $"dl|o|{me.TelegramUserId}|3|{targetId}")),
+                cancellationToken: ct);
+            return;
+        }
+
+        var (text, rows) = uc.OpenCard(me, bo.Value, target?.Id ?? 0, target is null ? null : DisplayName(target), DateTime.UtcNow);
+        await bot.SendMessage(msg.Chat.Id, text, messageThreadId: msg.MessageThreadId,
+            replyMarkup: DuelMarkup(rows), cancellationToken: ct);
+    }
+
+    private async Task HandleDuelCallbackAsync(CallbackQuery cb, string data, IServiceProvider sp, CancellationToken ct)
+    {
+        var t = DuelText.For(cb.From.LanguageCode);
+        var uc = sp.GetRequiredService<DuelUseCase>();
+        var p = data.Split('|');
+
+        switch (p.Length > 1 ? p[1] : "")
+        {
+            case "a":
+            {
+                var req = DuelUseCase.ParseAccept(data);
+                DuelUseCase.CardPlace? place = cb.InlineMessageId is { } inl
+                    ? new DuelUseCase.CardPlace(null, null, inl)
+                    : cb.Message is { } m ? new DuelUseCase.CardPlace(m.Chat.Id, m.MessageId, null) : null;
+                if (req is null || place is null)
+                {
+                    await bot.AnswerCallbackQuery(cb.Id, cancellationToken: ct);
+                    return;
+                }
+
+                var r = await uc.AcceptAsync(req, cb.From.Id, cb.From.LanguageCode, place, ct);
+                if (r.Outcome == DuelUseCase.AcceptOutcome.NeedJoin && _botUsername != "bot")
+                {
+                    // Ссылка на бота с параметром - Telegram откроет личку, где человек вступит
+                    await bot.AnswerCallbackQuery(cb.Id, url: BotLink(DuelStartArg), cancellationToken: ct);
+                    return;
+                }
+                var toast = r.Outcome switch
+                {
+                    DuelUseCase.AcceptOutcome.Started => t.ToastStarted,
+                    DuelUseCase.AcceptOutcome.Self => t.ToastSelf,
+                    DuelUseCase.AcceptOutcome.NotTarget => t.ToastNotTarget,
+                    DuelUseCase.AcceptOutcome.NeedJoin => t.ToastNeedJoin,
+                    DuelUseCase.AcceptOutcome.ChallengerGone => t.ToastChallengerGone,
+                    DuelUseCase.AcceptOutcome.YouBusy => t.ToastYouBusy,
+                    DuelUseCase.AcceptOutcome.ThemBusy => t.ToastThemBusy,
+                    DuelUseCase.AcceptOutcome.Taken => t.ToastTaken,
+                    _ => t.ToastStale,
+                };
+                await bot.AnswerCallbackQuery(cb.Id, text: toast,
+                    showAlert: r.Outcome != DuelUseCase.AcceptOutcome.Started, cancellationToken: ct);
+                return;
+            }
+
+            case "o" when p.Length == 5
+                          && long.TryParse(p[2], out var challenger)
+                          && int.TryParse(p[3], out var bo) && bo is 1 or 3
+                          && long.TryParse(p[4], out var target):
+            {
+                if (cb.From.Id != challenger)
+                {
+                    await bot.AnswerCallbackQuery(cb.Id, text: t.ToastNotYours, showAlert: true, cancellationToken: ct);
+                    return;
+                }
+                var me = await uc.GetProfileAsync(challenger, ct);
+                if (me is null || cb.Message is not { } m)
+                {
+                    await bot.AnswerCallbackQuery(cb.Id, cancellationToken: ct);
+                    return;
+                }
+
+                string? targetName = null;
+                if (target != 0)
+                {
+                    try { targetName = DisplayName((await bot.GetChatMember(m.Chat.Id, target, ct)).User); }
+                    catch { targetName = "?"; }
+                }
+                var (text, rows) = uc.OpenCard(me, bo, target, targetName, DateTime.UtcNow);
+                await bot.AnswerCallbackQuery(cb.Id, cancellationToken: ct);
+                await bot.EditMessageText(m.Chat.Id, m.MessageId, text, replyMarkup: DuelMarkup(rows), cancellationToken: ct);
+                return;
+            }
+
+            case "r" when p.Length == 3 && int.TryParse(p[2], out var refreshId):
+            {
+                var ok = await uc.RefreshAsync(refreshId, cb.From.Id, ct);
+                await bot.AnswerCallbackQuery(cb.Id, text: ok ? t.ToastChecked : t.ToastNotYours, cancellationToken: ct);
+                return;
+            }
+
+            case "x" when p.Length == 3 && int.TryParse(p[2], out var cancelId):
+            {
+                var outcome = await uc.CancelAsync(cancelId, cb.From.Id, ct);
+                var toast = outcome switch
+                {
+                    DuelUseCase.CancelOutcome.Cancelled => t.ToastCancelled,
+                    DuelUseCase.CancelOutcome.CantCancel => t.ToastCantCancel,
+                    DuelUseCase.CancelOutcome.NotYours => t.ToastNotYours,
+                    _ => null,
+                };
+                await bot.AnswerCallbackQuery(cb.Id, text: toast,
+                    showAlert: outcome is DuelUseCase.CancelOutcome.CantCancel or DuelUseCase.CancelOutcome.NotYours,
+                    cancellationToken: ct);
+                return;
+            }
+
+            default:
+                await bot.AnswerCallbackQuery(cb.Id, cancellationToken: ct);
+                return;
+        }
+    }
 }

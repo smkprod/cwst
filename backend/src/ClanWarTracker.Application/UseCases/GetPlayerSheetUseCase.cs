@@ -15,7 +15,8 @@ public class GetPlayerSheetUseCase(
     IClashRoyaleApi crApi,
     IPlayerRepository players,
     ITopPlayerRepository top,
-    IPlayerBattleRepository battles)
+    IPlayerBattleRepository battles,
+    DuelUseCase duels)
 {
     /// <summary>Сколько последних боёв показываем. Журнал хранит 25, больше десятка не листают.</summary>
     private const int BattlesShown = 10;
@@ -85,6 +86,14 @@ public class GetPlayerSheetUseCase(
                 OpponentDeck: b.OpponentDeck.Select(c => GetMetaDecksUseCase.Card(MetaCard.Key(c), catalog)).ToList()))
             .ToList();
 
+        DuelSheetDto? duel = null;
+        try
+        {
+            if (await duels.GetSheetRankAsync(tag, ct) is { } r)
+                duel = new DuelSheetDto(r.Trophies, r.Peak, r.League, r.Division, r.Wins, r.Losses, r.Place);
+        }
+        catch { /* лига - украшение карточки */ }
+
         var pol = info.CurrentPathOfLegend;
         return new PlayerSheetDto(
             PlayerTag: tag,
@@ -120,6 +129,7 @@ public class GetPlayerSheetUseCase(
             Battles: shown,
             Games30: stored.Count,
             WinPercent30: stored.Count == 0 ? 0 : Math.Round(100.0 * storedWins / stored.Count, 1),
-            RoyaleApiUrl: $"https://royaleapi.com/player/{Uri.EscapeDataString(tag.TrimStart('#'))}");
+            RoyaleApiUrl: $"https://royaleapi.com/player/{Uri.EscapeDataString(tag.TrimStart('#'))}",
+            Duel: duel);
     }
 }

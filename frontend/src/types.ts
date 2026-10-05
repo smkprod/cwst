@@ -492,6 +492,16 @@ export interface PlayerProfile {
   royaleApiUrl: string
 }
 
+export interface DuelSheetRank {
+  trophies: number
+  peak: number
+  league: DuelLeagueKey
+  division: number
+  wins: number
+  losses: number
+  place: number
+}
+
 export type ClanLeague = 'bronze' | 'silver' | 'gold' | 'legendary'
 
 /**
@@ -673,6 +683,8 @@ export interface PlayerSheet {
   games30: number
   winPercent30: number
   royaleApiUrl: string
+  /** Ранг в лиге дуэлей Clanify; null — не вступал. */
+  duel?: DuelSheetRank | null
 }
 
 /* --- Личный разбор боёв --- */
@@ -1265,7 +1277,7 @@ export type BackgroundKey =
   | 'kingdomSun' | 'kingdom' | 'kingdom2' | 'kingdomFire'
 
 /** Вкладки нижней панели. Состав задаёт владелец из админки. */
-export type AppTab = 'clan' | 'me' | 'hall' | 'tournament' | 'search' | 'more' | 'challenge'
+export type AppTab = 'clan' | 'me' | 'hall' | 'tournament' | 'search' | 'more' | 'challenge' | 'duel'
 
 export interface AppConfig {
   botUsername: string
@@ -1662,4 +1674,68 @@ export interface OwnerFoundPlayer {
   plusUntil: string | null
   sponsorUntil: string | null
   dmBlocked: boolean | null
+}
+
+/* ---------- Лига дуэлей 1×1 ---------- */
+
+export type DuelLeagueKey = 'bronze' | 'silver' | 'gold' | 'diamond' | 'master' | 'legend'
+
+export interface DuelProfileView {
+  name: string
+  tag: string
+  rating: number
+  peak: number
+  league: DuelLeagueKey
+  leagueIndex: number
+  /** 3, 2, 1 (I — старший); 0 у Легенды. */
+  division: number
+  /** С каких кубков следующий ранг; null — уже Легенда. */
+  nextFloor: number | null
+  floor: number
+  games: number
+  wins: number
+  losses: number
+  rank: number
+  hasLink: boolean
+}
+
+export interface DuelRow {
+  id: number
+  state: 'active' | 'finished' | 'cancelled' | 'expired'
+  bestOf: number
+  aName: string
+  aTag: string
+  bName: string
+  bTag: string
+  scoreA: number
+  scoreB: number
+  deltaA: number
+  deltaB: number
+  rated: boolean
+  acceptedUtc: string
+  finishedUtc: string | null
+}
+
+export interface DuelTopRow {
+  rank: number
+  name: string
+  tag: string
+  rating: number
+  league: DuelLeagueKey
+  division: number
+  wins: number
+  losses: number
+  me: boolean
+}
+
+export interface DuelLeague {
+  linked: boolean
+  me: DuelProfileView | null
+  active: DuelRow | null
+  mine: DuelRow[]
+  top: DuelTopRow[]
+  recent: DuelRow[]
+  players: number
+  floors: number[]
+  leagues: DuelLeagueKey[]
 }

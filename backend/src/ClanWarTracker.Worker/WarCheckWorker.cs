@@ -127,6 +127,20 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
             {
                 logger.LogError(ex, "Tournament auto-results failed");
             }
+
+            // Дуэли 1х1: тот же такт - пара доиграла и ждёт счёт в чате.
+            try
+            {
+                using var scope = scopeFactory.CreateScope();
+                var duels = scope.ServiceProvider.GetRequiredService<DuelUseCase>();
+                var closed = await duels.PollAsync(stoppingToken);
+                if (closed > 0) logger.LogInformation("Duels closed: {Count}", closed);
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Duel polling failed");
+            }
         }
         while (await timer.WaitForNextTickAsync(stoppingToken));
     }

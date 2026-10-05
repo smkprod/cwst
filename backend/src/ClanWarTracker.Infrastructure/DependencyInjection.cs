@@ -77,6 +77,7 @@ public static class DependencyInjection
         services.AddScoped<ITopPlayerRepository, TopPlayerRepository>();
         services.AddScoped<IMetaRepository, MetaRepository>();
         services.AddScoped<IChallengeRepository, ChallengeRepository>();
+        services.AddScoped<IDuelRepository, DuelRepository>();
         services.AddScoped<IPlayerBattleRepository, PlayerBattleRepository>();
         services.AddScoped<IEntitlementRepository, EntitlementRepository>();
         services.AddScoped<IPlayerAlertPrefsRepository, PlayerAlertPrefsRepository>();
@@ -631,6 +632,64 @@ CREATE TABLE IF NOT EXISTS ""ChallengeEntries"" (
 );");
         await db.Database.ExecuteSqlRawAsync(
             "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_ChallengeEntries_EventId_TelegramUserId\" ON \"ChallengeEntries\" (\"EventId\", \"TelegramUserId\");");
+
+        // Лига дуэлей 1х1: профили с рейтингом и принятые вызовы.
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""DuelProfiles"" (
+    ""Id"" serial PRIMARY KEY,
+    ""TelegramUserId"" bigint NOT NULL,
+    ""PlayerTag"" varchar(16) NOT NULL,
+    ""Name"" varchar(64) NOT NULL,
+    ""FriendLink"" varchar(400) NOT NULL,
+    ""Rating"" integer NOT NULL DEFAULT 1000,
+    ""Peak"" integer NOT NULL DEFAULT 1000,
+    ""Games"" integer NOT NULL DEFAULT 0,
+    ""Wins"" integer NOT NULL DEFAULT 0,
+    ""Losses"" integer NOT NULL DEFAULT 0,
+    ""Lang"" varchar(8) NULL,
+    ""JoinedUtc"" timestamptz NOT NULL,
+    ""LastDuelUtc"" timestamptz NULL
+);");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_DuelProfiles_TelegramUserId\" ON \"DuelProfiles\" (\"TelegramUserId\");");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_DuelProfiles_Rating\" ON \"DuelProfiles\" (\"Rating\");");
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""Duels"" (
+    ""Id"" serial PRIMARY KEY,
+    ""BestOf"" integer NOT NULL,
+    ""State"" integer NOT NULL,
+    ""ATelegramUserId"" bigint NOT NULL,
+    ""ATag"" varchar(16) NOT NULL,
+    ""AName"" varchar(64) NOT NULL,
+    ""BTelegramUserId"" bigint NOT NULL,
+    ""BTag"" varchar(16) NOT NULL,
+    ""BName"" varchar(64) NOT NULL,
+    ""ScoreA"" integer NOT NULL DEFAULT 0,
+    ""ScoreB"" integer NOT NULL DEFAULT 0,
+    ""RatingA"" integer NOT NULL DEFAULT 0,
+    ""RatingB"" integer NOT NULL DEFAULT 0,
+    ""DeltaA"" integer NOT NULL DEFAULT 0,
+    ""DeltaB"" integer NOT NULL DEFAULT 0,
+    ""Rated"" boolean NOT NULL DEFAULT false,
+    ""AcceptedUtc"" timestamptz NOT NULL,
+    ""FinishedUtc"" timestamptz NULL,
+    ""CheckedUtc"" timestamptz NULL,
+    ""ChatId"" bigint NULL,
+    ""MessageId"" integer NULL,
+    ""InlineMessageId"" varchar(128) NULL,
+    ""Lang"" varchar(8) NULL
+);");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_Duels_InlineMessageId\" ON \"Duels\" (\"InlineMessageId\");");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_Duels_ChatId_MessageId\" ON \"Duels\" (\"ChatId\", \"MessageId\");");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_Duels_State\" ON \"Duels\" (\"State\");");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_Duels_ATelegramUserId\" ON \"Duels\" (\"ATelegramUserId\");");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_Duels_BTelegramUserId\" ON \"Duels\" (\"BTelegramUserId\");");
 
         // Бои топа колода против колоды - для статистики матчапа в разборе боя.
         await db.Database.ExecuteSqlRawAsync(@"
