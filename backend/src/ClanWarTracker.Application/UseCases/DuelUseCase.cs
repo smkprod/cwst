@@ -188,36 +188,43 @@ public partial class DuelUseCase(
     /// Callback кнопки «Принять»: кто вызвал, Bo, кого (0 - любой), когда (минуты Unix в base36).
     /// Укладывается в 64 байта лимита Telegram с запасом.
     /// </summary>
-    public static string AcceptData(long challenger, int bestOf, long target, DateTime nowUtc) =>
-        $"dl|a|{challenger}|{bestOf}|{target}|{ToBase36(new DateTimeOffset(nowUtc).ToUnixTimeSeconds() / 60)}";
+    public static string AcceptData(long challenger, int bestOf, long target, DateTime nowUtc, string mode) =>
+        $"dl|a|{challenger}|{bestOf}|{target}|{ToBase36(new DateTimeOffset(nowUtc).ToUnixTimeSeconds() / 60)}|{DuelModes.Get(mode).Code}";
 
-    public record AcceptRequest(long Challenger, int BestOf, long Target, DateTime CreatedUtc);
+    public record AcceptRequest(long Challenger, int BestOf, long Target, DateTime CreatedUtc, string? Mode);
 
     public static AcceptRequest? ParseAccept(string data)
     {
         var p = data.Split('|');
-        if (p.Length != 6 || p[0] != "dl" || p[1] != "a") return null;
+        // Семь частей - с режимом; шесть - вызов, брошенный до появления режимов.
+        if (p.Length is not (6 or 7) || p[0] != "dl" || p[1] != "a") return null;
         if (!long.TryParse(p[2], NumberStyles.None, CultureInfo.InvariantCulture, out var challenger)) return null;
         if (!int.TryParse(p[3], NumberStyles.None, CultureInfo.InvariantCulture, out var bo) || (bo != 1 && bo != 3)) return null;
         if (!long.TryParse(p[4], NumberStyles.None, CultureInfo.InvariantCulture, out var target)) return null;
         var minutes = FromBase36(p[5]);
         if (minutes is null) return null;
+        string? mode = null;
+        if (p.Length == 7)
+        {
+            if (p[6].Length != 1 || DuelModes.ByCode(p[6][0]) is not { } m) return null;
+            mode = m.Key;
+        }
         return new AcceptRequest(challenger, bo, target,
-            DateTimeOffset.FromUnixTimeSeconds(minutes.Value * 60).UtcDateTime);
+            DateTimeOffset.FromUnixTimeSeconds(minutes.Value * 60).UtcDateTime, mode);
     }
 
     /// <summary>Текст и кнопки открытого вызова.</summary>
     public (string Text, List<IReadOnlyList<BotButton>> Rows) OpenCard(
-        DuelProfile challenger, int bestOf, long target, string? targetName, DateTime nowUtc)
+        DuelProfile challenger, int bestOf, long target, string? targetName, DateTime nowUtc, string mode)
     {
         var t = DuelText.For(challenger.Lang);
-        var bo = $"Bo{bestOf}";
+        var bo = Format(bestOf, mode, t);
         var text = target != 0 && targetName is not null
             ? string.Format(t.OpenTargeted, bo, challenger.Name, LeagueLabel(challenger.Rating, t), challenger.Rating, targetName)
             : string.Format(t.Open, bo, challenger.Name, LeagueLabel(challenger.Rating, t), challenger.Rating);
         var rows = new List<IReadOnlyList<BotButton>>
         {
-            new[] { new BotButton(t.BtnAccept, CallbackData: AcceptData(challenger.TelegramUserId, bestOf, target, nowUtc)) },
+            new[] { new BotButton(t.BtnAccept, CallbackData: AcceptData(challenger.TelegramUserId, bestOf, target, nowUtc, mode)) },
             new[] { new BotButton(t.BtnLeague, Url: "startapp:duel") },
         };
         return (text, rows);
@@ -254,6 +261,7 @@ public partial class DuelUseCase(
         var duel = new Duel
         {
             BestOf = req.BestOf,
+            Mode = req.Mode,
             State = DuelState.Active,
             ATelegramUserId = a.TelegramUserId,
             ATag = a.PlayerTag,
@@ -286,7 +294,7 @@ public partial class DuelUseCase(
         var t = DuelText.For(to.Lang);
         try
         {
-            await sender.SendDmAsync(to.TelegramUserId, string.Format(t.DmStarted, opp.Name, $"Bo{duel.BestOf}"),
+            await sender.SendDmAsync(to.TelegramUserId, string.Format(t.DmStarted, opp.Name, Format(duel.BestOf, duel.Mode, t)),
                 [[new BotButton(string.Format(t.BtnAddFriend, opp.Name), Url: opp.FriendLink)]], ct: ct);
         }
         catch { /* личка - приятное дополнение, карточка в чате важнее */ }
@@ -347,7 +355,8 @@ public partial class DuelUseCase(
         duel.CheckedUtc = now;
 
         var battles = await crApi.GetBattlesForAutoResultAsync(duel.ATag, ct);
-        var facts = battles.Select(b => new TournamentAutoResult.BattleFact(
+        // Только бои в выбранном режиме: обычный бой вместо тройного эликсира не в счёт
+        var facts = battles.Where(b => DuelModes.Matches(duel.Mode, b.GameModeId, b.GameModeName)).Select(b => new TournamentAutoResult.BattleFact(
             b.BattleTimeUtc,
             b.TeamTags.Select(LinkPlayerUseCase.Normalize).ToList(),
             b.OpponentTags.Select(LinkPlayerUseCase.Normalize).ToList(),
@@ -471,7 +480,7 @@ public partial class DuelUseCase(
     public static (string Text, List<IReadOnlyList<BotButton>> Rows) Card(Duel duel, DuelProfile? a, DuelProfile? b)
     {
         var t = DuelText.For(duel.Lang);
-        var bo = $"Bo{duel.BestOf}";
+        var bo = Format(duel.BestOf, duel.Mode, t);
         var rows = new List<IReadOnlyList<BotButton>>();
 
         switch (duel.State)
@@ -481,6 +490,7 @@ public partial class DuelUseCase(
                 var minutes = (int)Timeout(duel.BestOf).TotalMinutes;
                 var text = string.Format(t.Active, bo, duel.AName, duel.RatingA, duel.BName, duel.RatingB,
                     duel.ScoreA, duel.ScoreB, minutes);
+                if (duel.Mode is not null) text += string.Format(t.ModeNote, t.ModeName(duel.Mode));
                 if (!duel.Rated) text += t.Unrated;
 
                 var friends = new List<BotButton>();
@@ -530,7 +540,7 @@ public partial class DuelUseCase(
         int Games, int Wins, int Losses, int Rank, bool HasLink);
 
     public record DuelRowView(
-        int Id, string State, int BestOf, string AName, string ATag, string BName, string BTag,
+        int Id, string State, int BestOf, string? Mode, string AName, string ATag, string BName, string BTag,
         int ScoreA, int ScoreB, int DeltaA, int DeltaB, bool Rated, DateTime AcceptedUtc, DateTime? FinishedUtc);
 
     public record TopRowView(int Rank, string Name, string Tag, int Rating, string League, int Division, int Wins, int Losses, bool Me);
@@ -582,10 +592,14 @@ public partial class DuelUseCase(
         return new SheetRank(p.Rating, p.Peak, LeagueKeys[r.League], r.Division, p.Wins, p.Losses, await RankOfAsync(p, ct));
     }
 
-    private static DuelRowView Row(Duel d) => new(d.Id, d.State.ToString().ToLowerInvariant(), d.BestOf,
+    private static DuelRowView Row(Duel d) => new(d.Id, d.State.ToString().ToLowerInvariant(), d.BestOf, d.Mode,
         d.AName, d.ATag, d.BName, d.BTag, d.ScoreA, d.ScoreB, d.DeltaA, d.DeltaB, d.Rated, d.AcceptedUtc, d.FinishedUtc);
 
     /* ---------------- Мелочи ---------------- */
+
+    /// <summary>«Bo3 · Тройной эликсир» - формат и режим одной строкой для карточек.</summary>
+    public static string Format(int bestOf, string? mode, DuelText t) =>
+        mode is null ? $"Bo{bestOf}" : $"Bo{bestOf} · {t.ModeName(mode)}";
 
     public static string Signed(int v) => v > 0 ? $"+{v}" : v < 0 ? $"−{-v}" : "±0";
 

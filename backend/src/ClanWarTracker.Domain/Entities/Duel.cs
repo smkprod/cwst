@@ -47,6 +47,9 @@ public class Duel
 
     /// <summary>1 или 3.</summary>
     public int BestOf { get; set; }
+
+    /// <summary>Режим дружеского боя (DuelModes): засчитываются только бои в нём. null - старые дуэли, любой режим.</summary>
+    public string? Mode { get; set; }
     public DuelState State { get; set; }
 
     /// <summary>A - кто вызвал, B - кто принял.</summary>

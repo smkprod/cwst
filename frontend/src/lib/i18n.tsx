@@ -68,6 +68,7 @@ const ru = {
 
   ui: { gotIt: 'Понятно', more: 'Подробнее' },
   duel: {
+    modes: { classic: 'Обычный 1×1', double: 'Двойной эликсир', triple: 'Тройной эликсир', sudden: 'Внезапная смерть', rampup: 'Разгон эликсира', draft: 'Драфт', mirror: 'Зеркальный бой', rage: 'Ярость', mega: 'Мегаколода', classicdecks: 'Классические колоды', touchdown: 'Тачдаун' } as Record<string, string>,
     trophies: 'кубков',
     ranksTitle: 'Ранги',
     ranksHint: 'Побеждай — поднимайся. Каждые 50 кубков — новый дивизион.',
@@ -1697,6 +1698,7 @@ const uk: Translations = {
 
   ui: { gotIt: 'Зрозуміло', more: 'Детальніше' },
   duel: {
+    modes: { classic: 'Звичайний 1×1', double: 'Подвійний еліксир', triple: 'Потрійний еліксир', sudden: 'Раптова смерть', rampup: 'Розгін еліксиру', draft: 'Драфт', mirror: 'Дзеркальний бій', rage: 'Лють', mega: 'Мегаколода', classicdecks: 'Класичні колоди', touchdown: 'Тачдаун' } as Record<string, string>,
     trophies: 'кубків',
     ranksTitle: 'Ранги',
     ranksHint: 'Перемагай — піднімайся. Кожні 50 кубків — новий дивізіон.',
@@ -3322,6 +3324,7 @@ const en: Translations = {
 
   ui: { gotIt: 'Got it', more: 'Details' },
   duel: {
+    modes: { classic: 'Classic 1v1', double: 'Double Elixir', triple: 'Triple Elixir', sudden: 'Sudden Death', rampup: 'Ramp Up', draft: 'Draft', mirror: 'Mirror', rage: 'Rage', mega: 'Mega Deck', classicdecks: 'Classic Decks', touchdown: 'Touchdown' } as Record<string, string>,
     trophies: 'trophies',
     ranksTitle: 'Ranks',
     ranksHint: 'Win to climb. Every 50 trophies is a new division.',

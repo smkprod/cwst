@@ -330,7 +330,7 @@ function ActiveCard({ d, t }: { d: DuelRow; t: Translations }) {
         <div className="dl-active-top">
           <span className="dl-live"><i /> {s.live}</span>
           <span className="dl-active-title">{s.activeTitle}</span>
-          <span className="dl-bo">Bo{d.bestOf}</span>
+          <span className="dl-bo">Bo{d.bestOf}{d.mode ? ` · ${s.modes[d.mode] ?? d.mode}` : ''}</span>
         </div>
         <div className="dl-vs">
           <span className="dl-vs-name">{d.aName}</span>
@@ -406,6 +406,7 @@ function DuelList({ rows, myTag, t }: { rows: DuelRow[]; myTag: string | null; t
             <span className={`dl-side dl-right ${d.state === 'finished' && !aWon ? 'dl-win' : ''}`}>{d.bName}</span>
             <span className="dl-meta">
               <span className="dl-chip">Bo{d.bestOf}</span>
+              {d.mode && d.mode !== 'classic' && <span className="dl-chip">{s.modes[d.mode] ?? d.mode}</span>}
               {note && <span className="dl-chip dl-chip-muted">{note}</span>}
               {delta !== null && d.state === 'finished' && d.rated && (
                 <span className={`dl-chip ${delta >= 0 ? 'dl-up' : 'dl-down'}`}>

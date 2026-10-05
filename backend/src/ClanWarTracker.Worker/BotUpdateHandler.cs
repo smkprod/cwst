@@ -450,7 +450,7 @@ public class BotUpdateHandler(
                 ? null
                 : await sp.GetRequiredService<DuelUseCase>().GetProfileAsync(inline.From.Id, ct);
             if (duelProfile is not null && (duelQuery || query.Length == 0))
-                results.AddRange(DuelInlineResults(sp.GetRequiredService<DuelUseCase>(), duelProfile));
+                results.AddRange(DuelInlineResults(sp.GetRequiredService<DuelUseCase>(), duelProfile, query));
             if (player is not null && duelProfile is null)
                 duelJoin = new InlineQueryResultsButton(DuelText.For(inline.From.LanguageCode).InlineJoinButton)
                     { StartParameter = DuelStartArg };
@@ -1925,7 +1925,8 @@ public class BotUpdateHandler(
 
     private static bool IsDuelQuery(string query)
     {
-        var q = query.Trim().ToLowerInvariant();
+        // По первому слову: дальше может идти режим («duel тройной»)
+        var q = query.Trim().ToLowerInvariant().Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "";
         return q is "duel" or "1v1" or "1x1" or "1х1" or "bo1" or "bo3" or "vs"
                || q.StartsWith("дуэл", StringComparison.Ordinal) || q.StartsWith("дуел", StringComparison.Ordinal)
                || q.StartsWith("вызов", StringComparison.Ordinal) || q.StartsWith("виклик", StringComparison.Ordinal);
@@ -1950,19 +1951,41 @@ public class BotUpdateHandler(
     }
 
     /// <summary>Две карточки вызова в инлайн-выдаче: Bo1 и Bo3.</summary>
-    private IEnumerable<InlineQueryResult> DuelInlineResults(DuelUseCase uc, DuelProfile me)
+    /// <summary>
+    /// Карточки вызова в инлайн-выдаче: каждый режим дружеского боя в Bo1 и Bo3.
+    /// Набрал часть названия режима («тройной», «draft») - остаются только подходящие.
+    /// </summary>
+    private IEnumerable<InlineQueryResult> DuelInlineResults(DuelUseCase uc, DuelProfile me, string query)
     {
         var t = DuelText.For(me.Lang);
-        foreach (var bo in new[] { 1, 3 })
+        var words = query.ToLowerInvariant().Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Where(w => !IsDuelQuery(w)).ToArray();
+        foreach (var mode in DuelModes.All)
         {
-            var (text, rows) = uc.OpenCard(me, bo, 0, null, DateTime.UtcNow);
-            yield return new InlineQueryResultArticle($"duel{bo}", string.Format(t.InlineTitle, $"Bo{bo}"), PlainText(text))
+            var name = t.ModeName(mode.Key);
+            if (words.Length > 0 && !words.All(w => name.Contains(w, StringComparison.OrdinalIgnoreCase)
+                                                    || mode.Key.Contains(w, StringComparison.OrdinalIgnoreCase)))
+                continue;
+            foreach (var bo in new[] { 1, 3 })
             {
-                Description = t.InlineDesc,
-                ReplyMarkup = DuelMarkup(rows),
-            };
+                var (text, rows) = uc.OpenCard(me, bo, 0, null, DateTime.UtcNow, mode.Key);
+                yield return new InlineQueryResultArticle($"duel{bo}{mode.Code}",
+                    string.Format(t.InlineTitle, DuelUseCase.Format(bo, mode.Key, t)), PlainText(text))
+                {
+                    Description = t.InlineDesc,
+                    ReplyMarkup = DuelMarkup(rows),
+                };
+            }
         }
     }
+
+    /// <summary>Кнопки выбора режима по два в ряд. callback строит вызывающий по коду режима.</summary>
+    private static InlineKeyboardMarkup ModeKeyboard(DuelText t, Func<DuelModes.Mode, string> data) =>
+        new(DuelModes.All
+            .Select(m => InlineKeyboardButton.WithCallbackData(t.ModeName(m.Key), data(m)))
+            .Chunk(2)
+            .Select(r => r.ToArray())
+            .ToArray());
 
     private static string DisplayName(User u) =>
         u.Username is { Length: > 0 } un ? "@" + un : string.Join(' ', new[] { u.FirstName, u.LastName }.Where(x => !string.IsNullOrEmpty(x)));
@@ -2058,23 +2081,17 @@ public class BotUpdateHandler(
         var target = RealReplyAuthor(msg);
         if (target is { IsBot: true } || target?.Id == msg.From.Id) target = null;
 
+        // Сначала режим дружеского боя, потом формат. Формат, указанный в команде
+        // (/duel bo3), второй шаг пропускает: после режима сразу карточка вызова.
         var bo = ParseBestOf(arg);
-        if (bo is null)
-        {
-            var targetId = target?.Id ?? 0;
-            await bot.SendMessage(msg.Chat.Id,
-                string.Format(t.PickFormat, target is null ? "" : " → " + DisplayName(target)),
-                messageThreadId: msg.MessageThreadId,
-                replyMarkup: new InlineKeyboardMarkup(
-                    InlineKeyboardButton.WithCallbackData("Bo1", $"dl|o|{me.TelegramUserId}|1|{targetId}"),
-                    InlineKeyboardButton.WithCallbackData("Bo3", $"dl|o|{me.TelegramUserId}|3|{targetId}")),
-                cancellationToken: ct);
-            return;
-        }
-
-        var (text, rows) = uc.OpenCard(me, bo.Value, target?.Id ?? 0, target is null ? null : DisplayName(target), DateTime.UtcNow);
-        await bot.SendMessage(msg.Chat.Id, text, messageThreadId: msg.MessageThreadId,
-            replyMarkup: DuelMarkup(rows), cancellationToken: ct);
+        var targetId = target?.Id ?? 0;
+        await bot.SendMessage(msg.Chat.Id,
+            string.Format(t.PickMode, target is null ? "" : " → " + DisplayName(target)),
+            messageThreadId: msg.MessageThreadId,
+            replyMarkup: ModeKeyboard(t, m => bo is int b
+                ? $"dl|o|{me.TelegramUserId}|{b}|{targetId}|{m.Code}"
+                : $"dl|m|{me.TelegramUserId}|{targetId}|{m.Code}"),
+            cancellationToken: ct);
     }
 
     private async Task HandleDuelCallbackAsync(CallbackQuery cb, string data, IServiceProvider sp, CancellationToken ct)
@@ -2121,11 +2138,35 @@ public class BotUpdateHandler(
                 return;
             }
 
-            case "o" when p.Length == 5
+            // Режим выбран - теперь формат
+            case "m" when p.Length == 5
+                          && long.TryParse(p[2], out var pickChallenger)
+                          && long.TryParse(p[3], out var pickTarget)
+                          && p[4].Length == 1 && DuelModes.ByCode(p[4][0]) is { } picked:
+            {
+                if (cb.From.Id != pickChallenger || cb.Message is not { } pm)
+                {
+                    await bot.AnswerCallbackQuery(cb.Id, text: t.ToastNotYours, showAlert: true, cancellationToken: ct);
+                    return;
+                }
+                await bot.AnswerCallbackQuery(cb.Id, cancellationToken: ct);
+                await bot.EditMessageText(pm.Chat.Id, pm.MessageId,
+                    string.Format(t.PickFormat, " · " + t.ModeName(picked.Key)),
+                    replyMarkup: new InlineKeyboardMarkup(
+                        InlineKeyboardButton.WithCallbackData("Bo1", $"dl|o|{pickChallenger}|1|{pickTarget}|{picked.Code}"),
+                        InlineKeyboardButton.WithCallbackData("Bo3", $"dl|o|{pickChallenger}|3|{pickTarget}|{picked.Code}")),
+                    cancellationToken: ct);
+                return;
+            }
+
+            case "o" when p.Length is 5 or 6
                           && long.TryParse(p[2], out var challenger)
                           && int.TryParse(p[3], out var bo) && bo is 1 or 3
                           && long.TryParse(p[4], out var target):
             {
+                // Без шестой части - кнопка, нажатая на сообщении до появления режимов
+                var mode = p.Length == 6 && p[5].Length == 1 && DuelModes.ByCode(p[5][0]) is { } chosen
+                    ? chosen.Key : DuelModes.Default;
                 if (cb.From.Id != challenger)
                 {
                     await bot.AnswerCallbackQuery(cb.Id, text: t.ToastNotYours, showAlert: true, cancellationToken: ct);
@@ -2144,7 +2185,7 @@ public class BotUpdateHandler(
                     try { targetName = DisplayName((await bot.GetChatMember(m.Chat.Id, target, ct)).User); }
                     catch { targetName = "?"; }
                 }
-                var (text, rows) = uc.OpenCard(me, bo, target, targetName, DateTime.UtcNow);
+                var (text, rows) = uc.OpenCard(me, bo, target, targetName, DateTime.UtcNow, mode);
                 await bot.AnswerCallbackQuery(cb.Id, cancellationToken: ct);
                 await bot.EditMessageText(m.Chat.Id, m.MessageId, text, replyMarkup: DuelMarkup(rows), cancellationToken: ct);
                 return;

@@ -680,6 +680,9 @@ CREATE TABLE IF NOT EXISTS ""Duels"" (
     ""InlineMessageId"" varchar(128) NULL,
     ""Lang"" varchar(8) NULL
 );");
+        // Режим дружеского боя - добавлен позже таблицы
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Duels\" ADD COLUMN IF NOT EXISTS \"Mode\" varchar(24) NULL;");
         await db.Database.ExecuteSqlRawAsync(
             "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_Duels_InlineMessageId\" ON \"Duels\" (\"InlineMessageId\");");
         await db.Database.ExecuteSqlRawAsync(
