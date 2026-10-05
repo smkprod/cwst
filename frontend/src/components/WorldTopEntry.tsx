@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { haptic } from '../lib/telegram'
 import { useT } from '../lib/i18n'
 import { WorldTopView } from './WorldTopView'
+import { Icon } from './ui/Icon'
+import { IconTile } from './ui/Section'
 
 /**
  * Вход в мировой топ из раздела «Рейтинг».
@@ -19,7 +21,7 @@ export function WorldTopEntry() {
     return (
       <div className="fade-in">
         <button className="btn-mini more-back" onClick={() => { haptic('light'); setOpen(false) }}>
-          ← {t.more.back}
+          <Icon name="chevronLeft" size={15} /> {t.more.back}
         </button>
         <WorldTopView />
       </div>
@@ -29,12 +31,12 @@ export function WorldTopEntry() {
   return (
     <section className="card" style={{ marginTop: 10 }}>
       <button className="more-row wtop-entry" onClick={() => { haptic('light'); setOpen(true) }}>
-        <span className="more-row-icon">🌍</span>
+        <span className="more-row-icon pl-row-tile"><IconTile name="globe" tone="blue" size={36} /></span>
         <span className="more-row-text">
           <span className="more-row-title">{t.more.worldTop}</span>
           <span className="muted small">{t.more.worldTopHint}</span>
         </span>
-        <span className="more-row-arrow">›</span>
+        <span className="more-row-arrow"><Icon name="chevronRight" size={18} /></span>
       </button>
     </section>
   )

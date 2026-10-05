@@ -3,6 +3,7 @@ import { api } from '../lib/api'
 import type { RecruitmentStatus } from '../types'
 import { haptic, hapticNotify } from '../lib/telegram'
 import { useT } from '../lib/i18n'
+import { SectionHead } from './ui/Section'
 
 export function RecruitToggle() {
   const { t } = useT()
@@ -47,8 +48,7 @@ export function RecruitToggle() {
 
   return (
     <section className="card recruit-card">
-      <div className="card-title">{t.recruit.myTitle}</div>
-      <p className="muted small" style={{ margin: '4px 0 10px' }}>{t.recruit.myHint}</p>
+      <SectionHead icon="megaphone" tone="green" title={t.recruit.myTitle} info={t.recruit.myHint} />
 
       {status.isActive && !editing && (
         <p className="recruit-active-status">{t.recruit.activeStatus}</p>

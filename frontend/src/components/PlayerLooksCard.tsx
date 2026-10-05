@@ -3,7 +3,10 @@ import { api } from '../lib/api'
 import type { Achievement, AppConfig, BackgroundKey } from '../types'
 import { haptic, hapticNotify } from '../lib/telegram'
 import { useT } from '../lib/i18n'
-import { BADGE_ICONS } from '../lib/sponsorMarks'
+import { BadgeIcon } from '../lib/sponsorMarks'
+import { Icon } from './ui/Icon'
+import { InfoButton } from './ui/Info'
+import { IconTile } from './ui/Section'
 import { SponsorBuyButton } from './SponsorBuyButton'
 
 /**
@@ -74,28 +77,30 @@ export function PlayerLooksCard() {
   return (
     <section className="card">
       <button className="looks-head" onClick={() => { haptic('light'); setOpen(o => !o) }}>
-        <span className="card-title">{t.looks.title}</span>
+        <span className="pl-head-left"><IconTile name="palette" tone="violet" /><span className="ui-head-title">{t.looks.title}</span></span>
         <span className="looks-head-right">
           {/* Что выбрано сейчас — видно, не разворачивая */}
-          {showcase && <span className="looks-head-badge">{BADGE_ICONS[showcase] ?? '🏅'}</span>}
+          {showcase && <span className="looks-head-badge"><BadgeIcon badge={showcase} size={18} /></span>}
           {isSponsor && config?.myBackground && (
             <span
               className="looks-head-bg"
               style={{ backgroundImage: `url(/bg/${config.myBackground}.webp)` }}
             />
           )}
-          <span className="looks-head-chev">{open ? '▾' : '▸'}</span>
+          <span className="looks-head-chev"><Icon name={open ? 'chevronDown' : 'chevronRight'} size={18} /></span>
         </span>
       </button>
 
       {!open ? null : (
       <>
-      <p className="adm-block-title">{t.looks.badgeTitle}</p>
+      <p className="adm-block-title pl-subhead">
+        {t.looks.badgeTitle}
+        {badges.length > 0 && <InfoButton title={t.looks.badgeTitle}>{t.looks.badgeHint}</InfoButton>}
+      </p>
       {badges.length === 0 ? (
         <p className="muted small">{t.looks.noBadges}</p>
       ) : (
         <>
-          <p className="muted small">{t.looks.badgeHint}</p>
           <div className="looks-badges">
             {badges.map(b => (
               <button
@@ -105,8 +110,10 @@ export function PlayerLooksCard() {
                 onClick={() => pickBadge(showcase === b.key ? null : b.key)}
                 aria-label={b.key}
               >
-                <span className="looks-badge-icon">{BADGE_ICONS[b.key] ?? '🏅'}</span>
-                <span className="looks-badge-lvl muted small">{'★'.repeat(b.level)}</span>
+                <span className="looks-badge-icon"><BadgeIcon badge={b.key} size={22} /></span>
+                <span className="looks-badge-lvl muted small pl-stars">
+                  {Array.from({ length: b.level }, (_, i) => <Icon key={i} name="star" size={10} fill="currentColor" />)}
+                </span>
               </button>
             ))}
           </div>

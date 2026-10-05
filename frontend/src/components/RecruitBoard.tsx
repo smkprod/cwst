@@ -5,6 +5,7 @@ import { fmt } from '../lib/format'
 import { haptic } from '../lib/telegram'
 import { useT } from '../lib/i18n'
 import { usePlayerSheet } from '../lib/playerSheet'
+import { SectionHead } from './ui/Section'
 
 type BoardState = { kind: 'loading' } | { kind: 'error' } | { kind: 'ready'; candidates: RecruitmentCandidate[] }
 
@@ -27,8 +28,7 @@ export function RecruitBoard() {
 
   return (
     <div>
-      <h2 className="section-title">{t.recruit.boardTitle}</h2>
-      <p className="muted small" style={{ marginBottom: 12 }}>{t.recruit.boardHint}</p>
+      <SectionHead icon="users" tone="green" title={t.recruit.boardTitle} info={t.recruit.boardHint} />
 
       {boardState.candidates.length === 0 && (
         <p className="center muted">{t.recruit.empty}</p>

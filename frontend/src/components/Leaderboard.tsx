@@ -3,11 +3,13 @@ import { api } from '../lib/api'
 import type { ClanStatus, GlobalTop, PlayerStatus, SeasonArchive, SeasonBreakdown, SeasonPlayer, WarLogWeek } from '../types'
 import { weekKing } from '../lib/king'
 import { fmt } from '../lib/format'
-import { SponsorMarks, rowBackground } from '../lib/sponsorMarks'
+import { PlaceBadge, SponsorMarks, rowBackground } from '../lib/sponsorMarks'
 import { haptic } from '../lib/telegram'
 import { useT } from '../lib/i18n'
 import { usePlayerSheet } from '../lib/playerSheet'
 import { HistoryCard } from './HistoryCard'
+import { Icon } from './ui/Icon'
+import { IconTile, SectionHead } from './ui/Section'
 
 interface Props {
   players: PlayerStatus[]
@@ -38,7 +40,8 @@ type ArchiveState =
   | { kind: 'empty' }
   | { kind: 'ready'; data: SeasonArchive }
 
-const MEDALS = ['🥇', '🥈', '🥉']
+/** Ранг строки: тройке — медальный кружок, остальным — «#N». */
+const rankMark = (rank: number) => (rank <= 3 ? <PlaceBadge place={rank} size={24} /> : `#${rank}`)
 
 export function Leaderboard({ players, myPlayerTag, periodType, warLog, canManage = false }: Props) {
   const [sel, setSel] = useState<Selection>('current')
@@ -86,8 +89,7 @@ export function Leaderboard({ players, myPlayerTag, periodType, warLog, canManag
 
   return (
     <div>
-      <div className="rating-head">
-        <h2 className="section-title" style={{ margin: 0 }}>{t.leaderboard.title}</h2>
+      <SectionHead icon="trophy" tone="gold" title={t.leaderboard.title} className="rating-head pl-rating-head" aside={
         <select
           className="rating-select"
           value={sel}
@@ -99,7 +101,7 @@ export function Leaderboard({ players, myPlayerTag, periodType, warLog, canManag
           <option value="archive">{t.leaderboard.archive}</option>
           <option value="global">{t.leaderboard.global}</option>
         </select>
-      </div>
+      } />
 
       {sel === 'current' && (
         <WeekBoard players={players} myPlayerTag={myPlayerTag} onOpen={openByTag} periodType={periodType} warLog={warLog} />
@@ -156,7 +158,7 @@ function WeekBoard({ players, myPlayerTag, onOpen, periodType, warLog }: {
               style={rowBackground(p).style}
             >
               {p.backgroundKey && <span className="sponsor-bg-veil" />}
-              <span className="podium-medal">{MEDALS[p.rank - 1] ?? ''}</span>
+              <span className="podium-medal">{p.rank <= 3 ? <PlaceBadge place={p.rank} size={30} /> : null}</span>
               <span className="podium-name">{p.name}<SponsorMarks of={p} /></span>
               <span className="podium-fame">{fmt(p.fame)}</span>
               <div className="podium-bar" />
@@ -183,12 +185,12 @@ function WeekBoard({ players, myPlayerTag, onOpen, periodType, warLog }: {
                   <SponsorMarks of={p} />
                   {p.playerTag === myPlayerTag && <span className="me-badge">{t.leaderboard.you}</span>}
                   {p.consecutiveWars >= 3 && (
-                    <span className="streak-badge">🔥{p.consecutiveWars}</span>
+                    <span className="streak-badge pl-inline"><Icon name="flame" size={12} />{p.consecutiveWars}</span>
                   )}
                 </span>
               </span>
               <span className="rating-avg muted">{p.avgFamePerAttack > 0 ? `${Math.round(p.avgFamePerAttack)}${t.leaderboard.perAttack}` : ''}</span>
-              <span className="rating-fame">{fmt(p.fame)} 🏅</span>
+              <span className="rating-fame pl-inline">{fmt(p.fame)} <Icon name="medal" size={13} /></span>
             </button>
           </li>
         ))}
@@ -228,7 +230,7 @@ function GlobalBoard({ state }: { state: GlobalState }) {
         {data.players.map(p => (
           <li key={p.playerTag}>
             <div className={`rating-row row-tap ${p.isMe ? 'rating-me' : ''}`} onClick={() => openSheet(p.playerTag, { isMe: p.isMe })}>
-              <span className="rating-rank">{p.rank <= 3 ? MEDALS[p.rank - 1] : `#${p.rank}`}</span>
+              <span className="rating-rank">{rankMark(p.rank)}</span>
               <span className="rating-name">
                 <span className="rating-name-row">
                   <span className="rating-name-text">{p.name}</span>
@@ -239,7 +241,7 @@ function GlobalBoard({ state }: { state: GlobalState }) {
               <span className="rating-avg muted">
                 {p.weeksParticipated} {t.leaderboard.weeks}{p.avgFamePerAttack > 0 ? ` · ${Math.round(p.avgFamePerAttack)}${t.leaderboard.perAttack}` : ''}
               </span>
-              <span className="rating-fame">{fmt(p.totalFame)} 🏅</span>
+              <span className="rating-fame pl-inline">{fmt(p.totalFame)} <Icon name="medal" size={13} /></span>
             </div>
           </li>
         ))}
@@ -265,9 +267,9 @@ function ArchiveBoard({ state, myPlayerTag }: { state: ArchiveState; myPlayerTag
         return (
           <details key={s.seasonId} className="card collapse-card" open={si === 0}>
             <summary className="card-title-row collapse-summary">
-              <div className="card-title">{t.leaderboard.seasonMeta}{s.seasonId}</div>
-              <span className="muted small">
-                {s.weeksTracked} {t.leaderboard.archiveWeeks} · {fmt(s.clanTotalFame)} 🏅
+              <span className="pl-head-left"><IconTile name="calendar" tone="blue" size={28} /><span className="ui-head-title">{t.leaderboard.seasonMeta}{s.seasonId}</span></span>
+              <span className="muted small pl-inline">
+                {s.weeksTracked} {t.leaderboard.archiveWeeks} · {fmt(s.clanTotalFame)} <Icon name="medal" size={12} />
               </span>
             </summary>
 
@@ -281,7 +283,7 @@ function ArchiveBoard({ state, myPlayerTag }: { state: ArchiveState; myPlayerTag
               {s.topPlayers.map(p => (
                 <li key={p.playerTag}>
                   <div className={`rating-row ${p.playerTag === myPlayerTag ? 'rating-me' : ''}`}>
-                    <span className="rating-rank">{p.rank <= 3 ? MEDALS[p.rank - 1] : `#${p.rank}`}</span>
+                    <span className="rating-rank">{rankMark(p.rank)}</span>
                     <span className="rating-name">
                       <span className="rating-name-row">
                         <span className="rating-name-text">{p.name}</span>
@@ -289,7 +291,7 @@ function ArchiveBoard({ state, myPlayerTag }: { state: ArchiveState; myPlayerTag
                       </span>
                     </span>
                     <span className="rating-avg muted">{p.weeksParticipated} {t.leaderboard.weeks}</span>
-                    <span className="rating-fame">{fmt(p.totalFame)} 🏅</span>
+                    <span className="rating-fame pl-inline">{fmt(p.totalFame)} <Icon name="medal" size={13} /></span>
                   </div>
                 </li>
               ))}
@@ -339,7 +341,7 @@ function SeasonBoard({ state, myPlayerTag, rosterTags, onOpen }: {
                 className={`rating-row ${p.playerTag === myPlayerTag ? 'rating-me' : ''}`}
                 {...(clickable ? { onClick: () => onOpen(p.playerTag) } : {})}
               >
-                <span className="rating-rank">{p.rank <= 3 ? MEDALS[p.rank - 1] : `#${p.rank}`}</span>
+                <span className="rating-rank">{rankMark(p.rank)}</span>
                 <span className="rating-name">
                   <span className="rating-name-row">
                     <span className="rating-name-text">{p.name}</span>
@@ -349,7 +351,7 @@ function SeasonBoard({ state, myPlayerTag, rosterTags, onOpen }: {
                 <span className="rating-avg muted">
                   {p.weeksParticipated} {t.leaderboard.weeks} · {t.leaderboard.best} {fmt(p.bestWeekFame)}
                 </span>
-                <span className="rating-fame">{fmt(p.totalFame)} 🏅</span>
+                <span className="rating-fame pl-inline">{fmt(p.totalFame)} <Icon name="medal" size={13} /></span>
               </Tag>
             </li>
           )

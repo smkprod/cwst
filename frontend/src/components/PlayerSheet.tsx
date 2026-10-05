@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { api, ApiError } from '../lib/api'
 import type { MetaCard, PlayerHistory, PlayerProfile, PlayerSheet, PlayerStatus, PlayStatus, SheetBattle } from '../types'
 import { fmt } from '../lib/format'
@@ -10,10 +10,13 @@ import { ClanModal } from './ClanModal'
 import { CardIcon } from './MetaDecksView'
 import { PlayerProfileCard } from './PlayerProfileCard'
 import { DuelSheetBadge } from './duel/DuelSheetBadge'
+import { Icon, type IconName } from './ui/Icon'
+import { InfoButton } from './ui/Info'
+import { Chip, SectionHead } from './ui/Section'
 
 export type SheetTab = 'overview' | 'war' | 'battles' | 'cards'
 
-const ROLE_ICON: Record<string, string> = { leader: '👑', coLeader: '⚜️', elder: '⭐' }
+const ROLE_ICON: Record<string, IconName> = { leader: 'crown', coLeader: 'shieldCheck', elder: 'star' }
 
 interface BodyProps {
   tag: string
@@ -112,10 +115,10 @@ export function PlayerSheetBody({ tag, warRow, isMe = false, canManage = false, 
             </h3>
             <button type="button" className={`tag-copy psheet-tag ${copied ? 'tag-copy-done' : ''}`} onClick={copyTag}>
               {data?.playerTag ?? tag}
-              <span className="tag-copy-icon">{copied ? '✓' : '⧉'}</span>
+              <span className="tag-copy-icon"><Icon name={copied ? 'check' : 'copy'} size={13} /></span>
             </button>
           </div>
-          {onClose && <button className="modal-close" onClick={onClose} aria-label={t.playerModal.close}>✕</button>}
+          {onClose && <button className="modal-close" onClick={onClose} aria-label={t.playerModal.close}><Icon name="x" size={18} /></button>}
         </div>
 
         <div className="psheet-chips">
@@ -125,12 +128,14 @@ export function PlayerSheetBody({ tag, warRow, isMe = false, canManage = false, 
               className="psheet-chip psheet-chip-clan"
               onClick={() => { haptic('light'); if (data.clanTag) setClanOpen(true) }}
             >
-              🛡 {data.clanName}{roleName ? ` · ${role ? ROLE_ICON[role] ?? '' : ''} ${roleName}` : ''} ›
+              <Icon name="shield" size={13} /> {data.clanName}
+              {roleName ? <> · {role && ROLE_ICON[role] && <Icon name={ROLE_ICON[role]} size={12} />} {roleName}</> : null}
+              <Icon name="chevronRight" size={13} />
             </button>
           )}
-          {data?.worldRank && <span className="psheet-chip psheet-chip-gold">🌍 #{data.worldRank} {s.worldRank}</span>}
-          {(data?.isSponsor ?? warRow?.isSponsor) && <span className="psheet-chip psheet-chip-gold">★ {s.sponsor}</span>}
-          {data?.inBot && <span className="psheet-chip">🤖 {s.inBot}</span>}
+          {data?.worldRank && <span className="psheet-chip psheet-chip-gold"><Icon name="globe" size={13} /> #{data.worldRank} {s.worldRank}</span>}
+          {(data?.isSponsor ?? warRow?.isSponsor) && <span className="psheet-chip psheet-chip-gold"><Icon name="star" size={13} fill="currentColor" /> {s.sponsor}</span>}
+          {data?.inBot && <span className="psheet-chip"><Icon name="bot" size={13} /> {s.inBot}</span>}
         </div>
 
         {data && (
@@ -141,7 +146,7 @@ export function PlayerSheetBody({ tag, warRow, isMe = false, canManage = false, 
               sub={data.ratingLeague ? `${s.league} ${data.ratingLeague}${data.ratingRank ? ` · #${data.ratingRank}` : ''}` : undefined}
               accent
             />
-            <HeroStat value={fmt(data.trophies)} label={`🏆 ${s.trophies}`} />
+            <HeroStat value={fmt(data.trophies)} label={<><Icon name="trophy" size={12} /> {s.trophies}</>} />
             <HeroStat value={fmt(data.bestTrophies)} label={s.best} />
           </div>
         )}
@@ -183,7 +188,7 @@ export function PlayerSheetBody({ tag, warRow, isMe = false, canManage = false, 
   )
 }
 
-function HeroStat({ value, label, sub, accent }: { value: string; label: string; sub?: string; accent?: boolean }) {
+function HeroStat({ value, label, sub, accent }: { value: string; label: ReactNode; sub?: string; accent?: boolean }) {
   return (
     <div className={`psheet-hero-stat ${accent ? 'psheet-hero-stat-accent' : ''}`}>
       <span className="psheet-hero-value">{value}</span>
@@ -222,10 +227,8 @@ function Overview({ data, isMe, t }: { data: PlayerSheet; isMe: boolean; t: Tran
 
       {data.deck.length > 0 && (
         <section className="psheet-block">
-          <div className="psheet-block-head">
-            <span className="psheet-block-title">{s.deck}</span>
-            <span className="muted small">💧{data.deckElixir} · {s.deckFromBattle}</span>
-          </div>
+          <SectionHead icon="cards" tone="violet" title={s.deck} info={s.deckFromBattle}
+            aside={<Chip icon="droplet" tone="violet">{data.deckElixir}</Chip>} />
           <DeckRow cards={data.deck} />
           {data.deckLink && (
             <a className="btn-mini mdeck-open" href={data.deckLink} target="_blank" rel="noreferrer"
@@ -237,7 +240,7 @@ function Overview({ data, isMe, t }: { data: PlayerSheet; isMe: boolean; t: Tran
       )}
 
       {data.games30 > 0 && (
-        <p className="psheet-note">📈 {s.last30.replace('{x}', String(data.winPercent30)).replace('{n}', String(data.games30))}</p>
+        <p className="psheet-note pl-note"><Icon name="trendUp" size={14} /> {s.last30.replace('{x}', String(data.winPercent30)).replace('{n}', String(data.games30))}</p>
       )}
 
       <div className="modal-grid">
@@ -261,7 +264,7 @@ function Overview({ data, isMe, t }: { data: PlayerSheet; isMe: boolean; t: Tran
           )}
           {data.currentStreak !== 0 && (
             <span className={`psheet-fact psheet-streak ${data.currentStreak > 0 ? 'wtop-up' : 'wtop-down'}`}>
-              <b>{data.currentStreak > 0 ? '🔥' : '🧊'} {Math.abs(data.currentStreak)}</b>
+              <b className="pl-inline"><Icon name={data.currentStreak > 0 ? 'flame' : 'snowflake'} size={16} /> {Math.abs(data.currentStreak)}</b>
               <span className="muted small">{data.currentStreak > 0 ? s.streakWin : s.streakLoss}</span>
             </span>
           )}
@@ -300,9 +303,9 @@ function Respect({ tag, isMe, t }: { tag: string; isMe: boolean; t: Translations
       onClick={send}
       disabled={respect !== 'idle'}
     >
-      {respect === 'idle' && <>👏 {t.respect.give}</>}
-      {respect === 'sent' && <>✅ {t.respect.sent}</>}
-      {respect === 'used' && <>👏 {t.respect.usedToday}</>}
+      {respect === 'idle' && <><Icon name="thumbsUp" size={16} /> {t.respect.give}</>}
+      {respect === 'sent' && <><Icon name="checkCircle" size={16} /> {t.respect.sent}</>}
+      {respect === 'used' && <><Icon name="thumbsUp" size={16} /> {t.respect.usedToday}</>}
     </button>
   )
 }
@@ -346,14 +349,14 @@ function WarTab({ data, warRow, isMe, canManage, t }: {
   return (
     <div className="fade-in">
       <section className="psheet-block">
-        <div className="psheet-block-head"><span className="psheet-block-title">{s.war}</span></div>
+        <SectionHead icon="swords" tone="orange" title={s.war} />
         {rowState === 'loading' && <p className="muted small">{s.warLoading}</p>}
         {rowState === 'none' && <p className="muted small">{s.warNone}</p>}
         {rowState === 'ready' && row && <WarWeek p={row} isMe={isMe} canManage={canManage} t={t} />}
       </section>
 
       <section className="psheet-block">
-        <div className="psheet-block-head"><span className="psheet-block-title">{t.playerModal.pastWars}</span></div>
+        <SectionHead icon="history" tone="blue" title={t.playerModal.pastWars} />
         {historyState === 'loading' && <p className="muted small">{t.playerModal.loadingHistory}</p>}
         {historyState === 'error' && <p className="muted small">{t.playerModal.historyError}</p>}
         {historyState === 'ready' && history && history.weeks.length === 0 && (
@@ -367,17 +370,17 @@ function WarTab({ data, warRow, isMe, canManage, t }: {
 
 function WarWeek({ p, isMe, canManage, t }: { p: PlayerStatus; isMe: boolean; canManage: boolean; t: Translations }) {
   const s = t.sheet
-  const STATUS: Record<PlayStatus, { icon: string; label: string; cls: string }> = {
-    played: { icon: '✅', label: t.playerModal.played, cls: 'status-played' },
-    timeLeft: { icon: '⏳', label: t.playerModal.timeLeft, cls: 'status-timeleft' },
-    notPlayed: { icon: '❌', label: t.playerModal.notPlayed, cls: 'status-notplayed' },
+  const STATUS: Record<PlayStatus, { icon: IconName; label: string; cls: string }> = {
+    played: { icon: 'checkCircle', label: t.playerModal.played, cls: 'status-played' },
+    timeLeft: { icon: 'hourglass', label: t.playerModal.timeLeft, cls: 'status-timeleft' },
+    notPlayed: { icon: 'xCircle', label: t.playerModal.notPlayed, cls: 'status-notplayed' },
   }
   const meta = STATUS[p.status]
 
   return (
     <>
       <div className={`modal-status ${meta.cls}`}>
-        {meta.icon} {meta.label} · {s.todayDecks} <strong>{p.decksUsedToday}/4</strong>
+        <Icon name={meta.icon} size={15} /> {meta.label} · {s.todayDecks} <strong>{p.decksUsedToday}/4</strong>
         {' · '}#{p.rank} {s.rankInClan}
       </div>
 
@@ -432,14 +435,14 @@ function WarHistory({ history, t }: { history: PlayerHistory; t: Translations })
       <ul className="history-week-list">
         {weeks.map(w => (
           <li key={`${w.seasonId}-${w.sectionIndex}-${w.clanTag}`} className="history-week-row">
-            <span className="history-week-badge">{w.isColosseum ? '🏛' : `W${w.sectionIndex + 1}`}</span>
+            <span className="history-week-badge">{w.isColosseum ? <Icon name="columns" size={14} /> : `W${w.sectionIndex + 1}`}</span>
             <div className="history-week-info">
               <span className="history-week-clan">{w.clanName}</span>
               <span className="muted small">
-                {t.playerModal.season} {w.seasonId} · ⚡ {w.avgFamePerAttack > 0 ? Math.round(w.avgFamePerAttack) : '—'} · {w.decksUsed}/16
+                {t.playerModal.season} {w.seasonId} · <Icon name="bolt" size={11} /> {w.avgFamePerAttack > 0 ? Math.round(w.avgFamePerAttack) : '—'} · {w.decksUsed}/16
               </span>
             </div>
-            <span className="history-week-fame">{fmt(w.fame)} 🏅</span>
+            <span className="history-week-fame pl-inline">{fmt(w.fame)} <Icon name="medal" size={14} /></span>
           </li>
         ))}
       </ul>
@@ -467,23 +470,26 @@ function Invite({ tag, t }: { tag: string; t: Translations }) {
     <div className="invite-box">
       {link === null ? (
         <>
-          <button className="btn-invite" onClick={make} disabled={state === 'loading'}>
-            🔗 {state === 'loading' ? t.playerModal.inviteLoading : t.playerModal.invite}
-          </button>
-          <p className="invite-note">{state === 'error' ? t.playerModal.inviteError : t.playerModal.inviteHint}</p>
+          <div className="pl-with-info">
+            <button className="btn-invite" onClick={make} disabled={state === 'loading'}>
+              <Icon name="link" size={16} /> {state === 'loading' ? t.playerModal.inviteLoading : t.playerModal.invite}
+            </button>
+            <InfoButton title={t.playerModal.invite}>{t.playerModal.inviteHint}</InfoButton>
+          </div>
+          {state === 'error' && <p className="invite-note">{t.playerModal.inviteError}</p>}
         </>
       ) : (
         <>
           <div className="invite-link">{link}</div>
           <div className="invite-actions">
             <button className="btn-invite" onClick={() => { haptic('light'); shareToTelegram(t.playerModal.inviteShareText, link) }}>
-              ➤ {t.playerModal.inviteSend}
+              <Icon name="send" size={16} /> {t.playerModal.inviteSend}
             </button>
             <button className="btn-invite btn-invite-ghost" onClick={async () => {
               haptic('light')
               hapticNotify(await copyText(link) ? 'success' : 'error')
             }}>
-              ⧉ {t.playerModal.inviteCopy}
+              <Icon name="copy" size={16} /> {t.playerModal.inviteCopy}
             </button>
           </div>
           <p className="invite-note">{t.playerModal.inviteReady}</p>
@@ -504,7 +510,7 @@ function BattlesTab({ data, onOpenPlayer, t }: {
 
   return (
     <div className="fade-in">
-      <p className="muted small" style={{ margin: '0 0 8px' }}>{s.tapToExpand}</p>
+      <div className="pl-hint-row"><InfoButton title={s.tabBattles}>{s.tapToExpand}</InfoButton></div>
       {data.battles.map((b, i) => (
         <BattleRow
           key={`${b.timeUtc}-${i}`}
@@ -537,14 +543,14 @@ function BattleRow({ b, open, onToggle, onOpenPlayer, t }: {
           </span>
           <span className="muted small psheet-battle-sub">{mode} · {when(b.timeUtc)}</span>
         </span>
-        <span className="psheet-battle-chevron">{open ? '▾' : '▸'}</span>
+        <span className="psheet-battle-chevron"><Icon name={open ? 'chevronDown' : 'chevronRight'} size={16} /></span>
       </button>
 
       <div className="psheet-battle-opp">
         <span className="muted small">{s.vs}</span>{' '}
         {b.opponentTag && onOpenPlayer ? (
           <button type="button" className="psheet-link" onClick={() => onOpenPlayer(b.opponentTag!)}>
-            {b.opponentName || b.opponentTag} ›
+            {b.opponentName || b.opponentTag} <Icon name="chevronRight" size={13} />
           </button>
         ) : <span>{b.opponentName || '—'}</span>}
       </div>

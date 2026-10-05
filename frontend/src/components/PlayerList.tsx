@@ -5,17 +5,18 @@ import { fmt } from '../lib/format'
 import { haptic } from '../lib/telegram'
 import { useT, roleLabel } from '../lib/i18n'
 import { usePlayerSheet } from '../lib/playerSheet'
+import { Icon, type IconName } from './ui/Icon'
 
-const STATUS_META: Record<PlayStatus, { icon: string; cls: string }> = {
-  played: { icon: '✅', cls: 'row-played' },
-  timeLeft: { icon: '⏳', cls: 'row-timeleft' },
-  notPlayed: { icon: '❌', cls: 'row-notplayed' },
+const STATUS_META: Record<PlayStatus, { icon: IconName; cls: string }> = {
+  played: { icon: 'checkCircle', cls: 'row-played' },
+  timeLeft: { icon: 'hourglass', cls: 'row-timeleft' },
+  notPlayed: { icon: 'xCircle', cls: 'row-notplayed' },
 }
 
-const ROLE_ICON: Record<string, string> = {
-  leader: '👑',
-  coLeader: '⚜️',
-  elder: '⭐',
+const ROLE_ICON: Record<string, IconName> = {
+  leader: 'crown',
+  coLeader: 'shieldCheck',
+  elder: 'star',
 }
 
 type SortKey = 'status' | 'fame' | 'trophies' | 'role' | 'name'
@@ -155,7 +156,7 @@ export function PlayerList({ players, myPlayerTag, kingTag, canManage = false }:
           return (
             <li key={p.playerTag} className={`player-card ${meta.cls} ${tier} ${isMe ? 'player-me' : ''}`}>
               <button className="player-row" onClick={() => open(p)}>
-                <span className="status-icon" aria-label={p.status}>{meta.icon}</span>
+                <span className={`status-icon pl-status pl-status-${p.status}`} aria-label={p.status}><Icon name={meta.icon} size={20} /></span>
                 <div className="player-info">
                   <span className="player-name">
                     {isMe && <span className="me-badge">{t.leaderboard.you}</span>}
@@ -165,7 +166,7 @@ export function PlayerList({ players, myPlayerTag, kingTag, canManage = false }:
                     {/* Идеальная неделя прямо сейчас: 3600 — потолок, выше не бывает.
                         Считается из уже загруженных медалей, лишних запросов нет. */}
                     {p.fame >= PERFECT_WEEK_FAME && (
-                      <span className="perfect-week" title={t.players.perfectWeek}>💎</span>
+                      <span className="perfect-week pl-gem" title={t.players.perfectWeek}><Icon name="gem" size={14} /></span>
                     )}
                     {!p.isLinked && <span className="unlinked">{t.players.noTg}</span>}
                   </span>
@@ -176,16 +177,16 @@ export function PlayerList({ players, myPlayerTag, kingTag, canManage = false }:
                     {tier === 'pc-king' && <span className="king-badge">{t.players.kingOfWeek}</span>}
                     {roleName && (
                       <span className={`role-badge role-${p.role}`}>
-                        {ROLE_ICON[p.role!]} {roleName}
+                        {ROLE_ICON[p.role!] && <Icon name={ROLE_ICON[p.role!]} size={11} />} {roleName}
                       </span>
                     )}
                     <span>#{p.rank}</span>
-                    <span>{fmt(p.fame)} 🏅</span>
+                    <span className="pl-inline">{fmt(p.fame)} <Icon name="medal" size={12} /></span>
                     {p.warDecksUsed > 0 && <span>{p.warDecksUsed} атак</span>}
                   </span>
                 </div>
                 <DeckDots used={p.decksUsedToday} label={t.players.decksDots} />
-                <span className="chevron">›</span>
+                <span className="chevron"><Icon name="chevronRight" size={16} /></span>
               </button>
             </li>
           )

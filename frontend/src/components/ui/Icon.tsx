@@ -118,6 +118,7 @@ const PATHS = {
   rocket: <><path d="M12 15c-3-3-3-8 3-12 4 0 6 2 6 6-4 6-9 6-12 3l3 3Z" /><path d="M9 15l-3 3M8 11l-4 1 3 3M13 16l-1 4-3-3" /><circle cx="15.5" cy="8.5" r="1.5" /></>,
   zap: <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" />,
   dot: <circle cx="12" cy="12" r="4" fill="currentColor" stroke="none" />,
+  anchor: <><circle cx="12" cy="5" r="2.5" /><path d="M12 7.5V21M8 11h8" /><path d="M4 13a8 8 0 0 0 16 0" /></>,
 } satisfies Record<string, ReactNode>
 
 export type IconName = keyof typeof PATHS
