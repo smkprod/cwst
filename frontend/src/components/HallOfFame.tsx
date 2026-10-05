@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
-import type { AppConfig, BackgroundKey, HallClan, HallOfFame as Hall, HallPlayer } from '../types'
+import type { AppConfig, BackgroundKey, DuelLeague, HallClan, HallOfFame as Hall, HallPlayer } from '../types'
 import { fmt } from '../lib/format'
 import { haptic, hapticNotify } from '../lib/telegram'
 import { useT, type Translations } from '../lib/i18n'
@@ -12,8 +12,12 @@ import { Icon } from './ui/Icon'
 import { SectionHead } from './ui/Section'
 import { InfoButton } from './ui/Info'
 import { PlaceBadge } from './WarLogCard'
+import { DuelTop } from './DuelView'
 
 type Board = 'players' | 'clans'
+
+/** По чему меряем игроков: очки клановой войны за сезон или кубки лиги дуэлей в боте. */
+type Metric = 'fame' | 'duel'
 
 const LEVEL_CLS = ['', 'badge-bronze', 'badge-silver', 'badge-gold']
 
@@ -32,6 +36,19 @@ export function HallOfFame({ config, onConfigChanged }: {
   const [data, setData] = useState<Hall | null>(null)
   const [state, setState] = useState<'loading' | 'ready' | 'empty' | 'error'>('loading')
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [metric, setMetric] = useState<Metric>('fame')
+
+  // Топ лиги дуэлей грузится, только когда его выбрали: обычный заход в Аллею
+  // не должен ждать второй запрос.
+  const [duel, setDuel] = useState<DuelLeague | null>(null)
+  const [duelState, setDuelState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
+  useEffect(() => {
+    if (metric !== 'duel' || duelState !== 'idle') return
+    setDuelState('loading')
+    api.getDuels()
+      .then(d => { setDuel(d); setDuelState('ready') })
+      .catch(() => setDuelState('error'))
+  }, [metric, duelState])
 
   // Страница открывается поверх Аллеи, а не рядом с ней: список остаётся
   // смонтированным, поэтому возврат не перезагружает сезон заново.
@@ -100,6 +117,30 @@ export function HallOfFame({ config, onConfigChanged }: {
         >{t.hall.clans}</button>
       </div>
 
+      {board === 'players' && (
+        <div className="hall-metric">
+          <button className={metric === 'fame' ? 'on' : ''} onClick={() => { haptic('light'); setMetric('fame') }}>
+            <Icon name="medal" size={15} /> {t.hall.byFame}
+          </button>
+          <button className={metric === 'duel' ? 'on' : ''} onClick={() => { haptic('light'); setMetric('duel') }}>
+            <Icon name="trophy" size={15} /> {t.hall.byDuel}
+          </button>
+        </div>
+      )}
+
+      {board === 'players' && metric === 'duel' ? (
+        <section className="card">
+          <SectionHead icon="swords" tone="orange" title={t.duel.title}
+            aside={duel ? t.duel.players.replace('{n}', String(duel.players)) : undefined} />
+          {duelState === 'loading' || duelState === 'idle'
+            ? <div className="center" style={{ padding: 16 }}><div className="spinner" /></div>
+            : duelState === 'error' || !duel
+              ? <p className="muted small" style={{ margin: 0 }}>{t.hall.error}</p>
+              : duel.top.length === 0
+                ? <p className="muted small" style={{ margin: 0 }}>{t.duel.emptyTop}</p>
+                : <DuelTop rows={duel.top} t={t} />}
+        </section>
+      ) : <>
       <Podium rows={top3} label={t.hall.season} seasonId={data.seasonId} onOpen={openRow} />
 
       {/* Своя строка сразу под подиумом.
@@ -123,6 +164,7 @@ export function HallOfFame({ config, onConfigChanged }: {
           <Row key={rowKey(r)} row={r} board={board} onPick={() => openRow(r)} />
         ))}
       </ul>
+      </>}
 
       {pickerOpen && config && (
         <BackgroundPicker

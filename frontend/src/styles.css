@@ -1147,9 +1147,13 @@ button.podium-spot { font: inherit; color: inherit; cursor: pointer; }
 
 /* --- Нижние вкладки --- */
 .tabbar {
-  position: fixed; bottom: 0; left: 0; right: 0;
+  /* z-index обязателен: строки Аллеи и карточки со спонсорским фоном позиционированы
+     (z-index: 1) и без него рисовались ПОВЕРХ панели — она выглядела прозрачной,
+     а нажатие по вкладке попадало в строку под ней. 35 — выше любого содержимого,
+     но ниже меню панели (40) и модальных окон (50+). */
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 35;
   display: flex; justify-content: space-around;
-  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  background: color-mix(in srgb, var(--bg) 97%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-top: 1px solid rgba(255, 255, 255, 0.06);
@@ -2343,6 +2347,11 @@ button.podium-spot { font: inherit; color: inherit; cursor: pointer; }
 
 /* --- Аллея славы --- */
 .hall-switch { display: flex; gap: 2px; background: rgba(255,255,255,0.06); border-radius: 8px; padding: 2px; margin-bottom: 10px; }
+.hall-metric { display: flex; gap: 6px; margin: -2px 0 10px; }
+.hall-metric button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 10px;
+  border-radius: 999px; border: 1px solid var(--ui-line); background: var(--ui-surface); color: var(--muted);
+  font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.hall-metric button.on { color: #fff; border-color: transparent; background: var(--ui-grad); box-shadow: 0 4px 14px var(--ui-shadow); }
 .hall-switch .chart-opt { flex: 1; }
 
 .hall-podium {

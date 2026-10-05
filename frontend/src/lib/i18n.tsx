@@ -1038,6 +1038,8 @@ const ru = {
   },
 
   hall: {
+    byFame: 'КВ очки',
+    byDuel: 'Кубки лиги',
     title: 'Аллея славы',
     season: 'Аллея славы',
     players: 'Игроки',
@@ -2665,6 +2667,8 @@ const uk: Translations = {
   },
 
   hall: {
+    byFame: 'Очки КВ',
+    byDuel: 'Кубки ліги',
     title: 'Алея слави',
     season: 'Алея слави',
     players: 'Гравці',
@@ -4288,6 +4292,8 @@ const en: Translations = {
   },
 
   hall: {
+    byFame: 'War points',
+    byDuel: 'League trophies',
     title: 'Hall of Fame',
     season: 'Hall of Fame',
     players: 'Players',

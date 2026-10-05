@@ -78,7 +78,7 @@ export function DuelView() {
           aside={<><IconUsers size={14} /> {s.players.replace('{n}', String(data.players))}</>} />
         {data.top.length === 0
           ? <p className="muted small" style={{ margin: 0 }}>{s.emptyTop}</p>
-          : <Top rows={data.top} t={t} />}
+          : <DuelTop rows={data.top} t={t} />}
       </section>
 
       {data.me && (
@@ -348,7 +348,7 @@ function ActiveCard({ d, t }: { d: DuelRow; t: Translations }) {
 }
 
 /** Топ: пьедестал на троих и список остальных. */
-function Top({ rows, t }: { rows: DuelTopRow[]; t: Translations }) {
+export function DuelTop({ rows, t }: { rows: DuelTopRow[]; t: Translations }) {
   const s = t.duel
   const openPlayer = usePlayerSheet()
   const podium = rows.slice(0, 3)
