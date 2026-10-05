@@ -4,6 +4,8 @@ import type { ClanRanking } from '../types'
 import { fmt } from '../lib/format'
 import { useT } from '../lib/i18n'
 import { useOpenClan } from '../lib/clanModal'
+import { Icon } from './ui/Icon'
+import { SectionHead } from './ui/Section'
 
 /**
  * Место клана в стране и мире по КВ-трофеям — официальные rankings из CR API.
@@ -23,13 +25,13 @@ export function ClanWorldRankCard() {
   const delta = (r: number | null, p: number | null) => {
     if (!r || !p || p <= 0 || p === r) return null
     return p > r
-      ? <span className="wr-delta wr-up">▲{p - r}</span>
-      : <span className="wr-delta wr-down">▼{r - p}</span>
+      ? <span className="wr-delta wr-up cl-ic"><Icon name="arrowUp" size={11} />{p - r}</span>
+      : <span className="wr-delta wr-down cl-ic"><Icon name="arrowDown" size={11} />{r - p}</span>
   }
 
   return (
     <section className="card" style={{ marginBottom: 10 }}>
-      <div className="card-title" style={{ marginBottom: 10 }}>{t.worldRank.title}</div>
+      <SectionHead icon="globe" tone="gold" title={t.worldRank.title} />
 
       <div className="wr-chips">
         {rank.countryRank != null && rank.countryName && (
@@ -45,7 +47,7 @@ export function ClanWorldRankCard() {
           </div>
         )}
         <div className="wr-chip">
-          <span className="wr-chip-value">⚔️ {fmt(rank.warTrophies)}</span>
+          <span className="wr-chip-value cl-ic"><Icon name="swords" size={15} />{fmt(rank.warTrophies)}</span>
           <span className="wr-chip-label">{t.worldRank.trophies}</span>
         </div>
       </div>
@@ -68,7 +70,7 @@ export function ClanWorldRankCard() {
                 >
                   <span className="wr-row-rank">#{c.rank}</span>
                   <span className="wr-row-name">{c.name}</span>
-                  <span className="wr-row-score">{fmt(c.warTrophies)} ⚔️</span>
+                  <span className="wr-row-score cl-ic">{fmt(c.warTrophies)} <Icon name="swords" size={12} className="cl-muted" /></span>
                 </button>
               </li>
             ))}

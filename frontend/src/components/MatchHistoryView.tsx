@@ -8,13 +8,15 @@ import { CardIcon } from './MetaDecksView'
 import { TrackerCard } from './TrackerCard'
 import { MatchReportSheet } from './MatchReportSheet'
 import { ArchRadar, HeatMap, SessionChart } from './TrackerGraphics'
+import { Icon, type IconName } from './ui/Icon'
+import { SectionHead } from './ui/Section'
 
 const RESULTS = ['all', 'win', 'loss'] as const
 const MODES = ['all', 'ladder', 'pol', 'war', 'other'] as const
 
-const VERDICT_ICON: Record<string, string> = {
-  afk: '📴', levels: '⬆️', close: '🤏', leak: '💧', even: '⚖️',
-  winLevels: '💪', winRank: '🌍', winUpset: '🚀', winClose: '😅',
+const VERDICT_ICON: Record<string, IconName> = {
+  afk: 'bellOff', levels: 'arrowUp', close: 'target', leak: 'droplet', even: 'swap',
+  winLevels: 'shield', winRank: 'globe', winUpset: 'rocket', winClose: 'hourglass',
 }
 
 /**
@@ -84,8 +86,7 @@ export function MatchHistoryView({ openMatchId }: { openMatchId?: number | null 
 
       {agg && (
         <section className="card">
-          <div className="card-title" style={{ marginBottom: 2 }}>{s.aggTitle}</div>
-          <p className="muted small" style={{ margin: '0 0 8px' }}>{s.aggHint}</p>
+          <SectionHead icon="crosshair" tone="red" title={s.aggTitle} info={<p>{s.aggHint}</p>} />
           <ArchRadar rows={agg.archetypes} basePct={agg.basePct ?? 50} locked={!data.unlocked}
             onUnlock={() => openPlus()} t={t} />
           {agg.archetypes.length === 0 && agg.archetypesLocked === 0 && (
@@ -111,9 +112,9 @@ export function MatchHistoryView({ openMatchId }: { openMatchId?: number | null 
           ))}
           {agg.archetypesLocked > 0 && (
             <button className="ba-locked" onClick={() => openPlus()}>
-              <span className="ba-locked-icon">🔒</span>
+              <span className="ba-locked-icon bt-locked-icon"><Icon name="lock" size={14} /></span>
               <span className="ba-locked-text">{s.aggLocked.replace('{n}', String(agg.archetypesLocked))}</span>
-              <span className="ba-locked-arrow">›</span>
+              <span className="ba-locked-arrow"><Icon name="chevronRight" size={16} /></span>
             </button>
           )}
           {agg.levels && (
@@ -149,7 +150,7 @@ export function MatchHistoryView({ openMatchId }: { openMatchId?: number | null 
         ))}
         {arch && (
           <button className="trk-chip trk-chip-on" onClick={() => setArch(null)}>
-            {s.archFilter.replace('{a}', arch.label)} ✕
+            {s.archFilter.replace('{a}', arch.label)} <Icon name="x" size={12} />
           </button>
         )}
       </div>
@@ -169,9 +170,9 @@ export function MatchHistoryView({ openMatchId }: { openMatchId?: number | null 
       )}
       {!next && data.lockedOlder > 0 && (
         <button className="ba-locked" style={{ marginTop: 8 }} onClick={() => openPlus()}>
-          <span className="ba-locked-icon">🔒</span>
+          <span className="ba-locked-icon bt-locked-icon"><Icon name="lock" size={14} /></span>
           <span className="ba-locked-text">{s.lockedOlder.replace('{n}', String(data.lockedOlder))}</span>
-          <span className="ba-locked-arrow">›</span>
+          <span className="ba-locked-arrow"><Icon name="chevronRight" size={16} /></span>
         </button>
       )}
 
@@ -194,8 +195,8 @@ function SessionBlock({ session, onOpen }: { session: MatchSession; onOpen: (id:
         </span>
         <span className="small">
           {session.wins}–{session.losses}
-          {' · '}{signed(session.trophies)}🏆
-          {session.tilt && ' · 🧊'}
+          {' · '}{signed(session.trophies)} <Icon name="trophy" size={12} className="bt-ico-gold" />
+          {session.tilt && <> · <Icon name="snowflake" size={12} className="bt-ico-ice" /></>}
         </span>
       </div>
       <div className="tilt-series-cells" style={{ margin: '4px 0 6px' }}>
@@ -221,7 +222,7 @@ function Row({ m, onOpen }: { m: MatchRow; onOpen: (id: number) => void }) {
           {m.oppName ?? ''}
           {m.topPct != null && (
             <span className={`trk-top ${m.topPct >= 50 ? 'trk-top-good' : 'trk-top-bad'}`}
-              title={`${t.trk.topChip}: ${m.topGames ?? 0}`}>📊 {Math.round(m.topPct)}%</span>
+              title={`${t.trk.topChip}: ${m.topGames ?? 0}`}><Icon name="chart" size={11} /> {Math.round(m.topPct)}%</span>
           )}
         </span>
       </span>
@@ -230,7 +231,7 @@ function Row({ m, onOpen }: { m: MatchRow; onOpen: (id: number) => void }) {
       </span>
       <span className="trk-row-tail">
         {m.trophyChange !== null && <span className="small">{signed(m.trophyChange)}</span>}
-        {m.verdict && <span className="trk-verdict-icon">{VERDICT_ICON[m.verdict] ?? '💡'}</span>}
+        {m.verdict && <span className="trk-verdict-icon"><Icon name={VERDICT_ICON[m.verdict] ?? 'sparkles'} size={13} /></span>}
       </span>
     </button>
   )

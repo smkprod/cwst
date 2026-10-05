@@ -4,7 +4,12 @@ import type { ClanDesignKey, ClanPage, PlayerPage, PageWeek } from '../types'
 import { fmt } from '../lib/format'
 import { haptic, hapticNotify } from '../lib/telegram'
 import { useT, type Translations } from '../lib/i18n'
-import { BADGE_ICONS } from '../lib/sponsorMarks'
+import { BadgeIcon } from '../lib/sponsorMarks'
+import { Icon } from './ui/Icon'
+import { IconTile, SectionHead } from './ui/Section'
+import { InfoButton } from './ui/Info'
+
+const Star = () => <span className="hall-sponsor-tag"><Icon name="star" size={13} fill="currentColor" /></span>
 
 const LEVEL_CLS = ['', 'badge-bronze', 'badge-silver', 'badge-gold']
 
@@ -54,10 +59,10 @@ export function ClanPageView({ clanId, onOpenPlayer, onBack }: {
         <span className="page-hero-veil" />
         <div className="page-hero-body page-hero-split">
           <div className="page-hero-left">
-            <span className="page-hero-crest">🏰</span>
+            <span className="page-hero-crest cl-crest"><IconTile name="castle" tone="violet" size={40} /></span>
             <h2 className="page-hero-name">
               {page.clanName}
-              {page.sponsorCount > 0 && <span className="hall-sponsor-tag">★</span>}
+              {page.sponsorCount > 0 && <Star />}
             </h2>
             <span className="page-hero-tag">{page.clanTag}</span>
             {page.motto && <p className="page-hero-motto">«{page.motto}»</p>}
@@ -101,13 +106,13 @@ export function ClanPageView({ clanId, onOpenPlayer, onBack }: {
 
       {page.weeks.length > 1 && (
         <section className="card">
-          <div className="card-title">{t.hallPage.weeksChart}</div>
+          <SectionHead icon="chart" tone="blue" title={t.hallPage.weeksChart} />
           <WeekBars weeks={page.weeks} t={t} />
         </section>
       )}
 
       <section className="card">
-        <div className="card-title">{t.hallPage.members}</div>
+        <SectionHead icon="users" tone="violet" title={t.hallPage.members} />
         {page.members.length === 0 ? (
           <p className="muted small">{t.hallPage.noMembers}</p>
         ) : (
@@ -125,10 +130,10 @@ export function ClanPageView({ clanId, onOpenPlayer, onBack }: {
                     {m.name}
                     {m.badgeKey && m.badgeLevel > 0 && (
                       <span className={`hall-badge ${LEVEL_CLS[m.badgeLevel] ?? ''}`}>
-                        {BADGE_ICONS[m.badgeKey] ?? '🏅'}
+                        <BadgeIcon badge={m.badgeKey} size={13} />
                       </span>
                     )}
-                    {m.isSponsor && <span className="hall-sponsor-tag">★</span>}
+                    {m.isSponsor && <Star />}
                   </span>
                   <span className="hall-sub muted small">{t.hallPage.hallRankShort} #{m.hallRank}</span>
                   <span className="hall-fame">{fmt(m.seasonFame)}</span>
@@ -199,12 +204,12 @@ export function PlayerPageView({ playerTag, onOpenClan, onBack }: {
           <div className="page-hero-left">
             {page.showcaseKey && page.showcaseLevel > 0 && (
               <span className={`page-hero-crest hall-badge ${LEVEL_CLS[page.showcaseLevel] ?? ''}`}>
-                {BADGE_ICONS[page.showcaseKey] ?? '🏅'}
+                <BadgeIcon badge={page.showcaseKey} size={28} />
               </span>
             )}
             <h2 className="page-hero-name">
               {page.name}
-              {page.isSponsor && <span className="hall-sponsor-tag">★</span>}
+              {page.isSponsor && <Star />}
             </h2>
             <span className="page-hero-tag">{page.playerTag}</span>
 
@@ -212,9 +217,9 @@ export function PlayerPageView({ playerTag, onOpenClan, onBack }: {
               <button
                 className="page-hero-clan"
                 onClick={() => { haptic('light'); onOpenClan(page.clanId!) }}
-              >🏰 {page.clanName}</button>
+              ><Icon name="castle" size={14} />{page.clanName}</button>
             ) : (
-              <span className="page-hero-motto">🏰 {page.clanName}</span>
+              <span className="page-hero-motto"><Icon name="castle" size={14} />{page.clanName}</span>
             )}
           </div>
 
@@ -233,21 +238,23 @@ export function PlayerPageView({ playerTag, onOpenClan, onBack }: {
 
       {page.weeks.length > 1 && (
         <section className="card">
-          <div className="card-title">{t.hallPage.weeksChart}</div>
+          <SectionHead icon="chart" tone="blue" title={t.hallPage.weeksChart} />
           <WeekBars weeks={page.weeks} t={t} />
         </section>
       )}
 
       <section className="card">
-        <div className="card-title">{t.hallPage.badges}</div>
+        <SectionHead icon="medal" tone="gold" title={t.hallPage.badges} />
         {page.badges.length === 0 ? (
           <p className="muted small">{t.hallPage.noBadges}</p>
         ) : (
           <div className="page-badges">
             {page.badges.map(b => (
               <div key={b.key} className={`page-badge ${LEVEL_CLS[b.level] ?? ''}`}>
-                <span className="page-badge-icon">{BADGE_ICONS[b.key] ?? '🏅'}</span>
-                <span className="page-badge-lvl">{'★'.repeat(b.level)}</span>
+                <span className="page-badge-icon"><BadgeIcon badge={b.key} size={24} /></span>
+                <span className="page-badge-lvl">
+                  {Array.from({ length: b.level }, (_, i) => <Icon key={i} name="star" size={10} fill="currentColor" />)}
+                </span>
                 <span className="page-badge-val muted small">{fmt(b.value)}</span>
               </div>
             ))}
@@ -312,8 +319,7 @@ function DesignModal({ page, onClose, onSaved, t }: {
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="card modal-card" onClick={e => e.stopPropagation()}>
-        <div className="card-title">{t.hallPage.designTitle}</div>
-        <p className="muted small">{t.hallPage.designHint}</p>
+        <SectionHead icon="palette" tone="violet" title={t.hallPage.designTitle} info={<p>{t.hallPage.designHint}</p>} />
 
         <div className="design-grid">
           {page.availableDesigns.map(k => (
@@ -387,7 +393,7 @@ function ClanMessageModal({ clanId, clanName, onClose, t }: {
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="card modal-card" onClick={e => e.stopPropagation()}>
-        <div className="card-title">{t.hall.msgTitle} {clanName}</div>
+        <SectionHead icon="send" tone="blue" title={`${t.hall.msgTitle} ${clanName}`} />
 
         {sent ? (
           <>
@@ -415,7 +421,10 @@ function ClanMessageModal({ clanId, clanName, onClose, t }: {
               maxLength={300}
               rows={4}
             />
-            <p className="muted small">{t.hall.msgLimit}</p>
+            <p className="muted small cl-ic cl-limit">
+              {text.length}/300
+              <InfoButton title={t.hall.msgTitle} size={20}><p>{t.hall.msgLimit}</p></InfoButton>
+            </p>
 
             {error && <p className="form-error small">{error}</p>}
 
@@ -444,7 +453,7 @@ function Stat({ value, label }: { value: string; label: string }) {
 function BackBar({ onBack, t }: { onBack: () => void; t: Translations }) {
   return (
     <button className="page-back" onClick={() => { haptic('light'); onBack() }}>
-      ← {t.hallPage.back}
+      <Icon name="chevronLeft" size={16} />{t.hallPage.back}
     </button>
   )
 }

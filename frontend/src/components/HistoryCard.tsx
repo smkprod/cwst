@@ -3,6 +3,8 @@ import { api } from '../lib/api'
 import type { ClanHistory } from '../types'
 import { fmt, fmtShort } from '../lib/format'
 import { useT } from '../lib/i18n'
+import { Icon } from './ui/Icon'
+import { SectionHead } from './ui/Section'
 
 type State =
   | { kind: 'loading' }
@@ -26,7 +28,7 @@ export function HistoryCard() {
   if (state.kind === 'empty') {
     return (
       <section className="card">
-        <div className="card-title">{t.history.title}</div>
+        <SectionHead icon="calendar" tone="green" title={t.history.title} />
         <p className="muted small">{t.history.emptyNote}</p>
       </section>
     )
@@ -37,7 +39,7 @@ export function HistoryCard() {
 
   return (
     <section className="card">
-      <div className="card-title" style={{ marginBottom: 10 }}>{t.history.title}</div>
+      <SectionHead icon="calendar" tone="green" title={t.history.title} />
 
       <div className="history-weeks">
         {[...weeks].reverse().map(w => (
@@ -50,7 +52,7 @@ export function HistoryCard() {
               />
             </div>
             <span className="history-fame">{fmtShort(w.finalFame)}</span>
-            <span className="history-label">{w.isColosseum ? '🏟' : `н.${w.sectionIndex + 1}`}</span>
+            <span className="history-label">{w.isColosseum ? <Icon name="columns" size={12} /> : `н.${w.sectionIndex + 1}`}</span>
           </div>
         ))}
       </div>
@@ -74,7 +76,7 @@ export function HistoryCard() {
             </p>
           )}
           {weeks[0].myFame !== null && (
-            <p className="muted small">{t.history.myContrib} <strong>{fmt(weeks[0].myFame)}</strong> 🏅</p>
+            <p className="muted small cl-ic">{t.history.myContrib} <strong>{fmt(weeks[0].myFame)}</strong> <Icon name="medal" size={12} className="cl-fame" /></p>
           )}
         </div>
       )}

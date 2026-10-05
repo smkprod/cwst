@@ -3,18 +3,9 @@ import { api } from '../lib/api'
 import type { Achievement, Achievements } from '../types'
 import { fmt } from '../lib/format'
 import { useT, type Translations } from '../lib/i18n'
-
-const BADGE_ICONS: Record<Achievement['key'], string> = {
-  streak: '🔥',
-  dailyStreak: '📆',
-  perfectDays: '💯',
-  mvpWeeks: '👑',
-  totalFame: '🏅',
-  warsPlayed: '⚔️',
-  perfectWeeks: '💎',
-  perfectSeasons: '🏆',
-  boatAttacks: '🚤',
-}
+import { BadgeIcon } from '../lib/sponsorMarks'
+import { Icon } from './ui/Icon'
+import { Chip, SectionHead } from './ui/Section'
 
 const LEVEL_CLS = ['ach-none', 'ach-bronze', 'ach-silver', 'ach-gold']
 
@@ -55,10 +46,10 @@ export function AchievementsCard({ playerTag, compact = false }: { playerTag?: s
     <div className="card ach-card">
       {fresh.length > 0 && (
         <div className="ach-unlocked fade-in">
-          <div className="ach-unlocked-title">🎉 {t.ach.unlocked}</div>
+          <div className="ach-unlocked-title pl-inline"><Icon name="sparkles" size={16} /> {t.ach.unlocked}</div>
           {fresh.map(b => (
             <div key={b.key} className="ach-unlocked-row">
-              <span className="ach-unlocked-icon">{BADGE_ICONS[b.key]}</span>
+              <span className="ach-unlocked-icon"><BadgeIcon badge={b.key} size={22} /></span>
               <span>
                 <b>{t.ach.badges[b.key]}</b>
                 {' '}{[t.ach.lvlNone, t.ach.lvlBronze, t.ach.lvlSilver, t.ach.lvlGold][b.level]}
@@ -68,10 +59,8 @@ export function AchievementsCard({ playerTag, compact = false }: { playerTag?: s
         </div>
       )}
 
-      <div className="card-title-row">
-        <div className="card-title">{t.ach.title}</div>
-        <span className="muted small">{goldCount > 0 ? `🥇 ${goldCount}/${data.badges.length}` : ''}</span>
-      </div>
+      <SectionHead icon="medal" tone="gold" title={t.ach.title}
+        aside={goldCount > 0 ? <Chip icon="medal" tone="gold">{goldCount}/{data.badges.length}</Chip> : null} />
       <div className="ach-grid">
         {shown.map(b => <Badge key={b.key} b={b} t={t} />)}
       </div>
@@ -88,7 +77,7 @@ function Badge({ b, t }: { b: Achievement; t: Translations }) {
 
   return (
     <div className={`ach-badge ${LEVEL_CLS[b.level]}`}>
-      <span className="ach-icon">{BADGE_ICONS[b.key]}</span>
+      <span className="ach-icon"><BadgeIcon badge={b.key} size={22} /></span>
       <div className="ach-info">
         <span className="ach-name">{label} <span className="ach-lvl">{levelName}</span></span>
         <div className="ach-track">

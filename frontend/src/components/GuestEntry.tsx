@@ -5,6 +5,9 @@ import { haptic } from '../lib/telegram'
 import { useT } from '../lib/i18n'
 import { LangSwitcher } from './LangSwitcher'
 import { TopPlayersTeaser } from './TopPlayersTeaser'
+import { Icon } from './ui/Icon'
+import { InfoButton } from './ui/Info'
+import { IconTile } from './ui/Section'
 
 interface Props {
   onSuccess: (playerTag: string, clanTag: string, data: ClanStatus) => void
@@ -57,7 +60,7 @@ export function GuestEntry({ onSuccess }: Props) {
       </div>
 
       <div className="center" style={{ minHeight: 'auto', paddingBottom: 8 }}>
-        <p style={{ fontSize: 40, margin: 0 }}>⚔️</p>
+        <IconTile name="swords" tone="orange" size={64} />
         <h2 style={{ margin: '12px 0 4px', textAlign: 'center' }}>{t.guest.heroTitle}</h2>
         <p className="muted small" style={{ maxWidth: 300, textAlign: 'center', margin: 0 }}>
           {t.guest.heroSub}
@@ -65,13 +68,16 @@ export function GuestEntry({ onSuccess }: Props) {
       </div>
 
       <ul className="guest-bullets">
-        <li>{t.guest.b1}</li>
-        <li>{t.guest.b2}</li>
-        <li>{t.guest.b3}</li>
+        <li className="pl-bullet"><Icon name="checkCircle" size={16} /> {t.guest.b1}</li>
+        <li className="pl-bullet"><Icon name="chart" size={16} /> {t.guest.b2}</li>
+        <li className="pl-bullet"><Icon name="bell" size={16} /> {t.guest.b3}</li>
       </ul>
 
       <div className="center" style={{ minHeight: 'auto', padding: '4px 0 0' }}>
-        <p className="small" style={{ margin: '0 0 8px', fontWeight: 600 }}>{t.guest.title}</p>
+        <p className="small pl-inline" style={{ margin: '0 0 8px', fontWeight: 600 }}>
+          {t.guest.title}
+          <InfoButton title={t.guest.title}>{t.guest.hint}</InfoButton>
+        </p>
         <div className="search-row" style={{ maxWidth: 320 }}>
           <input
             className="search-input"
@@ -92,9 +98,7 @@ export function GuestEntry({ onSuccess }: Props) {
             {s.message}
           </p>
         )}
-        <p className="muted small" style={{ margin: '10px 0 16px', maxWidth: 280, textAlign: 'center' }}>
-          {t.guest.hint}
-        </p>
+        <div style={{ height: 16 }} />
       </div>
 
       <TopPlayersTeaser />

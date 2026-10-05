@@ -3,6 +3,9 @@ import { api, ApiError } from '../lib/api'
 import type { Tournament, TournamentMode } from '../types'
 import { haptic, hapticNotify } from '../lib/telegram'
 import { useT } from '../lib/i18n'
+import { Icon } from './ui/Icon'
+import { SectionHead } from './ui/Section'
+import { InfoButton } from './ui/Info'
 
 interface Props {
   mode: 'create' | 'edit'
@@ -81,7 +84,7 @@ export function TournamentForm({ mode, initial, onSaved, onCancel }: Props) {
 
   return (
     <div className="card tournament-form">
-      <div className="card-title">{mode === 'create' ? t.tournament.formTitleCreate : t.tournament.formTitleEdit}</div>
+      <SectionHead icon={mode === 'create' ? 'plus' : 'edit'} tone="gold" title={mode === 'create' ? t.tournament.formTitleCreate : t.tournament.formTitleEdit} />
 
       <div className="form-field">
         <label className="muted small">{t.tournament.nameLabel}</label>
@@ -118,7 +121,10 @@ export function TournamentForm({ mode, initial, onSaved, onCancel }: Props) {
       </div>
 
       <div className="form-field">
-        <label className="muted small">{t.tournament.linkLabel}</label>
+        <label className="muted small mx-label">
+          {t.tournament.linkLabel}
+          <InfoButton size={18} title={t.tournament.linkLabel}>{t.tournament.linkHint}</InfoButton>
+        </label>
         <input
           className="search-input"
           value={clanInviteLink}
@@ -126,7 +132,6 @@ export function TournamentForm({ mode, initial, onSaved, onCancel }: Props) {
           placeholder={t.tournament.linkPlaceholder}
           maxLength={300}
         />
-        <p className="muted small form-hint">{t.tournament.linkHint}</p>
       </div>
 
       <div className="form-row">
@@ -139,7 +144,10 @@ export function TournamentForm({ mode, initial, onSaved, onCancel }: Props) {
           </select>
         </div>
         <div className="form-field">
-          <label className="muted small">{t.tournament.finalBestOfLabel}</label>
+          <label className="muted small mx-label">
+            {t.tournament.finalBestOfLabel}
+            <InfoButton size={18} title={t.tournament.finalBestOfLabel}>{t.tournament.finalBestOfHint}</InfoButton>
+          </label>
           <select
             className="rating-select tournament-select"
             value={finalBestOf}
@@ -150,7 +158,6 @@ export function TournamentForm({ mode, initial, onSaved, onCancel }: Props) {
             <option value={2}>{t.tournament.format2}</option>
             <option value={3}>{t.tournament.format3}</option>
           </select>
-          <p className="muted small form-hint">{t.tournament.finalBestOfHint}</p>
         </div>
         <div className="form-field">
           <label className="muted small">{t.tournament.formatLabel}</label>
@@ -174,7 +181,10 @@ export function TournamentForm({ mode, initial, onSaved, onCancel }: Props) {
           />
         </div>
         <div className="form-field">
-          <label className="muted small">{t.tournament.minParticipantsLabel}</label>
+          <label className="muted small mx-label">
+            {t.tournament.minParticipantsLabel}
+            <InfoButton size={18} title={t.tournament.minParticipantsLabel}>{t.tournament.minParticipantsHint}</InfoButton>
+          </label>
           <input
             className="search-input"
             type="number"
@@ -196,7 +206,6 @@ export function TournamentForm({ mode, initial, onSaved, onCancel }: Props) {
           />
         </div>
       </div>
-      <p className="muted small form-hint">{t.tournament.minParticipantsHint}</p>
 
       <label className="auto-results">
         <input
@@ -205,8 +214,10 @@ export function TournamentForm({ mode, initial, onSaved, onCancel }: Props) {
           onChange={e => setAutoResults(e.target.checked)}
         />
         <span className="auto-results-text">
-          <span className="auto-results-title">🤖 {t.tournament.autoResultsLabel}</span>
-          <span className="muted small">{t.tournament.autoResultsHint}</span>
+          <span className="auto-results-title mx-label">
+            <Icon name="bot" size={15} /> {t.tournament.autoResultsLabel}
+            <InfoButton size={18} title={t.tournament.autoResultsLabel}>{t.tournament.autoResultsHint}</InfoButton>
+          </span>
         </span>
       </label>
 
@@ -217,8 +228,10 @@ export function TournamentForm({ mode, initial, onSaved, onCancel }: Props) {
           onChange={e => setAnnounceResults(e.target.checked)}
         />
         <span className="auto-results-text">
-          <span className="auto-results-title">📣 {t.tournament.announceLabel}</span>
-          <span className="muted small">{t.tournament.announceHint}</span>
+          <span className="auto-results-title mx-label">
+            <Icon name="megaphone" size={15} /> {t.tournament.announceLabel}
+            <InfoButton size={18} title={t.tournament.announceLabel}>{t.tournament.announceHint}</InfoButton>
+          </span>
         </span>
       </label>
 

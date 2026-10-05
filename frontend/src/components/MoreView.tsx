@@ -9,6 +9,8 @@ import { RecruitToggle } from './RecruitToggle'
 import { RecruitBoard } from './RecruitBoard'
 import { WorldTopView } from './WorldTopView'
 import { usePlusSheet } from '../lib/plusSheet'
+import { Icon, type IconName } from './ui/Icon'
+import { IconTile, SectionHead, type Tone } from './ui/Section'
 
 export type MoreSection = 'recruit' | 'about' | 'worldTop'
 type Section = MoreSection
@@ -42,7 +44,7 @@ export function MoreView({ canManage, isLeader, onOpenNotifications, initialSect
   if (section) {
     return (
       <div className="fade-in">
-        <button className="btn-mini more-back" onClick={back}>← {t.more.back}</button>
+        <button className="btn-mini more-back" onClick={back}><Icon name="chevronLeft" size={15} /> {t.more.back}</button>
         {section === 'recruit' && (isLeader ? <RecruitBoard /> : <RecruitToggle />)}
         {section === 'about' && <AboutCard />}
         {section === 'worldTop' && <WorldTopView />}
@@ -53,63 +55,28 @@ export function MoreView({ canManage, isLeader, onOpenNotifications, initialSect
   return (
     <div className="fade-in">
       <section className="card">
-        <div className="card-title">{t.more.settingsTitle}</div>
+        <SectionHead icon="sliders" tone="gray" title={t.more.settingsTitle} />
 
         <div className="more-setting">
-          <span className="more-setting-label">🌐 {t.more.language}</span>
+          <span className="more-setting-label mx-more-label"><IconTile name="language" tone="blue" size={30} /> {t.more.language}</span>
           <LangSwitcher />
         </div>
 
         {canManage && (
-          <button className="more-row" onClick={() => { haptic('light'); onOpenNotifications() }}>
-            <span className="more-row-icon">🔔</span>
-            <span className="more-row-text">
-              <span className="more-row-title">{t.more.notifications}</span>
-              <span className="muted small">{t.more.notificationsHint}</span>
-            </span>
-            <span className="more-row-arrow">›</span>
-          </button>
+          <MoreRow icon="bell" tone="orange" title={t.more.notifications} hint={t.more.notificationsHint} onClick={() => { haptic('light'); onOpenNotifications() }} />
         )}
       </section>
 
       <section className="card" style={{ marginTop: 10 }}>
-        <div className="card-title">{t.more.sectionsTitle}</div>
+        <SectionHead icon="menu" tone="violet" title={t.more.sectionsTitle} />
 
-        <button className="more-row" onClick={() => openPlus()}>
-          <span className="more-row-icon">💎</span>
-          <span className="more-row-text">
-            <span className="more-row-title">{t.more.plus}</span>
-            <span className="muted small">{t.more.plusHint}</span>
-          </span>
-          <span className="more-row-arrow">›</span>
-        </button>
+        <MoreRow icon="gem" tone="violet" title={t.more.plus} hint={t.more.plusHint} onClick={() => openPlus()} />
 
-        <button className="more-row" onClick={() => open('worldTop')}>
-          <span className="more-row-icon">🌍</span>
-          <span className="more-row-text">
-            <span className="more-row-title">{t.more.worldTop}</span>
-            <span className="muted small">{t.more.worldTopHint}</span>
-          </span>
-          <span className="more-row-arrow">›</span>
-        </button>
+        <MoreRow icon="globe" tone="blue" title={t.more.worldTop} hint={t.more.worldTopHint} onClick={() => open('worldTop')} />
 
-        <button className="more-row" onClick={() => open('recruit')}>
-          <span className="more-row-icon">👥</span>
-          <span className="more-row-text">
-            <span className="more-row-title">{isLeader ? t.more.recruitBoard : t.more.recruitMe}</span>
-            <span className="muted small">{isLeader ? t.more.recruitBoardHint : t.more.recruitMeHint}</span>
-          </span>
-          <span className="more-row-arrow">›</span>
-        </button>
+        <MoreRow icon="users" tone="green" title={isLeader ? t.more.recruitBoard : t.more.recruitMe} hint={isLeader ? t.more.recruitBoardHint : t.more.recruitMeHint} onClick={() => open('recruit')} />
 
-        <button className="more-row" onClick={() => open('about')}>
-          <span className="more-row-icon">ℹ️</span>
-          <span className="more-row-text">
-            <span className="more-row-title">{t.more.about}</span>
-            <span className="muted small">{t.more.aboutHint}</span>
-          </span>
-          <span className="more-row-arrow">›</span>
-        </button>
+        <MoreRow icon="info" tone="gray" title={t.more.about} hint={t.more.aboutHint} onClick={() => open('about')} />
       </section>
 
       <div style={{ height: 10 }} />
@@ -117,5 +84,21 @@ export function MoreView({ canManage, isLeader, onOpenNotifications, initialSect
       <div style={{ height: 10 }} />
       <CommunityCard />
     </div>
+  )
+}
+
+/** Пункт меню «Ещё»: плитка с иконкой, название с подписью и шеврон. */
+function MoreRow({ icon, tone, title, hint, onClick }: {
+  icon: IconName; tone: Tone; title: string; hint: string; onClick: () => void
+}) {
+  return (
+    <button className="more-row" onClick={onClick}>
+      <IconTile name={icon} tone={tone} size={34} />
+      <span className="more-row-text">
+        <span className="more-row-title">{title}</span>
+        <span className="muted small">{hint}</span>
+      </span>
+      <span className="more-row-arrow"><Icon name="chevronRight" size={18} /></span>
+    </button>
   )
 }

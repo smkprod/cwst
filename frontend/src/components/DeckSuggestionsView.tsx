@@ -3,6 +3,10 @@ import { api } from '../lib/api'
 import type { DeckCard, DeckSuggestion, DeckSuggestions, TopDeck } from '../types'
 import { useT, type Translations } from '../lib/i18n'
 import { haptic } from '../lib/telegram'
+import { Icon } from './ui/Icon'
+import { InfoButton } from './ui/Info'
+import { SectionHead } from './ui/Section'
+import { noEmoji } from '../lib/text'
 
 /**
  * Колоды, подобранные под коллекцию игрока. Разделены честно: «можно играть сейчас» —
@@ -40,19 +44,18 @@ export function DeckSuggestionsView({ playerTag, embedded = false }: {
   return (
     <div>
       {embedded ? (
-        <p className="muted small" style={{ margin: '0 0 4px' }}>
-          {t.decks.hint} · {data.baseSize} {t.decks.decksWord} · {data.baseUpdated}
-        </p>
+        <div className="muted small bt-inline" style={{ margin: '0 0 4px' }}>
+          <Icon name="cards" size={13} /> {data.baseSize} {t.decks.decksWord} · {data.baseUpdated}
+          <InfoButton size={18} title={t.decks.title}><p>{t.decks.hint}</p></InfoButton>
+        </div>
       ) : (
         <section className="card">
-          <div className="card-title-row">
-            <div className="card-title">{t.decks.title}</div>
-            <span className="muted small">{data.baseSize} {t.decks.decksWord}</span>
-          </div>
-          <p className="muted small" style={{ margin: '0 0 4px' }}>{t.decks.hint}</p>
-          <p className="muted small" style={{ margin: 0, opacity: 0.75 }}>
-            {data.baseUpdated} · {data.baseSource}
-          </p>
+          <SectionHead icon="cards" tone="violet" title={t.decks.title} className="bt-head-flush"
+            aside={`${data.baseSize} ${t.decks.decksWord}`}
+            info={<>
+              <p>{t.decks.hint}</p>
+              <p>{data.baseUpdated} · {data.baseSource}</p>
+            </>} />
         </section>
       )}
 
@@ -62,14 +65,14 @@ export function DeckSuggestionsView({ playerTag, embedded = false }: {
 
       {data.ready.length > 0 && (
         <>
-          <div className="decks-group-title">✅ {t.decks.ready}</div>
+          <SectionHead className="bt-group-head" icon="checkCircle" tone="green" title={t.decks.ready} />
           {data.ready.map(d => <DeckRow key={d.id} deck={d} t={t} />)}
         </>
       )}
 
       {data.almost.length > 0 && (
         <>
-          <div className="decks-group-title">🧩 {t.decks.almost}</div>
+          <SectionHead className="bt-group-head" icon="hourglass" tone="orange" title={t.decks.almost} />
           {data.almost.map(d => <DeckRow key={d.id} deck={d} t={t} />)}
         </>
       )}
@@ -78,8 +81,8 @@ export function DeckSuggestionsView({ playerTag, embedded = false }: {
           база меты устаревает каждый сезон молча, а живой топ обновляет себя сам. */}
       {data.top.length > 0 && (
         <>
-          <div className="decks-group-title">🌍 {t.decks.topTitle}</div>
-          <p className="muted small" style={{ margin: '0 0 8px' }}>{t.decks.topHint}</p>
+          <SectionHead className="bt-group-head" icon="globe" tone="blue" title={t.decks.topTitle}
+            info={<p>{t.decks.topHint}</p>} />
           {data.top.map(d => <TopDeckRow key={d.deck.id} top={d} t={t} />)}
         </>
       )}
@@ -98,7 +101,7 @@ function TopDeckRow({ top, t }: { top: TopDeck; t: Translations }) {
       <div className="top-deck-head">
         <span className="top-deck-rank">#{top.rank}</span>
         <span className="top-deck-name">{top.playerName}</span>
-        <span className="muted small">{top.trophies} 🏆{top.clanName ? ` · ${top.clanName}` : ''}</span>
+        <span className="muted small">{top.trophies} <Icon name="trophy" size={12} className="bt-ico-gold" />{top.clanName ? ` · ${top.clanName}` : ''}</span>
       </div>
       <DeckRow deck={top.deck} t={t} />
     </div>
@@ -116,8 +119,8 @@ function DeckRow({ deck, t }: { deck: DeckSuggestion; t: Translations }) {
           <div className="deck-name">{deck.name}</div>
           <div className="deck-chips">
             <span className="deck-chip">{deck.archetype}</span>
-            <span className="deck-chip">💧 {deck.avgElixir}</span>
-            <span className="deck-chip">🔄 {deck.cycleCost}</span>
+            <span className="deck-chip"><Icon name="droplet" size={12} className="bt-ico-elixir" /> {deck.avgElixir}</span>
+            <span className="deck-chip"><Icon name="refresh" size={12} /> {deck.cycleCost}</span>
           </div>
         </div>
         <div className="deck-readiness">
@@ -136,7 +139,7 @@ function DeckRow({ deck, t }: { deck: DeckSuggestion; t: Translations }) {
         {deck.cards.map(c => <DeckCardChip key={c.name} card={c} />)}
       </div>
 
-      <p className={`deck-verdict ${complete ? '' : 'deck-verdict-warn'}`}>{deck.verdict}</p>
+      <p className={`deck-verdict ${complete ? '' : 'deck-verdict-warn'}`}>{noEmoji(deck.verdict)}</p>
 
       {/* Только считаемые величины: средний эликсир и цикл — про саму колоду,
           уровни и максы — про то, как она выглядит именно в твоей коллекции. */}
@@ -154,7 +157,7 @@ function DeckRow({ deck, t }: { deck: DeckSuggestion; t: Translations }) {
           <span className="deck-stat-label">{t.decks.cycle}</span>
         </div>
         <div className="deck-stat">
-          <span className="deck-stat-value">{deck.levelsToMax > 0 ? deck.levelsToMax : '✓'}</span>
+          <span className="deck-stat-value">{deck.levelsToMax > 0 ? deck.levelsToMax : <Icon name="check" size={16} />}</span>
           <span className="deck-stat-label">{t.decks.levelsToMax}</span>
         </div>
       </div>
@@ -166,7 +169,7 @@ function DeckRow({ deck, t }: { deck: DeckSuggestion; t: Translations }) {
             {r.count} {t.decks.rarity[r.rarity] ?? r.rarity}
           </span>
         ))}
-        {deck.evoAvailable > 0 && <span>· ⚡ {deck.evoUnlocked}/{deck.evoAvailable}</span>}
+        {deck.evoAvailable > 0 && <span className="bt-inline">· <Icon name="bolt" size={12} /> {deck.evoUnlocked}/{deck.evoAvailable}</span>}
       </div>
 
       {/* Совет, который нельзя собрать в один тап, — половина совета.
@@ -180,14 +183,14 @@ function DeckRow({ deck, t }: { deck: DeckSuggestion; t: Translations }) {
           rel="noreferrer"
           onClick={() => haptic('medium')}
         >
-          {t.decks.openInGame}
+          <Icon name="external" size={15} /> {t.decks.openInGame}
         </a>
       )}
 
       <button className="btn-mini deck-note-btn" onClick={() => setOpen(o => !o)}>
         {open ? t.decks.hideNote : t.decks.showNote}
       </button>
-      {open && <p className="muted small deck-note">{deck.note}</p>}
+      {open && <p className="muted small deck-note">{noEmoji(deck.note)}</p>}
     </section>
   )
 }
@@ -198,7 +201,7 @@ function DeckCardChip({ card }: { card: DeckCard }) {
   return (
     <div className={`deck-card-chip ${card.owned ? '' : 'deck-card-missing'} ${card.evoUnlocked ? 'card-chip-evo' : ''}`}>
       <img src={card.iconUrl} alt={card.name} title={card.name} loading="lazy" />
-      {card.evoUnlocked && <span className="card-evo-mark">⚡</span>}
+      {card.evoUnlocked && <span className="card-evo-mark"><Icon name="bolt" size={10} /></span>}
       <div className={`card-chip-level ${card.owned && card.level >= card.maxLevel ? 'card-chip-maxed' : ''}`}>
         {card.owned ? card.level : '—'}
       </div>

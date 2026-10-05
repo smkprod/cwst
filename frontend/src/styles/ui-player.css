@@ -1,0 +1,82 @@
+/* Стили группы player после перехода на иконки и единую дизайн-систему. */
+
+/* Иконка рядом с текстом/числом — на одной линии */
+.pl-inline { display: inline-flex; align-items: center; gap: 4px; vertical-align: middle; }
+.pl-inline .ui-icon { flex-shrink: 0; }
+.pl-stat-val { display: flex; align-items: center; justify-content: center; gap: 5px; }
+.pl-stat-val .ui-icon { color: var(--muted); }
+
+/* Место на пьедестале: кружок с цифрой вместо медалей-эмодзи */
+.pl-place {
+  display: inline-grid; place-items: center; flex-shrink: 0;
+  border-radius: 50%; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums;
+  color: #fff; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 3px 10px rgba(0, 0, 0, 0.25);
+}
+.pl-place-1 { background: linear-gradient(135deg, #ffe27a, #f0a21c); color: #3b2300; box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 4px 12px rgba(242, 179, 61, 0.45); }
+.pl-place-2 { background: linear-gradient(135deg, #eef2f7, #9aa6b6); color: #1f2733; box-shadow: inset 0 1px 0 rgba(255,255,255,0.7), 0 4px 12px rgba(160, 170, 185, 0.35); }
+.pl-place-3 { background: linear-gradient(135deg, #f2b27a, #b0652c); color: #2e1606; box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), 0 4px 12px rgba(205, 127, 50, 0.4); }
+.pl-place-n { background: var(--ui-surface-2, rgba(255, 255, 255, 0.08)); color: var(--muted); box-shadow: none; }
+
+/* Значок витрины и звезда спонсора рядом с именем */
+.pl-badge-icon { display: inline-flex; align-items: center; vertical-align: middle; margin-left: 4px; color: var(--muted); }
+.pl-badge-icon.badge-bronze { color: #e0965a; }
+.pl-badge-icon.badge-silver { color: #c9d2de; }
+.pl-badge-icon.badge-gold { color: var(--gold, #ffc83d); }
+.pl-sponsor-star { display: inline-flex; align-items: center; vertical-align: middle; margin-left: 3px; color: var(--gold, #ffc83d); }
+
+/* Значки наград: иконка вместо эмодзи, цвет по уровню */
+.ach-icon, .ach-unlocked-icon, .looks-badge-icon { display: inline-grid; place-items: center; }
+.ach-bronze .ach-icon { color: #e0965a; }
+.ach-silver .ach-icon { color: #c9d2de; }
+.ach-gold .ach-icon { color: var(--gold, #ffc83d); }
+.ach-unlocked-icon { color: var(--gold, #ffc83d); }
+.looks-head-badge { display: inline-flex; color: var(--gold, #ffc83d); }
+.looks-head-chev { display: inline-flex; color: var(--muted); }
+
+/* Заголовок внутри кнопки/summary: плитка + название без кнопки «i» */
+.pl-head-left { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
+.pl-subhead { display: flex; align-items: center; gap: 6px; }
+
+/* Кнопка рядом со своей «i» */
+.pl-with-info { display: flex; align-items: center; gap: 8px; }
+.pl-with-info > button:first-child { flex: 1; }
+.pl-hint-row { display: flex; justify-content: flex-end; margin: 0 0 6px; }
+
+/* Статус строки состава */
+.pl-status { display: inline-grid; place-items: center; }
+.pl-status-played { color: var(--green, #31b545); }
+.pl-status-timeLeft { color: var(--yellow, #ffc83d); }
+.pl-status-notPlayed { color: var(--red, #e53935); }
+.pl-gem { display: inline-flex; vertical-align: middle; color: #7fd8ff; }
+.role-badge .ui-icon { vertical-align: -1px; }
+
+/* Разные мелочи карточки игрока */
+.pl-avatar { color: var(--muted); }
+.pl-note { display: flex; align-items: center; gap: 6px; }
+.pl-note .ui-icon { color: var(--green, #31b545); flex-shrink: 0; }
+.pl-league-icon { display: inline-grid; place-items: center; width: 48px; height: 48px; border-radius: 14px; color: #fff; }
+.pl-league-bronze { background: linear-gradient(135deg, #f2b27a, #b0652c); }
+.pl-league-silver { background: linear-gradient(135deg, #eef2f7, #9aa6b6); color: #1f2733; }
+.pl-league-gold { background: linear-gradient(135deg, #ffe27a, #f0a21c); color: #3b2300; }
+.pl-league-legendary { background: linear-gradient(135deg, #9c6bff, #ff3d6e); }
+.card-evo-mark { display: inline-grid; place-items: center; }
+.history-week-badge .ui-icon { vertical-align: middle; }
+.tag-copy-icon { display: inline-flex; vertical-align: middle; }
+.modal-close { display: inline-grid; place-items: center; }
+.psheet-chip { display: inline-flex; align-items: center; gap: 4px; }
+.psheet-battle-chevron { display: inline-flex; color: var(--muted); }
+
+/* Шапка рейтинга: селект справа */
+.pl-rating-head .ui-head-aside { color: inherit; font-size: inherit; flex-shrink: 0; }
+/* Селект не сжимаем до «Текущ…»: название короткое, место справа есть */
+.pl-rating-head .rating-select { max-width: none; }
+
+/* Пункт «Мировой топ» */
+.pl-row-tile { display: inline-flex; font-size: 0; }
+.more-row-arrow { display: inline-flex; color: var(--muted); }
+
+/* Выгоды на гостевом экране */
+.pl-bullet { display: flex; align-items: center; gap: 8px; }
+.pl-bullet .ui-icon { color: var(--green, #31b545); flex-shrink: 0; }
+.pl-stars { display: inline-flex; gap: 1px; color: var(--gold, #ffc83d); }
+.psheet-link .ui-icon { vertical-align: -2px; }

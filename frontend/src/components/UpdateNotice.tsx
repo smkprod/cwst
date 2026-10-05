@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { haptic } from '../lib/telegram'
 import { useT } from '../lib/i18n'
+import { SectionHead } from './ui/Section'
 
 /**
  * Ключ версии объявления. Вышло новое — поднимаем номер и меняем строки в i18n
@@ -33,7 +34,7 @@ export function UpdateNotice() {
 
   return (
     <section className="card menu-notice fade-in">
-      <div className="connect-title">🎉 {t.updateNotice.title}</div>
+      <SectionHead icon="sparkles" tone="violet" title={t.updateNotice.title} className="mx-connect-head" />
       <ul className="menu-notice-list">
         <li>{t.updateNotice.game}</li>
         <li>{t.updateNotice.invite}</li>

@@ -7,6 +7,8 @@ type Can = (p: ServicePermission) => boolean
 import { botStartLink, copyText, haptic, hapticNotify, openExternalLink, openTelegramLink } from '../lib/telegram'
 import { useT, type Translations } from '../lib/i18n'
 import { SignupsChart } from './SignupsChart'
+import { Icon, type IconName } from './ui/Icon'
+import { IconTile, SectionHead, type Tone } from './ui/Section'
 
 type State =
   | { kind: 'loading' }
@@ -14,10 +16,18 @@ type State =
   | { kind: 'ready'; clans: OwnerClan[]; stats: OwnerStats }
 
 /** Лидер в клане ровно один, соруков может быть много — значки обязаны различаться. */
-const ROLE_LABEL: Record<string, string> = {
-  leader: '👑 Глава',
-  coLeader: '⚜️ Сорук',
-  elder: '⭐ Старейшина',
+const ROLE_LABEL: Record<string, { icon: IconName; label: string }> = {
+  leader: { icon: 'crown', label: 'Глава' },
+  coLeader: { icon: 'shield', label: 'Сорук' },
+  elder: { icon: 'star', label: 'Старейшина' },
+}
+
+/** «★ Спонсоры» → «Спонсоры»: звезда в переводе осталась, а иконка теперь в плитке. */
+const noStar = (s: string) => s.replace(/^\u2605\s*/, '')
+
+/** Звёзды Telegram: число и маленькая золотая звезда вместо эмодзи. */
+function Stars({ n }: { n: number }) {
+  return <span className="ow-stars">{n}<Icon name="star" size={12} /></span>
 }
 
 type Section = 'overview' | 'clans' | 'find' | 'broadcast' | 'moderators' | 'plus' | 'sponsors' | 'settings' | 'top' | 'campaigns'
@@ -67,18 +77,19 @@ export function OwnerPanel({ me }: { me: ServiceIdentity }) {
   const { stats, clans } = state
   // Рассылка и модераторы — только владельцу. Разделы, которые всё равно
   // ответят отказом, лучше не рисовать вовсе.
-  const sections: { key: Section; icon: string; label: string; hint: string }[] = [
-    { key: 'overview', icon: '📊', label: 'Сводка', hint: 'Игроки, кланы, активность' },
-    { key: 'clans', icon: '🏰', label: `Кланы · ${clans.length}`, hint: 'Список, вход в клан, удаление' },
+  type Item = { key: Section; icon: IconName; tone: Tone; label: string; hint: string }
+  const sections: Item[] = [
+    { key: 'overview', icon: 'dashboard', tone: 'blue', label: 'Сводка', hint: 'Игроки, кланы, активность' },
+    { key: 'clans', icon: 'castle', tone: 'violet', label: `Кланы · ${clans.length}`, hint: 'Список, вход в клан, удаление' },
     // Личные данные — только владельцу
-    ...(me.role === 'owner' ? [{ key: 'find' as Section, icon: '🔎', label: 'Найти игрока', hint: 'Telegram по тегу из игры' }] : []),
-    ...(can('Broadcast') ? [{ key: 'broadcast' as Section, icon: '📣', label: 'Рассылка', hint: 'Текст и скрины всем' }] : []),
-    ...(can('Sponsors') ? [{ key: 'plus' as Section, icon: '💎', label: 'Плюс', hint: 'Цены, продажи, трекер' }] : []),
-    ...(can('Sponsors') ? [{ key: 'sponsors' as Section, icon: '★', label: 'Спонсоры', hint: 'Выдача и оплаты' }] : []),
-    ...(can('AppSettings') ? [{ key: 'settings' as Section, icon: '⚙️', label: 'Вкладки', hint: 'Меню и челлендж' }] : []),
-    ...(can('AppSettings') ? [{ key: 'campaigns' as Section, icon: '📈', label: 'Кампании', hint: 'Реклама и ссылки' }] : []),
-    ...(can('Maintenance') ? [{ key: 'top' as Section, icon: '🌍', label: 'Топ', hint: 'Снимок и мета' }] : []),
-    ...(can('ManageModerators') ? [{ key: 'moderators' as Section, icon: '🛡', label: 'Модераторы', hint: 'Права помощников' }] : []),
+    ...(me.role === 'owner' ? [{ key: 'find', icon: 'search', tone: 'blue', label: 'Найти игрока', hint: 'Telegram по тегу из игры' } as Item] : []),
+    ...(can('Broadcast') ? [{ key: 'broadcast', icon: 'megaphone', tone: 'orange', label: 'Рассылка', hint: 'Текст и скрины всем' } as Item] : []),
+    ...(can('Sponsors') ? [{ key: 'plus', icon: 'gem', tone: 'violet', label: 'Плюс', hint: 'Цены, продажи, трекер' } as Item] : []),
+    ...(can('Sponsors') ? [{ key: 'sponsors', icon: 'star', tone: 'gold', label: 'Спонсоры', hint: 'Выдача и оплаты' } as Item] : []),
+    ...(can('AppSettings') ? [{ key: 'settings', icon: 'gear', tone: 'gray', label: 'Вкладки', hint: 'Меню и челлендж' } as Item] : []),
+    ...(can('AppSettings') ? [{ key: 'campaigns', icon: 'trendUp', tone: 'green', label: 'Кампании', hint: 'Реклама и ссылки' } as Item] : []),
+    ...(can('Maintenance') ? [{ key: 'top', icon: 'globe', tone: 'blue', label: 'Топ', hint: 'Снимок и мета' } as Item] : []),
+    ...(can('ManageModerators') ? [{ key: 'moderators', icon: 'shield', tone: 'red', label: 'Модераторы', hint: 'Права помощников' } as Item] : []),
   ]
   // Запомненный раздел мог пропасть (права сняли) — тогда сводка
   const current = sections.find(s => s.key === section) ?? sections[0]
@@ -96,9 +107,10 @@ export function OwnerPanel({ me }: { me: ServiceIdentity }) {
         <h2 className="section-title" style={{ margin: 0 }}>{t.owner.title}</h2>
         <button className={`adm-burger ${menuOpen ? 'adm-burger-on' : ''}`} aria-expanded={menuOpen}
           onClick={() => { haptic('light'); setMenuOpen(o => !o) }}>
-          <span className="adm-burger-lines"><i /><i /><i /></span>
-          <span className="adm-burger-cur">{current.icon} {current.label}</span>
-          <span className="adm-burger-chev">▾</span>
+          {/* Одна иконка — плитка текущего раздела; полоски бургера рядом с ней были лишними */}
+          <IconTile name={current.icon} tone={current.tone} size={22} />
+          <span className="adm-burger-cur">{current.label}</span>
+          <span className="adm-burger-chev"><Icon name="chevronDown" size={14} /></span>
         </button>
       </div>
 
@@ -111,7 +123,7 @@ export function OwnerPanel({ me }: { me: ServiceIdentity }) {
             {sections.map(s => (
               <button key={s.key} className={`adm-menu-item ${current.key === s.key ? 'adm-menu-on' : ''}`}
                 onClick={() => pick(s.key)}>
-                <span className="adm-menu-ic">{s.icon}</span>
+                <span className="adm-menu-ic"><IconTile name={s.icon} tone={s.tone} size={34} /></span>
                 <span className="adm-menu-text">
                   <b>{s.label}</b>
                   <span className="muted small">{s.hint}</span>
@@ -163,7 +175,7 @@ function Overview({ stats, clans }: { stats: OwnerStats; clans: OwnerClan[] }) {
       {/* Требует внимания */}
       {silent.length > 0 && (
         <div className="card adm-alert-card">
-          <p className="adm-block-title">⚠️ Требует внимания</p>
+          <SectionHead icon="alert" tone="orange" title="Требует внимания" />
           {silent.length > 0 && (
             <p className="adm-alert-row">
               <b>{silent.length}</b> клан(ов) молчат больше недели:{' '}
@@ -175,7 +187,17 @@ function Overview({ stats, clans }: { stats: OwnerStats; clans: OwnerClan[] }) {
       )}
 
       <SignupsChart
-        title="📈 Кто и когда приходил"
+        title="Кто и когда приходил"
+        icon="trendUp"
+        tone="blue"
+        // Честность: у привязавшихся до появления поля даты нет, и в график они
+        // не попадут. Молча занизить прошлое хуже, чем сказать об этом — под «i».
+        info={stats.totalLinkedUsers > stats.usersWithKnownDate ? (
+          <p>
+            {stats.totalLinkedUsers - stats.usersWithKnownDate} игроков привязались до того,
+            как бот начал запоминать дату — в графике их нет.
+          </p>
+        ) : undefined}
         points={stats.signups ?? []}
         metrics={[
           { key: 'users', label: 'Игроки', noun: 'игроков' },
@@ -187,7 +209,15 @@ function Overview({ stats, clans }: { stats: OwnerStats; clans: OwnerClan[] }) {
           «сколько пришло впервые» и «сколько заходит каждый день» — разные вопросы,
           и мешать их в одном заголовке значит путать самого себя. */}
       <SignupsChart
-        title="🔥 Кто заходит каждый день"
+        title="Кто заходит каждый день"
+        icon="flame"
+        tone="orange"
+        info={
+          <p>
+            Активность считается с момента, когда бот начал её записывать, — за более
+            ранние дни здесь нули, а не «никого не было».
+          </p>
+        }
         points={stats.signups ?? []}
         metrics={[
           { key: 'active', label: 'Заходили', noun: 'человек' },
@@ -195,21 +225,7 @@ function Overview({ stats, clans }: { stats: OwnerStats; clans: OwnerClan[] }) {
         ]}
       />
 
-      <p className="muted small chart-footnote">
-        Активность считается с момента, когда бот начал её записывать, — за более
-        ранние дни здесь нули, а не «никого не было».
-      </p>
-
-      {/* Честность: у привязавшихся до появления поля даты нет, и в график они
-          не попадут. Молча занизить прошлое хуже, чем сказать об этом строкой. */}
-      {stats.totalLinkedUsers > stats.usersWithKnownDate && (
-        <p className="muted small chart-footnote">
-          {stats.totalLinkedUsers - stats.usersWithKnownDate} игроков привязались до того,
-          как бот начал запоминать дату — в графике их нет.
-        </p>
-      )}
-
-      <Block title="🏰 Кланы">
+      <Block title="Кланы" icon="castle" tone="violet">
         <Row label="Всего подключено" value={stats.totalClans} />
         <Row label="Активны за неделю" value={stats.activeClans7d} accent={stats.silentClans > 0 ? undefined : 'good'} />
         <Row label="Молчат больше недели" value={stats.silentClans} accent={stats.silentClans > 0 ? 'bad' : undefined} />
@@ -217,7 +233,12 @@ function Overview({ stats, clans }: { stats: OwnerStats; clans: OwnerClan[] }) {
         <Row label="Игроков на клан (в среднем)" value={stats.avgLinkedPerClan} />
       </Block>
 
-      <Block title="👥 Игроки">
+      <Block title="Игроки" icon="users" tone="blue" info={stats.usersReachableByDm < stats.totalLinkedUsers ? (
+        <p>
+          Привязанных лидером через /bind бот тегает в чате, но написать им в личные
+          сообщения не может, пока человек сам не нажмёт «Старт» — так устроен Telegram.
+        </p>
+      ) : undefined}>
         <Row label="Привязали аккаунт" value={stats.totalLinkedUsers} />
         <Row label="Состоят в клане" value={stats.usersWithClan} />
         <Row label="Без клана" value={stats.usersWithoutClan} accent={stats.usersWithoutClan > 0 ? 'warn' : undefined} />
@@ -233,26 +254,21 @@ function Overview({ stats, clans }: { stats: OwnerStats; clans: OwnerClan[] }) {
           accent={stats.usersReachableByDm < stats.totalLinkedUsers ? 'warn' : 'good'}
         />
         <Row label="Пришли по приглашению" value={stats.invitedUsers} />
-        {stats.usersReachableByDm < stats.totalLinkedUsers && (
-          <p className="muted small adm-note">
-            Привязанных лидером через /bind бот тегает в чате, но написать им в личные
-            сообщения не может, пока человек сам не нажмёт «Старт» — так устроен Telegram.
-          </p>
-        )}
       </Block>
 
-      <Block title="📈 Рост">
+      <Block title="Рост" icon="trendUp" tone="green" info={
+        <p>
+          Считается только по записям с датой подключения: {stats.clansWithKnownDate} из {stats.totalClans} кланов,
+          {' '}{stats.usersWithKnownDate} из {stats.totalLinkedUsers} игроков. У подключённых раньше даты нет.
+        </p>
+      }>
         <Row label="Новых кланов за 7 дней" value={stats.newClans7d} />
         <Row label="Новых кланов за 30 дней" value={stats.newClans30d} />
         <Row label="Новых игроков за 7 дней" value={stats.newUsers7d} />
         <Row label="Новых игроков за 30 дней" value={stats.newUsers30d} />
-        <p className="muted small adm-note">
-          Считается только по записям с датой подключения: {stats.clansWithKnownDate} из {stats.totalClans} кланов,
-          {' '}{stats.usersWithKnownDate} из {stats.totalLinkedUsers} игроков. У подключённых раньше даты нет.
-        </p>
       </Block>
 
-      <Block title="🔥 Вовлечённость">
+      <Block title="Вовлечённость" icon="heart" tone="red">
         <Row label="Респектов за неделю" value={stats.respects7d} />
       </Block>
     </>
@@ -269,10 +285,12 @@ function HeroStat({ value, label, sub }: { value: number | string; label: string
   )
 }
 
-function Block({ title, children }: { title: string; children: React.ReactNode }) {
+function Block({ title, icon, tone, info, children }: {
+  title: string; icon: IconName; tone: Tone; info?: React.ReactNode; children: React.ReactNode
+}) {
   return (
     <div className="card adm-block">
-      <p className="adm-block-title">{title}</p>
+      <SectionHead icon={icon} tone={tone} title={title} info={info} />
       {children}
     </div>
   )
@@ -309,12 +327,15 @@ function ClansSection({ clans, onChanged, can, t }: {
 
   return (
     <>
-      <input
-        className="adm-search"
-        placeholder="Поиск по названию или тегу"
-        value={query}
-        onChange={e => setQuery(e.target.value)}
-      />
+      <div className="ow-search">
+        <Icon name="search" size={16} />
+        <input
+          className="adm-search"
+          placeholder="Поиск по названию или тегу"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+        />
+      </div>
 
       <div className="adm-filters">
         {filters.map(f => (
@@ -373,8 +394,12 @@ function ClanCard({ clan: c, onChanged, can, t }: {
             {c.name}
             {!c.isActive && <span className="adm-dot adm-dot-bad" title="нет данных больше недели" />}
           </span>
-          <span className="muted small">
-            {c.clanTag} · 👥 {c.linkedPlayers} · {c.hasChat ? '💬 чат' : '⚠️ без чата'}
+          <span className="muted small ow-meta">
+            {c.clanTag}
+            <span className="ow-meta-i"><Icon name="users" size={12} />{c.linkedPlayers}</span>
+            {c.hasChat
+              ? <span className="ow-meta-i"><Icon name="message" size={12} />чат</span>
+              : <span className="ow-meta-i ow-warn"><Icon name="alert" size={12} />без чата</span>}
           </span>
           <span className="muted small">
             Активность: {ago(c.lastActivityUtc)}
@@ -382,7 +407,7 @@ function ClanCard({ clan: c, onChanged, can, t }: {
           </span>
         </div>
         <div className="adm-card-right">
-          <span className="muted small">{open ? '▲' : '▼'}</span>
+          <span className="muted"><Icon name={open ? 'chevronUp' : 'chevronDown'} size={16} /></span>
         </div>
       </button>
 
@@ -400,7 +425,7 @@ function ClanCard({ clan: c, onChanged, can, t }: {
                   <span>· без @username: {detail.members.filter(m => !m.telegramUsername).length}</span>
                 )}
                 {detail.members.some(m => m.telegramUsername && m.telegramUserId === null) && (
-                  <span>· 💬 только тег: {detail.members.filter(m => m.telegramUsername && m.telegramUserId === null).length}</span>
+                  <span className="ow-meta-i">· <Icon name="message" size={12} /> только тег: {detail.members.filter(m => m.telegramUsername && m.telegramUserId === null).length}</span>
                 )}
               </p>
 
@@ -412,7 +437,9 @@ function ClanCard({ clan: c, onChanged, can, t }: {
                 <div key={m.playerTag} className={`adm-member ${m.isLeader ? 'adm-member-leader' : ''}`}>
                   <span className="adm-member-name">
                     {m.role && ROLE_LABEL[m.role] && (
-                      <span className={`role-badge role-${m.role}`}>{ROLE_LABEL[m.role]}</span>
+                      <span className={`role-badge role-${m.role}`}>
+                        <Icon name={ROLE_LABEL[m.role].icon} size={11} />{ROLE_LABEL[m.role].label}
+                      </span>
                     )}
                     <span className="adm-member-nick">{m.name}</span>
                   </span>
@@ -423,7 +450,7 @@ function ClanCard({ clan: c, onChanged, can, t }: {
                     >
                       @{m.telegramUsername}
                       {/* Привязан лидером: тегнуть можно, написать в ЛС — нет */}
-                      {m.telegramUserId === null && <span className="adm-tag-only" title="только тег в чате">💬</span>}
+                      {m.telegramUserId === null && <span className="adm-tag-only" title="только тег в чате"><Icon name="message" size={12} /></span>}
                     </button>
                   ) : (
                     <span className="muted small">нет @username</span>
@@ -441,7 +468,7 @@ function ClanCard({ clan: c, onChanged, can, t }: {
                 className="btn-mini adm-enter-btn"
                 onClick={() => { haptic('medium'); adminClan.enter(c.id); window.location.reload() }}
               >
-                {t.owner.enterClan}
+                <Icon name="arrowRight" size={14} />{t.owner.enterClan}
               </button>
             )}
           </div>
@@ -453,7 +480,7 @@ function ClanCard({ clan: c, onChanged, can, t }: {
               onClick={remove}
               onBlur={() => setConfirmDelete(false)}
             >
-              {confirmDelete ? t.owner.confirmDelete : t.owner.delete}
+              <Icon name="trash" size={14} />{confirmDelete ? t.owner.confirmDelete : t.owner.delete}
             </button>}
           </div>
           {confirmDelete && <p className="muted small owner-delete-hint">{t.owner.deleteHint}</p>}
@@ -537,7 +564,7 @@ function BroadcastBox({ dmCount, chatCount, t }: { dmCount: number; chatCount: n
 
   return (
     <div className="card owner-bc-card">
-      <p className="adm-block-title">{t.owner.bcTitle}</p>
+      <SectionHead icon="megaphone" tone="orange" title={t.owner.bcTitle} info={<p>{t.owner.bcPhotosHint}</p>} />
       <textarea
         className="owner-bc-text"
         rows={4}
@@ -551,17 +578,17 @@ function BroadcastBox({ dmCount, chatCount, t }: { dmCount: number; chatCount: n
           {photos.map((p, i) => (
             <span key={p.url} className="owner-bc-photo">
               <img src={p.url} alt="" />
-              <button aria-label="✕" onClick={() => removePhoto(i)}>✕</button>
+              <button aria-label="Убрать" onClick={() => removePhoto(i)}><Icon name="x" size={12} /></button>
             </span>
           ))}
         </div>
       )}
       <label className={`btn-mini owner-bc-add ${photos.length >= 10 || preparing ? 'owner-bc-add-off' : ''}`}>
+        <Icon name="image" size={14} />
         {preparing ? t.owner.bcPreparing : `${t.owner.bcAddPhotos}${photos.length ? ` · ${photos.length}/10` : ''}`}
         <input type="file" accept="image/*" multiple hidden disabled={photos.length >= 10 || preparing}
           onChange={e => { addPhotos(e.target.files); e.target.value = '' }} />
       </label>
-      <p className="muted small" style={{ margin: '4px 0 8px' }}>{t.owner.bcPhotosHint}</p>
       <div className="owner-bc-targets">
         {targets.map(tg => (
           <button
@@ -580,6 +607,7 @@ function BroadcastBox({ dmCount, chatCount, t }: { dmCount: number; chatCount: n
         onClick={send}
         onBlur={() => setConfirm(false)}
       >
+        <Icon name={confirm ? 'alert' : 'send'} size={16} />
         {busy ? t.owner.bcSending : confirm ? t.owner.bcConfirm : t.owner.bcSend}
       </button>
       {result && <p className="muted small owner-bc-result">{result}</p>}
@@ -668,8 +696,7 @@ function ModeratorsSection({ can, t }: { can: Can; t: Translations }) {
 
   return (
     <div className="card">
-      <p className="adm-block-title">{t.owner.modTitle}</p>
-      <p className="muted small">{t.owner.modHint}</p>
+      <SectionHead icon="shield" tone="red" title={t.owner.modTitle} info={<p>{t.owner.modHint}</p>} />
 
       <div className="form-field">
         <input
@@ -699,7 +726,7 @@ function ModeratorsSection({ can, t }: { can: Can; t: Translations }) {
       {error && <p className="form-error small">{error}</p>}
 
       <button className="btn" disabled={busy || username.trim().length < 5} onClick={add}>
-        {busy ? t.owner.saving : t.owner.modAdd}
+        <Icon name="plus" size={16} />{busy ? t.owner.saving : t.owner.modAdd}
       </button>
 
       {list === null && <div className="center"><div className="spinner" /></div>}
@@ -784,7 +811,8 @@ function ModeratorRow({ mod, can, onChanged, onRemove, t }: {
         <div className="adm-mod-main">
           <span className="adm-mod-name">@{mod.username}</span>
           {mod.note && <span className="muted small">{mod.note}</span>}
-          <span className="muted small">
+          <span className={`muted small ow-meta-i ${mod.confirmed ? 'ow-good' : ''}`}>
+            <Icon name={mod.confirmed ? 'checkCircle' : 'hourglass'} size={12} />
             {mod.confirmed ? t.owner.modConfirmed : t.owner.modPending}
           </span>
           <span className="muted small">
@@ -795,10 +823,10 @@ function ModeratorRow({ mod, can, onChanged, onRemove, t }: {
         </div>
         <div className="adm-mod-btns">
           <button className="btn-mini" onClick={() => { haptic('light'); setOpen(o => !o) }}>
-            {open ? t.owner.modClose : t.owner.modEditRights}
+            <Icon name={open ? 'x' : 'key'} size={13} />{open ? t.owner.modClose : t.owner.modEditRights}
           </button>
           <button className="btn-mini btn-mini-danger" disabled={busy} onClick={onRemove}>
-            {t.owner.modRemove}
+            <Icon name="trash" size={13} />{t.owner.modRemove}
           </button>
         </div>
       </div>
@@ -859,8 +887,7 @@ function SponsorsSection({ t }: { t: Translations }) {
 
   return (
     <div className="card">
-      <p className="adm-block-title">{t.owner.sponsorTitle}</p>
-      <p className="muted small">{t.owner.sponsorHint}</p>
+      <SectionHead icon="star" tone="gold" title={noStar(t.owner.sponsorTitle)} info={<p>{t.owner.sponsorHint}</p>} />
 
       <div className="form-field">
         <input
@@ -908,7 +935,7 @@ function SponsorsSection({ t }: { t: Translations }) {
         {(list ?? []).map(sp => (
           <li key={sp.playerTag} className="adm-mod-row">
             <div className="adm-mod-main">
-              <span className="adm-mod-name">★ {sp.name}</span>
+              <span className="adm-mod-name ow-meta-i"><Icon name="star" size={13} className="ow-gold" />{sp.name}</span>
               <span className="muted small">{sp.playerTag}{sp.clanName ? ` · ${sp.clanName}` : ''}</span>
               <span className="muted small">
                 {t.owner.sponsorLeft}: {sp.daysLeft} {t.owner.sponsorDaysUnit}
@@ -925,15 +952,15 @@ function SponsorsSection({ t }: { t: Translations }) {
 /* ---------- Вкладки ---------- */
 
 /** Все вкладки, какие бывают. Ключи совпадают с теми, что понимает сервер. */
-const ALL_TABS: { key: AppTab; label: string }[] = [
-  { key: 'clan', label: '🏰 Клан' },
-  { key: 'me', label: '👤 Я' },
-  { key: 'hall', label: '🏛 Аллея' },
-  { key: 'tournament', label: '🏆 Турнир' },
-  { key: 'search', label: '🔍 Поиск' },
-  { key: 'more', label: '⚙️ Ещё' },
-  { key: 'challenge', label: '🎟 Челлендж' },
-  { key: 'duel', label: '⚔️ Дуэли' },
+const ALL_TABS: { key: AppTab; icon: IconName; label: string }[] = [
+  { key: 'clan', icon: 'castle', label: 'Клан' },
+  { key: 'me', icon: 'user', label: 'Я' },
+  { key: 'hall', icon: 'columns', label: 'Аллея' },
+  { key: 'tournament', icon: 'trophy', label: 'Турнир' },
+  { key: 'search', icon: 'search', label: 'Поиск' },
+  { key: 'more', icon: 'gear', label: 'Ещё' },
+  { key: 'challenge', icon: 'ticket', label: 'Челлендж' },
+  { key: 'duel', icon: 'swords', label: 'Дуэли' },
 ]
 
 /**
@@ -980,20 +1007,19 @@ function TabsSection({ t }: { t: Translations }) {
 
   return (
     <div className="card">
-      <p className="adm-block-title">{t.owner.tabsTitle}</p>
-      <p className="muted small">{t.owner.tabsHint}</p>
+      <SectionHead icon="menu" tone="gray" title={t.owner.tabsTitle} info={<p>{t.owner.tabsHint}</p>} />
 
       <div className="adm-perms">
         {ALL_TABS.map(tb => (
           <label key={tb.key} className="adm-perm">
             <input type="checkbox" checked={picked.includes(tb.key)} onChange={() => toggle(tb.key)} />
-            <span className="adm-perm-text"><span className="adm-perm-name">{tb.label}</span></span>
+            <span className="adm-perm-text"><span className="adm-perm-name ow-meta-i"><Icon name={tb.icon} size={15} />{tb.label}</span></span>
           </label>
         ))}
       </div>
 
       {picked.length === 0 && <p className="form-error small">{t.owner.tabsEmpty}</p>}
-      {saved && <p className="muted small">{t.owner.tabsSaved}</p>}
+      {saved && <p className="muted small ow-meta-i ow-good"><Icon name="checkCircle" size={13} />{t.owner.tabsSaved}</p>}
 
       <button className="btn" disabled={busy || picked.length === 0} onClick={save}>
         {busy ? t.owner.saving : t.owner.tabsSave}
@@ -1072,8 +1098,7 @@ function ChallengeSettings({ t }: { t: Translations }) {
   if (!cur) return null
   return (
     <div className="tilt-rules" style={{ marginTop: 16 }}>
-      <div className="tilt-rules-title">{o.chTitle}</div>
-      <span className="muted small">{o.chHint}</span>
+      <SectionHead className="ow-subhead" icon="ticket" tone="orange" title={o.chTitle} info={<p>{o.chHint}</p>} />
       {cur.participants !== undefined && <span className="small">{o.chParticipants.replace('{n}', String(cur.participants))}</span>}
       <label className="muted small">{o.chName}</label>
       <input className="search-input" value={title} maxLength={60} onChange={e => { setTitle(e.target.value); setSaved(false) }} />
@@ -1087,7 +1112,7 @@ function ChallengeSettings({ t }: { t: Translations }) {
         <input type="checkbox" checked={fresh} onChange={e => { setFresh(e.target.checked); setSaved(false) }} />
         <span className="small">Начать новый челлендж с пустой таблицей</span>
       </label>
-      <button className="btn btn-ghost" disabled={busy || !start || !end} onClick={save}>{saved ? '✓' : o.chSave}</button>
+      <button className="btn btn-ghost" disabled={busy || !start || !end} onClick={save}>{saved ? <Icon name="check" size={16} /> : o.chSave}</button>
       {cur.giftPlus
         ? <span className="small">{o.chGiftOn}</span>
         : (
@@ -1100,13 +1125,13 @@ function ChallengeSettings({ t }: { t: Translations }) {
               setGiftNote(o.chGiftDone.replace('{n}', String(r.granted)))
               hapticNotify('success')
             } catch { hapticNotify('error') } finally { setBusy(false) }
-          }}>{o.chGift}</button>
+          }}><Icon name="gift" size={16} />{o.chGift}</button>
         )}
       {giftNote && <span className="muted small">{giftNote}</span>}
       {(cur.others ?? []).filter(x => x.participants > 0).map(x => (
         <div key={x.id} className="adm-kv" style={{ alignItems: 'center' }}>
-          <span className="small">⚠️ В другой версии челленджа: {x.participants} участн.</span>
-          <button className="btn-mini" disabled={busy} onClick={() => restore(x.id)}>🔄 Вернуть</button>
+          <span className="small ow-meta-i ow-warn"><Icon name="alert" size={13} />В другой версии челленджа: {x.participants} участн.</span>
+          <button className="btn-mini" disabled={busy} onClick={() => restore(x.id)}><Icon name="refresh" size={13} />Вернуть</button>
         </div>
       ))}
     </div>
@@ -1175,7 +1200,7 @@ function TopSection({ t }: { t: Translations }) {
 
   return (
     <section className="card">
-      <p className="adm-block-title">{t.owner.topTitle}</p>
+      <SectionHead icon="globe" tone="blue" title={t.owner.topTitle} info={<p>{t.owner.topHint}</p>} />
 
       <div className="adm-kv">
         <span className="muted small">{t.owner.topLatestDay}</span>
@@ -1200,9 +1225,8 @@ function TopSection({ t }: { t: Translations }) {
 
       {status.lastMeta && <p className="muted small" style={{ whiteSpace: 'pre-line', wordBreak: 'break-word' }}>{status.lastMeta}</p>}
 
-      <p className="muted small">{t.owner.topHint}</p>
-
       <button className="btn" disabled={busy || status.running} onClick={harvest}>
+        <Icon name={busy || status.running ? 'hourglass' : 'play'} size={16} />
         {busy || status.running ? t.owner.topRunning : t.owner.topRun}
       </button>
 
@@ -1254,8 +1278,7 @@ function SponsorSalesCard({ t }: { t: Translations }) {
 
   return (
     <div className="card">
-      <p className="adm-block-title">{t.owner.salesTitle}</p>
-      <p className="muted small">{t.owner.salesHint}</p>
+      <SectionHead icon="wallet" tone="gold" title={noStar(t.owner.salesTitle)} info={<p>{t.owner.salesHint}</p>} />
 
       <div className="adm-sales-row">
         <div className="form-field">
@@ -1280,7 +1303,7 @@ function SponsorSalesCard({ t }: { t: Translations }) {
           ошибкой — сломалась выдача, и текст ошибки здесь дословно. */}
       {sales && (sales.lastCheckout || sales.lastPaid) && (
         <div className="adm-trace">
-          <p className="adm-block-title">{t.owner.traceTitle}</p>
+          <p className="adm-block-title ow-meta-i"><Icon name="activity" size={14} />{t.owner.traceTitle}</p>
           <TraceLine label={t.owner.traceCheckout} entry={sales.lastCheckout} none={t.owner.traceNone} />
           <TraceLine label={t.owner.tracePaid} entry={sales.lastPaid} none={t.owner.traceNone} />
         </div>
@@ -1290,7 +1313,7 @@ function SponsorSalesCard({ t }: { t: Translations }) {
         <>
           <div className="adm-kv">
             <span className="muted small">{t.owner.salesTotal}</span>
-            <b>{sales.totalStars} ⭐</b>
+            <b><Stars n={sales.totalStars} /></b>
           </div>
           {sales.payments.length === 0 ? (
             <p className="muted small">{t.owner.salesEmpty}</p>
@@ -1299,13 +1322,13 @@ function SponsorSalesCard({ t }: { t: Translations }) {
               {sales.payments.map(p => (
                 <li key={p.telegramChargeId} className={`adm-pay ${p.refundedAtUtc ? 'adm-pay-refunded' : ''}`}>
                   <span className="adm-pay-main">
-                    <b>{p.kind === 'plus' ? '💎' : '★'} {p.playerTag || '—'}</b>
+                    <b className="ow-meta-i"><Icon name={p.kind === 'plus' ? 'gem' : 'star'} size={13} className={p.kind === 'plus' ? 'ow-violet' : 'ow-gold'} />{p.playerTag || '—'}</b>
                     <span className="muted small"> · {p.kind === 'plus' ? t.owner.kindPlus : t.owner.kindSponsor} · {p.days} {t.owner.sponsorDaysUnit} · {new Date(p.paidAtUtc).toLocaleDateString()}</span>
                   </span>
-                  <span className="adm-pay-stars">{p.stars} ⭐</span>
+                  <span className="adm-pay-stars"><Stars n={p.stars} /></span>
                   <span className="adm-pay-charge muted small">{p.telegramChargeId}</span>
                   {p.refundedAtUtc
-                    ? <span className="muted small">↩ {t.owner.refunded}</span>
+                    ? <span className="muted small ow-meta-i"><Icon name="history" size={12} />{t.owner.refunded}</span>
                     : <RefundButton chargeId={p.telegramChargeId} stars={p.stars} onDone={load} t={t} />}
                 </li>
               ))}
@@ -1346,7 +1369,7 @@ function RefundButton({ chargeId, stars, onDone, t }: {
 
   return (
     <>
-      <button className="btn-mini adm-refund" disabled={busy} onClick={refund}>↩ {t.owner.refund}</button>
+      <button className="btn-mini adm-refund" disabled={busy} onClick={refund}><Icon name="history" size={13} />{t.owner.refund}</button>
       {error && <span className="small form-error">{error}</span>}
     </>
   )
@@ -1418,23 +1441,22 @@ function PlusSection({ t }: { t: Translations }) {
     }
   }
 
-  const src = (s: string) => s === 'purchase' ? o.srcPurchase : s === 'gift' ? o.srcGift : s === 'sponsor' ? '★' : o.srcGrant
+  const src = (s: string) => s === 'purchase' ? o.srcPurchase : s === 'gift' ? o.srcGift : s === 'sponsor' ? o.kindSponsor : o.srcGrant
 
   return (
     <>
       <div className="card">
-        <p className="adm-block-title">{o.plusTitle}</p>
-        <p className="muted small">{o.plusHint}</p>
+        <SectionHead icon="gem" tone="violet" title={o.plusTitle} info={<p>{o.plusHint}</p>} />
 
         {data && (
           <div className="adm-plus-stats">
-            <div className="adm-kv"><span className="muted small">{o.plusStarsWeek}</span><b>{data.starsWeek} ⭐</b></div>
-            <div className="adm-kv"><span className="muted small">{o.plusStars}</span><b>{data.stars} ⭐</b></div>
+            <div className="adm-kv"><span className="muted small">{o.plusStarsWeek}</span><b><Stars n={data.starsWeek} /></b></div>
+            <div className="adm-kv"><span className="muted small">{o.plusStars}</span><b><Stars n={data.stars} /></b></div>
             <div className="adm-kv"><span className="muted small">{o.plusActive}</span><b>{data.active}</b></div>
             <div className="adm-kv"><span className="muted small">{o.plusBuyers}</span><b>{data.buyers}</b></div>
             <div className="adm-kv"><span className="muted small">{o.plusGifts}</span><b>{data.gifts}</b></div>
             {/* Главное — работает ли сам «Стоп-тильт»: цель — от 30% сигналов с паузой,
-                «🔕» не растёт, из получивших бесплатные сигналы покупает каждый десятый */}
+                «не беспокоить» не растёт, из получивших бесплатные сигналы покупает каждый десятый */}
             <div className="adm-kv"><span className="muted small">{o.plusAlertsWeek}</span><b>{data.alertsWeek}</b></div>
             <div className="adm-kv">
               <span className="muted small">{o.plusPausedWeek}</span>
@@ -1474,7 +1496,7 @@ function PlusSection({ t }: { t: Translations }) {
       </div>
 
       <div className="card">
-        <p className="adm-block-title">{o.plusGrantTitle}</p>
+        <SectionHead icon="gift" tone="green" title={o.plusGrantTitle} />
         <div className="adm-sales-row">
           <div className="form-field">
             <label className="muted small">{o.plusGrantTag}</label>
@@ -1487,13 +1509,13 @@ function PlusSection({ t }: { t: Translations }) {
               onChange={e => setGrantDays(e.target.value.replace(/\D/g, ''))} maxLength={3} />
           </div>
         </div>
-        <button className="btn" onClick={grant}>{o.plusGrantBtn}</button>
+        <button className="btn" onClick={grant}><Icon name="gift" size={16} />{o.plusGrantBtn}</button>
         {grantNote && <p className="small adm-top-run">{grantNote}</p>}
       </div>
 
       {data && data.recent.length > 0 && (
         <div className="card">
-          <p className="adm-block-title">{o.plusRecent}</p>
+          <SectionHead icon="history" tone="gray" title={o.plusRecent} />
           <ul className="owner-list adm-mod-list">
             {data.recent.map((r, i) => (
               <li key={i} className={`adm-pay ${r.revoked ? 'adm-pay-refunded' : ''}`}>
@@ -1501,7 +1523,7 @@ function PlusSection({ t }: { t: Translations }) {
                   <b>{r.playerTag || r.telegramUserId}</b>
                   <span className="muted small"> · {src(r.source)} · {r.days} {o.sponsorDaysUnit} · {new Date(r.createdAtUtc).toLocaleDateString()}</span>
                 </span>
-                {r.stars > 0 && <span className="adm-pay-stars">{r.stars} ⭐</span>}
+                {r.stars > 0 && <span className="adm-pay-stars"><Stars n={r.stars} /></span>}
                 <span className="muted small">→ {new Date(r.untilUtc).toLocaleDateString()}</span>
               </li>
             ))}
@@ -1582,8 +1604,7 @@ function CampaignsSection({ t }: { t: Translations }) {
 
   return (
     <div className="card">
-      <p className="adm-block-title">{t.owner.campTitle}</p>
-      <p className="muted small">{t.owner.campHint}</p>
+      <SectionHead icon="trendUp" tone="green" title={t.owner.campTitle} info={<p>{t.owner.campHint}</p>} />
 
       <div className="adm-sales-row">
         <div className="form-field">
@@ -1599,7 +1620,7 @@ function CampaignsSection({ t }: { t: Translations }) {
         </div>
       </div>
       <button className="btn" disabled={busy} onClick={create}>
-        {busy ? t.owner.saving : t.owner.campCreate}
+        <Icon name="plus" size={16} />{busy ? t.owner.saving : t.owner.campCreate}
       </button>
       {note && <p className="small adm-top-run">{note}</p>}
 
@@ -1619,10 +1640,11 @@ function CampaignsSection({ t }: { t: Translations }) {
                 <span><b>{r.started}</b> {t.owner.campStarted}</span>
                 <span><b>{r.linked}</b> {t.owner.campLinked}<span className="muted">{pct(r.linked, r.started)}</span></span>
                 <span className="adm-camp-key"><b>{r.clansConnected}</b> {t.owner.campClans}</span>
-                <span><b>{r.payers}</b> {t.owner.campPayers}{r.stars > 0 && <span className="muted"> · {r.stars} ⭐</span>}</span>
+                <span><b>{r.payers}</b> {t.owner.campPayers}{r.stars > 0 && <span className="muted"> · <Stars n={r.stars} /></span>}</span>
               </div>
               {r.code !== null && r.known && (
                 <button className="btn-mini" onClick={() => copy(r.code!)}>
+                  <Icon name={copied === r.code ? 'check' : 'link'} size={13} />
                   {copied === r.code ? t.owner.campCopied : t.owner.campCopy}
                 </button>
               )}
@@ -1660,7 +1682,7 @@ function TrackerOwner({ tracker }: { tracker: NonNullable<OwnerPlus['tracker']> 
 
   return (
     <div className="tilt-rules" style={{ marginBottom: 12 }}>
-      <div className="tilt-rules-title">{o.trkTitle}</div>
+      <div className="tilt-rules-title ow-meta-i"><Icon name="crosshair" size={14} />{o.trkTitle}</div>
       <span className="small">
         {o.trkStats.replace('{on}', String(tracker.enabled)).replace('{total}', String(tracker.total))
           .replace('{off}', String(tracker.offWeek)).replace('{mutes}', String(tracker.mutesWeek))
@@ -1673,7 +1695,7 @@ function TrackerOwner({ tracker }: { tracker: NonNullable<OwnerPlus['tracker']> 
       <label className="muted small">{o.trkBeta}</label>
       <input className="search-input" value={beta} inputMode="numeric"
         onChange={e => { setBeta(e.target.value); setSaved(false) }} />
-      <button className="btn btn-ghost" disabled={busy} onClick={save}>{saved ? '✓' : o.trkSave}</button>
+      <button className="btn btn-ghost" disabled={busy} onClick={save}>{saved ? <Icon name="check" size={16} /> : o.trkSave}</button>
     </div>
   )
 }
@@ -1739,32 +1761,32 @@ function FindPlayerSection() {
 
   return (
     <div className="card">
-      <p className="adm-block-title">🔎 Найти игрока</p>
-      <p className="muted small">Тег из профиля в игре — покажу, кто это в Telegram.</p>
+      <SectionHead icon="search" tone="blue" title="Найти игрока"
+        info={<p>Тег из профиля в игре — покажу, кто это в Telegram.</p>} />
       <div className="adm-sales-row" style={{ alignItems: 'flex-end' }}>
         <input className="search-input" placeholder="#2VUPLPU0R" value={tag} autoCapitalize="characters"
           onChange={e => setTag(e.target.value.toUpperCase())} onKeyDown={e => { if (e.key === 'Enter') find() }} />
-        <button className="btn" disabled={busy || !tag.trim()} onClick={find}>{busy ? '…' : 'Найти'}</button>
+        <button className="btn" disabled={busy || !tag.trim()} onClick={find}>{busy ? '…' : <><Icon name="search" size={16} />Найти</>}</button>
       </div>
       {error && <p className="form-error small">{error}</p>}
       {found && (
         <div className="tilt-rules" style={{ marginTop: 12 }}>
           <div className="tilt-rules-title">{found.name} · {found.playerTag}</div>
-          {found.clanName && <span className="small">🏰 {found.clanName}</span>}
+          {found.clanName && <span className="small ow-meta-i"><Icon name="castle" size={13} />{found.clanName}</span>}
           {found.telegramUserId ? (
             <>
               <span className="small">
                 Telegram: {found.telegramUsername ? <b>@{found.telegramUsername}</b> : <span className="muted">без @username</span>}
                 {' · '}ID <b>{found.telegramUserId}</b>
               </span>
-              {found.dmBlocked && <span className="muted small">⚠️ Бот не может писать ему в личку</span>}
-              {found.plusUntil && <span className="small">💎 Плюс до {fmt(found.plusUntil)}</span>}
-              {found.sponsorUntil && <span className="small">★ Спонсор до {fmt(found.sponsorUntil)}</span>}
+              {found.dmBlocked && <span className="muted small ow-meta-i ow-warn"><Icon name="alert" size={13} />Бот не может писать ему в личку</span>}
+              {found.plusUntil && <span className="small ow-meta-i"><Icon name="gem" size={13} className="ow-violet" />Плюс до {fmt(found.plusUntil)}</span>}
+              {found.sponsorUntil && <span className="small ow-meta-i"><Icon name="star" size={13} className="ow-gold" />Спонсор до {fmt(found.sponsorUntil)}</span>}
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <button className="btn" onClick={write}>✉️ Написать</button>
+                <button className="btn" onClick={write}><Icon name="send" size={16} />Написать</button>
                 <button className="btn btn-ghost" onClick={async () => {
                   if (await copyText(String(found.telegramUserId))) { setCopied(true); hapticNotify('success') }
-                }}>{copied ? '✓ Скопировано' : '📋 Скопировать ID'}</button>
+                }}>{copied ? <><Icon name="check" size={16} />Скопировано</> : <><Icon name="copy" size={16} />Скопировать ID</>}</button>
               </div>
             </>
           ) : (

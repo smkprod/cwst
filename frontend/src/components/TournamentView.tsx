@@ -6,6 +6,8 @@ import { useT } from '../lib/i18n'
 import { TournamentForm } from './TournamentForm'
 import { TournamentDetail } from './TournamentDetail'
 import { GameAddForm, GameTournamentDetail, gameStatusInfo } from './GameTournamentView'
+import { Icon } from './ui/Icon'
+import { IconTile, SectionHead } from './ui/Section'
 
 type View =
   | { kind: 'list' }
@@ -54,21 +56,23 @@ export function TournamentView() {
   if (view.kind === 'chooseType') {
     return (
       <div>
-        <button className="btn-back" onClick={backToList}>← {t.tournament.back}</button>
-        <h2 className="section-title">{t.tournament.chooseTypeTitle}</h2>
+        <button className="btn-back" onClick={backToList}><Icon name="chevronLeft" size={15} /> {t.tournament.back}</button>
+        <SectionHead icon="plus" tone="violet" title={t.tournament.chooseTypeTitle} className="mx-page-head" />
         <button className="card tt-choice" onClick={() => go({ kind: 'createClan' })}>
-          <span className="tt-choice-emoji">🏆</span>
+          <IconTile name="trophy" tone="gold" size={44} />
           <span className="tt-choice-text">
             <span className="tt-choice-name">{t.tournament.typeClan}</span>
             <span className="muted small">{t.tournament.typeClanDesc}</span>
           </span>
+          <Icon name="chevronRight" size={18} className="mx-choice-chev" />
         </button>
         <button className="card tt-choice" onClick={() => go({ kind: 'addGame' })}>
-          <span className="tt-choice-emoji">🎮</span>
+          <IconTile name="dice" tone="blue" size={44} />
           <span className="tt-choice-text">
             <span className="tt-choice-name">{t.tournament.typeGame}</span>
             <span className="muted small">{t.tournament.typeGameDesc}</span>
           </span>
+          <Icon name="chevronRight" size={18} className="mx-choice-chev" />
         </button>
       </div>
     )
@@ -77,7 +81,7 @@ export function TournamentView() {
   if (view.kind === 'createClan') {
     return (
       <div>
-        <button className="btn-back" onClick={backToList}>← {t.tournament.back}</button>
+        <button className="btn-back" onClick={backToList}><Icon name="chevronLeft" size={15} /> {t.tournament.back}</button>
         <TournamentForm mode="create" onSaved={tr => go({ kind: 'clanDetail', id: tr.id })} onCancel={backToList} />
       </div>
     )
@@ -86,7 +90,7 @@ export function TournamentView() {
   if (view.kind === 'addGame') {
     return (
       <div>
-        <button className="btn-back" onClick={backToList}>← {t.tournament.back}</button>
+        <button className="btn-back" onClick={backToList}><Icon name="chevronLeft" size={15} /> {t.tournament.back}</button>
         <GameAddForm onAdded={backToList} onCancel={backToList} />
       </div>
     )
@@ -126,12 +130,10 @@ export function TournamentView() {
 
   return (
     <div>
-      <div className="card-title-row">
-        <h2 className="section-title" style={{ margin: 0 }}>{t.tournament.listTitle}</h2>
-      </div>
+      <SectionHead icon="trophy" tone="gold" title={t.tournament.listTitle} className="mx-page-head" />
 
       <button className="btn tournament-create-btn" onClick={() => go({ kind: 'chooseType' })}>
-        {t.tournament.createBtn}
+        <Icon name="plus" size={16} /> {t.tournament.createBtn}
       </button>
 
       {listState.kind === 'loading' && <div className="center"><div className="spinner" /></div>}
@@ -143,13 +145,13 @@ export function TournamentView() {
           {listState.clan.map(tr => (
             <li key={`c${tr.id}`} className="card tournament-list-item" onClick={() => go({ kind: 'clanDetail', id: tr.id })}>
               <div className="tournament-list-item-top">
-                <span className="tournament-list-item-name">🏆 {tr.name}</span>
+                <span className="tournament-list-item-name mx-ti-name"><Icon name="trophy" size={16} className="mx-ic-gold" /> {tr.name}</span>
                 <span className={`badge tournament-status-badge ${clanStatusClass(tr.status)}`}>{clanStatusLabel(tr.status)}</span>
               </div>
               <p className="muted small">
                 {tr.mode === 'duo' && <>{t.tournament.formatDuo} · </>}
                 {tr.creatorName} · {t.tournament.bestOfLabel} {tr.bestOf} · {tr.participantCount}/{tr.maxParticipants} {t.tournament.participantsCount}
-                {tr.startsAtUtc !== null && <> · 📅 {new Date(tr.startsAtUtc).toLocaleString()}</>}
+                {tr.startsAtUtc !== null && <> · <Icon name="calendar" size={12} /> {new Date(tr.startsAtUtc).toLocaleString()}</>}
               </p>
             </li>
           ))}
@@ -159,7 +161,7 @@ export function TournamentView() {
             return (
               <li key={`g${g.id}`} className="card tournament-list-item" onClick={() => go({ kind: 'gameDetail', g })}>
                 <div className="tournament-list-item-top">
-                  <span className="tournament-list-item-name">🎮 {g.live?.name ?? g.tournamentTag}</span>
+                  <span className="tournament-list-item-name mx-ti-name"><Icon name="dice" size={16} className="mx-ic-blue" /> {g.live?.name ?? g.tournamentTag}</span>
                   {si && <span className={`badge tournament-status-badge ${si.cls}`}>{si.label}</span>}
                 </div>
                 <p className="muted small">
@@ -175,7 +177,7 @@ export function TournamentView() {
 
       {past.length > 0 && (
         <>
-          <h3 className="section-title tournament-history-title">{t.tournament.pastTitle}</h3>
+          <SectionHead icon="history" tone="gray" title={t.tournament.pastTitle} className="tournament-history-title mx-page-head" />
           <ul className="tournament-list">
             {past.map(tr => (
               <li
@@ -184,7 +186,7 @@ export function TournamentView() {
                 onClick={() => go({ kind: 'clanDetail', id: tr.id })}
               >
                 <div className="tournament-list-item-top">
-                  <span className="tournament-list-item-name">🏆 {tr.name}</span>
+                  <span className="tournament-list-item-name mx-ti-name"><Icon name="trophy" size={16} className="mx-ic-gold" /> {tr.name}</span>
                   {tr.completedAtUtc !== null && (
                     <span className="muted small tournament-past-date">
                       {new Date(tr.completedAtUtc).toLocaleDateString()}
@@ -192,7 +194,7 @@ export function TournamentView() {
                   )}
                 </div>
                 {tr.championName !== null && (
-                  <p className="tournament-champion-line">👑 {tr.championName}</p>
+                  <p className="tournament-champion-line"><Icon name="crown" size={14} className="mx-ic-gold" /> {tr.championName}</p>
                 )}
                 <p className="muted small">
                   {tr.mode === 'duo' && <>{t.tournament.formatDuo} · </>}

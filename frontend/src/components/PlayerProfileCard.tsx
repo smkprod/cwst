@@ -3,6 +3,8 @@ import { api } from '../lib/api'
 import type { PlayerAnalysis, PlayerCard, PlayerHistory, PlayerProfile } from '../types'
 import { fmt } from '../lib/format'
 import { useT, type Translations } from '../lib/i18n'
+import { Icon, type IconName } from './ui/Icon'
+import { SectionHead } from './ui/Section'
 
 export function PlayerProfileCard({ profile, embedded = false }: {
   profile: PlayerProfile
@@ -35,12 +37,12 @@ export function PlayerProfileCard({ profile, embedded = false }: {
     <>
       <section className="card" style={{ marginTop: 12 }}>
         <div className="profile-header">
-          <div className="profile-avatar">👤</div>
+          <div className="profile-avatar pl-avatar"><Icon name="user" size={26} /></div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="profile-name">{profile.name}</div>
             <div className="profile-tag">{profile.playerTag}</div>
             {profile.clanName && (
-              <div className="muted small" style={{ marginTop: 2 }}>🏰 {profile.clanName}</div>
+              <div className="muted small pl-inline" style={{ marginTop: 2 }}><Icon name="castle" size={13} /> {profile.clanName}</div>
             )}
           </div>
           <a
@@ -56,15 +58,15 @@ export function PlayerProfileCard({ profile, embedded = false }: {
 
         <div className="profile-stats">
           <div className="profile-stat">
-            <div className="profile-stat-value">👑 {profile.expLevel}</div>
+            <div className="profile-stat-value pl-stat-val"><Icon name="crown" size={15} /> {profile.expLevel}</div>
             <div className="profile-stat-label">{t.search.level}</div>
           </div>
           <div className="profile-stat">
-            <div className="profile-stat-value">🏆 {fmt(profile.trophies)}</div>
+            <div className="profile-stat-value pl-stat-val"><Icon name="trophy" size={15} /> {fmt(profile.trophies)}</div>
             <div className="profile-stat-label">{t.search.trophies}</div>
           </div>
           <div className="profile-stat">
-            <div className="profile-stat-value">⚔️ {fmt(profile.clanWarTrophies)}</div>
+            <div className="profile-stat-value pl-stat-val"><Icon name="swords" size={15} /> {fmt(profile.clanWarTrophies)}</div>
             <div className="profile-stat-label">{t.search.warTrophies}</div>
           </div>
           {profile.arenaName && (
@@ -98,22 +100,22 @@ export function PlayerProfileCard({ profile, embedded = false }: {
           {profile.analysis && <AnalysisCard a={profile.analysis} t={t} />}
 
           <section className="card" style={{ marginTop: 10 }}>
-            <div className="cards-section-title">{t.search.careerStats}</div>
+            <SectionHead icon="chart" tone="blue" title={t.search.careerStats} />
             <div className="profile-stats" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
               <div className="profile-stat">
-                <div className="profile-stat-value">⚔️ {fmt(profile.warDayWins)}</div>
+                <div className="profile-stat-value pl-stat-val"><Icon name="swords" size={15} /> {fmt(profile.warDayWins)}</div>
                 <div className="profile-stat-label">{t.search.warDayWins}</div>
               </div>
               <div className="profile-stat">
-                <div className="profile-stat-value">👑 {fmt(profile.threeCrownWins)}</div>
+                <div className="profile-stat-value pl-stat-val"><Icon name="crown" size={15} /> {fmt(profile.threeCrownWins)}</div>
                 <div className="profile-stat-label">{t.search.threeCrowns}</div>
               </div>
               <div className="profile-stat">
-                <div className="profile-stat-value">🥇 {fmt(profile.bestTrophies)}</div>
+                <div className="profile-stat-value pl-stat-val"><Icon name="medal" size={15} /> {fmt(profile.bestTrophies)}</div>
                 <div className="profile-stat-label">{t.search.bestTrophies}</div>
               </div>
               <div className="profile-stat">
-                <div className="profile-stat-value">⚡ {fmt(profile.battleCount)}</div>
+                <div className="profile-stat-value pl-stat-val"><Icon name="bolt" size={15} /> {fmt(profile.battleCount)}</div>
                 <div className="profile-stat-label">{t.search.battles}</div>
               </div>
               {profile.wins + profile.losses > 0 && (
@@ -134,8 +136,8 @@ export function PlayerProfileCard({ profile, embedded = false }: {
               )}
               {profile.currentWinLoseStreak !== 0 && (
                 <div className="profile-stat">
-                  <div className="profile-stat-value">
-                    {profile.currentWinLoseStreak > 0 ? `🔥 ${profile.currentWinLoseStreak}` : `❄️ ${Math.abs(profile.currentWinLoseStreak)}`}
+                  <div className="profile-stat-value pl-stat-val">
+                    <Icon name={profile.currentWinLoseStreak > 0 ? 'flame' : 'snowflake'} size={15} /> {Math.abs(profile.currentWinLoseStreak)}
                   </div>
                   <div className="profile-stat-label">
                     {profile.currentWinLoseStreak > 0 ? t.search.streakWin : t.search.streakLose}
@@ -144,7 +146,7 @@ export function PlayerProfileCard({ profile, embedded = false }: {
               )}
               {profile.currentPathOfLegend && profile.currentPathOfLegend.trophies > 0 && (
                 <div className="profile-stat">
-                  <div className="profile-stat-value">🏅 {fmt(profile.currentPathOfLegend.trophies)}</div>
+                  <div className="profile-stat-value pl-stat-val"><Icon name="medal" size={15} /> {fmt(profile.currentPathOfLegend.trophies)}</div>
                   <div className="profile-stat-label">
                     {t.search.polRank}
                     {profile.currentPathOfLegend.rank > 0 ? ` · #${profile.currentPathOfLegend.rank} ${t.search.polRankSuffix}` : ''}
@@ -156,13 +158,10 @@ export function PlayerProfileCard({ profile, embedded = false }: {
 
           {profile.currentDeck.length > 0 && (
             <section className="card" style={{ marginTop: 10 }}>
-              <div className="card-title-row">
-                <div className="cards-section-title" style={{ margin: 0 }}>{t.search.currentDeck}</div>
-                <span className="muted small">
-                  ⌀ {(profile.currentDeck.reduce((s, c) => s + c.level, 0) / profile.currentDeck.length).toFixed(1)}
-                  {' / '}{profile.maxCardLevel}
-                </span>
-              </div>
+              <SectionHead icon="cards" tone="violet" title={t.search.currentDeck} aside={<>
+                ⌀ {(profile.currentDeck.reduce((s, c) => s + c.level, 0) / profile.currentDeck.length).toFixed(1)}
+                {' / '}{profile.maxCardLevel}
+              </>} />
               <div className="cards-grid">
                 {profile.currentDeck.map(card => <CardChip key={card.name} card={card} />)}
               </div>
@@ -171,7 +170,7 @@ export function PlayerProfileCard({ profile, embedded = false }: {
 
           {!embedded && profile.weeksPlayed > 0 && (
             <section className="card" style={{ marginTop: 10 }}>
-              <div className="cards-section-title">{t.search.warStats}</div>
+              <SectionHead icon="swords" tone="orange" title={t.search.warStats} />
               <div className="profile-stats" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
                 <div className="profile-stat">
                   <div className="profile-stat-value">{profile.weeksPlayed}</div>
@@ -197,7 +196,7 @@ export function PlayerProfileCard({ profile, embedded = false }: {
 
       {!embedded && tab === 'wars' && (
         <section className="card" style={{ marginTop: 10 }}>
-          <div className="cards-section-title">{t.playerModal.pastWars}</div>
+          <SectionHead icon="history" tone="blue" title={t.playerModal.pastWars} />
 
           {warsState === 'loading' && (
             <p className="muted small">{t.playerModal.loadingHistory}</p>
@@ -213,15 +212,15 @@ export function PlayerProfileCard({ profile, embedded = false }: {
               {warHistory.weeks.map(w => (
                 <li key={`${w.seasonId}-${w.sectionIndex}-${w.clanTag}`} className="history-week-row">
                   <span className="history-week-badge">
-                    {w.isColosseum ? '🏛' : `W${w.sectionIndex + 1}`}
+                    {w.isColosseum ? <Icon name="columns" size={14} /> : `W${w.sectionIndex + 1}`}
                   </span>
                   <div className="history-week-info">
                     <span className="history-week-clan">{w.clanName}</span>
                     <span className="muted small">
-                      {t.playerModal.season} {w.seasonId} · ⚔️ {w.decksUsed} · ⚡ {w.avgFamePerAttack > 0 ? Math.round(w.avgFamePerAttack) : '—'}
+                      {t.playerModal.season} {w.seasonId} · <Icon name="swords" size={11} /> {w.decksUsed} · <Icon name="bolt" size={11} /> {w.avgFamePerAttack > 0 ? Math.round(w.avgFamePerAttack) : '—'}
                     </span>
                   </div>
-                  <span className="history-week-fame">{fmt(w.fame)} 🏅</span>
+                  <span className="history-week-fame pl-inline">{fmt(w.fame)} <Icon name="medal" size={14} /></span>
                 </li>
               ))}
             </ul>
@@ -237,8 +236,8 @@ export function PlayerProfileCard({ profile, embedded = false }: {
 const LEAGUE_CLASS: Record<string, string> = {
   bronze: 'league-bronze', silver: 'league-silver', gold: 'league-gold', legendary: 'league-legend',
 }
-const LEAGUE_ICON: Record<string, string> = {
-  bronze: '🥉', silver: '🥈', gold: '🥇', legendary: '👑',
+const LEAGUE_ICON: Record<string, IconName> = {
+  bronze: 'medal', silver: 'medal', gold: 'medal', legendary: 'crown',
 }
 
 /**
@@ -259,13 +258,11 @@ function AnalysisCard({ a, t }: { a: PlayerAnalysis; t: Translations }) {
 
   return (
     <section className={`card analysis-card ${cls}`} style={{ marginTop: 10 }}>
-      <div className="card-title-row">
-        <div className="cards-section-title" style={{ margin: 0 }}>{t.search.analysisTitle}</div>
-        <span className={`tier-badge ${cls}`}>{LEAGUE_ICON[a.league]} {leagueName}</span>
-      </div>
+      <SectionHead icon="target" tone="gold" title={t.search.analysisTitle}
+        aside={<span className={`tier-badge pl-inline ${cls}`}><Icon name={LEAGUE_ICON[a.league] ?? 'medal'} size={13} /> {leagueName}</span>} />
 
       <div className="league-hero">
-        <span className="league-hero-icon">{LEAGUE_ICON[a.league]}</span>
+        <span className={`league-hero-icon pl-league-icon pl-league-${a.league}`}><Icon name={LEAGUE_ICON[a.league] ?? 'medal'} size={26} /></span>
         <div className="league-hero-text">
           <span className="league-hero-name">{leagueName}</span>
           <span className="muted small">{t.search.leagueHint}</span>
@@ -273,7 +270,7 @@ function AnalysisCard({ a, t }: { a: PlayerAnalysis; t: Translations }) {
       </div>
 
       <p className="analysis-verdict">{t.search.leagueVerdict[a.league]}</p>
-      <p className="analysis-next">🎯 {nextGoal}</p>
+      <p className="analysis-next pl-inline"><Icon name="target" size={15} /> {nextGoal}</p>
 
       <div className="analysis-metrics">
         <div className="analysis-metric">
@@ -294,7 +291,7 @@ function AnalysisCard({ a, t }: { a: PlayerAnalysis; t: Translations }) {
       <div className="deck-slots">
         {Array.from({ length: a.decksNeeded }, (_, i) => (
           <div key={i} className={`deck-slot ${i < a.fullDecks ? 'deck-slot-on' : ''}`}>
-            {i < a.fullDecks ? '🃏' : '·'}
+            {i < a.fullDecks ? <Icon name="cards" size={16} /> : '·'}
           </div>
         ))}
       </div>
@@ -337,12 +334,8 @@ function CollectionCard({ cards, maxLevel, t }: {
 
   return (
     <section className="card" style={{ marginTop: 10 }}>
-      <div className="card-title-row">
-        <div className="cards-section-title" style={{ margin: 0 }}>
-          {t.search.collection} ({cards.length})
-        </div>
-        <span className="muted small">{t.search.byLevel}</span>
-      </div>
+      <SectionHead icon="cards" tone="blue" title={<>{t.search.collection} ({cards.length})</>}
+        aside={t.search.byLevel} />
 
       <div className="lvl-rows">
         {levels.map(([lvl, count]) => (
@@ -380,7 +373,7 @@ function CardChip({ card }: { card: PlayerCard }) {
   return (
     <div className={`card-chip ${unlockedEvo ? 'card-chip-evo' : ''}`}>
       <img src={icon} alt={card.name} loading="lazy" title={card.name} />
-      {unlockedEvo && <span className="card-evo-mark">⚡</span>}
+      {unlockedEvo && <span className="card-evo-mark"><Icon name="bolt" size={11} /></span>}
       <div className={`card-chip-level ${card.level >= card.maxLevel ? 'card-chip-maxed' : ''}`}>
         {card.level}
       </div>

@@ -3,6 +3,8 @@ import { api, ApiError } from '../lib/api'
 import type { Tournament, TournamentMatch, TournamentParticipant } from '../types'
 import { haptic, hapticNotify } from '../lib/telegram'
 import { useT } from '../lib/i18n'
+import { Icon } from './ui/Icon'
+import { SectionHead } from './ui/Section'
 
 interface Props {
   tournament: Tournament
@@ -153,13 +155,13 @@ export function TournamentBracket({ tournament, onUpdated }: Props) {
 
   return (
     <div className="tournament-bracket-wrap">
-      <h3 className="section-title">{t.tournament.bracketTitle}</h3>
-      {roundNumbers.length > 2 && <p className="muted small bracket-hint">{t.tournament.bracketScrollHint}</p>}
+      <SectionHead icon="bracket" tone="violet" title={t.tournament.bracketTitle}
+        info={roundNumbers.length > 2 ? t.tournament.bracketScrollHint : undefined} className="mx-page-head" />
 
       {champion && (
         <div className="card tournament-champion-card">
           <span className="tournament-champion-title">{t.tournament.champion}</span>
-          <span className="tournament-champion-name">🏆 {champion.teamName ?? champion.playerName}</span>
+          <span className="tournament-champion-name"><Icon name="trophy" size={17} /> {champion.teamName ?? champion.playerName}</span>
         </div>
       )}
 
@@ -216,7 +218,7 @@ export function TournamentBracket({ tournament, onUpdated }: Props) {
                         видеть, что счёт взялся из лога, и при желании его поправить. */}
                     {m.autoResolved && (
                       <p className="bmatch-note bmatch-auto" title={t.tournament.autoResolvedHint}>
-                        🤖 {t.tournament.autoResolved}
+                        <Icon name="bot" size={12} /> {t.tournament.autoResolved}
                       </p>
                     )}
 

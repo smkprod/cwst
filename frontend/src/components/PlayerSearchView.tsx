@@ -7,6 +7,8 @@ import { PlayerSheetBody } from './PlayerSheet'
 import { usePlayerSheet } from '../lib/playerSheet'
 import { ClanProfileCard } from './ClanProfileCard'
 import { readHistory, pushHistory, clearHistory } from '../lib/searchHistory'
+import { Icon } from './ui/Icon'
+import { SectionHead } from './ui/Section'
 
 type Kind = 'player' | 'clan'
 
@@ -73,28 +75,23 @@ export function PlayerSearchView() {
   return (
     <div>
       <section className="card">
-        <div className="card-title-row">
-          <div className="card-title">{t.search.title}</div>
-        </div>
+        <SectionHead icon="search" tone="blue" title={t.search.title}
+          info={kind === 'player' ? t.search.hint : t.search.clanHint} />
 
         <div className="search-kinds">
           <button
             className={`search-kind ${kind === 'player' ? 'search-kind-on' : ''}`}
             onClick={() => switchKind('player')}
           >
-            👤 {t.search.kindPlayer}
+            <Icon name="user" size={15} /> {t.search.kindPlayer}
           </button>
           <button
             className={`search-kind ${kind === 'clan' ? 'search-kind-on' : ''}`}
             onClick={() => switchKind('clan')}
           >
-            🏰 {t.search.kindClan}
+            <Icon name="castle" size={15} /> {t.search.kindClan}
           </button>
         </div>
-
-        <p className="muted small" style={{ margin: '0 0 12px' }}>
-          {kind === 'player' ? t.search.hint : t.search.clanHint}
-        </p>
 
         <div className="search-row">
           <input
@@ -146,16 +143,14 @@ function HistoryCard({ items, onOpen, onClear }: {
   const { t } = useT()
   return (
     <section className="card" style={{ marginTop: 10 }}>
-      <div className="card-title-row">
-        <div className="cards-section-title" style={{ margin: 0 }}>{t.search.historyTitle}</div>
-        <button className="btn-mini" onClick={onClear}>{t.search.historyClear}</button>
-      </div>
+      <SectionHead icon="history" tone="gray" title={t.search.historyTitle}
+        aside={<button className="btn-mini" onClick={onClear}>{t.search.historyClear}</button>} />
 
       <ul className="search-history">
         {items.map(item => (
           <li key={`${item.kind}:${item.tag}`}>
             <button className="search-history-row" onClick={() => onOpen(item)}>
-              <span className="search-history-icon">{item.kind === 'clan' ? '🏰' : '👤'}</span>
+              <span className="search-history-icon"><Icon name={item.kind === 'clan' ? 'castle' : 'user'} size={16} /></span>
               <span className="search-history-name">{item.name}</span>
               <span className="search-history-tag muted small">#{item.tag}</span>
             </button>

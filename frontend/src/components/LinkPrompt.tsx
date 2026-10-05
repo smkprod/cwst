@@ -4,6 +4,7 @@ import { haptic, hapticNotify } from '../lib/telegram'
 import { useT } from '../lib/i18n'
 import { LangSwitcher } from './LangSwitcher'
 import { BotTourCard } from './BotTourCard'
+import { SectionHead } from './ui/Section'
 
 /**
  * Первый экран человека, который ещё не привязал себя.
@@ -52,7 +53,7 @@ export function LinkPrompt({ onLinked }: { onLinked?: () => void }) {
       </div>
 
       <section className="card link-card">
-        <div className="card-title">{t.link.title}</div>
+        <SectionHead icon="link" tone="violet" title={t.link.title} info={t.link.hint} />
         <p className="muted small link-desc">{t.link.descApp}</p>
 
         <input
@@ -66,8 +67,6 @@ export function LinkPrompt({ onLinked }: { onLinked?: () => void }) {
           spellCheck={false}
           maxLength={16}
         />
-
-        <p className="muted small link-hint">{t.link.hint}</p>
 
         {error && <p className="form-error small">{error}</p>}
 

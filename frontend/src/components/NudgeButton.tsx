@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { api, ApiError } from '../lib/api'
 import { haptic, hapticNotify } from '../lib/telegram'
 import { useT } from '../lib/i18n'
+import { Icon } from './ui/Icon'
 
 type NudgeState = 'idle' | 'sending' | 'done' | 'cooldown'
 
@@ -38,14 +39,19 @@ export function NudgeButton({ notPlayedCount }: { notPlayedCount: number }) {
   }
 
   if (state === 'done' || state === 'cooldown') {
-    return <div className={`nudge-result ${state === 'done' ? 'nudge-ok' : 'nudge-fail'} fade-in`}>{resultText}</div>
+    return (
+      <div className={`nudge-result cl-nudge-result ${state === 'done' ? 'nudge-ok' : 'nudge-fail'} fade-in`}>
+        <Icon name={state === 'done' ? 'checkCircle' : 'alert'} size={16} />
+        <span>{resultText}</span>
+      </div>
+    )
   }
 
   return (
-    <button className="btn btn-nudge" onClick={nudge} disabled={state === 'sending'}>
+    <button className="btn btn-nudge cl-nudge" onClick={nudge} disabled={state === 'sending'}>
       {state === 'sending'
         ? t.nudge.sending
-        : `👊 ${t.nudge.label} (${notPlayedCount})`}
+        : <><Icon name="bell" size={18} />{t.nudge.label} ({notPlayedCount})</>}
     </button>
   )
 }

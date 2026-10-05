@@ -8,9 +8,11 @@ import { usePlayerSheet } from '../lib/playerSheet'
 import { allRanks, LEAGUE_COLORS, rankName, rankOf } from '../lib/duelRank'
 import { RankEmblem } from './duel/RankEmblem'
 import {
-  IconBolt, IconClipboard, IconClock, IconCrown, IconFlame, IconLink, IconSend, IconShield,
+  IconClipboard, IconClock, IconFlame, IconLink, IconSend,
   IconSwords, IconTarget, IconTrendUp, IconTrophy, IconUsers, IconX, IconCheck,
 } from './duel/DuelIcons'
+import { SectionHead } from './ui/Section'
+import { InfoButton } from './ui/Info'
 
 /** Пока идёт дуэль — опрашиваем чаще: счёт меняется прямо во время игры. */
 const ACTIVE_POLL = 15_000
@@ -72,7 +74,7 @@ export function DuelView() {
       <Ladder trophies={data.me?.rating ?? null} t={t} />
 
       <section className="card dl-card">
-        <SectionHead icon={<IconCrown size={18} />} title={s.topTitle}
+        <SectionHead icon="crown" tone="gold" title={s.topTitle}
           aside={<><IconUsers size={14} /> {s.players.replace('{n}', String(data.players))}</>} />
         {data.top.length === 0
           ? <p className="muted small" style={{ margin: 0 }}>{s.emptyTop}</p>
@@ -81,18 +83,16 @@ export function DuelView() {
 
       {data.me && (
         <section className="card dl-card">
-          <SectionHead icon={<IconSwords size={18} />} title={s.myTitle} />
+          <SectionHead icon="swords" tone="violet" title={s.myTitle} />
           {data.mine.length === 0
             ? <p className="muted small" style={{ margin: 0 }}>{s.noDuels}</p>
             : <DuelList rows={data.mine} myTag={data.me.tag} t={t} />}
         </section>
       )}
 
-      <How t={t} />
-
       {data.recent.length > 0 && (
         <section className="card dl-card">
-          <SectionHead icon={<IconBolt size={18} />} title={s.recentTitle} />
+          <SectionHead icon="bolt" tone="orange" title={s.recentTitle} />
           <DuelList rows={data.recent} myTag={data.me?.tag ?? null} t={t} />
         </section>
       )}
@@ -103,19 +103,19 @@ export function DuelView() {
           <LinkForm t={t} mode="change" onSaved={setData} />
         </details>
       )}
-
-      <p className="muted small ch-foot">{s.unofficial}</p>
     </div>
   )
 }
 
-function SectionHead({ icon, title, aside }: { icon: ReactNode; title: string; aside?: ReactNode }) {
+/** Кнопка «i» в шапке лиги: как устроены дуэли — вместо отдельной карточки внизу. */
+function HowInfo({ t, lead }: { t: Translations; lead?: ReactNode }) {
+  const s = t.duel
   return (
-    <div className="dl-sec">
-      <span className="dl-sec-icon">{icon}</span>
-      <span className="dl-sec-title">{title}</span>
-      {aside && <span className="dl-sec-aside">{aside}</span>}
-    </div>
+    <InfoButton className="mx-dl-hero-info" size={28} title={s.howTitle}>
+      {lead}
+      <HowList t={t} />
+      <p className="muted small">{s.unofficial}</p>
+    </InfoButton>
   )
 }
 
@@ -131,6 +131,7 @@ function Hero({ me, t, onChallenge }: { me: DuelProfileView; t: Translations; on
   return (
     <section className={`dl-hero dl-hero-${me.league}`} style={leagueVars(me.league)}>
       <div className="dl-aurora" />
+      <HowInfo t={t} lead={<p>{s.challengeHint}</p>} />
       <div className="dl-sparks">{Array.from({ length: 10 }, (_, i) => <i key={i} style={{ '--i': i } as CSSProperties} />)}</div>
 
       <div className="dl-hero-main">
@@ -176,7 +177,6 @@ function Hero({ me, t, onChallenge }: { me: DuelProfileView; t: Translations; on
         <IconSwords size={22} />
         {s.challenge}
       </button>
-      <span className="dl-cta-hint"><IconSend size={12} /> {s.challengeHint}</span>
     </section>
   )
 }
@@ -197,6 +197,7 @@ function Pitch({ t }: { t: Translations }) {
   return (
     <section className="dl-hero dl-hero-pitch" style={leagueVars('master')}>
       <div className="dl-aurora" />
+      <HowInfo t={t} />
       <div className="dl-sparks">{Array.from({ length: 10 }, (_, i) => <i key={i} style={{ '--i': i } as CSSProperties} />)}</div>
       <div className="dl-fan">
         <span className="dl-fan-l"><RankEmblem league="gold" division={1} size={74} /></span>
@@ -229,8 +230,7 @@ function Ladder({ trophies, t }: { trophies: number | null; t: Translations }) {
 
   return (
     <section className="card dl-card">
-      <SectionHead icon={<IconShield size={18} />} title={s.ranksTitle} />
-      <p className="muted small" style={{ margin: '0 0 10px' }}>{s.ranksHint}</p>
+      <SectionHead icon="shieldCheck" tone="blue" title={s.ranksTitle} info={s.ranksHint} />
       <div className="dl-ladder" ref={rowRef}>
         {ranks.map((r, i) => {
           const state = current < 0 ? 'future' : i < current ? 'past' : i === current ? 'now' : 'future'
@@ -293,8 +293,7 @@ function LinkForm({ t, mode, onSaved }: { t: Translations; mode: 'join' | 'chang
     <section className={mode === 'join' ? 'card dl-card dl-join' : 'dl-join dl-join-inline'}>
       {mode === 'join' && (
         <>
-          <SectionHead icon={<IconLink size={18} />} title={s.joinTitle} />
-          <p className="muted small" style={{ margin: 0 }}>{s.joinText}</p>
+          <SectionHead icon="link" tone="violet" title={s.joinTitle} info={s.joinText} />
           <ol className="dl-path">
             {steps.map((step, i) => <li key={i}><b>{i + 1}</b>{step}</li>)}
           </ol>
@@ -421,21 +420,18 @@ function DuelList({ rows, myTag, t }: { rows: DuelRow[]; myTag: string | null; t
   )
 }
 
-/** Как это работает: четыре шага с иконками на светящейся линии. */
-function How({ t }: { t: Translations }) {
+/** Как это работает: четыре шага с иконками на светящейся линии (в листе под «i»). */
+function HowList({ t }: { t: Translations }) {
   const s = t.duel
   const icons = [<IconSend size={18} />, <IconUsers size={18} />, <IconSwords size={18} />, <IconTrophy size={18} />]
   return (
-    <section className="card dl-card">
-      <SectionHead icon={<IconBolt size={18} />} title={s.howTitle} />
-      <ol className="dl-how">
-        {s.how.map((line, i) => (
-          <li key={i} style={{ animationDelay: `${i * 80}ms` }}>
-            <span className="dl-how-ic">{icons[i]}</span>
-            <span>{line}</span>
-          </li>
-        ))}
-      </ol>
-    </section>
+    <ol className="dl-how mx-dl-how">
+      {s.how.map((line, i) => (
+        <li key={i} style={{ animationDelay: `${i * 80}ms` }}>
+          <span className="dl-how-ic">{icons[i]}</span>
+          <span>{line}</span>
+        </li>
+      ))}
+    </ol>
   )
 }

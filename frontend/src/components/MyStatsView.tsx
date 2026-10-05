@@ -12,6 +12,8 @@ import { DecksButton } from './DecksButton'
 import { BattleAnalysisView } from './BattleAnalysisView'
 import { MatchHistoryView } from './MatchHistoryView'
 import { TiltCard } from './TiltCard'
+import { Icon, type IconName } from './ui/Icon'
+import { SectionHead } from './ui/Section'
 
 type State =
   | { kind: 'loading' }
@@ -27,11 +29,11 @@ type State =
 export type MeSection = 'clan' | 'battles' | 'game'
 type Section = MeSection
 
-const PERF_META: Record<string, { emoji: string; cls: string }> = {
-  'топ': { emoji: '🔥', cls: 'perf-top' },
-  'выше среднего': { emoji: '💪', cls: 'perf-above' },
-  'средне': { emoji: '🙂', cls: 'perf-mid' },
-  'ниже среднего': { emoji: '😴', cls: 'perf-below' },
+const PERF_META: Record<string, { icon: IconName; cls: string }> = {
+  'топ': { icon: 'flame', cls: 'perf-top' },
+  'выше среднего': { icon: 'trendUp', cls: 'perf-above' },
+  'средне': { icon: 'activity', cls: 'perf-mid' },
+  'ниже среднего': { icon: 'trendDown', cls: 'perf-below' },
 }
 
 /**
@@ -162,7 +164,7 @@ export function MyStatsView({ defaultSection = 'clan', battlesView = 'history', 
   }
 
   const s = state.data
-  const perf = PERF_META[s.performanceLabel] ?? { emoji: '🙂', cls: 'perf-mid' }
+  const perf = PERF_META[s.performanceLabel] ?? { icon: 'activity' as IconName, cls: 'perf-mid' }
   const perfTranslated = perfLabel(s.performanceLabel, t)
   const decksPct = Math.round((s.decksUsedToday / 4) * 100)
   const vsClan = s.clanAvgFamePerAttack > 0
@@ -186,7 +188,7 @@ export function MyStatsView({ defaultSection = 'clan', battlesView = 'history', 
       <div className="me-header">
         <div className="me-title-row">
           <h2 className="me-name">{s.name}</h2>
-          <span className={`perf-chip ${perf.cls}`}>{perf.emoji} {perfTranslated}</span>
+          <span className={`perf-chip ${perf.cls}`}><Icon name={perf.icon} size={13} /> {perfTranslated}</span>
         </div>
         <p className="muted small">{s.clanName} · {t.me.rankOf} #{s.rank} {t.me.of} {s.clanSize}</p>
       </div>
@@ -216,7 +218,7 @@ export function MyStatsView({ defaultSection = 'clan', battlesView = 'history', 
           <span className="me-stat-label">{t.me.medalsPerAttack}</span>
           {s.avgFamePerAttack > 0 && vsClan !== 0 && (
             <span className={`me-stat-delta ${vsClan > 0 ? 'delta-up' : 'delta-down'}`}>
-              {vsClan > 0 ? '▲' : '▼'} {Math.abs(vsClan)}% {t.me.vsClan}
+              <Icon name={vsClan > 0 ? 'arrowUp' : 'arrowDown'} size={12} /> {Math.abs(vsClan)}% {t.me.vsClan}
             </span>
           )}
         </div>
@@ -243,10 +245,8 @@ export function MyStatsView({ defaultSection = 'clan', battlesView = 'history', 
 
       {s.season && (
         <div className="card season-card">
-          <div className="card-title-row">
-            <div className="card-title">{t.me.seasonTitle}{s.season.seasonId}</div>
-            <span className="muted small">{t.me.seasonWeeks} {s.season.weeksTracked}</span>
-          </div>
+          <SectionHead icon="calendar" tone="gold" title={`${t.me.seasonTitle}${s.season.seasonId}`}
+            aside={`${t.me.seasonWeeks} ${s.season.weeksTracked}`} />
           <div className="season-grid">
             <div className="season-cell">
               <span className="season-value">{fmt(s.season.totalFame)}</span>
@@ -271,7 +271,7 @@ export function MyStatsView({ defaultSection = 'clan', battlesView = 'history', 
       <TournamentHistoryCard playerTag={s.playerTag} />
 
       <button className="btn btn-share" onClick={share}>
-        {t.me.share}
+        <Icon name="share" size={16} /> {t.me.share}
       </button>
       </div>
       )}
@@ -307,7 +307,7 @@ function WeeklyFameChart({ weeks, t }: { weeks: PlayerWeekHistory[]; t: Translat
   const maxFame = Math.max(...chronological.map(w => w.fame), 1)
   return (
     <section className="card">
-      <div className="card-title" style={{ marginBottom: 10 }}>{t.me.weeklyFameTitle}</div>
+      <SectionHead icon="chart" tone="violet" title={t.me.weeklyFameTitle} />
       <div className="history-weeks">
         {chronological.map(w => (
           <div key={`${w.seasonId}-${w.sectionIndex}`} className="history-week">
@@ -319,7 +319,7 @@ function WeeklyFameChart({ weeks, t }: { weeks: PlayerWeekHistory[]; t: Translat
               />
             </div>
             <span className="history-fame">{fmtShort(w.fame)}</span>
-            <span className="history-label">{w.isColosseum ? '🏟' : `н.${w.sectionIndex + 1}`}</span>
+            <span className="history-label">{w.isColosseum ? <Icon name="columns" size={12} /> : `н.${w.sectionIndex + 1}`}</span>
           </div>
         ))}
       </div>
@@ -332,7 +332,7 @@ function VsClanChart({ weeks, t }: { weeks: PlayerWeekHistory[]; t: Translations
   const maxVal = Math.max(...chronological.flatMap(w => [w.avgFamePerAttack, w.clanAvgFamePerAttack]), 1)
   return (
     <section className="card">
-      <div className="card-title" style={{ marginBottom: 6 }}>{t.me.vsClanTitle}</div>
+      <SectionHead icon="users" tone="blue" title={t.me.vsClanTitle} />
       <div className="cmp-legend">
         <span><span className="cmp-dot cmp-dot-mine" />{t.me.vsClanMineLegend}</span>
         <span><span className="cmp-dot cmp-dot-clan" />{t.me.vsClanClanLegend}</span>
@@ -352,7 +352,7 @@ function VsClanChart({ weeks, t }: { weeks: PlayerWeekHistory[]; t: Translations
                 title={`${t.me.vsClanClanLegend}: ${w.clanAvgFamePerAttack}`}
               />
             </div>
-            <span className="history-label">{w.isColosseum ? '🏟' : `н.${w.sectionIndex + 1}`}</span>
+            <span className="history-label">{w.isColosseum ? <Icon name="columns" size={12} /> : `н.${w.sectionIndex + 1}`}</span>
           </div>
         ))}
       </div>

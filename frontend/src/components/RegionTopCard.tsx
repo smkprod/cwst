@@ -2,6 +2,8 @@ import type { ClanOverview } from '../types'
 import { fmt } from '../lib/format'
 import { useT } from '../lib/i18n'
 import { useOpenClan } from '../lib/clanModal'
+import { Icon } from './ui/Icon'
+import { SectionHead } from './ui/Section'
 
 /**
  * Топ кланов страны из официального рейтинга CR. Показываем игроку без подключённого
@@ -14,10 +16,8 @@ export function RegionTopCard({ overview }: { overview: ClanOverview }) {
 
   return (
     <section className="card">
-      <div className="card-title-row">
-        <div className="card-title">🌍 {t.clanless.regionTitle}</div>
-        {overview.countryName && <span className="muted small">{overview.countryName}</span>}
-      </div>
+      <SectionHead icon="map" tone="blue" title={t.clanless.regionTitle}
+        aside={overview.countryName ? overview.countryName : undefined} />
 
       <ul className="region-top-list">
         {overview.countryTop.map(c => (
@@ -29,9 +29,9 @@ export function RegionTopCard({ overview }: { overview: ClanOverview }) {
               <span className="region-top-rank">{c.rank}</span>
               <div className="region-top-info">
                 <span className="region-top-name">{c.name}</span>
-                <span className="muted small">👥 {c.members}/50</span>
+                <span className="muted small pl-inline"><Icon name="users" size={12} /> {c.members}/50</span>
               </div>
-              <span className="region-top-trophies">⚔️ {fmt(c.warTrophies)}</span>
+              <span className="region-top-trophies pl-inline"><Icon name="swords" size={13} /> {fmt(c.warTrophies)}</span>
             </button>
           </li>
         ))}

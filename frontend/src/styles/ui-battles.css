@@ -1,0 +1,64 @@
+/* Стили группы battles после перехода на иконки и единую дизайн-систему. */
+
+/* Мелкие строки с иконкой: иконка по центру строки, а не по базовой линии */
+.bt-inline { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+div.bt-inline, p.bt-inline { display: flex; }
+
+/* Заголовок без нижнего отступа — когда под ним своя строка или переключатель */
+.bt-head-flush { margin-bottom: 4px; }
+
+/* Компактный заголовок для блоков внутри карточки и листов */
+.bt-head-sm { margin-bottom: 4px; min-height: 24px; gap: 8px; }
+.bt-head-sm .ui-tile { width: 24px !important; height: 24px !important; border-radius: 8px; box-shadow: none; }
+.bt-head-sm .ui-tile .ui-icon { width: 14px; height: 14px; }
+.bt-head-sm .ui-head-title { font-size: 13.5px; }
+
+/* Заголовок группы между карточками («Можно играть», «Топ лиги») */
+.bt-group-head { margin: 16px 2px 8px; }
+.bt-group-head .ui-tile { width: 28px !important; height: 28px !important; border-radius: 9px; }
+.bt-group-head .ui-head-title { font-size: 14.5px; }
+
+/* Замок в строке «ещё N — в Плюсе» */
+.bt-locked-icon { display: inline-grid; place-items: center; width: 26px; height: 26px; flex-shrink: 0; border-radius: 8px;
+  background: rgba(156, 107, 255, 0.2); color: #c7adff; }
+.ba-locked-arrow { display: inline-flex; align-items: center; }
+
+/* Цвета иконок-значков */
+.bt-ico-gold { color: #ffd257; }
+.bt-ico-ice { color: #8fdcf7; }
+.bt-ico-elixir { color: #e07bff; }
+
+/* Значки на карте: эволюция, герой, войско башни */
+.bt-card-mark { display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: 50%;
+  background: rgba(20, 24, 32, 0.85); color: #ffd257; font-size: 0; line-height: 0; }
+.trk-tower-icon { display: inline-flex; color: var(--muted); }
+.trk-tower:not(.trk-tower-down) .trk-tower-icon { color: #ffd257; }
+.trk-verdict-icon { display: inline-flex; color: var(--muted); }
+.sc-ice { color: #8fdcf7; font-size: 0; }
+.card-evo-mark { display: inline-grid; place-items: center; color: #ffd257; }
+
+/* Выводы разбора: иконка в кружке слева */
+.bt-insight { display: flex; align-items: flex-start; gap: 10px; }
+.bt-insight-icon { flex-shrink: 0; margin-top: 1px; padding: 5px; width: 26px; height: 26px; border-radius: 8px;
+  background: var(--ui-surface-2, rgba(255, 255, 255, 0.07)); color: #c7adff; box-sizing: border-box; }
+.bt-insight-snowflake, .bt-insight-droplet { color: #8fdcf7; }
+.bt-insight-shield { color: #6be38a; }
+.bt-insight-target { color: #ff8a84; }
+.bt-insight-clock { color: #ffd257; }
+
+/* Статус под заголовком трекера */
+.bt-status { margin: 0; }
+.bt-status-on { color: #6be38a; font-weight: 700; }
+
+/* Тильт-тип */
+.bt-tilt-icon { color: #ff8a4a; }
+.bt-tilt-ice { color: #8fdcf7; }
+.bt-loss-cell { display: inline-block; vertical-align: -1px; margin-right: 3px; }
+
+/* Легенда в листе «i» */
+.bt-legend { margin: 0 0 10px; font-size: 13px; }
+
+/* Возможности Плюса: плитка с иконкой слева */
+.bt-feature { flex-direction: row; align-items: flex-start; gap: 10px; }
+.bt-feature-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.bt-fine { display: flex; align-items: center; justify-content: center; gap: 6px; }

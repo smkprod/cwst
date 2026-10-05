@@ -3,9 +3,11 @@ import { REDUCED, useCountUp, useInView } from '../lib/anim'
 import type { Matchup, MatchupTier } from '../types'
 import { haptic } from '../lib/telegram'
 import type { Translations } from '../lib/i18n'
+import { Icon } from './ui/Icon'
+import { SectionHead } from './ui/Section'
 
 /**
- * «📊 Матчап»: как такие колоды играют друг против друга — по боям топ-500 за неделю
+ * «Матчап»: как такие колоды играют друг против друга — по боям топ-500 за неделю
  * и по своим боям за месяц. Лестница от «точно такие колоды» до «только вин-кон»,
  * у каждой ступени — сколько боёв за ней, чтобы 3 из 4 не читались как закон.
  */
@@ -25,12 +27,15 @@ export function MatchupPanel({ m, t, onPlus }: { m: Matchup; t: Translations; on
 
   return (
     <div className="trk-block mu" ref={ref}>
-      <div className="mu-head">
-        <div>
-          <div className="tilt-rules-title">{s.matchTitle}</div>
-          <span className="muted small">{s.matchSub}</span>
+      <SectionHead className="bt-head-sm" icon="swords" tone="blue" title={s.matchTitle} info={<>
+        <p>{s.matchSub}</p>
+        <div className="mu-legend bt-legend">
+          <span><i className="mu-dot mu-reliable" />{s.relReliable}</span>
+          <span><i className="mu-dot mu-adequate" />{s.relAdequate}</span>
+          <span><i className="mu-dot mu-low" />{s.relLow}</span>
         </div>
-      </div>
+        <p>{s.matchNote}</p>
+      </>} />
 
       {(m.me || m.them) && (
         <div className="mu-shapes">
@@ -43,7 +48,7 @@ export function MatchupPanel({ m, t, onPlus }: { m: Matchup; t: Translations; on
       <div className="mu-switch">
         <button className={`trk-chip ${src === 'top' ? 'trk-chip-on' : ''}`} onClick={() => pick('top')}>{s.matchTop}</button>
         <button className={`trk-chip ${src === 'own' ? 'trk-chip-on' : ''}`} onClick={() => pick('own')}>
-          {s.matchOwn}{m.ownLocked ? ' 🔒' : ''}
+          {s.matchOwn}{m.ownLocked && <> <Icon name="lock" size={12} /></>}
         </button>
       </div>
 
@@ -55,14 +60,8 @@ export function MatchupPanel({ m, t, onPlus }: { m: Matchup; t: Translations; on
           <div className="mu-ladder">
             {tiers.map((tier, i) => <Row key={`${src}-${tier.key}`} tier={tier} t={t} run={seen} delay={i * 110} />)}
           </div>
-          <div className="mu-legend">
-            <span><i className="mu-dot mu-reliable" />{s.relReliable}</span>
-            <span><i className="mu-dot mu-adequate" />{s.relAdequate}</span>
-            <span><i className="mu-dot mu-low" />{s.relLow}</span>
-          </div>
         </>
       )}
-      <span className="muted small">{s.matchNote}</span>
     </div>
   )
 }
@@ -93,7 +92,7 @@ function Gauge({ tier, t, run }: { tier: MatchupTier; t: Translations; run: bool
       <div className="mu-gauge-num"><span>{Math.round(pct)}<small>%</small></span></div>
       <div className="mu-gauge-text">
         <b>{tierLabel(tier.key, t)}</b>
-        <span className="muted small">{t.trk.matchBattles.replace('{n}', fmtN(tier.games, t))} · {t.trk.matchWin}</span>
+        <span className="muted small">{t.trk.matchBattles.replace('{n}', fmtN(tier.games, t))} · {Math.round(tier.winPercent)}% {t.trk.matchWin}</span>
       </div>
     </div>
   )
@@ -138,8 +137,8 @@ function Shape({ label, v, t }: { label: string; v: { avgElixir: number; cycle: 
       <span className="muted small">{label}</span>
       {v ? (
         <span className="mu-shape-vals">
-          <b>💧 {v.avgElixir.toFixed(1)}</b>
-          <span className="muted small">♻️ {t.trk.matchCycle.replace('{n}', String(v.cycle))}</span>
+          <b><Icon name="droplet" size={13} className="bt-ico-elixir" /> {v.avgElixir.toFixed(1)}</b>
+          <span className="muted small"><Icon name="refresh" size={12} /> {t.trk.matchCycle.replace('{n}', String(v.cycle))}</span>
         </span>
       ) : <b>—</b>}
     </div>

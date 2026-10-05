@@ -3,9 +3,10 @@ import { api } from '../lib/api'
 import type { TrackerState } from '../types'
 import { botStartLink, haptic, hapticNotify, openExternalLink, requestWriteAccess } from '../lib/telegram'
 import { useT } from '../lib/i18n'
+import { SectionHead } from './ui/Section'
 
 /**
- * «🎯 Трекер боёв» — включатель над историей боёв.
+ * «Трекер боёв» — включатель над историей боёв.
  *
  * Трекер бесплатный: карточка захода в боте и история приходят всем. Плюс только
  * добавляет строки «против кого и чем играть», поэтому здесь нет ни замка, ни цены.
@@ -19,7 +20,7 @@ export function TrackerCard({ state, onChange }: { state: TrackerState | null; o
   if (!state.available) {
     return (
       <section className="card trk-card">
-        <div className="card-title" style={{ margin: 0 }}>{s.title}</div>
+        <SectionHead icon="target" tone="red" title={s.title} className="bt-head-flush" />
         <p className="muted small" style={{ margin: '6px 0 0' }}>{s.closed}</p>
       </section>
     )
@@ -42,12 +43,13 @@ export function TrackerCard({ state, onChange }: { state: TrackerState | null; o
 
   return (
     <section className="card trk-card">
-      <div className="tilt-toggle" style={{ marginTop: 0 }}>
-        <div className="tilt-toggle-text">
-          <b>{s.title}</b>
-          <span className="muted small">{state.enabled ? s.enabled : s.promise}</span>
-        </div>
-        <button
+      <SectionHead icon="target" tone="red" title={s.title} className="bt-head-flush"
+        info={<>
+          <p>{s.promise}</p>
+          <p>{s.note}</p>
+          <p>{s.honesty}</p>
+        </>}
+        aside={<button
           className={`ba-switch ${state.enabled ? 'ba-switch-on' : ''}`}
           role="switch"
           aria-checked={state.enabled}
@@ -56,9 +58,8 @@ export function TrackerCard({ state, onChange }: { state: TrackerState | null; o
           onClick={toggle}
         >
           <span className="ba-switch-knob" />
-        </button>
-      </div>
-      {state.enabled && <p className="muted small trk-note">{s.note}</p>}
+        </button>} />
+      <p className={`small trk-note bt-status ${state.enabled ? 'bt-status-on' : 'muted'}`}>{state.enabled ? s.enabled : s.promise}</p>
       {state.enabled && state.mutedToday && <p className="muted small trk-note">{s.mutedToday}</p>}
       {state.dmBlocked && (
         <p className="small trk-note">
@@ -66,7 +67,6 @@ export function TrackerCard({ state, onChange }: { state: TrackerState | null; o
           <button className="btn-mini" onClick={() => openExternalLink(botStartLink())}>{s.openBot}</button>
         </p>
       )}
-      <p className="muted small trk-note">{s.honesty}</p>
     </section>
   )
 }

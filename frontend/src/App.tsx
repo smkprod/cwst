@@ -1,4 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
+import { Icon, type IconName } from './components/ui/Icon'
+import { IconTile } from './components/ui/Section'
 import { api, ApiError, adminClan } from './lib/api'
 import { askDmOnce, haptic, startMatchId, startParam, startToMatches } from './lib/telegram'
 import { ChallengeView } from './components/ChallengeView'
@@ -66,15 +68,15 @@ type Tab = 'clan' | 'me' | 'hall' | 'tournament' | 'search' | 'more' | 'challeng
 const DEFAULT_TABS: AppTab[] = ['clan', 'me', 'hall', 'search', 'more']
 
 /** Как выглядит каждая вкладка. Ключи совпадают с теми, что присылает сервер. */
-const TAB_LOOKS = (t: Translations): Record<AppTab, { icon: string; label: string }> => ({
-  clan: { icon: '🏰', label: t.tabs.clan },
-  me: { icon: '👤', label: t.tabs.me },
-  hall: { icon: '🏛', label: t.tabs.hall },
-  tournament: { icon: '🏆', label: t.tabs.tournament },
-  search: { icon: '🔍', label: t.tabs.search },
-  more: { icon: '⚙️', label: t.tabs.more },
-  challenge: { icon: '🎟', label: t.tabs.challenge },
-  duel: { icon: '⚔️', label: t.tabs.duel },
+const TAB_LOOKS = (t: Translations): Record<AppTab, { icon: IconName; label: string }> => ({
+  clan: { icon: 'castle', label: t.tabs.clan },
+  me: { icon: 'user', label: t.tabs.me },
+  hall: { icon: 'columns', label: t.tabs.hall },
+  tournament: { icon: 'trophy', label: t.tabs.tournament },
+  search: { icon: 'search', label: t.tabs.search },
+  more: { icon: 'gear', label: t.tabs.more },
+  challenge: { icon: 'ticket', label: t.tabs.challenge },
+  duel: { icon: 'swords', label: t.tabs.duel },
 })
 
 /**
@@ -99,19 +101,19 @@ function ClanSectionTabs({ value, onChange, t }: {
         className={`clan-section ${value === 'war' ? 'clan-section-on' : ''}`}
         onClick={() => onChange('war')}
       >
-        ⚔️ {t.tabs.war}
+        <Icon name="swords" size={15} /> {t.tabs.war}
       </button>
       <button
         className={`clan-section ${value === 'roster' ? 'clan-section-on' : ''}`}
         onClick={() => onChange('roster')}
       >
-        👥 {t.tabs.roster}
+        <Icon name="users" size={15} /> {t.tabs.roster}
       </button>
       <button
         className={`clan-section ${value === 'rating' ? 'clan-section-on' : ''}`}
         onClick={() => onChange('rating')}
       >
-        🏆 {t.tabs.rating}
+        <Icon name="trophy" size={15} /> {t.tabs.rating}
       </button>
     </div>
   )
@@ -330,7 +332,7 @@ export default function App() {
     case 'notInTelegram':
       return (
         <div className="center">
-          <p style={{ fontSize: 40, margin: 0 }}>🔒</p>
+          <IconTile name="lock" tone="violet" size={56} />
           <p><strong>{t.openViaTitle}</strong></p>
           <p className="muted small" style={{ maxWidth: 280, textAlign: 'center' }}>
             {t.openViaHint}
@@ -340,8 +342,9 @@ export default function App() {
     case 'error':
       return (
         <div className="center">
+          <IconTile name="alert" tone="red" size={48} />
           <p className="muted">{state.message}</p>
-          <button className="btn" onClick={load}>{t.retry}</button>
+          <button className="btn" onClick={load}><Icon name="refresh" size={16} /> {t.retry}</button>
         </div>
       )
     case 'ready': {
@@ -358,7 +361,7 @@ export default function App() {
       // выключить её из панели значило бы потерять доступ к самой панели.
       const tabs = [
         ...(config?.tabs ?? DEFAULT_TABS).map(id => ({ id: id as Tab, ...TAB_LOOKS(t)[id] })),
-        ...(me.role !== 'none' ? [{ id: 'owner' as Tab, icon: '📊', label: t.tabs.owner }] : []),
+        ...(me.role !== 'none' ? [{ id: 'owner' as Tab, icon: 'dashboard' as IconName, label: t.tabs.owner }] : []),
       ]
 
       return (
@@ -369,7 +372,7 @@ export default function App() {
             {data.viewingAsAdmin && (
               <div className="admin-banner">
                 <span className="admin-banner-text">
-                  👁 {data.clanName}
+                  <Icon name="eye" size={15} /> {data.clanName}
                   {data.adminReadOnly && <span className="muted small"> · {t.admin.readOnly}</span>}
                 </span>
                 <button
@@ -470,7 +473,7 @@ export default function App() {
                 className={`tab ${tab === tb.id ? 'tab-active' : ''}`}
                 onClick={() => switchTab(tb.id)}
               >
-                <span className="tab-icon">{tb.icon}</span>
+                <span className="tab-icon"><Icon name={tb.icon} size={20} /></span>
                 <span className="tab-label">{tb.label}</span>
               </button>
             ))}
@@ -486,12 +489,12 @@ export default function App() {
       const { data, myPlayerTag } = state
       const king = weekKing(data.players, data.warLog, data.periodType)
 
-      const tabs: { id: Tab; icon: string; label: string }[] = [
-        { id: 'clan', icon: '🏰', label: t.tabs.clan },
-        { id: 'me', icon: '👤', label: t.tabs.me },
-        { id: 'tournament', icon: '🏆', label: t.tabs.tournament },
-        { id: 'search', icon: '🔍', label: t.tabs.search },
-        { id: 'more', icon: '⚙️', label: t.tabs.more },
+      const tabs: { id: Tab; icon: IconName; label: string }[] = [
+        { id: 'clan', icon: 'castle', label: t.tabs.clan },
+        { id: 'me', icon: 'user', label: t.tabs.me },
+        { id: 'tournament', icon: 'trophy', label: t.tabs.tournament },
+        { id: 'search', icon: 'search', label: t.tabs.search },
+        { id: 'more', icon: 'gear', label: t.tabs.more },
       ]
 
       return (
@@ -569,7 +572,7 @@ export default function App() {
                 className={`tab ${tab === tb.id ? 'tab-active' : ''}`}
                 onClick={() => switchTab(tb.id)}
               >
-                <span className="tab-icon">{tb.icon}</span>
+                <span className="tab-icon"><Icon name={tb.icon} size={20} /></span>
                 <span className="tab-label">{tb.label}</span>
               </button>
             ))}

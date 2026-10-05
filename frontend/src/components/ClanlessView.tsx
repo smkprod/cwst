@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { Icon, type IconName } from './ui/Icon'
+import { SectionHead } from './ui/Section'
 import { api } from '../lib/api'
 import type { ClanOverview, PlayerProfile } from '../types'
 import { useT } from '../lib/i18n'
@@ -90,14 +92,14 @@ export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection =
     shareToTelegram(t.clanless.shareText, botStartLink())
   }
 
-  const tabs: { id: SoloTab; icon: string; label: string }[] = [
-    { id: 'me', icon: '👤', label: t.tabs.me },
-    { id: 'meta', icon: '🔥', label: t.worldTop.tabMeta },
-    ...(showChallenge ? [{ id: 'challenge' as SoloTab, icon: '🎟', label: t.tabs.challenge }] : []),
-    ...(showDuel ? [{ id: 'duel' as SoloTab, icon: '⚔️', label: t.tabs.duel }] : []),
-    { id: 'clan', icon: '🏰', label: t.clanless.tabClan },
-    { id: 'search', icon: '🔍', label: t.tabs.search },
-    { id: 'more', icon: '⚙️', label: t.tabs.more },
+  const tabs: { id: SoloTab; icon: IconName; label: string }[] = [
+    { id: 'me', icon: 'user' as IconName, label: t.tabs.me },
+    { id: 'meta', icon: 'flame' as IconName, label: t.worldTop.tabMeta },
+    ...(showChallenge ? [{ id: 'challenge' as SoloTab, icon: 'ticket' as IconName, label: t.tabs.challenge }] : []),
+    ...(showDuel ? [{ id: 'duel' as SoloTab, icon: 'swords' as IconName, label: t.tabs.duel }] : []),
+    { id: 'clan', icon: 'castle' as IconName, label: t.clanless.tabClan },
+    { id: 'search', icon: 'search' as IconName, label: t.tabs.search },
+    { id: 'more', icon: 'gear' as IconName, label: t.tabs.more },
   ]
 
   return (
@@ -117,7 +119,7 @@ export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection =
           <div className="fade-in">
             {reason === 'noWar' ? (
               <section className="card connect-banner connect-banner-ok">
-                <div className="connect-title">⏳ {t.clanless.noWarTitle}</div>
+                <SectionHead icon="hourglass" tone="green" title={t.clanless.noWarTitle} className="mx-connect-head" />
                 <p className="muted small" style={{ margin: 0 }}>{t.clanless.noWarText}</p>
               </section>
             ) : (
@@ -128,7 +130,7 @@ export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection =
             )}
 
             {reason === 'noClan' && <section className="card">
-              <div className="card-title">{t.clanless.stepsTitle}</div>
+              <SectionHead icon="list" tone="violet" title={t.clanless.stepsTitle} />
               <ol className="setup-steps">
                 <li>{t.clanless.step1}</li>
                 <li>{t.clanless.step2}</li>
@@ -136,7 +138,7 @@ export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection =
               </ol>
               {botUsername && (
                 <button className="btn btn-nudge" style={{ width: '100%', marginTop: 10 }} onClick={shareInstructions}>
-                  {t.clanless.shareBtn}
+                  <Icon name="send" size={16} /> {t.clanless.shareBtn}
                 </button>
               )}
             </section>}
@@ -169,7 +171,7 @@ export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection =
             className={`tab ${tab === x.id ? 'tab-active' : ''}`}
             onClick={() => switchTab(x.id)}
           >
-            <span className="tab-icon">{x.icon}</span>
+            <span className="tab-icon"><Icon name={x.icon} size={20} /></span>
             <span className="tab-label">{x.label}</span>
           </button>
         ))}
@@ -194,7 +196,7 @@ function ConnectBanner({ profile, overview, onShare }: {
   if (profile && !profile.clanTag) {
     return (
       <section className="card connect-banner">
-        <div className="connect-title">🏰 {t.clanless.noClanTitle}</div>
+        <SectionHead icon="castle" tone="violet" title={t.clanless.noClanTitle} className="mx-connect-head" />
         <p className="muted small" style={{ margin: '4px 0 0' }}>{t.clanless.noClanText}</p>
       </section>
     )
@@ -205,7 +207,7 @@ function ConnectBanner({ profile, overview, onShare }: {
   if (overview?.connected) {
     return (
       <section className="card connect-banner connect-banner-ok">
-        <div className="connect-title">✅ {t.clanless.connectedTitle}</div>
+        <SectionHead icon="checkCircle" tone="green" title={t.clanless.connectedTitle} className="mx-connect-head" />
         <p className="muted small" style={{ margin: 0 }}>{t.clanless.connectedText}</p>
       </section>
     )
@@ -213,24 +215,23 @@ function ConnectBanner({ profile, overview, onShare }: {
 
   return (
     <section className="card connect-banner">
-      <div className="connect-title">
-        🏰 {overview?.clanName
+      <SectionHead icon="castle" tone="violet" className="mx-connect-head"
+        title={overview?.clanName
           ? `${t.clanless.bannerPrefix} «${overview.clanName}» ${t.clanless.bannerSuffix}`
-          : t.clanless.heroTitle}
-      </div>
+          : t.clanless.heroTitle} />
       <p className="muted small" style={{ margin: '4px 0 0' }}>{t.clanless.bannerAsk}</p>
 
       {overview && (
         <div className="connect-stats">
-          <span>⚔️ {overview.warTrophies}</span>
-          {overview.memberCount != null && <span>👥 {overview.memberCount}/50</span>}
-          {overview.countryName && <span>🌍 {overview.countryName}</span>}
+          <span><Icon name="swords" size={14} /> {overview.warTrophies}</span>
+          {overview.memberCount != null && <span><Icon name="users" size={14} /> {overview.memberCount}/50</span>}
+          {overview.countryName && <span><Icon name="globe" size={14} /> {overview.countryName}</span>}
         </div>
       )}
 
       {botUsername && (
         <button className="btn btn-nudge" style={{ width: '100%', marginTop: 10 }} onClick={onShare}>
-          {t.clanless.askLeader}
+          <Icon name="send" size={16} /> {t.clanless.askLeader}
         </button>
       )}
     </section>
