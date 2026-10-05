@@ -13,6 +13,7 @@ import { DuelSheetBadge } from './duel/DuelSheetBadge'
 import { Icon, type IconName } from './ui/Icon'
 import { InfoButton } from './ui/Info'
 import { Chip, SectionHead } from './ui/Section'
+import { noEmoji } from '../lib/text'
 
 export type SheetTab = 'overview' | 'war' | 'battles' | 'cards'
 
@@ -388,7 +389,8 @@ function WarWeek({ p, isMe, canManage, t }: { p: PlayerStatus; isMe: boolean; ca
 
       {p.dnaLabel && (
         <div className="dna-row">
-          <span className="dna-chip">{p.dnaLabel}</span>
+          {/* Архетип приходит с сервера с эмодзи («Тащер 💪») — интерфейс без них */}
+          <span className="dna-chip">{noEmoji(p.dnaLabel)}</span>
           {p.reliabilityScore > 0 && (
             <span className="dna-reliability">
               {t.playerModal.reliability}

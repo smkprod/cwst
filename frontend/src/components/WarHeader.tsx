@@ -21,13 +21,11 @@ export function WarHeader(
 
   return (
     <header className="war-header">
+      {/* Название — отдельной строкой с кнопками справа; статус дня и дедлайн — ниже:
+          в одну строку на 390px бейдж, шестерёнка и RU/UA/EN не помещались */}
       <div className="war-header-top">
         <h1>{status.clanName}</h1>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span className={`badge ${isWar ? 'badge-war' : 'badge-training'}`}>
-            {t.period[status.periodType]}
-            {isWar && day !== null && ` ${t.header.dayOf4} ${day}/4`}
-          </span>
+        <div className="war-header-actions">
           {canManage && onOpenSettings && (
             <button className="cl-icon-btn" onClick={onOpenSettings} aria-label={t.notif.title}>
               <Icon name="gear" size={18} />
@@ -37,11 +35,17 @@ export function WarHeader(
         </div>
       </div>
 
-      {isWar && (
-        <p className="deadline cl-deadline">
-          <Icon name="clock" size={15} /> {t.header.untilEnd} <strong>~{status.hoursLeft} {t.header.h}</strong>
-        </p>
-      )}
+      <div className="war-header-meta">
+        <span className={`badge ${isWar ? 'badge-war' : 'badge-training'}`}>
+          {t.period[status.periodType]}
+          {isWar && day !== null && ` ${t.header.dayOf4} ${day}/4`}
+        </span>
+        {isWar && (
+          <p className="deadline cl-deadline">
+            <Icon name="clock" size={15} /> {t.header.untilEnd} <strong>~{status.hoursLeft} {t.header.h}</strong>
+          </p>
+        )}
+      </div>
 
       <div className="progress-row">
         <div className="progress-track" role="progressbar" aria-valuenow={pct}>

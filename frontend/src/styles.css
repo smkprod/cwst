@@ -76,7 +76,10 @@ main.with-tabbar { padding-bottom: 80px; }
 /* --- Шапка войны --- */
 .war-header { padding: 4px 4px 14px; }
 .war-header-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.war-header h1 { font-size: 19px; font-weight: 700; }
+.war-header h1 { font-size: 19px; font-weight: 700; min-width: 0; overflow-wrap: anywhere; }
+.war-header-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.war-header-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin-top: 8px; }
+.war-header-meta .deadline { margin-top: 0; }
 
 .badge { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
 .badge-war { background: rgba(229, 57, 53, 0.18); color: #ff7a76; }
@@ -96,6 +99,7 @@ main.with-tabbar { padding-bottom: 80px; }
   border: 1px solid rgba(156, 107, 255, 0.25);
 }
 
+.forecast-trend { display: flex; justify-content: center; margin: -4px 0 2px; }
 .trend-chip { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
 .trend-ahead { background: rgba(49, 181, 69, 0.18); color: #5fd573; }
 .trend-onpace { background: rgba(82, 136, 193, 0.18); color: #7fb2e5; }
@@ -405,11 +409,13 @@ details.collapse-card[open] > .collapse-summary::after { transform: rotate(180de
    уклон успевает дойти только до 0.9: картинка почти не проступает. Здесь уклон
    сверху вниз — вверху видно фон, внизу темно под именем и очками. */
 .podium-spot.sponsor-bg { border-color: transparent; }
+/* Имя и очки стоят в середине ступени, поэтому темнеть вуаль должна уже там,
+   а не только у подставки: на светлой картинке они иначе не читались. */
 .podium-spot.sponsor-bg .sponsor-bg-veil {
-  background: linear-gradient(180deg, rgba(10,10,24,0.14) 0%, rgba(10,10,24,0.40) 45%, rgba(10,10,24,0.78) 100%);
+  background: linear-gradient(180deg, rgba(10,10,24,0.30) 0%, rgba(10,10,24,0.68) 40%, rgba(10,10,24,0.86) 100%);
 }
 .podium-spot.sponsor-bg .podium-name,
-.podium-spot.sponsor-bg .podium-fame { text-shadow: 0 1px 3px rgba(0,0,0,0.9); }
+.podium-spot.sponsor-bg .podium-fame { text-shadow: 0 1px 2px rgba(0,0,0,0.95), 0 0 8px rgba(0,0,0,0.85); }
 .podium-spot.sponsor-bg .podium-fame { color: #e7e9ef; }
 
 .rating-list { list-style: none; padding: 0; display: grid; gap: 5px; }
@@ -905,6 +911,9 @@ button.race-row {
   height: 126px;
   /* Место под подпись пика: без отступа она налезала на строку с итогами */
   padding-top: 16px;
+  /* Слева — поле под подписи сетки: поверх высоких столбиков «200» и «100»
+     пропадали. Столбики начинаются правее, линии сетки идут через всё поле. */
+  padding-left: 26px;
   /* Линия основания: без неё пустые дни выглядят как обрыв графика, а не как нули */
   border-bottom: 1px solid rgba(255, 255, 255, 0.14);
 }
@@ -919,8 +928,7 @@ button.race-row {
 .chart-gridval {
   position: absolute; left: 0; bottom: 2px;
   font-size: 9px; line-height: 1; color: var(--muted);
-  /* Подложка под цифрой: иначе она читается поверх столбика, который под ней */
-  background: var(--bg-card); padding: 0 3px; border-radius: 3px;
+  max-width: 24px; overflow: hidden;
 }
 
 .chart-bars {
@@ -977,7 +985,7 @@ button.race-row {
   position: absolute; left: 50%; transform: translateX(-50%);
   top: -15px; font-size: 10px; color: var(--muted); font-weight: 700;
 }
-.chart-axis { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-top: 6px; }
+.chart-axis { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-top: 6px; padding-left: 26px; }
 .chart-footnote { margin: -4px 2px 12px; line-height: 1.4; }
 
 /* Строки-кланы, открывающие страницу клана.
@@ -1022,7 +1030,6 @@ button.race-row {
 .modal-extra { margin-top: 10px; }
 
 /* --- Переключатель Неделя/Сезон --- */
-.rating-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 4px 4px 12px; }
 .segmented {
   display: flex; background: var(--bg-card); border-radius: 10px; padding: 3px; gap: 2px;
 }
@@ -1694,7 +1701,9 @@ button.podium-spot { font: inherit; color: inherit; cursor: pointer; }
 
 /* --- Управление списком игроков: сортировка + фильтр в одну строку --- */
 .pl-controls { display: flex; gap: 6px; margin-bottom: 8px; }
-.pl-controls .rating-select { flex: 1; min-width: 0; }
+/* Ширина — по содержимому: длинная сортировка («Сначала не отыгравшие») берёт
+   больше места, короткий фильтр — меньше; поровну сортировка обрезалась */
+.pl-controls .rating-select { flex: 1 1 auto; min-width: 0; max-width: none; }
 
 /* --- Разбор игрока: вердикт по силе колоды --- */
 .analysis-card { border: 1px solid rgba(255,255,255,0.10); }
@@ -2352,8 +2361,7 @@ button.podium-spot { font: inherit; color: inherit; cursor: pointer; }
 .hall-podium-head, .hall-podium-row { position: relative; z-index: 1; }
 /* Ряд прижат к низу карточки — так ступени стоят на её основании, а не в воздухе */
 .hall-podium-row { margin-top: auto; }
-.hall-podium-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
-.hall-podium-title { font-size: 14px; font-weight: 700; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.6); }
+.hall-podium-head .ui-head-title { color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.6); }
 .hall-podium-season { font-size: 12px; color: rgba(255,255,255,0.75); }
 
 .hall-podium-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; align-items: stretch; }
@@ -3263,8 +3271,6 @@ button.hall-step {
   border: 1px solid rgba(255, 255, 255, 0.1); background: rgba(255, 255, 255, 0.06); color: var(--text); font-size: 14px;
   font-weight: 700; cursor: pointer; }
 .adm-burger-on { background: rgba(90, 140, 255, 0.18); border-color: rgba(90, 140, 255, 0.45); }
-.adm-burger-lines { display: inline-flex; flex-direction: column; gap: 3px; }
-.adm-burger-lines i { display: block; width: 14px; height: 2px; border-radius: 2px; background: currentColor; }
 .adm-burger-cur { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .adm-burger-chev { font-size: 11px; opacity: 0.7; transition: transform 0.2s ease; }
 .adm-burger-on .adm-burger-chev { transform: rotate(180deg); }
@@ -3582,11 +3588,14 @@ button.hall-step {
 
 /* Темы клана от спонсора: главный градиент, свечение карточек и активная вкладка
    берут цвет темы, иначе фирменный фиолетовый перебивал бы выбранное оформление. */
+/* Солнце — темнее светлого края: белая надпись кнопки на #ffd27a не читалась */
 [data-clan-theme="kingdomSun"] {
-  --ui-grad: linear-gradient(135deg, #ffd27a 0%, #e8a72e 55%, #c46f12 100%);
+  --ui-grad: linear-gradient(135deg, #eaa83a 0%, #cf861c 55%, #a85c0e 100%);
   --ui-glow: rgba(232, 167, 46, 0.10);
   --ui-shadow: rgba(232, 167, 46, 0.35);
 }
+[data-clan-theme="kingdomSun"] .ui-btn-primary,
+[data-clan-theme="kingdomSun"] .btn:not(.btn-ghost) { text-shadow: 0 1px 2px rgba(60, 30, 0, 0.45); }
 [data-clan-theme="kingdom"] {
   --ui-grad: linear-gradient(135deg, #7fb0ff 0%, #4f7fd4 55%, #2f56a8 100%);
   --ui-glow: rgba(79, 127, 212, 0.10);

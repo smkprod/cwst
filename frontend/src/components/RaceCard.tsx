@@ -42,11 +42,13 @@ export function RaceCard({ race, periodType }: Props) {
           <p>{t.race.colosseumNote}</p>
           <p><Meta icon="medal">{t.race.colosseumLegend}</Meta></p>
         </> : isWarDay ? (
-          <ul>
-            <li><Meta icon="medal">{t.race.todayTitle}</Meta></li>
-            <li><Meta icon="anchor">{t.race.boatTitle}</Meta></li>
-            <li>∑ {t.race.totalTitle}</li>
-            <li>→ {t.race.projTitle}</li>
+          // Один значок на строку и ровно те, что стоят в строках гонки: без точек
+          // списка, значки в одной колонке
+          <ul className="race-legend">
+            <li><span className="race-legend-mark"><Icon name="medal" size={14} className="cl-fame" /></span>{t.race.todayTitle}</li>
+            <li><span className="race-legend-mark"><Icon name="anchor" size={13} /></span>{t.race.boatTitle}</li>
+            <li><span className="race-legend-mark">∑</span>{t.race.totalTitle}</li>
+            <li><span className="race-legend-mark">→</span>{t.race.projTitle}</li>
           </ul>
         ) : undefined}
         aside={periodType === 'training' ? t.race.trainingNote : undefined}

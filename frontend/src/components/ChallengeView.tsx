@@ -138,7 +138,7 @@ export function ChallengeView() {
       ) : data.me && <MyCard me={data.me} leader={data.leaders[0]?.tickets ?? 0} t={t} />}
 
       <section className="card ch-board">
-        <SectionHead icon="list" tone="gold" title={s.board} info={s.honest} aside={
+        <SectionHead className="mx-ch-board-head" icon="list" tone="gold" title={s.board} info={s.honest} aside={
           <span className="muted small">
             {s.participants.replace('{n}', String(data.participants))}
             {status === 'live' && <> · <i className="ch-live-dot" /> {s.updated.replace('{s}', String(Math.max(0, Math.round((now - new Date(data.updatedUtc).getTime()) / 1000))))}</>}

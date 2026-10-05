@@ -107,8 +107,9 @@ export function OwnerPanel({ me }: { me: ServiceIdentity }) {
         <h2 className="section-title" style={{ margin: 0 }}>{t.owner.title}</h2>
         <button className={`adm-burger ${menuOpen ? 'adm-burger-on' : ''}`} aria-expanded={menuOpen}
           onClick={() => { haptic('light'); setMenuOpen(o => !o) }}>
-          <span className="adm-burger-lines"><i /><i /><i /></span>
-          <span className="adm-burger-cur ow-burger-cur"><Icon name={current.icon} size={16} />{current.label}</span>
+          {/* Одна иконка — плитка текущего раздела; полоски бургера рядом с ней были лишними */}
+          <IconTile name={current.icon} tone={current.tone} size={22} />
+          <span className="adm-burger-cur">{current.label}</span>
           <span className="adm-burger-chev"><Icon name="chevronDown" size={14} /></span>
         </button>
       </div>

@@ -168,10 +168,9 @@ function Podium({ rows, label, seasonId, onOpen }: {
       style={anyOwn ? undefined : { backgroundImage: 'url(/bg/sky.webp)' }}
     >
       <div className="hall-podium-veil" />
-      <div className="hall-podium-head">
-        <span className="hall-podium-title"><Icon name="columns" size={16} />{label}</span>
-        <span className="hall-podium-season">#{seasonId}</span>
-      </div>
+      {/* Шапка — как у всех секций: цветная плитка, а не голая иконка */}
+      <SectionHead icon="columns" tone="gold" title={label} className="hall-podium-head"
+        aside={<span className="hall-podium-season">#{seasonId}</span>} />
 
       <div className="hall-podium-row">
         {/* Ступень — кнопка. Пока ею не была, первые три строки списка оставались

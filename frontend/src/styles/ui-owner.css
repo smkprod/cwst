@@ -13,9 +13,9 @@
 .ow-stars { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
 .ow-stars > .ui-icon { color: var(--gold, #ffc83d); fill: currentColor; }
 
-/* Бургер панели: текущий раздел с иконкой */
-.ow-burger-cur { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
-.ow-burger-cur > .ui-icon { flex-shrink: 0; }
+/* Бургер панели: плитка текущего раздела, название, шеврон */
+.adm-burger .ui-tile { border-radius: 7px; box-shadow: none; }
+.adm-burger-cur { min-width: 0; }
 .adm-burger-chev { display: inline-grid; place-items: center; }
 .adm-menu-ic { display: inline-grid; place-items: center; font-size: 0; }
 

@@ -1610,7 +1610,7 @@ const ru = {
 
   community: {
     label: 'Самое большое рояль комьюнити в Telegram!',
-    btn: 'Открыть канал ↗',
+    btn: 'Открыть канал',
   },
 
   invite: {
@@ -3235,7 +3235,7 @@ const uk: Translations = {
 
   community: {
     label: 'Найбільше рояль комʼюніті в Telegram!',
-    btn: 'Відкрити канал ↗',
+    btn: 'Відкрити канал',
   },
 
   invite: {
@@ -4858,7 +4858,7 @@ const en: Translations = {
 
   community: {
     label: 'The largest Clash Royale community on Telegram!',
-    btn: 'Open channel ↗',
+    btn: 'Open channel',
   },
 
   invite: {

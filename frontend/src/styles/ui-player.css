@@ -67,7 +67,9 @@
 .psheet-battle-chevron { display: inline-flex; color: var(--muted); }
 
 /* Шапка рейтинга: селект справа */
-.pl-rating-head .ui-head-aside { color: inherit; font-size: inherit; }
+.pl-rating-head .ui-head-aside { color: inherit; font-size: inherit; flex-shrink: 0; }
+/* Селект не сжимаем до «Текущ…»: название короткое, место справа есть */
+.pl-rating-head .rating-select { max-width: none; }
 
 /* Пункт «Мировой топ» */
 .pl-row-tile { display: inline-flex; font-size: 0; }

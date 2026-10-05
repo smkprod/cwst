@@ -92,7 +92,7 @@ function Gauge({ tier, t, run }: { tier: MatchupTier; t: Translations; run: bool
       <div className="mu-gauge-num"><span>{Math.round(pct)}<small>%</small></span></div>
       <div className="mu-gauge-text">
         <b>{tierLabel(tier.key, t)}</b>
-        <span className="muted small">{t.trk.matchBattles.replace('{n}', fmtN(tier.games, t))} · {t.trk.matchWin}</span>
+        <span className="muted small">{t.trk.matchBattles.replace('{n}', fmtN(tier.games, t))} · {Math.round(tier.winPercent)}% {t.trk.matchWin}</span>
       </div>
     </div>
   )

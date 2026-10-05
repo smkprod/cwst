@@ -50,8 +50,11 @@ export function ForecastCard({ forecast, stats: _stats, periodType }: Props) {
           <p>{t.forecast.howDay1}<strong>~{forecast.expectedRemainingAttacksToday}</strong>{t.forecast.howDay2}</p>
           <p>{t.forecast.howWeek}</p>
         </>}
-        aside={<span className={`trend-chip cl-ic ${trendMeta.cls}`}><Icon name={trendMeta.icon} size={13} />{trendLabel}</span>}
       />
+      {/* Тренд — под заголовком: справа от него чип сжимал «Прогноз клана» в две строки */}
+      <div className="forecast-trend">
+        <span className={`trend-chip cl-ic ${trendMeta.cls}`}><Icon name={trendMeta.icon} size={13} />{trendLabel}</span>
+      </div>
 
       <div className="forecast-numbers">
         <div className="forecast-block forecast-block-primary">

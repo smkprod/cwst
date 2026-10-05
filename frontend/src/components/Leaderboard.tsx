@@ -89,7 +89,7 @@ export function Leaderboard({ players, myPlayerTag, periodType, warLog, canManag
 
   return (
     <div>
-      <SectionHead icon="trophy" tone="gold" title={t.leaderboard.title} className="rating-head pl-rating-head" aside={
+      <SectionHead icon="trophy" tone="gold" title={t.leaderboard.title} className="mx-page-head pl-rating-head" aside={
         <select
           className="rating-select"
           value={sel}

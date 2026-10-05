@@ -57,6 +57,11 @@
 .ch-tk small { display: inline-flex; vertical-align: -1px; color: #ffc83d; }
 .ch-rank { display: grid; place-items: center; }
 .ch .ui-head { margin-bottom: 8px; }
+/* «Таблица»: участники и «обновлено» — строкой под названием, а не сбоку:
+   сбоку они сжимали заголовок так, что «i» налезала на текст */
+.mx-ch-board-head { flex-wrap: wrap; row-gap: 0; }
+.ui-head.mx-ch-board-head .ui-head-aside { flex-basis: 100%; box-sizing: border-box; margin: -4px 0 0; padding-left: 42px; }
+.mx-ch-board-head .ui-info { margin-left: 0; }
 .mx-chp-ticket { display: grid; place-items: center; width: 84px; height: 84px; border-radius: 26px; color: #3b2300;
   background: linear-gradient(135deg, #ffe08a, #f2a71c); box-shadow: 0 12px 30px rgba(242, 179, 61, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.6); }
 .mx-chp-prize { display: inline-flex; align-items: center; gap: 6px; }
