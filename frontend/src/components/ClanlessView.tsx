@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Icon, type IconName } from './ui/Icon'
 import { api } from '../lib/api'
 import type { ClanOverview, PlayerProfile } from '../types'
 import { useT } from '../lib/i18n'
@@ -90,14 +91,14 @@ export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection =
     shareToTelegram(t.clanless.shareText, botStartLink())
   }
 
-  const tabs: { id: SoloTab; icon: string; label: string }[] = [
-    { id: 'me', icon: '👤', label: t.tabs.me },
-    { id: 'meta', icon: '🔥', label: t.worldTop.tabMeta },
-    ...(showChallenge ? [{ id: 'challenge' as SoloTab, icon: '🎟', label: t.tabs.challenge }] : []),
-    ...(showDuel ? [{ id: 'duel' as SoloTab, icon: '⚔️', label: t.tabs.duel }] : []),
-    { id: 'clan', icon: '🏰', label: t.clanless.tabClan },
-    { id: 'search', icon: '🔍', label: t.tabs.search },
-    { id: 'more', icon: '⚙️', label: t.tabs.more },
+  const tabs: { id: SoloTab; icon: IconName; label: string }[] = [
+    { id: 'me', icon: 'user' as IconName, label: t.tabs.me },
+    { id: 'meta', icon: 'flame' as IconName, label: t.worldTop.tabMeta },
+    ...(showChallenge ? [{ id: 'challenge' as SoloTab, icon: 'ticket' as IconName, label: t.tabs.challenge }] : []),
+    ...(showDuel ? [{ id: 'duel' as SoloTab, icon: 'swords' as IconName, label: t.tabs.duel }] : []),
+    { id: 'clan', icon: 'castle' as IconName, label: t.clanless.tabClan },
+    { id: 'search', icon: 'search' as IconName, label: t.tabs.search },
+    { id: 'more', icon: 'gear' as IconName, label: t.tabs.more },
   ]
 
   return (
@@ -169,7 +170,7 @@ export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection =
             className={`tab ${tab === x.id ? 'tab-active' : ''}`}
             onClick={() => switchTab(x.id)}
           >
-            <span className="tab-icon">{x.icon}</span>
+            <span className="tab-icon"><Icon name={x.icon} size={20} /></span>
             <span className="tab-label">{x.label}</span>
           </button>
         ))}

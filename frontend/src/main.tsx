@@ -9,6 +9,11 @@ import { ClanModalProvider } from './lib/clanModal'
 import { PlayerSheetProvider } from './lib/playerSheet'
 import { PlusSheetProvider } from './lib/plusSheet'
 import './styles.css'
+import './styles/ui-owner.css'
+import './styles/ui-player.css'
+import './styles/ui-clan.css'
+import './styles/ui-battles.css'
+import './styles/ui-misc.css'
 
 initTelegram()
 
