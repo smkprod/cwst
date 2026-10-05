@@ -4,6 +4,8 @@ import type { MetaDecks, TopCard, TopProfileDeck } from '../types'
 import { haptic } from '../lib/telegram'
 import { useT, type Translations } from '../lib/i18n'
 import { CardIcon, DeckRow } from './MetaDecksView'
+import { Icon } from './ui/Icon'
+import { SectionHead } from './ui/Section'
 
 /**
  * Колоды с одной картой: тап по карте в «Мете».
@@ -44,7 +46,7 @@ export function CardDecksModal({ card, onClose }: { card: TopCard; onClose: () =
             {card.iconUrl && <img src={card.iconUrl} alt="" className="cdeck-title-icon" />}
             <span className="modal-name">{t.worldTop.cardDecksTitle} «{card.name}»</span>
           </div>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <button className="modal-close" onClick={onClose} aria-label={t.warlog.close}><Icon name="x" size={18} /></button>
         </div>
 
         {state === 'loading' && <div className="center" style={{ padding: 24 }}><div className="spinner" /></div>}
@@ -56,14 +58,14 @@ export function CardDecksModal({ card, onClose }: { card: TopCard; onClose: () =
 
         {state === 'ready' && battleDecks.length > 0 && (
           <>
-            <div className="wtop-section-title">🔥 {t.worldTop.cardDecksBattles}</div>
+            <SectionHead className="bt-group-head" icon="flame" tone="orange" title={t.worldTop.cardDecksBattles} />
             {battleDecks.map((d, i) => <DeckRow key={i} deck={d} place={i + 1} t={t} />)}
           </>
         )}
 
         {state === 'ready' && profileDecks.length > 0 && (
           <>
-            <div className="wtop-section-title">🃏 {t.worldTop.cardDecksProfiles}</div>
+            <SectionHead className="bt-group-head" icon="users" tone="blue" title={t.worldTop.cardDecksProfiles} />
             {profileDecks.map((d, i) => <ProfileDeck key={i} deck={d} t={t} />)}
           </>
         )}
@@ -81,7 +83,7 @@ function ProfileDeck({ deck, t }: { deck: TopProfileDeck; t: Translations }) {
     <div className="mdeck">
       <div className="mdeck-head">
         <span className="mdeck-win">{deck.players} <span className="mdeck-unit">{t.worldTop.cardDecksPlayers}</span></span>
-        <span className="muted small mdeck-wdl">{t.worldTop.cardDecksBest} #{deck.bestRank} · 💧{elixir}</span>
+        <span className="muted small mdeck-wdl">{t.worldTop.cardDecksBest} #{deck.bestRank} · <Icon name="droplet" size={12} className="bt-ico-elixir" /> {elixir}</span>
       </div>
       <div className="wtop-deck">
         {deck.cards.map((c, i) => <CardIcon key={`${c.cardId}-${i}`} card={c} />)}

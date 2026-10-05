@@ -2,6 +2,14 @@ import type { ClanStatus, RaceClan } from '../types'
 import { fmt } from '../lib/format'
 import { useT } from '../lib/i18n'
 import { useOpenClan } from '../lib/clanModal'
+import type { ReactNode } from 'react'
+import { Icon, type IconName } from './ui/Icon'
+import { SectionHead } from './ui/Section'
+
+/** Кусочек строки «иконка + число». */
+function Meta({ icon, children }: { icon: IconName; children: ReactNode }) {
+  return <span className="cl-ic"><Icon name={icon} size={12} />{children}</span>
+}
 
 interface Props {
   race: RaceClan[]
@@ -26,27 +34,44 @@ export function RaceCard({ race, periodType }: Props) {
 
   return (
     <section className="card race-card">
-      <div className="card-title-row">
-        <div className="card-title">{isColosseum ? t.race.titleColosseum : t.race.title}</div>
-        {periodType === 'training' && <span className="muted small">{t.race.trainingNote}</span>}
-      </div>
-      {isColosseum && <p className="muted small race-colosseum-note">{t.race.colosseumNote}</p>}
+      <SectionHead
+        icon={isColosseum ? 'columns' : 'flag'}
+        tone={isColosseum ? 'violet' : 'orange'}
+        title={isColosseum ? t.race.titleColosseum : t.race.title}
+        info={isColosseum ? <>
+          <p>{t.race.colosseumNote}</p>
+          <p><Meta icon="medal">{t.race.colosseumLegend}</Meta></p>
+        </> : isWarDay ? (
+          // Один значок на строку и ровно те, что стоят в строках гонки: без точек
+          // списка, значки в одной колонке
+          <ul className="race-legend">
+            <li><span className="race-legend-mark"><Icon name="medal" size={14} className="cl-fame" /></span>{t.race.todayTitle}</li>
+            <li><span className="race-legend-mark"><Icon name="anchor" size={13} /></span>{t.race.boatTitle}</li>
+            <li><span className="race-legend-mark">∑</span>{t.race.totalTitle}</li>
+            <li><span className="race-legend-mark">→</span>{t.race.projTitle}</li>
+          </ul>
+        ) : undefined}
+        aside={periodType === 'training' ? t.race.trainingNote : undefined}
+      />
 
       <ul className="race-list">
         {race.map(c => {
           // Колизей: накопленные за неделю колоды и средние медали, с подписями словами.
           // Обычная война: компактный формат «сегодня/лимит», как было.
-          const meta = isColosseum
+          const parts: ReactNode[] = isColosseum
             ? [
-                c.warTrophies > 0 ? `🏆 ${fmt(c.warTrophies)}` : null,
-                c.decksUsed > 0 ? `🃏 ${fmt(c.decksUsed)} ${t.race.decksWeekLabel}` : null,
-                c.decksUsed > 0 ? `⚡ ${c.avgFamePerAttack.toFixed(1)} ${t.race.avgLabel}` : null,
-              ].filter(Boolean).join(' · ')
+                c.warTrophies > 0 ? <Meta key="tr" icon="trophy">{fmt(c.warTrophies)}</Meta> : null,
+                c.decksUsed > 0 ? <Meta key="dk" icon="cards">{fmt(c.decksUsed)} {t.race.decksWeekLabel}</Meta> : null,
+                c.decksUsed > 0 ? <Meta key="av" icon="bolt">{c.avgFamePerAttack.toFixed(1)} {t.race.avgLabel}</Meta> : null,
+              ].filter(Boolean)
             : [
-                c.warTrophies > 0 ? `🏆 ${fmt(c.warTrophies)}` : null,
-                isWarDay ? `🃏 ${c.decksUsedToday}/${c.maxDecksToday}` : null,
-                isWarDay && c.decksUsedToday > 0 ? `⚡ ${c.avgFamePerAttack.toFixed(1)}` : null,
-              ].filter(Boolean).join(' · ')
+                c.warTrophies > 0 ? <Meta key="tr" icon="trophy">{fmt(c.warTrophies)}</Meta> : null,
+                isWarDay ? <Meta key="dk" icon="cards">{c.decksUsedToday}/{c.maxDecksToday}</Meta> : null,
+                isWarDay && c.decksUsedToday > 0 ? <Meta key="av" icon="bolt">{c.avgFamePerAttack.toFixed(1)}</Meta> : null,
+              ].filter(Boolean)
+          const meta = parts.length > 0
+            ? parts.map((p, i) => <span key={i} className="cl-ic">{i > 0 && <span className="cl-sep">·</span>}{p}</span>)
+            : null
 
           return (
             <li key={c.tag}>
@@ -57,7 +82,7 @@ export function RaceCard({ race, periodType }: Props) {
                   <span className="race-name">
                     {c.name}
                     {c.isOurClan && <span className="me-badge">{t.race.ours}</span>}
-                    {c.isFinished && ' 🏁'}
+                    {c.isFinished && <Icon name="flag" size={13} className="cl-ok" style={{ marginLeft: 4 }} />}
                   </span>
                   <div className="race-bar-track">
                     <div
@@ -65,7 +90,7 @@ export function RaceCard({ race, periodType }: Props) {
                       style={{ width: `${Math.max(3, Math.round((c.fame / maxFame) * 100))}%` }}
                     />
                   </div>
-                  {meta && <span className="race-meta muted small">{meta}</span>}
+                  {meta && <span className="race-meta muted small cl-meta">{meta}</span>}
                 </div>
 
                 <div className="race-numbers">
@@ -75,7 +100,7 @@ export function RaceCard({ race, periodType }: Props) {
                   {isColosseum ? (
                     <>
                       <span className="race-fame race-fame-today" title={t.race.totalTitle}>
-                        {fmt(c.fame)} 🏅
+                        <span className="cl-ic">{fmt(c.fame)} <Icon name="medal" size={13} className="cl-fame" /></span>
                       </span>
                       {!c.isFinished && c.projectedFame > 0 && (
                         <span className="race-projected" title={t.race.projTitle}>
@@ -86,11 +111,11 @@ export function RaceCard({ race, periodType }: Props) {
                   ) : isWarDay ? (
                     <>
                       <span className="race-fame race-fame-today" title={t.race.todayTitle}>
-                        {fmt(c.todayFame)} 🏅
+                        <span className="cl-ic">{fmt(c.todayFame)} <Icon name="medal" size={13} className="cl-fame" /></span>
                       </span>
                       {c.boatPoints > 0 && (
                         <span className="race-projected" title={t.race.boatTitle}>
-                          ⛵ {fmt(c.boatPoints)}
+                          <span className="cl-ic"><Icon name="anchor" size={11} />{fmt(c.boatPoints)}</span>
                         </span>
                       )}
                       <span className="race-projected" title={t.race.totalTitle}>
@@ -111,8 +136,6 @@ export function RaceCard({ race, periodType }: Props) {
           )
         })}
       </ul>
-
-      {isColosseum && <p className="muted small race-colosseum-legend">{t.race.colosseumLegend}</p>}
 
     </section>
   )

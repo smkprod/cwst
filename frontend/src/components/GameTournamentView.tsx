@@ -3,6 +3,8 @@ import { api, ApiError } from '../lib/api'
 import type { GameTournament } from '../types'
 import { haptic, hapticNotify } from '../lib/telegram'
 import { useT, type Translations } from '../lib/i18n'
+import { Icon } from './ui/Icon'
+import { SectionHead } from './ui/Section'
 
 export function gameStatusInfo(status: string, t: Translations): { label: string; cls: string } {
   switch (status) {
@@ -51,15 +53,14 @@ export function GameAddForm({ onAdded, onCancel }: { onAdded: () => void; onCanc
 
   return (
     <div className="card" style={{ marginTop: 10 }}>
-      <div className="cards-section-title">{t.gameT.addTitle}</div>
+      <SectionHead icon="dice" tone="blue" title={t.gameT.addTitle} info={t.gameT.tagHint} />
       <input className="owner-bc-text" style={{ marginBottom: 8 }} placeholder={t.gameT.tagPlaceholder}
         value={tag} onChange={e => { setTag(e.target.value); setError(null) }} />
       <input className="owner-bc-text" style={{ marginBottom: 8 }} placeholder={t.gameT.passwordPlaceholder}
         value={password} onChange={e => setPassword(e.target.value)} />
-      <p className="muted small" style={{ margin: '0 0 10px' }}>{t.gameT.tagHint}</p>
       <div style={{ display: 'flex', gap: 6 }}>
         <button className="btn btn-nudge" style={{ flex: 1 }} disabled={busy || tag.trim().length === 0} onClick={submit}>
-          {busy ? t.gameT.adding : t.gameT.add}
+          {!busy && <Icon name="plus" size={16} />} {busy ? t.gameT.adding : t.gameT.add}
         </button>
         <button className="btn-mini" onClick={() => { haptic('light'); onCancel() }}>{t.tournament.back}</button>
       </div>
@@ -81,13 +82,11 @@ export function GameTournamentDetail(
 
   return (
     <div>
-      <button className="btn-back" onClick={onBack}>← {t.tournament.back}</button>
+      <button className="btn-back" onClick={onBack}><Icon name="chevronLeft" size={15} /> {t.tournament.back}</button>
 
       <section className="card" style={{ marginTop: 10 }}>
-        <div className="tournament-list-item-top">
-          <h2 className="section-title" style={{ margin: 0 }}>{live?.name ?? g.tournamentTag}</h2>
-          {si && <span className={`badge tournament-status-badge ${si.cls}`}>{si.label}</span>}
-        </div>
+        <SectionHead icon="dice" tone="blue" title={live?.name ?? g.tournamentTag}
+          aside={si ? <span className={`badge tournament-status-badge ${si.cls}`}>{si.label}</span> : undefined} />
         {live?.description && <p className="muted small" style={{ marginTop: 6 }}>{live.description}</p>}
 
         <div className="gt-join">
@@ -98,28 +97,28 @@ export function GameTournamentDetail(
         {live && (
           <div className="profile-stats" style={{ gridTemplateColumns: 'repeat(2, 1fr)', marginTop: 12 }}>
             <div className="profile-stat">
-              <div className="profile-stat-value">🎮 {live.capacity}/{live.maxCapacity}</div>
+              <div className="profile-stat-value"><Icon name="users" size={15} /> {live.capacity}/{live.maxCapacity}</div>
               <div className="profile-stat-label">{t.gameT.fill}</div>
             </div>
             <div className="profile-stat">
-              <div className="profile-stat-value">🃏 {live.levelCap}</div>
+              <div className="profile-stat-value"><Icon name="cards" size={15} /> {live.levelCap}</div>
               <div className="profile-stat-label">{t.gameT.levelCap}</div>
             </div>
             {live.firstPlaceCardPrize > 0 && (
               <div className="profile-stat">
-                <div className="profile-stat-value">🏆 {live.firstPlaceCardPrize}</div>
+                <div className="profile-stat-value"><Icon name="trophy" size={15} /> {live.firstPlaceCardPrize}</div>
                 <div className="profile-stat-label">{t.gameT.prize}</div>
               </div>
             )}
             {live.startsInSeconds != null && live.startsInSeconds > 0 && (
               <div className="profile-stat">
-                <div className="profile-stat-value">⏳ {fmtCountdown(live.startsInSeconds)}</div>
+                <div className="profile-stat-value"><Icon name="hourglass" size={15} /> {fmtCountdown(live.startsInSeconds)}</div>
                 <div className="profile-stat-label">{t.gameT.startsIn}</div>
               </div>
             )}
             {live.endsInSeconds != null && live.endsInSeconds > 0 && (
               <div className="profile-stat">
-                <div className="profile-stat-value">⏳ {fmtCountdown(live.endsInSeconds)}</div>
+                <div className="profile-stat-value"><Icon name="hourglass" size={15} /> {fmtCountdown(live.endsInSeconds)}</div>
                 <div className="profile-stat-label">{t.gameT.endsIn}</div>
               </div>
             )}
@@ -129,16 +128,18 @@ export function GameTournamentDetail(
 
       {live && live.members.length > 0 && (
         <section className="card" style={{ marginTop: 10 }}>
-          <div className="cards-section-title">{t.gameT.standings} ({live.members.length})</div>
+          <SectionHead icon="list" tone="gold" title={t.gameT.standings} aside={live.members.length} />
           <ul className="gt-members">
             {live.members.slice(0, 50).map(m => (
               <li key={`${m.rank}-${m.name}`} className="gt-member">
-                <span className="gt-member-rank">#{m.rank > 0 ? m.rank : '—'}</span>
+                <span className="gt-member-rank">{m.rank > 0 && m.rank <= 3
+                  ? <span className={`mx-medal mx-medal-${m.rank}`}>{m.rank}</span>
+                  : `#${m.rank > 0 ? m.rank : '—'}`}</span>
                 <div className="gt-member-info">
                   <span className="gt-member-name">{m.name}</span>
                   {m.clanName && <span className="muted small">{m.clanName}</span>}
                 </div>
-                <span className="gt-member-score">{m.score} 🏅</span>
+                <span className="gt-member-score">{m.score} <Icon name="medal" size={13} className="mx-ic-gold" /></span>
               </li>
             ))}
           </ul>

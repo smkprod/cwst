@@ -2,6 +2,7 @@ import type { ClanStatus } from '../types'
 import { fmt } from '../lib/format'
 import { useT } from '../lib/i18n'
 import { TournamentHistoryCard } from './TournamentHistoryCard'
+import { Icon } from './ui/Icon'
 
 interface Props {
   data: ClanStatus
@@ -69,8 +70,8 @@ export function GuestMyStats({ data, myPlayerTag }: Props) {
       <TournamentHistoryCard playerTag={myPlayerTag} />
 
       <div className="card guest-link-card">
-        <p className="muted small" style={{ margin: 0, textAlign: 'center' }}>
-          {t.guest.linkForStats}
+        <p className="muted small pl-inline" style={{ margin: 0, textAlign: 'center', justifyContent: 'center' }}>
+          <Icon name="link" size={14} /> {t.guest.linkForStats}
         </p>
       </div>
     </div>

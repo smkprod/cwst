@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { haptic } from '../lib/telegram'
 import { useT } from '../lib/i18n'
 import { DeckSuggestionsView } from './DeckSuggestionsView'
+import { Icon } from './ui/Icon'
+import { IconTile } from './ui/Section'
 
 /**
  * Кнопка «мои колоды» и шторка с подбором. Отдельной вкладкой это занимало место
@@ -15,8 +17,9 @@ export function DecksButton({ playerTag }: { playerTag: string }) {
   return (
     <>
       <section className="card decks-cta">
+        <IconTile name="cards" tone="violet" />
         <div className="decks-cta-text">
-          <span className="decks-cta-title">🃏 {t.decks.ctaTitle}</span>
+          <span className="decks-cta-title">{t.decks.ctaTitle}</span>
           <span className="muted small">{t.decks.ctaHint}</span>
         </div>
         <button
@@ -52,10 +55,11 @@ function DecksModal({ playerTag, onClose }: { playerTag: string; onClose: () => 
       <div className="modal-sheet fade-up" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">
         <div className="modal-grip" />
         <div className="modal-head">
-          <div className="modal-title-wrap">
+          <div className="modal-title-wrap bt-inline">
+            <IconTile name="cards" tone="violet" />
             <h3 className="modal-name">{t.decks.title}</h3>
           </div>
-          <button className="modal-close" onClick={close} aria-label={t.warlog.close}>✕</button>
+          <button className="modal-close" onClick={close} aria-label={t.warlog.close}><Icon name="x" size={18} /></button>
         </div>
 
         <DeckSuggestionsView playerTag={playerTag} embedded />

@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import type { ArchetypeRow, MatchSession } from '../types'
 import type { Translations } from '../lib/i18n'
 import { REDUCED, useInView } from '../lib/anim'
+import { Icon } from './ui/Icon'
+import { InfoButton } from './ui/Info'
+import { SectionHead } from './ui/Section'
 
 /** Запускает анимацию, когда блок показался на экране. */
 function useReveal<T extends Element>() {
@@ -16,7 +19,7 @@ function useReveal<T extends Element>() {
 }
 
 /* ------------------------------------------------------------------ */
-/* 📈 Кубки по ходу захода                                            */
+/* Кубки по ходу захода                                            */
 /* ------------------------------------------------------------------ */
 
 /**
@@ -59,8 +62,11 @@ export function SessionChart({ session, t }: { session: MatchSession; t: Transla
   return (
     <div className="sc" ref={ref}>
       <div className="sc-head">
-        <span className="muted small">{t.trk.chartTitle}</span>
-        <b className={up ? 'trk-good' : 'trk-bad'}>{end > 0 ? '+' : end < 0 ? '−' : ''}{Math.abs(end)}{data.trophyMode ? '🏆' : ''}</b>
+        <span className="muted small bt-inline">
+          <Icon name="activity" size={13} /> {t.trk.chartTitle}
+          {data.tiltAt !== null && <InfoButton size={18} title={t.trk.chartTitle}><p><Icon name="snowflake" size={14} className="bt-ico-ice" /> {t.trk.chartTilt}</p></InfoButton>}
+        </span>
+        <b className={up ? 'trk-good' : 'trk-bad'}>{end > 0 ? '+' : end < 0 ? '−' : ''}{Math.abs(end)}{data.trophyMode && <> <Icon name="trophy" size={13} /></>}</b>
       </div>
       <div className="sc-box">
         <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="sc-svg" aria-hidden>
@@ -85,16 +91,15 @@ export function SessionChart({ session, t }: { session: MatchSession; t: Transla
             style={{ left: `${(x(i + 1) / W) * 100}%`, top: `${(y(p.v) / H) * 100}%`, transitionDelay: `${0.15 + i * 0.06}s` }} />
         ))}
         {data.tiltAt !== null && (
-          <span className={`sc-ice ${on ? 'sc-on' : ''}`} style={{ left: `${(x(data.tiltAt) / W) * 100}%` }}>🧊</span>
+          <span className={`sc-ice ${on ? 'sc-on' : ''}`} style={{ left: `${(x(data.tiltAt) / W) * 100}%` }}><Icon name="snowflake" size={14} /></span>
         )}
       </div>
-      {data.tiltAt !== null && <span className="muted small sc-note">{t.trk.chartTilt}</span>}
     </div>
   )
 }
 
 /* ------------------------------------------------------------------ */
-/* 🗓 Когда ты играешь лучше                                          */
+/* Когда ты играешь лучше                                          */
 /* ------------------------------------------------------------------ */
 
 const MIN_CELL = 3
@@ -126,7 +131,7 @@ export function HeatMap({ cells, basePct, t }: {
   if (total < MIN_TOTAL) {
     return (
       <section className="card hm">
-        <div className="card-title" style={{ marginBottom: 6 }}>{s.heatTitle}</div>
+        <SectionHead icon="calendar" tone="green" title={s.heatTitle} />
         <div className="rd-progress">
           <span className="rd-progress-bar"><span style={{ width: `${(total / MIN_TOTAL) * 100}%` }} /></span>
           <span className="muted small">{s.heatProgress.replace('{need}', String(MIN_TOTAL)).replace('{n}', String(total))}</span>
@@ -140,8 +145,8 @@ export function HeatMap({ cells, basePct, t }: {
 
   return (
     <section className="card hm" ref={ref}>
-      <div className="card-title" style={{ marginBottom: 2 }}>{s.heatTitle}</div>
-      <p className="muted small" style={{ margin: '0 0 10px' }}>{s.heatSub.replace('{p}', String(Math.round(basePct)))}</p>
+      <SectionHead icon="calendar" tone="green" title={s.heatTitle}
+        info={<p>{s.heatSub.replace('{p}', String(Math.round(basePct)))}</p>} />
       <div className="hm-grid">
         <span />
         {days.map(d => <span key={d} className="hm-day">{d}</span>)}
@@ -150,8 +155,8 @@ export function HeatMap({ cells, basePct, t }: {
         ))}
       </div>
       <div className="hm-foot">
-        {best && <span className="small">⬆ {s.heatBest.replace('{slot}', slot(best)).replace('{p}', String(Math.round(best.pct)))}</span>}
-        {worst && worst !== best && <span className="small">⬇ {s.heatWorst.replace('{slot}', slot(worst)).replace('{p}', String(Math.round(worst.pct)))}</span>}
+        {best && <span className="small bt-inline"><Icon name="arrowUp" size={13} className="trk-good" /> {s.heatBest.replace('{slot}', slot(best)).replace('{p}', String(Math.round(best.pct)))}</span>}
+        {worst && worst !== best && <span className="small bt-inline"><Icon name="arrowDown" size={13} className="trk-bad" /> {s.heatWorst.replace('{slot}', slot(worst)).replace('{p}', String(Math.round(worst.pct)))}</span>}
       </div>
     </section>
   )
@@ -188,7 +193,7 @@ function RowCells({ part, ri, label, grid, basePct, on }: {
 }
 
 /* ------------------------------------------------------------------ */
-/* 🕸 Радар матчапов                                                  */
+/* Радар матчапов                                                  */
 /* ------------------------------------------------------------------ */
 
 /** Для тизера без Плюса: форма есть, цифр нет. */
@@ -212,7 +217,7 @@ export function ArchRadar({ rows, basePct, locked, onUnlock, t }: {
     // выглядело как поломка.
     return (
       <div className="rd">
-        <div className="tilt-rules-title">{t.trk.radarTitle}</div>
+        <SectionHead className="bt-head-sm" icon="radar" tone="violet" title={t.trk.radarTitle} />
         <div className="rd-progress">
           <span className="rd-progress-bar"><span style={{ width: `${(axes.length / 3) * 100}%` }} /></span>
           <span className="muted small">{t.trk.radarProgress.replace('{n}', String(axes.length))}</span>
@@ -231,8 +236,8 @@ export function ArchRadar({ rows, basePct, locked, onUnlock, t }: {
 
   return (
     <div className={`rd ${locked ? 'rd-locked' : ''}`} ref={ref}>
-      <div className="tilt-rules-title">{t.trk.radarTitle}</div>
-      <span className="muted small">{t.trk.radarSub}</span>
+      <SectionHead className="bt-head-sm" icon="radar" tone="violet" title={t.trk.radarTitle}
+        info={<p>{t.trk.radarSub}</p>} />
       <div className="rd-box">
         <svg viewBox="-50 -14 320 248" className="rd-svg" aria-hidden>
           {[0.25, 0.5, 0.75, 1].map(k => (
@@ -262,7 +267,7 @@ export function ArchRadar({ rows, basePct, locked, onUnlock, t }: {
           })}
         </svg>
         {locked && (
-          <button className="rd-lock" onClick={onUnlock}>{t.trk.radarLocked}</button>
+          <button className="rd-lock" onClick={onUnlock}><Icon name="lock" size={14} /> {t.trk.radarLocked}</button>
         )}
       </div>
     </div>

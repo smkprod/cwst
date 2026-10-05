@@ -1,0 +1,103 @@
+/* Стили группы clan после перехода на иконки и единую дизайн-систему. */
+
+/* Текст с иконкой в строку: «[иконка] 1 234». */
+.cl-ic { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.cl-ic .ui-icon { vertical-align: 0; }
+.cl-sep { opacity: 0.5; margin: 0 5px; }
+.cl-meta { display: flex; align-items: center; flex-wrap: nowrap; min-width: 0; overflow: hidden; }
+
+/* Цвета состояний */
+.cl-ok { color: var(--green, #47d16a); }
+.cl-bad { color: #ff6b6b; }
+.cl-wait { color: #ffd257; }
+.cl-fame { color: #ffd257; }
+.cl-muted { color: var(--muted); }
+
+/* Номер места: золото / серебро / бронза вместо медалей-эмодзи. */
+.cl-place {
+  display: inline-grid; place-items: center; flex: none;
+  width: 22px; height: 22px; border-radius: 50%;
+  font-size: 12px; font-weight: 900; line-height: 1;
+  background: rgba(255, 255, 255, 0.08); color: var(--muted);
+}
+.cl-place-1 { background: linear-gradient(135deg, #ffe07a, #f0a21c); color: #3b2300; box-shadow: 0 3px 10px rgba(242, 179, 61, 0.4); }
+.cl-place-2 { background: linear-gradient(135deg, #f1f4f8, #9ea9b8); color: #1f2630; box-shadow: 0 3px 10px rgba(180, 190, 205, 0.3); }
+.cl-place-3 { background: linear-gradient(135deg, #f0b07a, #b0642c); color: #2b1300; box-shadow: 0 3px 10px rgba(205, 127, 50, 0.35); }
+.cl-place-lg { width: 32px; height: 32px; font-size: 15px; }
+
+/* Шеврон-иконка вместо «›» / «⌄» */
+.cl-chev { display: inline-grid; place-items: center; color: var(--muted); transition: transform 0.2s ease; }
+.cl-chev-open { transform: rotate(90deg); }
+
+/* Шапка войны */
+.cl-icon-btn {
+  display: inline-grid; place-items: center; width: 32px; height: 32px; padding: 0;
+  border-radius: 10px; border: 1px solid var(--ui-line); background: var(--ui-surface-2);
+  color: var(--text); cursor: pointer;
+}
+.cl-icon-btn:active { transform: scale(0.94); }
+.cl-deadline { display: flex; align-items: center; gap: 6px; }
+
+/* Колонки статистики */
+.stat-chip-icon.cl-stat-icon { display: grid; place-items: center; margin-bottom: 2px; }
+
+/* Легенда гонки в листе «i»: значок в своей колонке вместо точки списка */
+.ui-sheet-body .race-legend { list-style: none; padding-left: 0; }
+.race-legend li { display: flex; align-items: center; gap: 10px; }
+.race-legend-mark { display: inline-grid; place-items: center; flex: none; width: 22px; height: 22px; border-radius: 7px;
+  background: var(--ui-surface-2); color: var(--muted); font-weight: 800; }
+
+/* Журнал боёв */
+.cl-score { display: inline-flex; align-items: center; gap: 8px; }
+.cl-jr-mark { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 8px; flex: none; }
+.cl-jr-mark.cl-ok { background: rgba(71, 209, 106, 0.14); }
+.cl-jr-mark.cl-bad { background: rgba(255, 107, 107, 0.14); }
+
+/* Шапка в <summary> сворачиваемой карточки */
+.collapse-summary .ui-head { margin-bottom: 0; flex: 1; min-width: 0; }
+
+/* Карточки-приглашения: плитка вместо эмодзи */
+.community-icon.cl-tile-wrap { font-size: 0; }
+
+/* Профиль клана */
+.profile-avatar.cl-avatar { background: none; }
+.profile-stat-value .cl-ic { justify-content: center; }
+.role-badge .ui-icon { flex: none; }
+
+/* Мой баннер */
+.my-action-decks { display: inline-flex; align-items: center; gap: 6px; }
+.my-action-time { display: inline-flex; align-items: center; gap: 4px; }
+
+/* Прогноз: тренд-чип */
+.trend-chip.cl-ic { gap: 5px; }
+
+/* Аллея */
+.hall-medal { display: grid; place-items: center; }
+.hall-badge { display: inline-grid; place-items: center; vertical-align: middle; }
+.page-hero-crest .ui-icon, .page-badge-icon .ui-icon { display: block; }
+.page-hero-crest.cl-crest { font-size: 0; }
+.page-hero-clan .ui-icon, .page-hero-motto .ui-icon { margin-right: 4px; }
+.page-badge-lvl { display: inline-flex; gap: 1px; color: #ffd257; }
+.page-back { display: inline-flex; align-items: center; gap: 4px; }
+.hall-sponsor-tag .ui-icon { vertical-align: -1px; }
+
+/* Разведка: вердикт — набор меток с иконками */
+.cl-verdict { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.cl-verdict .cl-ic { white-space: normal; }
+
+/* Дисциплина: верх списка — не почёт, а повод поговорить */
+.cl-place-bad { background: rgba(255, 107, 107, 0.16); color: #ff8a84; }
+.discipline-card > .ui-head, .scout-card > .ui-head { margin-bottom: 0; }
+
+/* Кнопки с иконкой внутри */
+.cl-nudge, .cl-btn-ic { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.cl-nudge-result { display: flex; align-items: center; gap: 8px; }
+.cl-nudge-result .ui-icon { flex: none; }
+.modal-close { display: grid; place-items: center; }
+
+/* Полоска статистики: иконка в цвет смысла */
+.cl-stat-gold { color: #ffd257; }
+.cl-stat-blue { color: #8fdcf7; }
+.cl-stat-orange { color: #ffa766; }
+.cl-stat-green { color: #6be38a; }
+.ui-sheet-body .cl-ic { white-space: normal; }

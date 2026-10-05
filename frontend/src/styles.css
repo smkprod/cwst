@@ -76,7 +76,10 @@ main.with-tabbar { padding-bottom: 80px; }
 /* --- Шапка войны --- */
 .war-header { padding: 4px 4px 14px; }
 .war-header-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.war-header h1 { font-size: 19px; font-weight: 700; }
+.war-header h1 { font-size: 19px; font-weight: 700; min-width: 0; overflow-wrap: anywhere; }
+.war-header-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.war-header-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin-top: 8px; }
+.war-header-meta .deadline { margin-top: 0; }
 
 .badge { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
 .badge-war { background: rgba(229, 57, 53, 0.18); color: #ff7a76; }
@@ -96,6 +99,7 @@ main.with-tabbar { padding-bottom: 80px; }
   border: 1px solid rgba(156, 107, 255, 0.25);
 }
 
+.forecast-trend { display: flex; justify-content: center; margin: -4px 0 2px; }
 .trend-chip { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
 .trend-ahead { background: rgba(49, 181, 69, 0.18); color: #5fd573; }
 .trend-onpace { background: rgba(82, 136, 193, 0.18); color: #7fb2e5; }
@@ -405,11 +409,13 @@ details.collapse-card[open] > .collapse-summary::after { transform: rotate(180de
    уклон успевает дойти только до 0.9: картинка почти не проступает. Здесь уклон
    сверху вниз — вверху видно фон, внизу темно под именем и очками. */
 .podium-spot.sponsor-bg { border-color: transparent; }
+/* Имя и очки стоят в середине ступени, поэтому темнеть вуаль должна уже там,
+   а не только у подставки: на светлой картинке они иначе не читались. */
 .podium-spot.sponsor-bg .sponsor-bg-veil {
-  background: linear-gradient(180deg, rgba(10,10,24,0.14) 0%, rgba(10,10,24,0.40) 45%, rgba(10,10,24,0.78) 100%);
+  background: linear-gradient(180deg, rgba(10,10,24,0.30) 0%, rgba(10,10,24,0.68) 40%, rgba(10,10,24,0.86) 100%);
 }
 .podium-spot.sponsor-bg .podium-name,
-.podium-spot.sponsor-bg .podium-fame { text-shadow: 0 1px 3px rgba(0,0,0,0.9); }
+.podium-spot.sponsor-bg .podium-fame { text-shadow: 0 1px 2px rgba(0,0,0,0.95), 0 0 8px rgba(0,0,0,0.85); }
 .podium-spot.sponsor-bg .podium-fame { color: #e7e9ef; }
 
 .rating-list { list-style: none; padding: 0; display: grid; gap: 5px; }
@@ -905,6 +911,9 @@ button.race-row {
   height: 126px;
   /* Место под подпись пика: без отступа она налезала на строку с итогами */
   padding-top: 16px;
+  /* Слева — поле под подписи сетки: поверх высоких столбиков «200» и «100»
+     пропадали. Столбики начинаются правее, линии сетки идут через всё поле. */
+  padding-left: 26px;
   /* Линия основания: без неё пустые дни выглядят как обрыв графика, а не как нули */
   border-bottom: 1px solid rgba(255, 255, 255, 0.14);
 }
@@ -919,8 +928,7 @@ button.race-row {
 .chart-gridval {
   position: absolute; left: 0; bottom: 2px;
   font-size: 9px; line-height: 1; color: var(--muted);
-  /* Подложка под цифрой: иначе она читается поверх столбика, который под ней */
-  background: var(--bg-card); padding: 0 3px; border-radius: 3px;
+  max-width: 24px; overflow: hidden;
 }
 
 .chart-bars {
@@ -977,7 +985,7 @@ button.race-row {
   position: absolute; left: 50%; transform: translateX(-50%);
   top: -15px; font-size: 10px; color: var(--muted); font-weight: 700;
 }
-.chart-axis { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-top: 6px; }
+.chart-axis { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-top: 6px; padding-left: 26px; }
 .chart-footnote { margin: -4px 2px 12px; line-height: 1.4; }
 
 /* Строки-кланы, открывающие страницу клана.
@@ -1022,7 +1030,6 @@ button.race-row {
 .modal-extra { margin-top: 10px; }
 
 /* --- Переключатель Неделя/Сезон --- */
-.rating-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 4px 4px 12px; }
 .segmented {
   display: flex; background: var(--bg-card); border-radius: 10px; padding: 3px; gap: 2px;
 }
@@ -1694,7 +1701,9 @@ button.podium-spot { font: inherit; color: inherit; cursor: pointer; }
 
 /* --- Управление списком игроков: сортировка + фильтр в одну строку --- */
 .pl-controls { display: flex; gap: 6px; margin-bottom: 8px; }
-.pl-controls .rating-select { flex: 1; min-width: 0; }
+/* Ширина — по содержимому: длинная сортировка («Сначала не отыгравшие») берёт
+   больше места, короткий фильтр — меньше; поровну сортировка обрезалась */
+.pl-controls .rating-select { flex: 1 1 auto; min-width: 0; max-width: none; }
 
 /* --- Разбор игрока: вердикт по силе колоды --- */
 .analysis-card { border: 1px solid rgba(255,255,255,0.10); }
@@ -2352,8 +2361,7 @@ button.podium-spot { font: inherit; color: inherit; cursor: pointer; }
 .hall-podium-head, .hall-podium-row { position: relative; z-index: 1; }
 /* Ряд прижат к низу карточки — так ступени стоят на её основании, а не в воздухе */
 .hall-podium-row { margin-top: auto; }
-.hall-podium-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
-.hall-podium-title { font-size: 14px; font-weight: 700; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.6); }
+.hall-podium-head .ui-head-title { color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.6); }
 .hall-podium-season { font-size: 12px; color: rgba(255,255,255,0.75); }
 
 .hall-podium-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; align-items: stretch; }
@@ -3263,8 +3271,6 @@ button.hall-step {
   border: 1px solid rgba(255, 255, 255, 0.1); background: rgba(255, 255, 255, 0.06); color: var(--text); font-size: 14px;
   font-weight: 700; cursor: pointer; }
 .adm-burger-on { background: rgba(90, 140, 255, 0.18); border-color: rgba(90, 140, 255, 0.45); }
-.adm-burger-lines { display: inline-flex; flex-direction: column; gap: 3px; }
-.adm-burger-lines i { display: block; width: 14px; height: 2px; border-radius: 2px; background: currentColor; }
 .adm-burger-cur { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .adm-burger-chev { font-size: 11px; opacity: 0.7; transition: transform 0.2s ease; }
 .adm-burger-on .adm-burger-chev { transform: rotate(180deg); }
@@ -3562,3 +3568,142 @@ button.hall-step {
   .dl-aurora, .dl-sparks i, .dl-hero-emblem, .dl-fan span, .dl-cta, .dl-cta-shine, .dl-progress-bar i, .dl-progress-bar i::after,
   .dl-active, .rk-anim .rk-glow, .rk-anim .rk-ring, .rk-anim .rk-shine, .rk-anim .rk-flame, .dl-pod, .dl-how li { animation: none; }
 }
+
+/* ==========================================================================
+   Единая дизайн-система. Стоит в конце файла намеренно: её правила перекрывают
+   старые разрозненные стили карточек, кнопок и заголовков, и весь интерфейс
+   получает одну форму без переписывания каждого экрана.
+   ========================================================================== */
+:root {
+  --ui-violet: #9c6bff;
+  --ui-blue: #3fc6f2;
+  --ui-grad: linear-gradient(135deg, #9c6bff 0%, #5b8cff 55%, #3fc6f2 100%);
+  --ui-grad-warm: linear-gradient(110deg, #ff7a24, #ff3d6e 45%, #9c6bff);
+  --ui-surface: rgba(255, 255, 255, 0.04);
+  --ui-surface-2: rgba(255, 255, 255, 0.07);
+  --ui-line: rgba(255, 255, 255, 0.08);
+  --ui-glow: rgba(156, 107, 255, 0.08);
+  --ui-shadow: rgba(91, 140, 255, 0.35);
+}
+
+/* Темы клана от спонсора: главный градиент, свечение карточек и активная вкладка
+   берут цвет темы, иначе фирменный фиолетовый перебивал бы выбранное оформление. */
+/* Солнце — темнее светлого края: белая надпись кнопки на #ffd27a не читалась */
+[data-clan-theme="kingdomSun"] {
+  --ui-grad: linear-gradient(135deg, #eaa83a 0%, #cf861c 55%, #a85c0e 100%);
+  --ui-glow: rgba(232, 167, 46, 0.10);
+  --ui-shadow: rgba(232, 167, 46, 0.35);
+}
+[data-clan-theme="kingdomSun"] .ui-btn-primary,
+[data-clan-theme="kingdomSun"] .btn:not(.btn-ghost) { text-shadow: 0 1px 2px rgba(60, 30, 0, 0.45); }
+[data-clan-theme="kingdom"] {
+  --ui-grad: linear-gradient(135deg, #7fb0ff 0%, #4f7fd4 55%, #2f56a8 100%);
+  --ui-glow: rgba(79, 127, 212, 0.10);
+  --ui-shadow: rgba(79, 127, 212, 0.35);
+}
+[data-clan-theme="kingdom2"] {
+  --ui-grad: linear-gradient(135deg, #b2acff 0%, #7b74e0 55%, #5048b8 100%);
+  --ui-glow: rgba(123, 116, 224, 0.10);
+  --ui-shadow: rgba(123, 116, 224, 0.35);
+}
+[data-clan-theme="kingdomFire"] {
+  --ui-grad: linear-gradient(135deg, #ffa178 0%, #e0603a 55%, #a8341c 100%);
+  --ui-glow: rgba(224, 96, 58, 0.10);
+  --ui-shadow: rgba(224, 96, 58, 0.35);
+}
+
+.ui-icon { display: inline-block; flex-shrink: 0; vertical-align: -0.18em; }
+
+/* Карточка: тонкая граница, мягкий свет в углу, одна тень */
+.card {
+  background:
+    radial-gradient(120% 90% at 100% 0%, var(--ui-glow), transparent 55%),
+    var(--bg-card);
+  border: 1px solid var(--ui-line);
+  border-radius: 18px;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.18);
+}
+.card-title { font-size: 16px; font-weight: 800; letter-spacing: -0.1px; }
+.section-title { font-size: 18px; font-weight: 900; letter-spacing: -0.2px; }
+
+/* Заголовок секции */
+.ui-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; min-height: 32px; }
+.ui-head-title { font-size: 16px; font-weight: 800; letter-spacing: -0.1px; min-width: 0; }
+.ui-head-aside { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.ui-head .ui-info { margin-left: 2px; }
+.ui-head .ui-info + .ui-head-aside { margin-left: auto; }
+
+/* Плитка с иконкой */
+.ui-tile { display: inline-grid; place-items: center; flex-shrink: 0; border-radius: 10px; color: #fff; }
+.ui-tone-violet { background: linear-gradient(135deg, #9c6bff, #6a4cf0); box-shadow: 0 6px 16px rgba(156, 107, 255, 0.32); }
+.ui-tone-blue { background: linear-gradient(135deg, #3fc6f2, #3b7bf0); box-shadow: 0 6px 16px rgba(63, 160, 242, 0.32); }
+.ui-tone-green { background: linear-gradient(135deg, #47d16a, #1f9a5b); box-shadow: 0 6px 16px rgba(49, 181, 69, 0.3); }
+.ui-tone-gold { background: linear-gradient(135deg, #ffd257, #f09a1c); color: #3b2300; box-shadow: 0 6px 16px rgba(242, 179, 61, 0.35); }
+.ui-tone-red { background: linear-gradient(135deg, #ff6b6b, #d12b4a); box-shadow: 0 6px 16px rgba(229, 57, 53, 0.3); }
+.ui-tone-orange { background: linear-gradient(135deg, #ff9a4a, #ff3d6e); box-shadow: 0 6px 16px rgba(255, 106, 60, 0.3); }
+.ui-tone-gray { background: rgba(255, 255, 255, 0.10); color: var(--text); }
+
+/* Кнопка «i» */
+.ui-info { display: inline-grid; place-items: center; flex-shrink: 0; padding: 0; border-radius: 50%; cursor: pointer;
+  border: 1px solid var(--ui-line); background: var(--ui-surface-2); color: var(--muted);
+  transition: color 0.15s, background 0.15s, transform 0.1s; }
+.ui-info:active { transform: scale(0.92); color: var(--text); background: rgba(156, 107, 255, 0.25); }
+
+/* Лист с объяснением */
+.ui-sheet-backdrop { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: flex-end; justify-content: center;
+  background: rgba(5, 8, 15, 0.55); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  animation: ui-fade 0.18s ease-out; }
+.ui-sheet { width: 100%; max-width: 480px; max-height: 80vh; overflow-y: auto; padding: 8px 18px calc(18px + env(safe-area-inset-bottom));
+  border-radius: 22px 22px 0 0; background: linear-gradient(180deg, #232e3c, #1b2430); border: 1px solid var(--ui-line); border-bottom: none;
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.45); animation: ui-rise 0.26s cubic-bezier(.2, .9, .3, 1); color: var(--text); }
+.ui-sheet-grip { width: 40px; height: 4px; border-radius: 4px; background: rgba(255, 255, 255, 0.2); margin: 0 auto 12px; }
+.ui-sheet-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.ui-sheet-icon { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 10px; color: #fff; background: var(--ui-grad); }
+.ui-sheet-title { font-size: 17px; font-weight: 900; flex: 1; min-width: 0; }
+.ui-sheet-close { margin-left: auto; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%;
+  border: none; background: var(--ui-surface-2); color: var(--muted); cursor: pointer; }
+.ui-sheet-body { font-size: 14.5px; line-height: 1.5; color: color-mix(in srgb, var(--text) 88%, transparent); }
+.ui-sheet-body p { margin: 0 0 10px; }
+.ui-sheet-body ul, .ui-sheet-body ol { margin: 0 0 10px; padding-left: 20px; display: grid; gap: 6px; }
+.ui-sheet-ok { width: 100%; margin-top: 8px; }
+@keyframes ui-fade { from { opacity: 0; } }
+@keyframes ui-rise { from { transform: translateY(40px); opacity: 0.4; } }
+
+/* Плашки */
+.ui-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 800;
+  background: var(--ui-surface-2); color: var(--text); white-space: nowrap; }
+.ui-chip-violet { background: rgba(156, 107, 255, 0.18); color: #c7adff; }
+.ui-chip-blue { background: rgba(63, 198, 242, 0.16); color: #8fdcf7; }
+.ui-chip-green { background: rgba(49, 181, 69, 0.16); color: #6be38a; }
+.ui-chip-gold { background: rgba(255, 200, 61, 0.16); color: #ffd257; }
+.ui-chip-red { background: rgba(229, 57, 53, 0.16); color: #ff8a84; }
+.ui-chip-orange { background: rgba(255, 122, 36, 0.16); color: #ffa766; }
+.ui-chip-gray { background: var(--ui-surface-2); color: var(--muted); }
+
+/* Кнопки: одна форма на всё приложение */
+.ui-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: none; cursor: pointer;
+  padding: 12px 18px; border-radius: 14px; font-size: 15px; font-weight: 800; color: var(--text); background: var(--ui-surface-2);
+  transition: transform 0.08s ease, filter 0.15s ease; }
+.ui-btn:active:not(:disabled) { transform: scale(0.98); }
+.ui-btn:disabled { opacity: 0.55; cursor: default; }
+.ui-btn-primary { color: #fff; background: var(--ui-grad); box-shadow: 0 8px 22px var(--ui-shadow); }
+.ui-btn-warm { color: #fff; background: var(--ui-grad-warm); box-shadow: 0 8px 22px rgba(255, 61, 110, 0.35); }
+.btn { border-radius: 14px; font-weight: 800; background: var(--ui-grad); box-shadow: 0 8px 22px var(--ui-shadow);
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.btn-ghost { background: var(--ui-surface-2); box-shadow: none; }
+.btn-mini { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-radius: 11px; font-weight: 700;
+  background: rgba(156, 107, 255, 0.16); color: #c7adff; }
+.btn-mini-danger { background: rgba(229, 57, 53, 0.16); color: #ff8a84; }
+
+/* Нижняя панель вкладок с иконками */
+.tab { gap: 3px; padding: 6px 0 4px; position: relative; }
+.tab-icon { display: grid; place-items: center; width: 40px; height: 28px; border-radius: 10px; font-size: 0;
+  transition: background 0.2s, color 0.2s, transform 0.15s; }
+.tab-active .tab-icon { transform: none; color: #fff; background: var(--ui-grad); box-shadow: 0 4px 14px var(--ui-shadow); }
+.tab-active .tab-label { color: var(--text); }
+.tab-label { font-size: 10.5px; font-weight: 700; }
+
+/* Списки строк в одном стиле */
+.ui-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px;
+  background: var(--ui-surface); border: 1px solid var(--ui-line); }
+.ui-list { display: flex; flex-direction: column; gap: 8px; }

@@ -5,6 +5,8 @@ import { haptic } from '../lib/telegram'
 import { useT, type Translations } from '../lib/i18n'
 import { PLUS_CHANGED, usePlusSheet } from '../lib/plusSheet'
 import { CardIcon } from './MetaDecksView'
+import { Icon, type IconName } from './ui/Icon'
+import { SectionHead } from './ui/Section'
 
 /** Меньше боёв в срезе — процент ничего не значит, и сравнивать его не с чем. */
 const MIN_SLOT_GAMES = 5
@@ -54,8 +56,8 @@ export function BattleAnalysisView() {
   return (
     <div className="fade-in">
       <section className="card">
-        <div className="card-title">{b.section}</div>
-        <p className="muted small" style={{ margin: '0 0 10px' }}>{b.summary}</p>
+        <SectionHead icon="chart" tone="violet" title={b.section} aside={b.summary}
+          info={<p>{b.accumulating}</p>} />
         <div className="wtop-tiles">
           <div className="wtop-tile wtop-tile-accent">
             <span className="wtop-tile-value">{data.winPercent}%</span>
@@ -75,7 +77,6 @@ export function BattleAnalysisView() {
             {b.since} {new Date(data.sinceUtc).toLocaleDateString()}
           </p>
         )}
-        <p className="muted small" style={{ margin: '4px 0 0', opacity: 0.75 }}>{b.accumulating}</p>
         <AccessLine data={data} onOpen={openPlus} t={t} />
       </section>
 
@@ -83,10 +84,12 @@ export function BattleAnalysisView() {
         <section className="card"><p className="muted small" style={{ margin: 0 }}>{b.fewGames}</p></section>
       ) : (
         <section className="card ba-insights">
-          <div className="card-title">{b.insightsTitle}</div>
+          <SectionHead icon="sparkles" tone="gold" title={b.insightsTitle} />
           {insights.length === 0
             ? <p className="muted small" style={{ margin: 0 }}>{b.noInsights}</p>
-            : <ul className="ba-insight-list">{insights.map((x, i) => <li key={i}>{x}</li>)}</ul>}
+            : <ul className="ba-insight-list">{insights.map((x, i) => (
+              <li key={i} className="bt-insight"><Icon name={x.icon} size={16} className={`bt-insight-icon bt-insight-${x.icon}`} /><span>{x.text}</span></li>
+            ))}</ul>}
         </section>
       )}
 
@@ -96,7 +99,7 @@ export function BattleAnalysisView() {
       <TiltCard data={data} t={t} />
       <ToughCard data={data} onOpenPlus={openPlus} t={t} />
       {data.locked && (
-        <button className="btn plus-cta" onClick={() => openPlus()}>{b.unlockBtn}</button>
+        <button className="btn plus-cta" onClick={() => openPlus()}><Icon name="gem" size={16} /> {b.unlockBtn}</button>
       )}
     </div>
   )
@@ -108,7 +111,7 @@ function AccessLine({ data, onOpen, t }: { data: BattleAnalysis; onOpen: () => v
   if (!(a.paywall && a.active && a.until)) return null
   return (
     <button className="ba-access ba-access-plus" onClick={onOpen}>
-      {t.battles.plusActive.replace('{date}', new Date(a.until).toLocaleDateString())}
+      <Icon name="gem" size={14} /> {t.battles.plusActive.replace('{date}', new Date(a.until).toLocaleDateString())}
     </button>
   )
 }
@@ -117,9 +120,9 @@ function AccessLine({ data, onOpen, t }: { data: BattleAnalysis; onOpen: () => v
 function LockedRow({ text, onOpen }: { text: string; onOpen: () => void }) {
   return (
     <button className="ba-locked" onClick={onOpen}>
-      <span className="ba-locked-icon">🔒</span>
+      <span className="ba-locked-icon bt-locked-icon"><Icon name="lock" size={14} /></span>
       <span className="ba-locked-text">{text}</span>
-      <span className="ba-locked-arrow">›</span>
+      <span className="ba-locked-arrow"><Icon name="chevronRight" size={16} /></span>
     </button>
   )
 }
@@ -135,26 +138,27 @@ function lockedLines(locked: ReviewLocked | null, t: Translations) {
 }
 
 /** Выводы по порядку важности; каждый — только когда за ним достаточно боёв. */
-function buildInsights(d: BattleAnalysis, t: Translations): string[] {
+function buildInsights(d: BattleAnalysis, t: Translations): { icon: IconName; text: string }[] {
   const b = t.battles
-  const out: string[] = []
+  const out: { icon: IconName; text: string }[] = []
+  const add = (icon: IconName, text: string) => { out.push({ icon, text }) }
   const fill = (s: string, v: Record<string, string | number>) =>
     Object.entries(v).reduce((acc, [k, x]) => acc.replace(`{${k}}`, String(x)), s)
 
   const tilt = d.tilt
   if (tilt && tilt.afterTwoLossesGames >= 4) {
     if (tilt.afterTwoLossesWinPercent <= d.winPercent - 10)
-      out.push('🧊 ' + fill(b.insightTilt, { a: tilt.afterTwoLossesWinPercent, b: d.winPercent }))
+      add('snowflake', fill(b.insightTilt, { a: tilt.afterTwoLossesWinPercent, b: d.winPercent }))
     else if (tilt.afterTwoLossesWinPercent >= d.winPercent)
-      out.push('💪 ' + fill(b.insightNoTilt, { a: tilt.afterTwoLossesWinPercent }))
+      add('shield', fill(b.insightNoTilt, { a: tilt.afterTwoLossesWinPercent }))
   }
 
   const e = d.elixir
   if (e && e.games >= MIN_SLOT_GAMES) {
     if (e.avgLeakLosses >= 1.5 && e.avgLeakLosses - e.avgLeakWins >= 0.8)
-      out.push('💧 ' + fill(b.insightLeak, { x: e.avgLeakLosses, y: e.avgLeakWins }))
+      add('droplet', fill(b.insightLeak, { x: e.avgLeakLosses, y: e.avgLeakWins }))
     else if (e.avgLeakAll < 1)
-      out.push('💧 ' + fill(b.insightLeakGood, { x: e.avgLeakAll }))
+      add('droplet', fill(b.insightLeakGood, { x: e.avgLeakAll }))
   }
 
   const parts = d.dayParts.filter(p => p.games >= MIN_SLOT_GAMES)
@@ -163,21 +167,21 @@ function buildInsights(d: BattleAnalysis, t: Translations): string[] {
     const best = sorted[0]
     const worst = sorted[sorted.length - 1]
     if (best.winPercent - worst.winPercent >= 10)
-      out.push('🕐 ' + fill(b.insightTime, {
+      add('clock', fill(b.insightTime, {
         best: b.parts[best.key as PartKey], x: best.winPercent,
         worst: b.parts[worst.key as PartKey], y: worst.winPercent,
       }))
   }
 
   const tough = d.toughCards[0]
-  if (tough) out.push('🎯 ' + fill(b.insightTough, { card: tough.card.name, x: tough.winPercent, n: tough.games }))
+  if (tough) add('target', fill(b.insightTough, { card: tough.card.name, x: tough.winPercent, n: tough.games }))
 
   const main = d.decks[0]
   if (main && main.games >= MIN_SLOT_GAMES && main.metaWinPercent !== null) {
     if (main.winPercent >= main.metaWinPercent + 3)
-      out.push('🃏 ' + fill(b.insightDeckBetter, { x: main.winPercent, y: main.metaWinPercent }))
+      add('cards', fill(b.insightDeckBetter, { x: main.winPercent, y: main.metaWinPercent }))
     else if (main.winPercent <= main.metaWinPercent - 5)
-      out.push('🃏 ' + fill(b.insightDeckWorse, { x: main.winPercent, y: main.metaWinPercent }))
+      add('cards', fill(b.insightDeckWorse, { x: main.winPercent, y: main.metaWinPercent }))
   }
 
   return out.slice(0, 4)
@@ -189,8 +193,7 @@ function ElixirCard({ data, t }: { data: BattleAnalysis; t: Translations }) {
   const max = e ? Math.max(e.avgLeakWins, e.avgLeakLosses, 1) : 1
   return (
     <section className="card">
-      <div className="card-title">{b.elixirTitle}</div>
-      <p className="muted small" style={{ margin: '0 0 10px' }}>{b.elixirHint}</p>
+      <SectionHead icon="droplet" tone="violet" title={b.elixirTitle} info={<p>{b.elixirHint}</p>} />
       {!e ? <p className="muted small" style={{ margin: 0 }}>{b.elixirNone}</p> : (
         <>
           <Bar label={b.elixirWins} value={e.avgLeakWins} max={max} text={`${e.avgLeakWins}`} cls="ba-bar-good" />
@@ -208,7 +211,7 @@ function DecksCard({ decks, locked, onOpenPlus, t }: {
   const lines = lockedLines(locked, t)
   return (
     <section className="card">
-      <div className="card-title">{b.decksTitle}</div>
+      <SectionHead icon="cards" tone="blue" title={b.decksTitle} />
       {decks.length === 0 && <p className="muted small" style={{ margin: 0 }}>{b.noDecks}</p>}
       {decks.map((d, i) => (
         <div key={i} className="mdeck">
@@ -267,8 +270,7 @@ function TimeCard({ data, onOpenPlus, t }: { data: BattleAnalysis; onOpenPlus: (
   )
   return (
     <section className="card">
-      <div className="card-title">{b.timeTitle}</div>
-      <p className="muted small" style={{ margin: '0 0 10px' }}>{b.timeHint}</p>
+      <SectionHead icon="clock" tone="green" title={b.timeTitle} info={<p>{b.timeHint}</p>} />
       {data.dayParts.map(s => slot(s, b.partsTitle[s.key as PartKey] ?? s.key))}
       {lines.weekdays && <LockedRow text={lines.weekdays} onOpen={onOpenPlus} />}
       <div className="ba-week">
@@ -291,7 +293,7 @@ function TiltCard({ data, t }: { data: BattleAnalysis; t: Translations }) {
   if (!tilt) return null
   return (
     <section className="card">
-      <div className="card-title">{b.tiltTitle}</div>
+      <SectionHead icon="snowflake" tone="blue" title={b.tiltTitle} />
       <Bar label={b.tiltOverall} value={data.winPercent} max={100} text={`${data.winPercent}%`} cls="ba-bar-dim" />
       <Bar
         label={b.tiltAfterWin}
@@ -317,8 +319,7 @@ function ToughCard({ data, onOpenPlus, t }: { data: BattleAnalysis; onOpenPlus: 
   const lines = lockedLines(data.locked, t)
   return (
     <section className="card">
-      <div className="card-title">{b.toughTitle}</div>
-      <p className="muted small" style={{ margin: '0 0 10px' }}>{b.toughHint}</p>
+      <SectionHead icon="crosshair" tone="red" title={b.toughTitle} info={<p>{b.toughHint}</p>} />
       {data.toughCards.length === 0
         ? <p className="muted small" style={{ margin: 0 }}>{b.toughNone}</p>
         : (

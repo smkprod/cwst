@@ -3,6 +3,9 @@ import { api } from '../lib/api'
 import type { BotLang, NotificationSettings, NotifyChannel } from '../types'
 import { haptic, hapticNotify } from '../lib/telegram'
 import { useT, type Translations } from '../lib/i18n'
+import { Icon, type IconName } from './ui/Icon'
+import { IconTile, type Tone } from './ui/Section'
+import { InfoButton } from './ui/Info'
 
 /** Подписи те же, что у переключателя интерфейса: коротко и без флагов. */
 const BOT_LANGS: BotLang[] = ['ru', 'uk', 'en']
@@ -66,8 +69,12 @@ export function NotificationSettingsView({ onClose }: { onClose: () => void }) {
     <div className="notif-overlay" role="dialog" aria-modal="true">
       <div className="notif-sheet fade-in">
         <div className="notif-head">
-          <h2>{t.notif.title}</h2>
-          <button className="notif-close" onClick={onClose} aria-label="✕">✕</button>
+          <h2 className="mx-notif-title">
+            <IconTile name="bell" tone="orange" size={32} />
+            {t.notif.title}
+            <InfoButton title={t.notif.title}>{t.notif.intro}</InfoButton>
+          </h2>
+          <button className="notif-close" onClick={onClose} aria-label="close"><Icon name="x" size={18} /></button>
         </div>
 
         {state.kind === 'loading' && <div className="center"><div className="spinner" /></div>}
@@ -75,17 +82,12 @@ export function NotificationSettingsView({ onClose }: { onClose: () => void }) {
 
         {state.kind === 'ready' && (
           <>
-            <p className="muted small notif-intro">{t.notif.intro}</p>
-
             {/* Язык сообщений — первым блоком: он влияет на все уведомления ниже.
                 Это язык бота для всего клана, а не интерфейса: приложение каждый
                 читает на своём (⚙️ Ещё → Язык), а в общий чат сообщение уходит одно. */}
             <div className="card notif-block">
               <div className="notif-row">
-                <div className="notif-row-text">
-                  <span className="notif-row-label">{t.notif.langTitle}</span>
-                  <span className="muted small">{t.notif.langDesc}</span>
-                </div>
+                <RowLabel icon="language" tone="blue" label={t.notif.langTitle} desc={t.notif.langDesc} />
               </div>
               <div className="notif-hours-btns" style={{ marginTop: 8 }}>
                 {BOT_LANGS.map(code => (
@@ -104,6 +106,7 @@ export function NotificationSettingsView({ onClose }: { onClose: () => void }) {
             {/* Напоминания не отыгравшим */}
             <div className="card notif-block">
               <ToggleRow
+                icon="bell" tone="orange"
                 label={t.notif.remindersTitle}
                 desc={t.notif.remindersDesc}
                 on={state.s.remindersEnabled}
@@ -137,10 +140,7 @@ export function NotificationSettingsView({ onClose }: { onClose: () => void }) {
             {/* Во сколько заканчивается КВ (от этого времени считаются напоминания и звонок) */}
             <div className="card notif-block">
               <div className="notif-row">
-                <div className="notif-row-text">
-                  <span className="notif-row-label">{t.notif.warEndTitle}</span>
-                  <span className="muted small">{t.notif.warEndDesc}</span>
-                </div>
+                <RowLabel icon="clock" tone="violet" label={t.notif.warEndTitle} desc={t.notif.warEndDesc} />
                 <input
                   type="time"
                   className="notif-time"
@@ -156,6 +156,7 @@ export function NotificationSettingsView({ onClose }: { onClose: () => void }) {
             {/* Анонс начала КВ */}
             <div className="card notif-block">
               <ToggleRow
+                icon="flag" tone="green"
                 label={t.notif.warStartTitle}
                 desc={t.notif.warStartDesc}
                 on={state.s.warStartEnabled}
@@ -173,6 +174,7 @@ export function NotificationSettingsView({ onClose }: { onClose: () => void }) {
             {/* Финальный пинок */}
             <div className="card notif-block">
               <ToggleRow
+                icon="megaphone" tone="red"
                 label={t.notif.finalCallTitle}
                 desc={t.notif.finalCallDesc}
                 on={state.s.finalCallEnabled}
@@ -183,6 +185,7 @@ export function NotificationSettingsView({ onClose }: { onClose: () => void }) {
             {/* Ежедневный отчёт */}
             <div className="card notif-block">
               <ToggleRow
+                icon="chart" tone="blue"
                 label={t.notif.dailyReportTitle}
                 desc={t.notif.dailyReportDesc}
                 on={state.s.dailyReportEnabled}
@@ -193,6 +196,7 @@ export function NotificationSettingsView({ onClose }: { onClose: () => void }) {
             {/* Поздравление «900 за день» */}
             <div className="card notif-block">
               <ToggleRow
+                icon="star" tone="gold"
                 label={t.notif.perfectDayTitle}
                 desc={t.notif.perfectDayDesc}
                 on={state.s.perfectDayEnabled}
@@ -205,6 +209,7 @@ export function NotificationSettingsView({ onClose }: { onClose: () => void }) {
                 нежелательные сообщения, не жалуясь на бота — а жалоба ударит по боту. */}
             <div className="card notif-block">
               <ToggleRow
+                icon="message" tone="gray"
                 label={t.notif.clanMailTitle}
                 desc={t.notif.clanMailDesc}
                 on={state.s.acceptsClanMail}
@@ -222,16 +227,24 @@ export function NotificationSettingsView({ onClose }: { onClose: () => void }) {
   )
 }
 
+/** Подпись настройки: плитка с иконкой и название, объяснение — под кнопкой «i». */
+function RowLabel({ icon, tone, label, desc }: { icon: IconName; tone: Tone; label: string; desc: string }) {
+  return (
+    <div className="notif-row-text mx-notif-label">
+      <IconTile name={icon} tone={tone} size={30} />
+      <span className="notif-row-label">{label}</span>
+      <InfoButton title={label}>{desc}</InfoButton>
+    </div>
+  )
+}
+
 function ToggleRow(
-  { label, desc, on, onToggle }:
-  { label: string; desc: string; on: boolean; onToggle: () => void },
+  { icon, tone, label, desc, on, onToggle }:
+  { icon: IconName; tone: Tone; label: string; desc: string; on: boolean; onToggle: () => void },
 ) {
   return (
     <div className="notif-row">
-      <div className="notif-row-text">
-        <span className="notif-row-label">{label}</span>
-        <span className="muted small">{desc}</span>
-      </div>
+      <RowLabel icon={icon} tone={tone} label={label} desc={desc} />
       <button
         className={`notif-switch ${on ? 'notif-switch-on' : ''}`}
         role="switch"

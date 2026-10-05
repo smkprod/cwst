@@ -5,6 +5,8 @@ import { haptic, hapticNotify, openExternalLink, shareToTelegram } from '../lib/
 import { useT } from '../lib/i18n'
 import { TournamentForm } from './TournamentForm'
 import { TournamentBracket } from './TournamentBracket'
+import { Icon } from './ui/Icon'
+import { SectionHead } from './ui/Section'
 
 interface Props {
   tournamentId: number
@@ -124,7 +126,7 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
   if (state.kind === 'loading') {
     return (
       <div>
-        <button className="btn-back" onClick={onBack}>← {t.tournament.back}</button>
+        <button className="btn-back" onClick={onBack}><Icon name="chevronLeft" size={15} /> {t.tournament.back}</button>
         <div className="center"><div className="spinner" /></div>
       </div>
     )
@@ -132,7 +134,7 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
   if (state.kind === 'error') {
     return (
       <div>
-        <button className="btn-back" onClick={onBack}>← {t.tournament.back}</button>
+        <button className="btn-back" onClick={onBack}><Icon name="chevronLeft" size={15} /> {t.tournament.back}</button>
         <p className="center muted">{t.tournament.notFound}</p>
       </div>
     )
@@ -143,7 +145,7 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
   if (editing) {
     return (
       <div>
-        <button className="btn-back" onClick={() => setEditing(false)}>← {t.tournament.back}</button>
+        <button className="btn-back" onClick={() => setEditing(false)}><Icon name="chevronLeft" size={15} /> {t.tournament.back}</button>
         <TournamentForm
           mode="edit"
           initial={d}
@@ -169,7 +171,7 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
     haptic('medium')
     const champion = d.participants.find(p => p.finalPlacement === 1)
     const runnerUp = d.participants.find(p => p.finalPlacement === 2)
-    const lines = [`🏆 «${d.name}»`]
+    const lines = [`\u{1F3C6} «${d.name}»`]
     if (champion) lines.push(`${t.tournament.shareResultChampion} ${champion.playerName}`)
     if (runnerUp) lines.push(`${t.tournament.shareResultRunnerUp} ${runnerUp.playerName}`)
     lines.push(`${t.tournament.shareResultParticipants} ${d.participants.length}`)
@@ -187,13 +189,12 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
 
   return (
     <div>
-      <button className="btn-back" onClick={onBack}>← {t.tournament.back}</button>
+      <button className="btn-back" onClick={onBack}><Icon name="chevronLeft" size={15} /> {t.tournament.back}</button>
 
       <div className="card tournament-detail-header">
-        <div className="card-title-row">
-          <div className="card-title tournament-detail-name">{d.name}</div>
-          <span className="badge tournament-status-badge">{statusLabel(d.status)}</span>
-        </div>
+        <SectionHead icon="trophy" tone="gold" className="tournament-detail-name"
+          title={d.name}
+          aside={<span className="badge tournament-status-badge">{statusLabel(d.status)}</span>} />
         <p className="muted small">
           {t.tournament.bestOfLabel} {d.bestOf}
           {/* Формат финала пишем только когда он свой: строка «финал такой же»
@@ -210,13 +211,13 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
 
         {d.description && (
           <div className="tournament-detail-section">
-            <div className="tournament-detail-section-title">{t.tournament.descTitle}</div>
+            <div className="tournament-detail-section-title mx-sub-title"><Icon name="book" size={13} /> {t.tournament.descTitle}</div>
             <p className="small tournament-detail-text">{d.description}</p>
           </div>
         )}
         {d.prizeInfo && (
           <div className="tournament-detail-section">
-            <div className="tournament-detail-section-title">{t.tournament.prizeTitle}</div>
+            <div className="tournament-detail-section-title mx-sub-title"><Icon name="gift" size={13} /> {t.tournament.prizeTitle}</div>
             <p className="small tournament-detail-text">{d.prizeInfo}</p>
           </div>
         )}
@@ -226,7 +227,7 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
         <div className="tournament-detail-actions">
           {d.isParticipant && d.clanInviteLink !== null && (
             <button className="btn" disabled={busy} onClick={() => openExternalLink(d.clanInviteLink!)}>
-              {t.tournament.joinClanBtn}
+              <Icon name="external" size={16} /> {t.tournament.joinClanBtn}
             </button>
           )}
           {d.isParticipant && d.clanInviteLink === null && (
@@ -236,7 +237,7 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
           )}
           {d.canJoin && d.mode === 'duo' && !teamOpen && (
             <button className="btn" disabled={busy} onClick={() => setTeamOpen(true)}>
-              {t.tournament.joinTeamBtn}
+              <Icon name="users" size={16} /> {t.tournament.joinTeamBtn}
             </button>
           )}
           {d.canJoin && d.mode === 'duo' && teamOpen && (
@@ -265,36 +266,41 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
             </div>
           )}
           {d.canJoin && d.mode !== 'duo' && (
-            <button className="btn" disabled={busy} onClick={join}>{t.tournament.joinBtn}</button>
+            <button className="btn" disabled={busy} onClick={join}><Icon name="plus" size={16} /> {t.tournament.joinBtn}</button>
           )}
           {canLeave && (
-            <button className="btn-mini btn-mini-danger" disabled={busy} onClick={leave}>{t.tournament.leaveBtn}</button>
+            <button className="btn-mini btn-mini-danger" disabled={busy} onClick={leave}><Icon name="x" size={14} /> {t.tournament.leaveBtn}</button>
           )}
           {canEdit && (
-            <button className="btn-mini" disabled={busy} onClick={() => setEditing(true)}>{t.tournament.editBtn}</button>
+            <button className="btn-mini" disabled={busy} onClick={() => setEditing(true)}><Icon name="edit" size={14} /> {t.tournament.editBtn}</button>
           )}
           {canManageBracket && (
             <button className="btn-mini" disabled={busy} onClick={generateBracket}>
+              <Icon name="bracket" size={14} />
               {d.matches.length > 0 ? t.tournament.regenerateBracketBtn : t.tournament.generateBracketBtn}
             </button>
           )}
           {canStart && (
             <button className="btn-mini" disabled={busy} onClick={startTournament}>
+              <Icon name="play" size={14} />
               {t.tournament.startTournamentBtn}
             </button>
           )}
           {canFinish && (
             <button className="btn-mini btn-mini-danger" disabled={busy} onClick={finishTournament}>
+              <Icon name="flag" size={14} />
               {confirmFinish ? t.tournament.confirmFinish : t.tournament.finishTournamentBtn}
             </button>
           )}
           {canEdit && (
             <button className="btn-mini btn-mini-danger" disabled={busy} onClick={cancelTournament}>
+              <Icon name="xCircle" size={14} />
               {confirmCancel ? t.tournament.confirmCancel : t.tournament.cancelTournamentBtn}
             </button>
           )}
           {d.status === 'completed' && (
             <button className="btn-mini" onClick={shareResult}>
+              <Icon name="share" size={14} />
               {t.tournament.shareResultBtn}
             </button>
           )}
@@ -302,7 +308,7 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
       </div>
 
       <div className="tournament-detail-section">
-        <div className="tournament-detail-section-title">{t.tournament.participantsTitle}</div>
+        <SectionHead icon="users" tone="blue" title={t.tournament.participantsTitle} aside={d.participants.length} />
         <ul className="tournament-participants-list">
           {d.participants.map(p => (
             <li key={p.id} className={`tournament-participant-row ${p.isMe ? 'participant-mine' : ''}`}>
@@ -332,7 +338,7 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
                     title={t.tournament.removeParticipant}
                     onClick={() => { haptic('light'); setConfirmRemove(p.id) }}
                   >
-                    ✕
+                    <Icon name="x" size={14} />
                   </button>
                 )
               )}

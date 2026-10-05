@@ -1,0 +1,40 @@
+/* Стили группы owner после перехода на иконки и единую дизайн-систему. */
+
+/* Иконка + текст в одну строку: мета клана, статусы, строки оплат */
+.ow-meta { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; }
+.ow-meta-i { display: inline-flex; align-items: center; gap: 5px; }
+.ow-meta-i > .ui-icon { flex-shrink: 0; }
+.ow-warn { color: #ffb44d; }
+.ow-good { color: #6be38a; }
+.ow-gold { color: var(--gold, #ffc83d); }
+.ow-violet { color: #c7adff; }
+
+/* Звёзды Telegram: число и золотая звёздочка */
+.ow-stars { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
+.ow-stars > .ui-icon { color: var(--gold, #ffc83d); fill: currentColor; }
+
+/* Бургер панели: плитка текущего раздела, название, шеврон */
+.adm-burger .ui-tile { border-radius: 7px; box-shadow: none; }
+.adm-burger-cur { min-width: 0; }
+.adm-burger-chev { display: inline-grid; place-items: center; }
+.adm-menu-ic { display: inline-grid; place-items: center; font-size: 0; }
+
+/* Поиск кланов с иконкой-лупой внутри поля */
+.ow-search { position: relative; }
+.ow-search > .ui-icon { position: absolute; left: 12px; top: 11px; color: var(--muted); pointer-events: none; }
+.ow-search .adm-search { padding-left: 36px; }
+
+/* Заголовок внутри карточки (челлендж в настройках вкладок) — чуть мельче */
+.ow-subhead { margin-bottom: 6px; }
+.ow-subhead .ui-tile { width: 28px !important; height: 28px !important; }
+.ow-subhead .ui-head-title { font-size: 14.5px; }
+
+/* Значки ролей с иконкой вместо эмодзи */
+.adm-member .role-badge .ui-icon { flex-shrink: 0; }
+
+/* Кнопка «убрать картинку» в превью рассылки */
+.owner-bc-photo button { display: grid; place-items: center; }
+.owner-bc-add { gap: 6px; }
+
+/* Заголовки карточек сводки и графиков — общий отступ */
+.adm-block .ui-head, .ow-chart .ui-head { margin-bottom: 10px; }

@@ -8,6 +8,10 @@ import { DeckStrip } from './DeckStrip'
 import { usePlayerSheet } from '../lib/playerSheet'
 import { MetaDecksView } from './MetaDecksView'
 import { CardDecksModal } from './CardDecksModal'
+import { PlaceBadge } from '../lib/sponsorMarks'
+import { Icon } from './ui/Icon'
+import { InfoButton } from './ui/Info'
+import { SectionHead } from './ui/Section'
 
 const PAGE = 50
 
@@ -52,9 +56,8 @@ export function WorldTopView() {
   if (state === 'empty' || !meta) {
     return (
       <section className="card fade-in">
-        <div className="card-title">{t.worldTop.title}</div>
+        <SectionHead icon="globe" tone="blue" title={t.worldTop.title} info={t.worldTop.collectingHint} />
         <p className="wtop-empty">{t.worldTop.collecting}</p>
-        <p className="muted small" style={{ margin: 0 }}>{t.worldTop.collectingHint}</p>
       </section>
     )
   }
@@ -62,11 +65,8 @@ export function WorldTopView() {
   return (
     <div className="fade-in">
       <section className="card">
-        <div className="card-title-row">
-          <div className="card-title">{t.worldTop.title}</div>
-          <span className="muted small">{t.worldTop.snapshot} {meta.dayUtc}</span>
-        </div>
-        <p className="muted small" style={{ margin: '0 0 10px' }}>{t.worldTop.hint}</p>
+        <SectionHead icon="globe" tone="blue" title={t.worldTop.title} info={t.worldTop.hint}
+          aside={<>{t.worldTop.snapshot} {meta.dayUtc}</>} />
 
         <div className="wtop-tiles">
           <Tile value={fmt(meta.cutoffTrophies)} label={t.worldTop.cutoff} hint={t.worldTop.cutoffHint} accent />
@@ -80,19 +80,19 @@ export function WorldTopView() {
           className={`wtop-tab ${section === 'decks' ? 'wtop-tab-on' : ''}`}
           onClick={() => { haptic('light'); setSection('decks') }}
         >
-          🔥 {t.worldTop.tabDecks}
+          <Icon name="flame" size={15} /> {t.worldTop.tabDecks}
         </button>
         <button
           className={`wtop-tab ${section === 'meta' ? 'wtop-tab-on' : ''}`}
           onClick={() => { haptic('light'); setSection('meta') }}
         >
-          🃏 {t.worldTop.tabMeta}
+          <Icon name="cards" size={15} /> {t.worldTop.tabMeta}
         </button>
         <button
           className={`wtop-tab ${section === 'list' ? 'wtop-tab-on' : ''}`}
           onClick={() => { haptic('light'); setSection('list') }}
         >
-          🏆 {t.worldTop.tabList}
+          <Icon name="trophy" size={15} /> {t.worldTop.tabList}
         </button>
       </div>
 
@@ -113,8 +113,10 @@ function Tile({ value, label, hint, accent }: {
   return (
     <div className={`wtop-tile ${accent ? 'wtop-tile-accent' : ''}`}>
       <span className="wtop-tile-value">{value}</span>
-      <span className="wtop-tile-label">{label}</span>
-      {hint && <span className="wtop-tile-hint">{hint}</span>}
+      <span className="wtop-tile-label pl-inline">
+        {label}
+        {hint && <InfoButton size={18} title={label}>{hint}</InfoButton>}
+      </span>
     </div>
   )
 }
@@ -124,8 +126,8 @@ function MetaCards({ meta, t }: { meta: TopMeta; t: Translations }) {
   const [open, setOpen] = useState<TopCard | null>(null)
   return (
     <section className="card" style={{ marginTop: 10 }}>
-      <div className="card-title">{t.worldTop.cardsTitle}</div>
-      <p className="muted small" style={{ margin: '0 0 2px' }}>{t.worldTop.cardsHint}</p>
+      <SectionHead icon="cards" tone="violet" title={t.worldTop.cardsTitle}
+        info={<><p>{t.worldTop.cardsHint}</p><p>{t.worldTop.cardTapHint}</p></>} />
       <p className="muted small" style={{ margin: '0 0 10px', opacity: 0.75 }}>
         {meta.comparedToDayUtc
           ? `${t.worldTop.comparedTo} ${meta.comparedToDayUtc}`
@@ -133,7 +135,6 @@ function MetaCards({ meta, t }: { meta: TopMeta; t: Translations }) {
         {' · '}
         {fmt(meta.playersWithDeck)} {t.worldTop.decksKnown}
       </p>
-      <p className="muted small" style={{ margin: '0 0 10px' }}>👆 {t.worldTop.cardTapHint}</p>
 
       {meta.cards.length === 0 ? (
         <p className="muted small" style={{ margin: 0 }}>{t.worldTop.noCards}</p>
@@ -152,7 +153,7 @@ function MetaCards({ meta, t }: { meta: TopMeta; t: Translations }) {
               <span className="wtop-card-name">{c.name}</span>
               {c.deltaPercent !== null && c.deltaPercent !== 0 && (
                 <span className={`wtop-delta ${c.deltaPercent > 0 ? 'wtop-up' : 'wtop-down'}`}>
-                  {c.deltaPercent > 0 ? '▲' : '▼'} {Math.abs(c.deltaPercent)}
+                  <Icon name={c.deltaPercent > 0 ? 'arrowUp' : 'arrowDown'} size={11} /> {Math.abs(c.deltaPercent)}
                 </span>
               )}
             </button>
@@ -206,7 +207,7 @@ function TopList({ t, onOpen }: { t: Translations; onOpen: (tag: string) => void
         <button key={r.playerTag} className="card wtop-row" onClick={() => { haptic('light'); onOpen(r.playerTag) }}>
           <div className="wtop-row-head">
             <span className={`wtop-rank ${r.rank <= 3 ? 'wtop-rank-medal' : ''}`}>
-              {r.rank <= 3 ? ['🥇', '🥈', '🥉'][r.rank - 1] : r.rank}
+              {r.rank <= 3 ? <PlaceBadge place={r.rank} size={28} /> : r.rank}
             </span>
             <span className="wtop-row-main">
               <span className="wtop-row-name">{r.name}</span>
@@ -214,7 +215,7 @@ function TopList({ t, onOpen }: { t: Translations; onOpen: (tag: string) => void
                 {r.clanName || '—'}{r.expLevel > 0 ? ` · ${t.worldTop.levelShort} ${r.expLevel}` : ''}
               </span>
             </span>
-            <span className="wtop-row-trophies">{fmt(r.trophies)} 🏆</span>
+            <span className="wtop-row-trophies pl-inline">{fmt(r.trophies)} <Icon name="trophy" size={14} /></span>
           </div>
           {r.deck.length > 0
             ? <DeckStrip deck={r.deck} />
