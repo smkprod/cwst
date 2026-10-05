@@ -23,6 +23,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<MetaMatchupDay> MetaMatchupDays => Set<MetaMatchupDay>();
     public DbSet<MetaBattle> MetaBattles => Set<MetaBattle>();
     public DbSet<ChallengeEntry> ChallengeEntries => Set<ChallengeEntry>();
+    public DbSet<DuelProfile> DuelProfiles => Set<DuelProfile>();
+    public DbSet<Duel> Duels => Set<Duel>();
     public DbSet<PlayerBattle> PlayerBattles => Set<PlayerBattle>();
     public DbSet<Entitlement> Entitlements => Set<Entitlement>();
     public DbSet<PlayerAlertPrefs> PlayerAlertPrefs => Set<PlayerAlertPrefs>();
@@ -136,6 +138,33 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(x => x.EventId).HasMaxLength(32);
             e.Property(x => x.PlayerTag).HasMaxLength(16);
             e.Property(x => x.Name).HasMaxLength(64);
+        });
+
+        mb.Entity<DuelProfile>(e =>
+        {
+            e.HasIndex(x => x.TelegramUserId).IsUnique();
+            e.HasIndex(x => x.Rating);
+            e.Property(x => x.PlayerTag).HasMaxLength(16);
+            e.Property(x => x.Name).HasMaxLength(64);
+            e.Property(x => x.FriendLink).HasMaxLength(400);
+            e.Property(x => x.Lang).HasMaxLength(8);
+        });
+
+        mb.Entity<Duel>(e =>
+        {
+            // Одну карточку вызова принимают один раз: двойное нажатие или два
+            // соперника разом упираются в индекс, а не плодят две дуэли.
+            e.HasIndex(x => x.InlineMessageId).IsUnique();
+            e.HasIndex(x => new { x.ChatId, x.MessageId }).IsUnique();
+            e.HasIndex(x => x.State);
+            e.HasIndex(x => x.ATelegramUserId);
+            e.HasIndex(x => x.BTelegramUserId);
+            e.Property(x => x.ATag).HasMaxLength(16);
+            e.Property(x => x.BTag).HasMaxLength(16);
+            e.Property(x => x.AName).HasMaxLength(64);
+            e.Property(x => x.BName).HasMaxLength(64);
+            e.Property(x => x.InlineMessageId).HasMaxLength(128);
+            e.Property(x => x.Lang).HasMaxLength(8);
         });
 
         mb.Entity<MetaBattle>(e =>

@@ -13,6 +13,8 @@ interface TelegramWebApp {
   openLink?(url: string): void
   openInvoice?(url: string, callback?: (status: InvoiceStatus) => void): void
   requestWriteAccess?(callback?: (allowed: boolean) => void): void
+  switchInlineQuery?(query: string, chooseChatTypes?: ('users' | 'bots' | 'groups' | 'channels')[]): void
+  readTextFromClipboard?(callback?: (text: string | null) => void): void
 }
 
 export type InvoiceStatus = 'paid' | 'cancelled' | 'failed' | 'pending'
@@ -189,4 +191,19 @@ export async function askDmOnce(): Promise<boolean> {
 export function openTelegramLink(url: string) {
   if (tg?.openTelegramLink) tg.openTelegramLink(url)
   else window.open(url, '_blank')
+}
+
+/**
+ * Вставить «@бот запрос» в выбранный чат - так вызов на дуэль уезжает в любой чат
+ * в два тапа. Нет метода (старый клиент) или инлайн выключен - false, вызывающий
+ * ведёт в личку бота.
+ */
+export function switchInline(query: string): boolean {
+  try {
+    if (!tg?.switchInlineQuery) return false
+    tg.switchInlineQuery(query, ['users', 'groups'])
+    return true
+  } catch {
+    return false
+  }
 }

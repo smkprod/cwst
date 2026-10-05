@@ -504,3 +504,32 @@ public interface IChallengeRepository
     /// </summary>
     Task<int> MergeAsync(string fromEventId, string toEventId, CancellationToken ct = default);
 }
+
+/// <summary>Лига дуэлей 1х1: профили с рейтингом и сами дуэли.</summary>
+public interface IDuelRepository
+{
+    Task<DuelProfile?> GetProfileAsync(long telegramUserId, CancellationToken ct = default);
+    Task<DuelProfile?> GetProfileByTagAsync(string playerTag, CancellationToken ct = default);
+    Task<List<DuelProfile>> GetProfilesAsync(IReadOnlyCollection<long> telegramUserIds, CancellationToken ct = default);
+    Task AddProfileAsync(DuelProfile profile, CancellationToken ct = default);
+
+    /// <summary>Лучшие по рейтингу среди тех, кто сыграл хотя бы одну дуэль.</summary>
+    Task<List<DuelProfile>> GetTopAsync(int limit, CancellationToken ct = default);
+    Task<int> CountProfilesAsync(CancellationToken ct = default);
+
+    /// <summary>Место по рейтингу: сколько сыгравших стоят выше, плюс один.</summary>
+    Task<int> RankOfAsync(int rating, CancellationToken ct = default);
+
+    /// <summary>false - эту карточку уже кто-то принял (уникальный индекс по сообщению).</summary>
+    Task<bool> TryAddDuelAsync(Duel duel, CancellationToken ct = default);
+    Task<Duel?> GetDuelAsync(int id, CancellationToken ct = default);
+    Task<List<Duel>> GetActiveAsync(CancellationToken ct = default);
+    Task<Duel?> GetActiveForUserAsync(long telegramUserId, CancellationToken ct = default);
+    Task<List<Duel>> GetRecentForUserAsync(long telegramUserId, int limit, CancellationToken ct = default);
+    Task<List<Duel>> GetRecentAsync(int limit, CancellationToken ct = default);
+
+    /// <summary>Сколько рейтинговых дуэлей у этой пары с указанного момента - против фарма рейтинга.</summary>
+    Task<int> CountRatedBetweenAsync(long a, long b, DateTime sinceUtc, CancellationToken ct = default);
+
+    Task SaveChangesAsync(CancellationToken ct = default);
+}

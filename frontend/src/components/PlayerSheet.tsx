@@ -9,6 +9,7 @@ import { AchievementsCard } from './AchievementsCard'
 import { ClanModal } from './ClanModal'
 import { CardIcon } from './MetaDecksView'
 import { PlayerProfileCard } from './PlayerProfileCard'
+import { DuelSheetBadge } from './duel/DuelSheetBadge'
 
 export type SheetTab = 'overview' | 'war' | 'battles' | 'cards'
 
@@ -217,6 +218,8 @@ function Overview({ data, isMe, t }: { data: PlayerSheet; isMe: boolean; t: Tran
 
   return (
     <div className="fade-in">
+      {data.duel && <DuelSheetBadge rank={data.duel} t={t} />}
+
       {data.deck.length > 0 && (
         <section className="psheet-block">
           <div className="psheet-block-head">

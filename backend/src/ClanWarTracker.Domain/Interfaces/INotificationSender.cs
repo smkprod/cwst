@@ -5,7 +5,9 @@ namespace ClanWarTracker.Domain.Interfaces;
 /// Либо колбэк (бот получит нажатие), либо ссылка. Ссылка вида «startapp:plus»
 /// превращается в ссылку на приложение с этим параметром запуска.
 /// </summary>
-public record BotButton(string Text, string? CallbackData = null, string? Url = null);
+/// SwitchInline - кнопка «выбрать чат и вставить туда @бот запрос»: так вызов на дуэль
+/// уезжает в любой чат в два тапа.
+public record BotButton(string Text, string? CallbackData = null, string? Url = null, string? SwitchInline = null);
 
 /// <summary>
 /// Итог личного сообщения. Blocked - человек не запускал бота или заблокировал его:
@@ -49,6 +51,14 @@ public interface INotificationSender
     /// </summary>
     Task<bool> EditUserMessageAsync(
         long chatId, int messageId, string text, IReadOnlyList<IReadOnlyList<BotButton>>? rows = null,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// Переписывает сообщение, отправленное через инлайн-режим (@бот в чужом чате).
+    /// В такой чат бот писать не может - только править свою карточку по её id.
+    /// </summary>
+    Task<bool> EditInlineMessageAsync(
+        string inlineMessageId, string text, IReadOnlyList<IReadOnlyList<BotButton>>? rows = null,
         CancellationToken ct = default);
 
     /// <summary>
