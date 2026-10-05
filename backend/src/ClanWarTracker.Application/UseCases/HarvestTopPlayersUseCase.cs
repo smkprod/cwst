@@ -108,6 +108,10 @@ public class HarvestTopPlayersUseCase(
             .OrderBy(r => r.Rank)
             .ToList();
 
+        // Источник рейтинга: у Пути легенд число в строке - это рейтинг, у нового
+        // лидерборда - победы. Строку отчёта пишет сам клиент API.
+        var fromPathOfLegend = response.Source?.StartsWith("Путь легенд", StringComparison.Ordinal) == true;
+
         var rows = new TopPlayer[ranking.Count];
         var logs = new List<CrRecentBattle>?[ranking.Count];
         var logFailures = 0;
@@ -148,9 +152,14 @@ public class HarvestTopPlayersUseCase(
                     Name = info?.Name ?? r.Name,
                     ClanName = info?.ClanName ?? r.ClanName,
                     // Рейтинг Пути легенд (те самые 3000+) — из профиля, если он там есть.
+                    // В начале сезона он обнулён, и тогда показываем трофеи профиля.
+                    // Число из самого рейтинга берём, только если это рейтинг Пути легенд:
+                    // новый лидерборд отдаёт «очки», и это победы за сезон, а не трофеи.
                     Trophies = info?.CurrentPathOfLegend?.Trophies is int pol and > 0
                         ? pol
-                        : r.Trophies > 0 ? r.Trophies : info?.Trophies ?? 0,
+                        : fromPathOfLegend && r.Trophies > 0 ? r.Trophies
+                        : info?.Trophies is int tr and > 0 ? tr
+                        : r.Trophies,
                     ExpLevel = info?.ExpLevel ?? 0,
                     DeckCardIds = Pack(lastBattleDeck ?? profileDeck),
                 };

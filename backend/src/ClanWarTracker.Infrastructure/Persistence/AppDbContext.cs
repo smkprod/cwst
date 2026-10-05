@@ -164,6 +164,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(x => x.AName).HasMaxLength(64);
             e.Property(x => x.BName).HasMaxLength(64);
             e.Property(x => x.InlineMessageId).HasMaxLength(128);
+            e.Property(x => x.Mode).HasMaxLength(24);
             e.Property(x => x.Lang).HasMaxLength(8);
         });
 

@@ -89,10 +89,22 @@ public sealed class DuelText
     public required string InlineDesc { get; init; }
     public required string InlineJoinButton { get; init; }
 
+    /// <summary>Названия режимов дружеского боя по ключу DuelModes.</summary>
+    public required Dictionary<string, string> Modes { get; init; }
+    /// <summary>{0} - режим.</summary>
+    public required string ModeNote { get; init; }
+    /// <summary>{0} - « → кому» или пусто.</summary>
+    public required string PickMode { get; init; }
+
+    public string ModeName(string key) => Modes.TryGetValue(key, out var n) ? n : key;
+
     public string League(int index) => Leagues[Math.Clamp(index, 0, Leagues.Length - 1)];
 
     public static readonly DuelText Ru = new()
     {
+        Modes = new() { ["classic"] = "Обычный 1×1", ["double"] = "Двойной эликсир", ["triple"] = "Тройной эликсир", ["sudden"] = "Внезапная смерть", ["rampup"] = "Разгон эликсира", ["draft"] = "Драфт", ["mirror"] = "Зеркальный бой", ["rage"] = "Ярость", ["mega"] = "Мегаколода", ["classicdecks"] = "Классические колоды", ["touchdown"] = "Тачдаун" },
+        ModeNote = "\n🎮 Режим: {0}. Бои в другом режиме не засчитываются.",
+        PickMode = "⚔️ Дуэль 1×1{0}: выбери режим дружеского боя.",
         Leagues = ["Бронза", "Серебро", "Золото", "Алмаз", "Мастер", "Легенда"],
         Open = "⚔️ Вызов на дуэль 1×1 · {0}\n\n{1} · {2} · {3} 🏆\n\nКто примет вызов? Счёт бот засчитает сам — по журналу боёв, без скриншотов.",
         OpenTargeted = "⚔️ {1} вызывает {4} на дуэль 1×1 · {0}\n\n{1} · {2} · {3} 🏆\n\nСчёт бот засчитает сам — по журналу боёв, без скриншотов.",
@@ -144,6 +156,9 @@ public sealed class DuelText
 
     public static readonly DuelText Uk = new()
     {
+        Modes = new() { ["classic"] = "Звичайний 1×1", ["double"] = "Подвійний еліксир", ["triple"] = "Потрійний еліксир", ["sudden"] = "Раптова смерть", ["rampup"] = "Розгін еліксиру", ["draft"] = "Драфт", ["mirror"] = "Дзеркальний бій", ["rage"] = "Лють", ["mega"] = "Мегаколода", ["classicdecks"] = "Класичні колоди", ["touchdown"] = "Тачдаун" },
+        ModeNote = "\n🎮 Режим: {0}. Бої в іншому режимі не зараховуються.",
+        PickMode = "⚔️ Дуель 1×1{0}: обери режим дружнього бою.",
         Leagues = ["Бронза", "Срібло", "Золото", "Діамант", "Майстер", "Легенда"],
         Open = "⚔️ Виклик на дуель 1×1 · {0}\n\n{1} · {2} · {3} 🏆\n\nХто прийме виклик? Рахунок бот зарахує сам — за журналом боїв, без скріншотів.",
         OpenTargeted = "⚔️ {1} викликає {4} на дуель 1×1 · {0}\n\n{1} · {2} · {3} 🏆\n\nРахунок бот зарахує сам — за журналом боїв, без скріншотів.",
@@ -195,6 +210,9 @@ public sealed class DuelText
 
     public static readonly DuelText En = new()
     {
+        Modes = new() { ["classic"] = "Classic 1v1", ["double"] = "Double Elixir", ["triple"] = "Triple Elixir", ["sudden"] = "Sudden Death", ["rampup"] = "Ramp Up", ["draft"] = "Draft", ["mirror"] = "Mirror", ["rage"] = "Rage", ["mega"] = "Mega Deck", ["classicdecks"] = "Classic Decks", ["touchdown"] = "Touchdown" },
+        ModeNote = "\n🎮 Mode: {0}. Battles in other modes don't count.",
+        PickMode = "⚔️ 1v1 duel{0}: pick the friendly battle mode.",
         Leagues = ["Bronze", "Silver", "Gold", "Diamond", "Master", "Legend"],
         Open = "⚔️ 1v1 duel challenge · {0}\n\n{1} · {2} · {3} 🏆\n\nWho accepts? The bot scores it from the battle log — no screenshots.",
         OpenTargeted = "⚔️ {1} challenges {4} to a 1v1 duel · {0}\n\n{1} · {2} · {3} 🏆\n\nThe bot scores it from the battle log — no screenshots.",
