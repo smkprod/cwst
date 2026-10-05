@@ -7,21 +7,13 @@ import { useT, type Translations } from '../lib/i18n'
 import { ClanPageView, type HallTarget } from './HallPages'
 import { usePlayerSheet } from '../lib/playerSheet'
 import { SponsorBuyButton } from './SponsorBuyButton'
+import { BadgeIcon } from '../lib/sponsorMarks'
+import { Icon } from './ui/Icon'
+import { SectionHead } from './ui/Section'
+import { InfoButton } from './ui/Info'
+import { PlaceBadge } from './WarLogCard'
 
 type Board = 'players' | 'clans'
-
-/** Значки витрины — те же иконки, что в карточке наград: один значок, один смысл. */
-const BADGE_ICONS: Record<string, string> = {
-  streak: '🔥',
-  dailyStreak: '📆',
-  perfectDays: '💯',
-  mvpWeeks: '👑',
-  totalFame: '🏅',
-  warsPlayed: '⚔️',
-  perfectWeeks: '💎',
-  perfectSeasons: '🏆',
-  boatAttacks: '🚤',
-}
 
 const LEVEL_CLS = ['', 'badge-bronze', 'badge-silver', 'badge-gold']
 
@@ -84,7 +76,7 @@ export function HallOfFame({ config, onConfigChanged }: {
   if (state === 'empty' || !data) {
     return (
       <section className="card fade-in">
-        <div className="card-title">{t.hall.title}</div>
+        <SectionHead icon="trophy" tone="gold" title={t.hall.title} />
         <p className="muted small">{t.hall.collecting}</p>
       </section>
     )
@@ -177,7 +169,7 @@ function Podium({ rows, label, seasonId, onOpen }: {
     >
       <div className="hall-podium-veil" />
       <div className="hall-podium-head">
-        <span className="hall-podium-title">🏛 {label}</span>
+        <span className="hall-podium-title"><Icon name="columns" size={16} />{label}</span>
         <span className="hall-podium-season">#{seasonId}</span>
       </div>
 
@@ -193,7 +185,7 @@ function Podium({ rows, label, seasonId, onOpen }: {
             onClick={() => onOpen(r)}
           >
             {r.backgroundKey && <span className="hall-step-veil" />}
-            <span className="hall-medal">{r.rank === 1 ? '🥇' : r.rank === 2 ? '🥈' : '🥉'}</span>
+            <span className="hall-medal"><PlaceBadge rank={r.rank} large /></span>
             <span className="hall-step-name">
               {displayName(r)}
               <Marks row={r} />
@@ -272,11 +264,11 @@ function Marks({ row }: { row: HallPlayer | HallClan }) {
     <>
       {player?.badgeKey && player.badgeLevel > 0 && (
         <span className={`hall-badge ${LEVEL_CLS[player.badgeLevel] ?? ''}`}>
-          {BADGE_ICONS[player.badgeKey] ?? '🏅'}
+          <BadgeIcon badge={player.badgeKey} size={13} />
         </span>
       )}
-      {player?.isSponsor && <span className="hall-sponsor-tag">★</span>}
-      {clan && clan.sponsorCount > 0 && <span className="hall-sponsor-tag">★</span>}
+      {player?.isSponsor && <span className="hall-sponsor-tag"><Icon name="star" size={12} fill="currentColor" /></span>}
+      {clan && clan.sponsorCount > 0 && <span className="hall-sponsor-tag"><Icon name="star" size={12} fill="currentColor" /></span>}
     </>
   )
 }
@@ -308,7 +300,7 @@ function BackgroundPicker({ config, onClose, onSaved, t }: {
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="card modal-card" onClick={e => e.stopPropagation()}>
-        <div className="card-title">{t.hall.bgTitle}</div>
+        <SectionHead icon="palette" tone="violet" title={t.hall.bgTitle} />
 
         <p className="adm-block-title">{t.hall.bgMine}</p>
         <div className="bg-grid">
@@ -324,8 +316,10 @@ function BackgroundPicker({ config, onClose, onSaved, t }: {
           ))}
         </div>
 
-        <p className="adm-block-title">{t.hall.bgClan}</p>
-        <p className="muted small">{t.hall.bgClanHint}</p>
+        <p className="adm-block-title cl-ic">
+          {t.hall.bgClan}
+          <InfoButton title={t.hall.bgClan} size={20}><p>{t.hall.bgClanHint}</p></InfoButton>
+        </p>
         <div className="bg-grid">
           {config.clanBackgrounds.map(k => (
             <button

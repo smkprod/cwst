@@ -3,6 +3,7 @@ import { api } from '../lib/api'
 import type { ClanDiscipline, DisciplinePlayer } from '../types'
 import { haptic } from '../lib/telegram'
 import { useT, type Translations } from '../lib/i18n'
+import { SectionHead } from './ui/Section'
 
 type State =
   | { kind: 'loading' }
@@ -35,7 +36,7 @@ export function DisciplineCard() {
   if (state.kind === 'loading') {
     return (
       <section className="card">
-        <div className="card-title">{t.discipline.title}</div>
+        <SectionHead icon="shieldCheck" tone="orange" title={t.discipline.title} />
         <div className="center" style={{ padding: 12 }}><div className="spinner" /></div>
       </section>
     )
@@ -44,7 +45,7 @@ export function DisciplineCard() {
   if (state.kind === 'error') {
     return (
       <section className="card">
-        <div className="card-title">{t.discipline.title}</div>
+        <SectionHead icon="shieldCheck" tone="orange" title={t.discipline.title} />
         <p className="muted small">{t.discipline.error}</p>
       </section>
     )
@@ -57,10 +58,6 @@ export function DisciplineCard() {
     : section === 'nudged' ? data.nudged
     : data.lastMinute
 
-  const hint = section === 'skippers' ? t.discipline.skippersHint
-    : section === 'nudged' ? t.discipline.nudgedHint
-    : t.discipline.lateHint
-
   const empty = section === 'skippers' ? t.discipline.emptySkippers
     : section === 'nudged' ? t.discipline.emptyNudged
     : t.discipline.emptyLate
@@ -69,14 +66,19 @@ export function DisciplineCard() {
 
   return (
     <section className="card discipline-card">
-      <div className="card-title-row">
-        <div className="card-title">{t.discipline.title}</div>
-        {data.weeksAnalyzed > 0 && (
-          <span className="muted small">
-            {t.discipline.weeksPrefix} {data.weeksAnalyzed} {t.discipline.weeksSuffix}
-          </span>
-        )}
-      </div>
+      <SectionHead
+        icon="shieldCheck"
+        tone="orange"
+        title={t.discipline.title}
+        info={<>
+          <p><b>{t.discipline.tabSkippers}.</b> {t.discipline.skippersHint}</p>
+          <p><b>{t.discipline.tabNudged}.</b> {t.discipline.nudgedHint}</p>
+          <p><b>{t.discipline.tabLate}.</b> {t.discipline.lateHint}</p>
+        </>}
+        aside={data.weeksAnalyzed > 0
+          ? `${t.discipline.weeksPrefix} ${data.weeksAnalyzed} ${t.discipline.weeksSuffix}`
+          : undefined}
+      />
 
       <div className="disc-tabs">
         <button
@@ -92,8 +94,6 @@ export function DisciplineCard() {
           onClick={() => switchTo('late')}
         >{t.discipline.tabLate}</button>
       </div>
-
-      <p className="muted small disc-hint">{hint}</p>
 
       {/* «Мало данных» и «все молодцы» — разные новости, и путать их нельзя:
           первое означает «приходи позже», второе — заслуженную похвалу. */}
@@ -138,7 +138,7 @@ function DisciplineRow({ player, place, section, t }: {
 
   return (
     <li className="disc-row">
-      <span className="disc-place">{place}</span>
+      <span className={`cl-place ${place <= 3 ? 'cl-place-bad' : ''}`}>{place}</span>
       <span className="disc-info">
         <span className="disc-name">{player.name}</span>
         <span className="muted small">{detail}</span>

@@ -6,8 +6,10 @@ import { haptic } from '../lib/telegram'
 import { useT, roleLabel, type Translations } from '../lib/i18n'
 import { WarLogWeeks } from './WarLogCard'
 import { usePlayerSheet } from '../lib/playerSheet'
+import { Icon, type IconName } from './ui/Icon'
+import { IconTile, SectionHead } from './ui/Section'
 
-const ROLE_ICON: Record<string, string> = { leader: '👑', coLeader: '⚜️', elder: '⭐' }
+const ROLE_ICON: Record<string, IconName> = { leader: 'crown', coLeader: 'shield', elder: 'star' }
 
 export function ClanProfileCard({ clan }: { clan: ClanOverview }) {
   const { t } = useT()
@@ -17,12 +19,12 @@ export function ClanProfileCard({ clan }: { clan: ClanOverview }) {
     <>
       <section className="card" style={{ marginTop: 12 }}>
         <div className="profile-header">
-          <div className="profile-avatar">🏰</div>
+          <div className="profile-avatar cl-avatar"><IconTile name="castle" tone="violet" size={46} /></div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="profile-name">{clan.clanName ?? clan.clanTag}</div>
             <div className="profile-tag">{clan.clanTag}</div>
             {clan.countryName && (
-              <div className="muted small" style={{ marginTop: 2 }}>🌍 {clan.countryName}</div>
+              <div className="muted small cl-ic" style={{ marginTop: 2 }}><Icon name="globe" size={12} />{clan.countryName}</div>
             )}
           </div>
           {clan.connected && <span className="clan-connected">{t.search.clanConnected}</span>}
@@ -30,22 +32,22 @@ export function ClanProfileCard({ clan }: { clan: ClanOverview }) {
 
         <div className="profile-stats">
           <div className="profile-stat">
-            <div className="profile-stat-value">⚔️ {fmt(clan.warTrophies)}</div>
+            <div className="profile-stat-value"><span className="cl-ic"><Icon name="swords" size={15} className="cl-muted" />{fmt(clan.warTrophies)}</span></div>
             <div className="profile-stat-label">{t.search.warTrophies}</div>
           </div>
           <div className="profile-stat">
-            <div className="profile-stat-value">🏆 {fmt(clan.clanScore)}</div>
+            <div className="profile-stat-value"><span className="cl-ic"><Icon name="trophy" size={15} className="cl-fame" />{fmt(clan.clanScore)}</span></div>
             <div className="profile-stat-label">{t.search.clanScore}</div>
           </div>
           <div className="profile-stat">
-            <div className="profile-stat-value">👥 {clan.memberCount ?? '—'}/50</div>
+            <div className="profile-stat-value"><span className="cl-ic"><Icon name="users" size={15} className="cl-muted" />{clan.memberCount ?? '—'}/50</span></div>
             <div className="profile-stat-label">{t.search.clanMembers}</div>
           </div>
         </div>
 
         <div className="clan-meta muted small">
           {clan.type && <span>{t.search.clanType[clan.type] ?? clan.type}</span>}
-          {clan.requiredTrophies > 0 && <span>· {t.search.clanRequired}: 🏆 {fmt(clan.requiredTrophies)}</span>}
+          {clan.requiredTrophies > 0 && <span className="cl-ic">· {t.search.clanRequired}: <Icon name="trophy" size={12} />{fmt(clan.requiredTrophies)}</span>}
           {clan.donationsPerWeek > 0 && <span>· {t.search.clanDonations}: {fmt(clan.donationsPerWeek)}</span>}
         </div>
 
@@ -78,10 +80,7 @@ function MembersCard({ clan, t }: { clan: ClanOverview; t: Translations }) {
 
   return (
     <section className="card" style={{ marginTop: 10 }}>
-      <div className="card-title-row">
-        <div className="cards-section-title" style={{ margin: 0 }}>{t.search.clanRoster}</div>
-        <span className="muted small">{members.length}</span>
-      </div>
+      <SectionHead icon="users" tone="blue" title={t.search.clanRoster} aside={members.length} />
 
       <ul className="clan-member-list">
         {shown.map(m => {
@@ -89,10 +88,10 @@ function MembersCard({ clan, t }: { clan: ClanOverview; t: Translations }) {
           return (
             <li key={m.playerTag} className="clan-member-row row-tap" onClick={() => openSheet(m.playerTag)}>
               {role && (
-                <span className={`role-badge role-${m.role}`}>{ROLE_ICON[m.role]} {role}</span>
+                <span className={`role-badge role-${m.role}`}>{ROLE_ICON[m.role] && <Icon name={ROLE_ICON[m.role]} size={11} />}{role}</span>
               )}
               <span className="clan-member-name">{m.name}</span>
-              <span className="clan-member-trophies">🏆 {fmt(m.trophies)}</span>
+              <span className="clan-member-trophies cl-ic"><Icon name="trophy" size={12} className="cl-fame" />{fmt(m.trophies)}</span>
             </li>
           )
         })}
@@ -124,7 +123,7 @@ function ClanWarsCard({ clanTag, t }: { clanTag: string; t: Translations }) {
 
   return (
     <section className="card" style={{ marginTop: 10 }}>
-      <div className="cards-section-title">{t.warlog.pastWars}</div>
+      <SectionHead icon="history" tone="gray" title={t.warlog.pastWars} />
       {state === 'loading' && <p className="muted small">{t.warlog.loading}</p>}
       {state === 'error' && <p className="muted small">{t.warlog.error}</p>}
       {state === 'ready' && weeks && weeks.length === 0 && (

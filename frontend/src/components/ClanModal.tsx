@@ -4,6 +4,7 @@ import { api } from '../lib/api'
 import { haptic } from '../lib/telegram'
 import { useT } from '../lib/i18n'
 import { ClanProfileCard } from './ClanProfileCard'
+import { Icon } from './ui/Icon'
 
 interface Props {
   /** Тег клана — единственное, что нужно знать вызывающему. */
@@ -70,7 +71,7 @@ export function ClanModal({ tag, name, onClose }: Props) {
               </>
             )}
           </div>
-          <button className="modal-close" onClick={close} aria-label={t.warlog.close}>✕</button>
+          <button className="modal-close" onClick={close} aria-label={t.warlog.close}><Icon name="x" size={16} /></button>
         </div>
 
         {failed && <p className="muted small">{t.warlog.error}</p>}

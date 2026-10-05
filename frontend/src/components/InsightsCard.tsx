@@ -3,6 +3,11 @@ import { SponsorMarks } from '../lib/sponsorMarks'
 import { fmt } from '../lib/format'
 import { useT } from '../lib/i18n'
 import { usePlayerSheet } from '../lib/playerSheet'
+import { Icon } from './ui/Icon'
+import { SectionHead } from './ui/Section'
+import { PlaceBadge } from './WarLogCard'
+
+const Medal = ({ size = 12 }: { size?: number }) => <Icon name="medal" size={size} className="cl-fame" />
 
 interface Props {
   insights: ClanInsights | null
@@ -67,13 +72,10 @@ export function InsightsCard({ insights, players, dayLogs, warLog, race, periodT
   const fillPct = lastFame > 0 ? Math.min(100, Math.round((currentFame / lastFame) * 100)) : 0
 
   const heroes = [...players].sort((a, b) => b.fame - a.fame).slice(0, 3).filter(p => p.fame > 0)
-  const heroMedals = ['🥇', '🥈', '🥉']
 
   return (
     <section className="card insights-card">
-      <div className="card-title-row">
-        <div className="card-title">{t.insights.title}</div>
-      </div>
+      <SectionHead icon="chart" tone="blue" title={t.insights.title} />
 
       {/* На виду: прогноз финиша против прошлой недели (вперёд-смотрящее сравнение) */}
       {lastOurs && lastFame > 0 && (
@@ -87,13 +89,14 @@ export function InsightsCard({ insights, players, dayLogs, warLog, race, periodT
             />
           </div>
           <div className="pace-row">
-            <span className="muted small">{t.insights.lastLabel} {fmt(lastFame)} 🏅 · {lastOurs.rank}{t.insights.placeSuffix}</span>
-            <span className="small"><b>{fmt(currentFame)}</b> 🏅 {t.insights.nowLabel}</span>
+            <span className="muted small cl-ic">{t.insights.lastLabel} {fmt(lastFame)} <Medal /> · {lastOurs.rank}{t.insights.placeSuffix}</span>
+            <span className="small cl-ic"><b>{fmt(currentFame)}</b> <Medal /> {t.insights.nowLabel}</span>
           </div>
 
           {outcome && (
             <span className={`pace-chip ${outcome === 'above' ? 'win-good' : outcome === 'below' ? 'win-bad' : 'win-mid'}`}>
-              🔮 {t.insights.projLabel} {fmt(projectedFinal)} 🏅 —{' '}
+              <Icon name="sparkles" size={13} style={{ marginRight: 4 }} />
+              {t.insights.projLabel} {fmt(projectedFinal)} <Medal /> —{' '}
               {outcome === 'above' && <>{t.insights.finishAbove} {fmt(finalDelta)}</>}
               {outcome === 'below' && <>{t.insights.finishBelow} {fmt(-finalDelta)}</>}
               {outcome === 'even' && <>{t.insights.finishEven}</>}
@@ -136,10 +139,10 @@ export function InsightsCard({ insights, players, dayLogs, warLog, race, periodT
               <span className="insights-sub">{t.insights.heroes}</span>
               {heroes.map((p, i) => (
                 <div key={p.playerTag} className="hero-row row-tap" onClick={() => openSheet(p.playerTag, { warRow: p })}>
-                  <span>{heroMedals[i]}</span>
+                  <PlaceBadge rank={i + 1} />
                   <span className="hero-name">{p.name}<SponsorMarks of={p} /></span>
-                  <span className="muted small">⚡ {p.avgFamePerAttack.toFixed(0)}</span>
-                  <span className="hero-fame">{fmt(p.fame)} 🏅</span>
+                  <span className="muted small cl-ic"><Icon name="bolt" size={12} />{p.avgFamePerAttack.toFixed(0)}</span>
+                  <span className="hero-fame cl-ic">{fmt(p.fame)} <Medal size={13} /></span>
                 </div>
               ))}
             </div>

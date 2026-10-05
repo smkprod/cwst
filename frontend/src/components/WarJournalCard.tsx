@@ -4,6 +4,12 @@ import type { WarJournal, WarBattleEntry } from '../types'
 import { fmt } from '../lib/format'
 import { haptic } from '../lib/telegram'
 import { useT, type Translations } from '../lib/i18n'
+import { Icon } from './ui/Icon'
+import { SectionHead } from './ui/Section'
+
+function Mark({ won, size = 14 }: { won: boolean; size?: number }) {
+  return <Icon name={won ? 'check' : 'x'} size={size} className={won ? 'cl-ok' : 'cl-bad'} />
+}
 
 function battleTime(iso: string): string {
   const d = new Date(iso)
@@ -17,12 +23,12 @@ function battleTime(iso: string): string {
 function Row({ b }: { b: WarBattleEntry }) {
   return (
     <li className={`jr-row ${b.won ? 'jr-win' : 'jr-loss'}`}>
-      <span className="jr-icon">{b.won ? '✅' : '❌'}</span>
+      <span className={`jr-icon cl-jr-mark ${b.won ? 'cl-ok' : 'cl-bad'}`}><Mark won={b.won} /></span>
       <div className="jr-info">
         <span className="jr-name">{b.playerName}</span>
         <span className="muted small">{battleTime(b.battleTimeUtc)}</span>
       </div>
-      <span className="jr-crowns">{b.crownsFor}:{b.crownsAgainst} 👑</span>
+      <span className="jr-crowns cl-ic">{b.crownsFor}:{b.crownsAgainst} <Icon name="crown" size={13} className="cl-fame" /></span>
     </li>
   )
 }
@@ -49,12 +55,17 @@ export function WarJournalCard() {
   return (
     <details className="card collapse-card">
       <summary className="card-title-row collapse-summary">
-        <div className="card-title">{t.journal.title}</div>
-        <span className="jr-score">
-          <span className="jr-score-win">✅ {fmt(j.won)}</span>
-          {' · '}
-          <span className="jr-score-loss">❌ {fmt(j.lost)}</span>
-        </span>
+        <SectionHead
+          icon="swords"
+          tone="red"
+          title={t.journal.title}
+          aside={
+            <span className="jr-score cl-score">
+              <span className="jr-score-win cl-ic"><Mark won /> {fmt(j.won)}</span>
+              <span className="jr-score-loss cl-ic"><Mark won={false} /> {fmt(j.lost)}</span>
+            </span>
+          }
+        />
       </summary>
 
       <ul className="jr-list">
@@ -78,10 +89,12 @@ function WarJournalModal({ journal, t, onClose }: { journal: WarJournal; t: Tran
       <div className="notif-sheet fade-in">
         <div className="notif-head">
           <h2>{t.journal.title}</h2>
-          <button className="notif-close" onClick={onClose} aria-label="✕">✕</button>
+          <button className="notif-close" onClick={onClose} aria-label={t.warlog.close}><Icon name="x" size={16} /></button>
         </div>
-        <p className="muted small" style={{ margin: '0 0 10px' }}>
-          ✅ {fmt(journal.won)} {t.journal.wonLabel} · ❌ {fmt(journal.lost)} {t.journal.lostLabel} · {fmt(journal.total)} {t.journal.totalLabel}
+        <p className="muted small cl-score" style={{ margin: '0 0 10px', flexWrap: 'wrap' }}>
+          <span className="cl-ic"><Mark won size={13} /> {fmt(journal.won)} {t.journal.wonLabel}</span>
+          <span className="cl-ic"><Mark won={false} size={13} /> {fmt(journal.lost)} {t.journal.lostLabel}</span>
+          <span className="cl-ic">{fmt(journal.total)} {t.journal.totalLabel}</span>
         </p>
         <ul className="jr-list">
           {journal.battles.map(b => <Row key={`${b.playerTag}-${b.battleTimeUtc}`} b={b} />)}

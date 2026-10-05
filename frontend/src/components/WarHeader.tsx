@@ -1,6 +1,7 @@
 import type { ClanStatus } from '../types'
 import { useT } from '../lib/i18n'
 import { LangSwitcher } from './LangSwitcher'
+import { Icon } from './ui/Icon'
 
 function warDayNumber(periodIndex: number): number | null {
   if (periodIndex < 3) return null
@@ -28,15 +29,17 @@ export function WarHeader(
             {isWar && day !== null && ` ${t.header.dayOf4} ${day}/4`}
           </span>
           {canManage && onOpenSettings && (
-            <button className="war-settings-btn" onClick={onOpenSettings} aria-label={t.notif.title}>⚙️</button>
+            <button className="cl-icon-btn" onClick={onOpenSettings} aria-label={t.notif.title}>
+              <Icon name="gear" size={18} />
+            </button>
           )}
           <LangSwitcher />
         </div>
       </div>
 
       {isWar && (
-        <p className="deadline">
-          ⏰ {t.header.untilEnd} <strong>~{status.hoursLeft} {t.header.h}</strong>
+        <p className="deadline cl-deadline">
+          <Icon name="clock" size={15} /> {t.header.untilEnd} <strong>~{status.hoursLeft} {t.header.h}</strong>
         </p>
       )}
 

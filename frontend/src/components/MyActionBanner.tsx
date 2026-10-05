@@ -1,5 +1,6 @@
 import type { ClanStatus } from '../types'
 import { useT } from '../lib/i18n'
+import { Icon } from './ui/Icon'
 
 /**
  * Первое, что видит игрок в военный день, если сам ещё не доиграл: личный
@@ -23,11 +24,11 @@ export function MyActionBanner({ status }: { status: ClanStatus }) {
     <section className="card my-action-banner">
       <div className="my-action-row">
         <span className="my-action-decks">
-          🔥 {t.actionBanner.played} <b>{me.decksUsedToday}/4</b> {t.actionBanner.decks}
+          <Icon name="flame" size={16} className="cl-wait" /> {t.actionBanner.played} <b>{me.decksUsedToday}/4</b> {t.actionBanner.decks}
         </span>
         {msLeft > 0 && (
           <span className="my-action-time muted small">
-            ⏳ {t.actionBanner.left} ~{hours > 0 ? `${hours} ${t.header.h} ` : ''}{mins > 0 || hours === 0 ? `${mins}′` : ''}
+            <Icon name="hourglass" size={13} /> {t.actionBanner.left} ~{hours > 0 ? `${hours} ${t.header.h} ` : ''}{mins > 0 || hours === 0 ? `${mins}′` : ''}
           </span>
         )}
       </div>

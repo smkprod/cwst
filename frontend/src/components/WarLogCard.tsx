@@ -4,8 +4,17 @@ import { fmt } from '../lib/format'
 import { haptic } from '../lib/telegram'
 import { useT, formatPlace } from '../lib/i18n'
 import { useOpenClan } from '../lib/clanModal'
+import { Icon } from './ui/Icon'
+import { SectionHead } from './ui/Section'
 
-const PLACE_ICONS = ['🥇', '🥈', '🥉', '4', '5']
+/** Номер места в кружке: 1–3 — золото, серебро, бронза (вместо медалей-эмодзи). */
+export function PlaceBadge({ rank, large = false }: { rank: number; large?: boolean }) {
+  return (
+    <span className={`cl-place ${rank >= 1 && rank <= 3 ? `cl-place-${rank}` : ''} ${large ? 'cl-place-lg' : ''}`}>
+      {rank}
+    </span>
+  )
+}
 
 interface WeeksProps {
   weeks: WarLogWeek[]
@@ -36,29 +45,29 @@ export function WarLogWeeks({ weeks, meLabel }: WeeksProps) {
         const ours = w.standings.find(s => s.isOurClan)
         const isOpen = openKey === key
         const placeText = !ours ? '—'
-          : ours.rank === 1 ? t.warlog.victory
-          : ours.rank <= 3 ? `${PLACE_ICONS[ours.rank - 1]} ${formatPlace(ours.rank, t)}`
+          : ours.rank === 1 ? <span className="cl-ic"><Icon name="trophy" size={14} className="cl-fame" />{t.warlog.victory}</span>
+          : ours.rank <= 3 ? <span className="cl-ic"><PlaceBadge rank={ours.rank} />{formatPlace(ours.rank, t)}</span>
           : formatPlace(ours.rank, t)
 
         return (
           <li key={key} className="warlog-week">
             <button className="warlog-row" onClick={() => toggleWeek(key)}>
               <span className="history-week-badge">
-                {w.isColosseum ? '🏛' : `W${w.sectionIndex + 1}`}
+                {w.isColosseum ? <Icon name="columns" size={14} /> : `W${w.sectionIndex + 1}`}
               </span>
               <div className="warlog-info">
                 <span className="warlog-place">{placeText}</span>
                 <span className="muted small">{t.warlog.season} {w.seasonId}</span>
               </div>
               <div className="warlog-numbers">
-                {ours && <span className="race-fame">{fmt(ours.fame)} 🏅</span>}
+                {ours && <span className="race-fame cl-ic">{fmt(ours.fame)} <Icon name="medal" size={13} className="cl-fame" /></span>}
                 {ours && ours.trophyChange !== 0 && (
-                  <span className={`warlog-trophy ${ours.trophyChange > 0 ? 'trophy-up' : 'trophy-down'}`}>
-                    {ours.trophyChange > 0 ? '+' : ''}{ours.trophyChange} 🏆
+                  <span className={`warlog-trophy cl-ic ${ours.trophyChange > 0 ? 'trophy-up' : 'trophy-down'}`}>
+                    {ours.trophyChange > 0 ? '+' : ''}{ours.trophyChange} <Icon name="trophy" size={12} />
                   </span>
                 )}
               </div>
-              <span className={`warlog-chevron ${isOpen ? 'warlog-chevron-open' : ''}`}>›</span>
+              <span className={`warlog-chevron ${isOpen ? 'warlog-chevron-open' : ''}`}><Icon name="chevronRight" size={16} /></span>
             </button>
 
             {isOpen && (
@@ -85,7 +94,7 @@ export function WarLogWeeks({ weeks, meLabel }: WeeksProps) {
                             tabIndex={0}
                             onClick={e => { e.stopPropagation(); showClanPage(s.tag, s.name) }}
                           >
-                            {s.name} ↗
+                            {s.name} <Icon name="external" size={11} />
                           </span>
                           {s.isOurClan && meLabel && <span className="me-badge">{meLabel}</span>}
                         </span>
@@ -94,7 +103,7 @@ export function WarLogWeeks({ weeks, meLabel }: WeeksProps) {
                           {s.trophyChange > 0 ? '+' : ''}{s.trophyChange}
                         </span>
                         {hasPlayers && (
-                          <span className={`warlog-chevron ${isExpanded ? 'warlog-chevron-open' : ''}`} style={{ fontSize: 12 }}>›</span>
+                          <span className={`warlog-chevron ${isExpanded ? 'warlog-chevron-open' : ''}`} style={{ fontSize: 12 }}><Icon name="chevronRight" size={13} /></span>
                         )}
                       </button>
 
@@ -104,8 +113,8 @@ export function WarLogWeeks({ weeks, meLabel }: WeeksProps) {
                             <li key={p.name} className="warlog-player-row">
                               <span className="warlog-player-rank">#{i + 1}</span>
                               <span className="warlog-player-name">{p.name}</span>
-                              <span className="muted small">{p.decksUsed > 0 ? `${p.decksUsed}🃏` : ''}</span>
-                              <span className="race-fame">{fmt(p.fame)} 🏅</span>
+                              <span className="muted small cl-ic">{p.decksUsed > 0 ? <>{p.decksUsed}<Icon name="cards" size={11} /></> : ''}</span>
+                              <span className="race-fame cl-ic">{fmt(p.fame)} <Icon name="medal" size={12} className="cl-fame" /></span>
                             </li>
                           ))}
                         </ul>
@@ -132,10 +141,7 @@ export function WarLogCard({ log }: Props) {
 
   return (
     <section className="card warlog-card">
-      <div className="card-title-row">
-        <div className="card-title">{t.warlog.title}</div>
-        <span className="muted small">{t.warlog.hint}</span>
-      </div>
+      <SectionHead icon="history" tone="blue" title={t.warlog.title} info={<p>{t.warlog.hint}</p>} />
       <WarLogWeeks weeks={log} meLabel={t.warlog.ours} />
     </section>
   )

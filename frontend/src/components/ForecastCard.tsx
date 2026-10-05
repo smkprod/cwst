@@ -1,11 +1,13 @@
 import type { ClanForecast, ClanStats, ClanStatus } from '../types'
 import { fmt } from '../lib/format'
 import { useT } from '../lib/i18n'
+import { Icon, type IconName } from './ui/Icon'
+import { SectionHead } from './ui/Section'
 
-const TREND_ICON: Record<ClanForecast['trend'], { icon: string; cls: string }> = {
-  ahead: { icon: '📈', cls: 'trend-ahead' },
-  onPace: { icon: '➡️', cls: 'trend-onpace' },
-  behind: { icon: '📉', cls: 'trend-behind' },
+const TREND_ICON: Record<ClanForecast['trend'], { icon: IconName; cls: string }> = {
+  ahead: { icon: 'trendUp', cls: 'trend-ahead' },
+  onPace: { icon: 'arrowRight', cls: 'trend-onpace' },
+  behind: { icon: 'trendDown', cls: 'trend-behind' },
 }
 
 interface Props {
@@ -20,7 +22,7 @@ export function ForecastCard({ forecast, stats: _stats, periodType }: Props) {
   if (periodType === 'training') {
     return (
       <section className="card forecast-card">
-        <div className="card-title">{t.forecast.titleSimple}</div>
+        <SectionHead icon="sparkles" tone="violet" title={t.forecast.titleSimple} />
         <p className="muted small">{t.forecast.trainingNote}</p>
       </section>
     )
@@ -39,10 +41,17 @@ export function ForecastCard({ forecast, stats: _stats, periodType }: Props) {
 
   return (
     <section className="card forecast-card">
-      <div className="card-title-row">
-        <div className="card-title">{t.forecast.title}</div>
-        <span className={`trend-chip ${trendMeta.cls}`}>{trendMeta.icon} {trendLabel}</span>
-      </div>
+      <SectionHead
+        icon="sparkles"
+        tone="violet"
+        title={t.forecast.title}
+        infoTitle={t.forecast.howTitle}
+        info={<>
+          <p>{t.forecast.howDay1}<strong>~{forecast.expectedRemainingAttacksToday}</strong>{t.forecast.howDay2}</p>
+          <p>{t.forecast.howWeek}</p>
+        </>}
+        aside={<span className={`trend-chip cl-ic ${trendMeta.cls}`}><Icon name={trendMeta.icon} size={13} />{trendLabel}</span>}
+      />
 
       <div className="forecast-numbers">
         <div className="forecast-block forecast-block-primary">
@@ -74,14 +83,6 @@ export function ForecastCard({ forecast, stats: _stats, periodType }: Props) {
         </div>
         <span className="confidence-pct">{forecast.confidence}%</span>
       </div>
-
-      <details className="forecast-help">
-        <summary>{t.forecast.howTitle}</summary>
-        <p className="muted small">
-          {t.forecast.howDay1}<strong>~{forecast.expectedRemainingAttacksToday}</strong>{t.forecast.howDay2}
-        </p>
-        <p className="muted small">{t.forecast.howWeek}</p>
-      </details>
     </section>
   )
 }
