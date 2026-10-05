@@ -4,13 +4,16 @@ import type { PlusStatus } from '../types'
 import { haptic, hapticNotify, openInvoice, shareToTelegram, tg } from '../lib/telegram'
 import { useT, type Translations } from '../lib/i18n'
 import { PLUS_CHANGED } from '../lib/plusSheet'
+import { Icon, type IconName } from './ui/Icon'
+import { InfoButton } from './ui/Info'
+import { IconTile, SectionHead } from './ui/Section'
 
 export type PlusFocus = 'plus' | 'sponsor' | 'gift'
 
 type Pay = 'idle' | 'opening' | 'waiting' | 'paid' | 'gifted' | 'failed'
 
 /**
- * Одна линейка: «🧊 Плюс — чтобы не сливать» и «★ Спонсор — чтобы не сливать и
+ * Одна линейка: «Плюс — чтобы не сливать» и «★ Спонсор — чтобы не сливать и
  * чтобы это видели». Под обеими — «Подарить» и «Попросить в подарок»: у подростка
  * часто нет своей карты, и платит старший брат, лидер или родители.
  *
@@ -106,8 +109,8 @@ export function PlusSheet({ focus, onClose }: { focus: PlusFocus; onClose: () =>
       <div className="modal-sheet fade-up plus-sheet" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">
         <div className="modal-grip" />
         <div className="plus-hero">
-          <button className="modal-close plus-close" onClick={close} aria-label={p.close}>✕</button>
-          <div className="plus-title">{p.title}</div>
+          <button className="modal-close plus-close" onClick={close} aria-label={p.close}><Icon name="x" size={18} /></button>
+          <div className="plus-title bt-inline"><IconTile name="gem" tone="violet" size={36} /> {p.title}</div>
           <div className="plus-tagline">{p.parents}</div>
         </div>
 
@@ -130,8 +133,8 @@ export function PlusSheet({ focus, onClose }: { focus: PlusFocus; onClose: () =>
                 </div>
 
                 <div className="plus-gift-row">
-                  <button className="btn btn-ghost" onClick={() => { haptic('light'); setGiftOpen(o => !o) }}>{p.giftBtn}</button>
-                  <button className="btn btn-ghost" onClick={ask}>{p.askBtn}</button>
+                  <button className="btn btn-ghost" onClick={() => { haptic('light'); setGiftOpen(o => !o) }}><Icon name="gift" size={16} /> {p.giftBtn}</button>
+                  <button className="btn btn-ghost" onClick={ask}><Icon name="send" size={16} /> {p.askBtn}</button>
                 </div>
                 {giftOpen && <GiftPanel status={status} onPaidGift={giftPaid} onFreeGift={load} t={t} />}
               </>
@@ -141,7 +144,14 @@ export function PlusSheet({ focus, onClose }: { focus: PlusFocus; onClose: () =>
           </>
         )}
 
-        <p className="muted small plus-fine">{p.once}<br />{p.refund48}<br />{p.fanNote}</p>
+        <div className="muted small plus-fine bt-fine">
+          {p.once}
+          <InfoButton size={18} title={p.title}>
+            <p>{p.once}</p>
+            <p>{p.refund48}</p>
+            <p>{p.fanNote}</p>
+          </InfoButton>
+        </div>
       </div>
     </div>
   )
@@ -156,7 +166,7 @@ function StatusLine({ status, t }: { status: PlusStatus; t: Translations }) {
     const source = status.source === 'gift' ? p.sourceGift : status.source === 'grant' ? p.sourceGrant : null
     return (
       <p className="plus-status plus-status-ok">
-        ✅ {p.activeUntil.replace('{date}', new Date(status.until).toLocaleDateString())}
+        <Icon name="checkCircle" size={15} /> {p.activeUntil.replace('{date}', new Date(status.until).toLocaleDateString())}
         {source && <span className="muted small"> · {source}</span>}
       </p>
     )
@@ -172,16 +182,13 @@ function PlusCard({ status, pay, onBuy, t }: {
   const busy = pay === 'opening' || pay === 'waiting'
   return (
     <section className="plus-card">
-      <div className="plus-card-head">
-        <span className="plus-card-title">{p.plusCardTitle}</span>
-        <span className="muted small">{p.plusCardSub}</span>
-      </div>
+      <SectionHead icon="gem" tone="violet" title={p.plusCardTitle} aside={p.plusCardSub} />
       <ul className="plus-features">
-        <Feature title={p.f1Title} text={p.f1} />
-        <Feature title={t.trk.title} text={t.trk.plusRow} />
-        <Feature title={p.f2Title} text={p.f2} />
-        <Feature title={p.f3Title} text={p.f3} />
-        <Feature title={p.f4Title} text={p.f4} />
+        <Feature icon="snowflake" title={p.f1Title} text={p.f1} />
+        <Feature icon="target" title={t.trk.title} text={t.trk.plusRow} />
+        <Feature icon="sliders" title={p.f2Title} text={p.f2} />
+        <Feature icon="pause" title={p.f3Title} text={p.f3} />
+        <Feature icon="chart" title={p.f4Title} text={p.f4} />
       </ul>
       {!canPay ? <p className="muted small">{p.unavailable}</p> : (
         <div className="plus-buttons">
@@ -191,17 +198,17 @@ function PlusCard({ status, pay, onBuy, t }: {
             </span>
           )}
           <button className="btn plus-buy" disabled={busy} onClick={() => onBuy(30)}>
-            {status.promo30 ? <s className="plus-old">{status.price30}⭐</s> : null}
+            {status.promo30 ? <s className="plus-old">{status.price30}★</s> : null}
             {p.buy30.replace('{stars}', String(status.promo30 ?? status.price30))}
             <span className="plus-best">{p.best}</span>
           </button>
           <button className="btn btn-ghost plus-buy" disabled={busy} onClick={() => onBuy(7)}>
-            {status.promo7 ? <s className="plus-old">{status.price7}⭐</s> : null}
+            {status.promo7 ? <s className="plus-old">{status.price7}★</s> : null}
             {p.buy7.replace('{stars}', String(status.promo7 ?? status.price7))}
           </button>
         </div>
       )}
-      {!status.active && !status.isSponsor && <p className="muted small plus-trial-note">🎁 {p.trialNote}</p>}
+      {!status.active && !status.isSponsor && <p className="muted small plus-trial-note bt-inline"><Icon name="gift" size={14} /> {p.trialNote}</p>}
     </section>
   )
 }
@@ -215,14 +222,11 @@ function SponsorCard({ status, pay, onBuy, t }: {
   const busy = pay === 'opening' || pay === 'waiting'
   return (
     <section className="plus-card plus-card-sponsor">
-      <div className="plus-card-head">
-        <span className="plus-card-title">{p.sponsorCardTitle}</span>
-        <span className="muted small">{p.sponsorCardSub}</span>
-      </div>
+      <SectionHead icon="crown" tone="gold" title={p.sponsorCardTitle.replace(/^★\s*/, '')} aside={p.sponsorCardSub}
+        info={<p>{p.sponsorForLeader}</p>} />
       <ul className="plus-perks">
         {p.sponsorPerks.split('|').map(x => <li key={x}>{x}</li>)}
       </ul>
-      <p className="muted small" style={{ margin: '0 0 8px' }}>{p.sponsorForLeader}</p>
       {canPay && (
         <button className="btn plus-buy plus-buy-sponsor" disabled={busy} onClick={onBuy}>
           {(status.isSponsor ? t.sponsor.renew : p.buySponsor)
@@ -279,7 +283,7 @@ function GiftPanel({ status, onPaidGift, onFreeGift, t }: {
 
   return (
     <section className="plus-card plus-gift">
-      <div className="plus-card-title">{p.giftTitle}</div>
+      <SectionHead icon="gift" tone="green" title={p.giftTitle} />
       <input
         className="search-input"
         placeholder={p.giftTagPlaceholder}
@@ -321,11 +325,14 @@ function PayState({ pay, t }: { pay: Pay; t: Translations }) {
   return null
 }
 
-function Feature({ title, text }: { title: string; text: string }) {
+function Feature({ icon, title, text }: { icon: IconName; title: string; text: string }) {
   return (
-    <li className="plus-feature">
-      <b>{title}</b>
-      <span className="muted small">{text}</span>
+    <li className="plus-feature bt-feature">
+      <IconTile name={icon} tone="violet" size={28} />
+      <span className="bt-feature-text">
+        <b>{title}</b>
+        <span className="muted small">{text}</span>
+      </span>
     </li>
   )
 }

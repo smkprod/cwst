@@ -4,6 +4,8 @@ import type { MetaCard, MetaDeckRow, MetaDecks } from '../types'
 import { fmt } from '../lib/format'
 import { haptic } from '../lib/telegram'
 import type { Translations } from '../lib/i18n'
+import { Icon } from './ui/Icon'
+import { SectionHead } from './ui/Section'
 
 /**
  * Лучшие колоды топа за неделю — по боям, а не по профилям.
@@ -33,8 +35,7 @@ export function MetaDecksView({ t }: { t: Translations }) {
 
   return (
     <section className="card" style={{ marginTop: 10 }}>
-      <div className="card-title">{t.worldTop.decksTitle}</div>
-      <p className="muted small" style={{ margin: '0 0 2px' }}>{t.worldTop.decksHint}</p>
+      <SectionHead icon="cards" tone="gold" title={t.worldTop.decksTitle} info={<p>{t.worldTop.decksHint}</p>} />
 
       {state === 'empty' || !data ? (
         <p className="muted small" style={{ margin: '8px 0 0' }}>{t.worldTop.decksCollecting}</p>
@@ -75,8 +76,8 @@ export function DeckRow({ deck, place, t }: { deck: MetaDeckRow; place: number; 
 
       <div className="mdeck-stats">
         <span><b>{deck.usagePercent}%</b> {t.worldTop.deckUsage}</span>
-        <span><b>💧{deck.avgElixir}</b> {t.worldTop.deckElixir}</span>
-        <span><b>🔄{deck.cycleElixir}</b> {t.worldTop.deckCycle}</span>
+        <span><b><Icon name="droplet" size={12} className="bt-ico-elixir" /> {deck.avgElixir}</b> {t.worldTop.deckElixir}</span>
+        <span><b><Icon name="refresh" size={12} /> {deck.cycleElixir}</b> {t.worldTop.deckCycle}</span>
       </div>
 
       <div className="mdeck-counters">

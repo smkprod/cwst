@@ -7,6 +7,9 @@ import { usePlusSheet } from '../lib/plusSheet'
 import { usePlayerSheet } from '../lib/playerSheet'
 import { signed } from './MatchHistoryView'
 import { MatchupPanel } from './MatchupPanel'
+import { Icon } from './ui/Icon'
+import { SectionHead } from './ui/Section'
+import { noEmoji } from '../lib/text'
 
 /** Полное HP башен по уровню не знаем — полоска показывает остаток от самой крепкой из видимых. */
 const KING_HP_GUESS = 4824
@@ -49,8 +52,8 @@ export function MatchReportSheet({ id, onClose }: { id: number; onClose: () => v
         {state === 'error' && <p className="center muted">{s.loadError}</p>}
         {state === 'locked' && (
           <div className="center" style={{ padding: '12px 0' }}>
-            <p className="muted small">{s.locked403}</p>
-            <button className="btn" onClick={() => openPlus()}>{t.battles.unlockBtn}</button>
+            <p className="muted small"><Icon name="lock" size={14} /> {s.locked403}</p>
+            <button className="btn" onClick={() => openPlus()}><Icon name="gem" size={16} /> {t.battles.unlockBtn}</button>
           </div>
         )}
         {state === 'ready' && data && (
@@ -77,7 +80,7 @@ function Report({ r, t, onPlus, onOpponent }: {
         <div className="trk-report-score">{r.crownsFor}–{r.crownsAgainst}</div>
         <div className="trk-report-title">
           <b>{resultText}</b>
-          {r.trophyChange !== null && <span> · {signed(r.trophyChange)}🏆</span>}
+          {r.trophyChange !== null && <span> · {signed(r.trophyChange)} <Icon name="trophy" size={14} className="bt-ico-gold" /></span>}
           <div className="muted small">{s.modes[r.mode] ?? r.mode} · {time}</div>
         </div>
       </div>
@@ -92,14 +95,14 @@ function Report({ r, t, onPlus, onOpponent }: {
           {r.opp.clan && <span className="muted small"> · {r.opp.clan}</span>}
         </span>
         <span className="muted small">
-          {r.opp.trophies !== null && <>{r.opp.trophies}🏆</>}
+          {r.opp.trophies !== null && <>{r.opp.trophies} <Icon name="trophy" size={12} className="bt-ico-gold" /></>}
           {r.opp.diff !== null && r.opp.diff !== 0 && <> ({signed(r.opp.diff)})</>}
           {r.opp.globalRank !== null && <> · {s.rank.replace('{n}', String(r.opp.globalRank))}</>}
         </span>
-        {r.opp.tag && <span className="ba-locked-arrow">›</span>}
+        {r.opp.tag && <span className="ba-locked-arrow"><Icon name="chevronRight" size={16} /></span>}
       </button>
 
-      {r.verdict && <p className="trk-verdict">{r.verdict}</p>}
+      {r.verdict && <p className="trk-verdict">{noEmoji(r.verdict)}</p>}
 
       <div className="trk-side-title">
         <span>{s.them}{r.arch && <b> · {r.arch.label}</b>}</span>
@@ -114,14 +117,14 @@ function Report({ r, t, onPlus, onOpponent }: {
       {r.hasDetail ? (
         <>
           <div className="trk-block">
-            <div className="tilt-rules-title">{s.towers}</div>
+            <SectionHead className="bt-head-sm" icon="castle" tone="blue" title={s.towers} />
             <Towers label={s.them} side={r.them} t={t} />
             <Towers label={s.you} side={r.me} t={t} />
           </div>
 
           {r.leak && (r.leak.mine !== null || r.leak.theirs !== null) && (
             <div className="trk-block">
-              <div className="tilt-rules-title">{s.leakTitle} <span className="muted small">· {s.leakHint}</span></div>
+              <SectionHead className="bt-head-sm" icon="droplet" tone="violet" title={s.leakTitle} info={<p>{s.leakHint}</p>} />
               <span className="small">
                 {s.you}: {r.leak.mine?.toFixed(1) ?? '—'}
                 {r.leak.usual !== null && <span className="muted"> ({s.leakUsual.replace('{n}', r.leak.usual.toFixed(1))})</span>}
@@ -132,7 +135,7 @@ function Report({ r, t, onPlus, onOpponent }: {
 
           {r.levels && Math.abs(r.levels.gap) >= 0.3 && (
             <div className="trk-block">
-              <div className="tilt-rules-title">{s.levelsTitle}</div>
+              <SectionHead className="bt-head-sm" icon="arrowUp" tone="orange" title={s.levelsTitle} />
               <span className="small">{s.levelsAvg.replace('{a}', r.levels.myAvg.toFixed(1)).replace('{b}', r.levels.oppAvg.toFixed(1))}</span>
               {r.levels.lowestMine && (
                 <span className="muted small">
@@ -148,12 +151,10 @@ function Report({ r, t, onPlus, onOpponent }: {
 
       {r.plus ? (
         <div className="trk-block trk-plus">
-          <div className="tilt-rules-title">
-            {s.plusTitle}
-            {r.hint && <span className="trk-hint-badge">{s.hint}</span>}
-          </div>
-          {r.plus.betterDeck && <span className="small">{r.plus.betterDeck}</span>}
-          {r.plus.vsArch && <span className="small">{r.plus.vsArch}</span>}
+          <SectionHead className="bt-head-sm" icon="gem" tone="violet" title={s.plusTitle}
+            aside={r.hint ? <span className="trk-hint-badge">{s.hint}</span> : undefined} />
+          {r.plus.betterDeck && <span className="small">{noEmoji(r.plus.betterDeck)}</span>}
+          {r.plus.vsArch && <span className="small">{noEmoji(r.plus.vsArch)}</span>}
           {r.plus.deckVsArchWins !== null && r.plus.deckVsArchLosses !== null && r.arch && (
             <span className="muted small">
               {s.deckVsArch.replace('{a}', r.arch.label)
@@ -163,11 +164,11 @@ function Report({ r, t, onPlus, onOpponent }: {
         </div>
       ) : !r.unlocked && (
         <button className="ba-locked" style={{ marginTop: 10 }} onClick={onPlus}>
-          <span className="ba-locked-icon">🔒</span>
+          <span className="ba-locked-icon bt-locked-icon"><Icon name="lock" size={14} /></span>
           <span className="ba-locked-text">
             {r.lockedCount > 0 ? s.lockedCard.replace('{n}', String(r.lockedCount)) : s.lockedCardZero}
           </span>
-          <span className="ba-locked-arrow">›</span>
+          <span className="ba-locked-arrow"><Icon name="chevronRight" size={16} /></span>
         </button>
       )}
 
@@ -188,7 +189,7 @@ function Report({ r, t, onPlus, onOpponent }: {
       {r.them.copyLink && (
         <button className="btn btn-ghost" style={{ width: '100%', marginTop: 12 }}
           onClick={() => { haptic('medium'); openExternalLink(r.them.copyLink!) }}>
-          {s.copyOpp}
+          <Icon name="copy" size={16} /> {s.copyOpp}
         </button>
       )}
     </div>
@@ -207,13 +208,13 @@ function Deck({ side, t }: { side: MatchSide; t: Translations }) {
 
 /** Карта с уровнем и значком эволюции или героя. */
 export function Card({ c, t, tower = false }: { c: MatchCard; t: Translations; tower?: boolean }) {
-  const badge = c.form === 2 ? '👑' : c.form === 1 ? '✨' : null
+  const badge = c.form === 2 ? 'crown' as const : c.form === 1 ? 'sparkles' as const : null
   return (
     <span className={`trk-cardimg ${tower ? 'trk-cardimg-tower' : ''} ${c.form > 0 ? 'mdeck-evo' : ''}`}
       title={`${c.name}${c.form === 2 ? ` · ${t.trk.hero}` : c.form === 1 ? ` · ${t.trk.evo}` : ''}`}>
       {c.iconUrl ? <img src={c.iconUrl} alt={c.name} loading="lazy" /> : <span className="wtop-card-blank" />}
-      {badge && <span className="trk-card-badge">{badge}</span>}
-      {tower && <span className="trk-card-tower-mark">🏰</span>}
+      {badge && <span className="trk-card-badge bt-card-mark"><Icon name={badge} size={10} /></span>}
+      {tower && <span className="trk-card-tower-mark bt-card-mark"><Icon name="castle" size={10} /></span>}
       {c.level > 0 && <span className="trk-card-level">{c.level}</span>}
     </span>
   )
@@ -232,7 +233,7 @@ function Towers({ label, side, t }: { label: string; side: MatchSide; t: Transla
       <span className="muted small trk-towers-label">{label}</span>
       {bars.map((b, i) => (
         <span key={i} className={`trk-tower ${b.hp === null || b.hp <= 0 ? 'trk-tower-down' : ''}`}>
-          <span className="trk-tower-icon">{b.king ? '👑' : '🏰'}</span>
+          <span className="trk-tower-icon"><Icon name={b.king ? 'crown' : 'castle'} size={13} /></span>
           <span className="trk-tower-hp">{b.hp !== null && b.hp > 0 ? b.hp : t.trk.destroyed}</span>
           <span className="ba-bar-track">
             <span className="ba-bar-fill ba-bar-good" style={{ width: `${b.hp ? Math.min(100, Math.round(b.hp / Math.max(b.max, b.hp) * 100)) : 0}%` }} />

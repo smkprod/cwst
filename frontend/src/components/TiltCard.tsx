@@ -4,11 +4,13 @@ import type { TiltProfile } from '../types'
 import { botStartLink, haptic, hapticNotify, requestWriteAccess, shareToTelegram, tgUser } from '../lib/telegram'
 import { useT, type Translations } from '../lib/i18n'
 import { PLUS_CHANGED, usePlusSheet } from '../lib/plusSheet'
+import { Icon } from './ui/Icon'
+import { SectionHead } from './ui/Section'
 
 const LIMITS = [0, 3, 5, 7, 10]
 
 /**
- * «🧊 Стоп-тильт» — первая карточка вкладки «Я».
+ * «Стоп-тильт» — первая карточка вкладки «Я».
  *
  * Бесплатно — проблема в собственных цифрах: тильт-тип, во что тильт обошёлся за
  * неделю, моменты, когда бот написал бы. С Плюсом — решение: живые сигналы, свои
@@ -69,13 +71,16 @@ export function TiltCard() {
   return (
     <section className={`card tilt-card tilt-${data.type ?? 'none'}`}>
       <div className="tilt-head">
-        <div className="card-title" style={{ margin: 0 }}>{s.title}</div>
+        <SectionHead icon="snowflake" tone="blue" title={s.title} className="bt-head-flush" />
         <span className="muted small">{s.promise}</span>
       </div>
 
       {ready ? (
         <div className="tilt-type">
-          <span className="tilt-type-name">{typeName}</span>
+          <span className="tilt-type-name bt-inline">
+            <Icon name={data.type === 'ice' ? 'snowflake' : 'flame'} size={20} className={`bt-tilt-icon bt-tilt-${data.type}`} />
+            {typeName}
+          </span>
           <span className="small">{typeText(data.type, t)}</span>
           {data.after2Percent !== null && (
             <span className="muted small">
@@ -122,7 +127,7 @@ export function TiltCard() {
           {s.recentStreak
             .replace('{time}', new Date(data.recentStreak.atUtc).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
             .replace('{n}', String(data.recentStreak.length))
-            .replace('{trophies}', data.recentStreak.trophies < 0 ? `, −${-data.recentStreak.trophies}🏆` : '')}
+            .replace('{trophies}', data.recentStreak.trophies < 0 ? `, −${-data.recentStreak.trophies} ${t.duel.trophies}` : '')}
         </p>
       )}
       {!data.unlocked && data.moments14 > 0 && (
@@ -169,16 +174,16 @@ export function TiltCard() {
       ) : (
         <>
           <button className="ba-locked" onClick={() => openPlus()}>
-            <span className="ba-locked-icon">🔒</span>
+            <span className="ba-locked-icon bt-locked-icon"><Icon name="lock" size={14} /></span>
             <span className="ba-locked-text">{s.rulesPlusOnly}</span>
-            <span className="ba-locked-arrow">›</span>
+            <span className="ba-locked-arrow"><Icon name="chevronRight" size={16} /></span>
           </button>
-          <button className="btn plus-cta" style={{ marginTop: 10 }} onClick={() => openPlus()}>{s.unlock}</button>
+          <button className="btn plus-cta" style={{ marginTop: 10 }} onClick={() => openPlus()}><Icon name="gem" size={16} /> {s.unlock}</button>
         </>
       )}
 
       {ready && (
-        <button className="btn-mini tilt-share" onClick={share}>{s.share}</button>
+        <button className="btn-mini tilt-share" onClick={share}><Icon name="share" size={13} /> {s.share}</button>
       )}
     </section>
   )
@@ -207,7 +212,7 @@ function Rules({ data, busy, onSave, t }: {
   const s = t.tilt
   return (
     <div className="tilt-rules">
-      <div className="tilt-rules-title">{s.rulesTitle}</div>
+      <SectionHead className="bt-head-sm" icon="sliders" tone="gray" title={s.rulesTitle} />
       <div className="tilt-rule">
         <span className="small">{s.ruleThreshold}</span>
         <span className="tilt-seg">
@@ -242,7 +247,7 @@ function Works({ data, t }: { data: TiltProfile; t: Translations }) {
   const s = t.tilt
   return (
     <div className="tilt-works">
-      <div className="tilt-rules-title">{s.worksTitle}</div>
+      <SectionHead className="bt-head-sm" icon="pause" tone="green" title={s.worksTitle} />
       <span className="small">
         {data.pausedPercent !== null && data.notPausedPercent !== null
           ? s.works.replace('{a}', String(data.pausedPercent)).replace('{b}', String(data.notPausedPercent))
@@ -259,13 +264,13 @@ function Feed({ data, t }: { data: TiltProfile; t: Translations }) {
     c === 'pause' ? s.choicePause : c === 'go' ? s.choiceGo : c === 'mute' ? s.choiceMute : s.choiceNone
   return (
     <div className="tilt-feed">
-      <div className="tilt-rules-title">{s.feedTitle}</div>
+      <SectionHead className="bt-head-sm" icon="bell" tone="orange" title={s.feedTitle} />
       {data.recentAlerts.map(a => (
         <div key={a.sentUtc} className="tilt-feed-row">
           <span className="muted small">
             {new Date(a.sentUtc).toLocaleString([], { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
           </span>
-          <span className="small">{a.kind === 'limit' ? s.limitKind : `🟥×${a.lossStreak}`} · {choice(a.choice)}</span>
+          <span className="small">{a.kind === 'limit' ? s.limitKind : <><span className="tilt-cell tilt-cell-L bt-loss-cell" />×{a.lossStreak}</>} · {choice(a.choice)}</span>
           <span className="small tilt-feed-after">
             {a.kind === 'limit' ? '' : a.summarized
               ? s.feedAfter.replace('{w}', String(a.afterWins)).replace('{l}', String(a.afterLosses))
