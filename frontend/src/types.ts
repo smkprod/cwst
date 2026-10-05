@@ -1703,6 +1703,8 @@ export interface DuelRow {
   id: number
   state: 'active' | 'finished' | 'cancelled' | 'expired'
   bestOf: number
+  /** Режим дружеского боя; null — дуэль до появления режимов. */
+  mode: string | null
   aName: string
   aTag: string
   bName: string
