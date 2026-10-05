@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import type { SignupPoint } from '../types'
+import type { ReactNode } from 'react'
 import { haptic } from '../lib/telegram'
+import { SectionHead, type Tone } from './ui/Section'
+import type { IconName } from './ui/Icon'
 
 /** Какие ряды показывать. key — поле в SignupPoint, noun — что считаем в подписи. */
 export interface ChartMetric {
@@ -28,7 +31,12 @@ interface Bar {
  * прочитать ни одного.
  */
 export function SignupsChart(
-  { title, points, metrics }: { title: string; points: SignupPoint[]; metrics: ChartMetric[] },
+  { title, points, metrics, icon = 'chart', tone = 'blue', info }: {
+    title: string; points: SignupPoint[]; metrics: ChartMetric[]
+    icon?: IconName; tone?: Tone
+    /** Пояснение под кнопкой «i» в заголовке — как считается, чего на графике нет. */
+    info?: ReactNode
+  },
 ) {
   const [metric, setMetric] = useState<ChartMetric['key']>(metrics[0].key)
   const [range, setRange] = useState<Range>(30)
@@ -59,8 +67,8 @@ export function SignupsChart(
   const noun = metrics.find(m => m.key === metric)?.noun ?? ''
 
   return (
-    <div className="card">
-      <p className="adm-block-title">{title}</p>
+    <div className="card ow-chart">
+      <SectionHead icon={icon} tone={tone} title={title} info={info} />
 
       <div className="chart-controls">
         <div className="chart-switch">
