@@ -6,6 +6,9 @@ import { useT, type Translations } from '../lib/i18n'
 import { REDUCED, useCountUp } from '../lib/anim'
 import { usePlusSheet } from '../lib/plusSheet'
 import { usePlayerSheet } from '../lib/playerSheet'
+import { Icon } from './ui/Icon'
+import { SectionHead } from './ui/Section'
+import { InfoButton } from './ui/Info'
 
 /** Пока челлендж идёт — таблица обновляется каждые 15 секунд, иначе раз в минуту. */
 const LIVE_POLL = 15_000
@@ -82,7 +85,17 @@ export function ChallengeView() {
             {status === 'live' && <i className="ch-live-dot" />}
             {status === 'live' ? s.liveDot : status === 'upcoming' ? s.upcoming : s.ended}
           </span>
-          <span className="ch-prize">🏆 {ev.prize ?? s.defaultPrize}</span>
+          <span className="mx-ch-hero-aside">
+            <span className="ch-prize mx-ch-prize"><Icon name="trophy" size={15} /> {ev.prize ?? s.defaultPrize}</span>
+            <InfoButton className="mx-ch-info" title={ev.title ?? s.title}>
+              <ul className="mx-ch-rules">
+                <li><span>{s.rule1}</span> <Icon name="ticket" size={15} /></li>
+                <li><span>{s.rule2}</span> <Icon name="ticket" size={15} /></li>
+                <li><span>{s.rule3}</span> <Icon name="trophy" size={15} /></li>
+              </ul>
+              <p className="muted small">{s.unofficial}</p>
+            </InfoButton>
+          </span>
         </div>
         <h2 className="ch-title">{ev.title ?? s.title}</h2>
         {status !== 'ended' ? (
@@ -96,12 +109,6 @@ export function ChallengeView() {
         <div className="ch-dates muted small">
           {fmtRange(ev.startUtc, ev.endUtc, t)}
         </div>
-      </section>
-
-      <section className="card ch-rules">
-        <span>{s.rule1}</span>
-        <span>{s.rule2}</span>
-        <span>{s.rule3}</span>
       </section>
 
       {status !== 'ended' && (
@@ -131,20 +138,16 @@ export function ChallengeView() {
       ) : data.me && <MyCard me={data.me} leader={data.leaders[0]?.tickets ?? 0} t={t} />}
 
       <section className="card ch-board">
-        <div className="ch-board-head">
-          <span className="card-title" style={{ margin: 0 }}>{s.board}</span>
+        <SectionHead icon="list" tone="gold" title={s.board} info={s.honest} aside={
           <span className="muted small">
             {s.participants.replace('{n}', String(data.participants))}
             {status === 'live' && <> · <i className="ch-live-dot" /> {s.updated.replace('{s}', String(Math.max(0, Math.round((now - new Date(data.updatedUtc).getTime()) / 1000))))}</>}
           </span>
-        </div>
+        } />
         {data.leaders.length === 0
           ? <p className="muted small" style={{ margin: '8px 0 0' }}>{s.empty}</p>
           : <Board rows={data.leaders} me={data.me} />}
       </section>
-
-      <p className="muted small ch-foot">{s.honest}</p>
-      <p className="muted small ch-foot">{s.unofficial}</p>
     </div>
   )
 }
@@ -204,7 +207,7 @@ function MyCard({ me, leader, t }: { me: ChallengeRow; leader: number; t: Transl
       </div>
       <div className="ch-me-main">
         <div className="ch-me-tickets">
-          <span className="ch-ticket-ic">🎟</span>
+          <span className="ch-ticket-ic mx-ch-ticket"><Icon name="ticket" size={26} /></span>
           <b>{Math.round(shown)}</b>
           <span className="muted small">{s.tickets}</span>
         </div>
@@ -221,8 +224,6 @@ function MyCard({ me, leader, t }: { me: ChallengeRow; leader: number; t: Transl
     </section>
   )
 }
-
-const MEDAL = ['🥇', '🥈', '🥉']
 
 /**
  * Таблица, которая «живёт»: строки плавно переезжают на новые места (FLIP), а
@@ -271,13 +272,13 @@ function Board({ rows, me }: { rows: ChallengeRow[]; me: ChallengeRow | null }) 
         <div key={r.tag} ref={el => { if (el) refs.current.set(r.tag, el); else refs.current.delete(r.tag) }}
           role="button" tabIndex={0} onClick={() => openPlayer(r.tag)}
           className={`ch-row ch-row-click ${r.isMe ? 'ch-row-me' : ''} ${r.rank <= 3 ? `ch-top ch-top-${r.rank}` : ''} ${flash.has(r.tag) ? 'ch-flash' : ''}`}>
-          <span className="ch-rank">{r.rank <= 3 ? MEDAL[r.rank - 1] : r.rank}</span>
+          <span className="ch-rank">{r.rank <= 3 ? <span className={`mx-medal mx-medal-${r.rank}`}>{r.rank}</span> : r.rank}</span>
           <span className="ch-name">
             <b>{r.name}</b>
             <span className="ch-bar"><span style={{ width: `${(r.tickets / leader) * 100}%` }} /></span>
           </span>
-          <span className="ch-sub muted small">{r.wins}–{r.losses}{r.streak >= 2 ? ` · 🔥${r.streak}` : ''}</span>
-          <span className="ch-tk">{r.tickets}<small>🎟</small></span>
+          <span className="ch-sub muted small">{r.wins}–{r.losses}{r.streak >= 2 && <> · <Icon name="flame" size={12} className="mx-flame" />{r.streak}</>}</span>
+          <span className="ch-tk">{r.tickets}<small><Icon name="ticket" size={13} /></small></span>
         </div>
       ))}
       {showMeBelow && me && (
@@ -287,7 +288,7 @@ function Board({ rows, me }: { rows: ChallengeRow[]; me: ChallengeRow | null }) 
             <span className="ch-rank">{me.rank}</span>
             <span className="ch-name"><b>{me.name}</b></span>
             <span className="ch-sub muted small">{me.wins}–{me.losses}</span>
-            <span className="ch-tk">{me.tickets}<small>🎟</small></span>
+            <span className="ch-tk">{me.tickets}<small><Icon name="ticket" size={13} /></small></span>
           </div>
         </>
       )}

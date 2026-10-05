@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { Icon, type IconName } from './components/ui/Icon'
+import { IconTile } from './components/ui/Section'
 import { api, ApiError, adminClan } from './lib/api'
 import { askDmOnce, haptic, startMatchId, startParam, startToMatches } from './lib/telegram'
 import { ChallengeView } from './components/ChallengeView'
@@ -100,19 +101,19 @@ function ClanSectionTabs({ value, onChange, t }: {
         className={`clan-section ${value === 'war' ? 'clan-section-on' : ''}`}
         onClick={() => onChange('war')}
       >
-        ⚔️ {t.tabs.war}
+        <Icon name="swords" size={15} /> {t.tabs.war}
       </button>
       <button
         className={`clan-section ${value === 'roster' ? 'clan-section-on' : ''}`}
         onClick={() => onChange('roster')}
       >
-        👥 {t.tabs.roster}
+        <Icon name="users" size={15} /> {t.tabs.roster}
       </button>
       <button
         className={`clan-section ${value === 'rating' ? 'clan-section-on' : ''}`}
         onClick={() => onChange('rating')}
       >
-        🏆 {t.tabs.rating}
+        <Icon name="trophy" size={15} /> {t.tabs.rating}
       </button>
     </div>
   )
@@ -331,7 +332,7 @@ export default function App() {
     case 'notInTelegram':
       return (
         <div className="center">
-          <p style={{ fontSize: 40, margin: 0 }}>🔒</p>
+          <IconTile name="lock" tone="violet" size={56} />
           <p><strong>{t.openViaTitle}</strong></p>
           <p className="muted small" style={{ maxWidth: 280, textAlign: 'center' }}>
             {t.openViaHint}
@@ -341,8 +342,9 @@ export default function App() {
     case 'error':
       return (
         <div className="center">
+          <IconTile name="alert" tone="red" size={48} />
           <p className="muted">{state.message}</p>
-          <button className="btn" onClick={load}>{t.retry}</button>
+          <button className="btn" onClick={load}><Icon name="refresh" size={16} /> {t.retry}</button>
         </div>
       )
     case 'ready': {
@@ -370,7 +372,7 @@ export default function App() {
             {data.viewingAsAdmin && (
               <div className="admin-banner">
                 <span className="admin-banner-text">
-                  👁 {data.clanName}
+                  <Icon name="eye" size={15} /> {data.clanName}
                   {data.adminReadOnly && <span className="muted small"> · {t.admin.readOnly}</span>}
                 </span>
                 <button

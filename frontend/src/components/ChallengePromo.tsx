@@ -4,6 +4,7 @@ import type { Challenge } from '../types'
 import { haptic, initData, startParam } from '../lib/telegram'
 import { useT } from '../lib/i18n'
 import { openChallenge, promoDone } from '../lib/promo'
+import { Icon } from './ui/Icon'
 
 const seenKey = (id: string) => `cwst_ch_promo_${id}`
 
@@ -62,9 +63,9 @@ export function ChallengePromo() {
     <div className="modal-backdrop chp-backdrop" onClick={close}>
       <div className="chp fade-up" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">
         <div className="chp-glow" />
-        <button className="chp-x" aria-label="✕" onClick={close}>✕</button>
-        <div className="chp-ticket">🎟</div>
-        <div className="chp-prize">🏆 {prize}</div>
+        <button className="chp-x" aria-label="close" onClick={close}><Icon name="x" size={16} /></button>
+        <div className="chp-ticket mx-chp-ticket"><Icon name="ticket" size={44} /></div>
+        <div className="chp-prize mx-chp-prize"><Icon name="trophy" size={15} /> {prize}</div>
         <h2 className="chp-title">{s.promoTitle.replace('{prize}', prize)}</h2>
         <p className="chp-text">{s.promoText.replace('{prize}', prize)}</p>
         <div className="chp-timer">

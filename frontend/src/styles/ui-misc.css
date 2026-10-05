@@ -1,1 +1,83 @@
 /* Стили группы misc после перехода на иконки и единую дизайн-систему. */
+
+/* Общие мелочи */
+.mx-ic-gold { color: #ffc83d; }
+.mx-ic-blue { color: #3fc6f2; }
+.mx-flame { color: #ff8c3a; margin: 0 1px 0 0; }
+
+/* Медаль места: номер на золотом / серебряном / бронзовом круге */
+.mx-medal { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
+  font-size: 12px; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; vertical-align: middle;
+  color: #3b2300; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 3px 10px rgba(0, 0, 0, 0.25); }
+.mx-medal-1 { background: linear-gradient(135deg, #ffe08a, #f2a71c); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 3px 12px rgba(242, 179, 61, 0.45); }
+.mx-medal-2 { background: linear-gradient(135deg, #f1f4f9, #a9b4c4); color: #27303d; }
+.mx-medal-3 { background: linear-gradient(135deg, #f0b98a, #b8692f); color: #2e1607; }
+
+/* Заголовки страниц (вне карточки) и баннеры с SectionHead */
+.mx-page-head { margin: 4px 2px 12px; }
+.mx-connect-head { margin-bottom: 8px; }
+.mx-connect-head .ui-head-title { font-size: 15px; line-height: 1.3; }
+
+/* Подписи полей с кнопкой «i» */
+.mx-label { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.mx-sub-title { display: inline-flex; align-items: center; gap: 5px; }
+
+/* Переключатель «Война / Состав / Рейтинг» */
+.clan-section { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+
+/* «Ещё» */
+.mx-more-label { display: inline-flex; align-items: center; gap: 10px; }
+.more-row { gap: 12px; }
+.more-row-arrow { display: grid; place-items: center; }
+
+/* Тур бота и «Как это работает»: плитка вместо эмодзи */
+.tour-row, .about-item { align-items: center; }
+
+/* «Что нового» */
+.mx-wn-row { display: flex; align-items: center; gap: 10px; }
+.mx-wn-ic { display: grid; place-items: center; flex-shrink: 0; width: 26px; height: 26px; border-radius: 8px;
+  background: rgba(156, 107, 255, 0.18); color: #c7adff; }
+.whats-new-card .ui-head { margin-bottom: 8px; }
+.notif-close { display: inline-grid; place-items: center; }
+
+/* Настройки уведомлений */
+.mx-notif-title { display: flex; align-items: center; gap: 10px; }
+.mx-notif-label { flex-direction: row; align-items: center; gap: 10px; min-width: 0; }
+
+/* Челлендж */
+.mx-ch-hero-aside { display: inline-flex; align-items: center; gap: 8px; }
+.mx-ch-prize { display: inline-flex; align-items: center; gap: 6px; }
+.mx-ch-info { border-color: rgba(255, 255, 255, 0.25); background: rgba(0, 0, 0, 0.28); color: #fff; }
+.mx-ch-rules { list-style: none; padding: 0 !important; }
+.mx-ch-rules li { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05); font-weight: 600; }
+.mx-ch-rules li span { flex: 1; min-width: 0; }
+.mx-ch-rules .ui-icon { color: #ffc83d; }
+.mx-ch-ticket { display: inline-grid; place-items: center; color: #ffc83d; align-self: center; }
+.ch-tk small { display: inline-flex; vertical-align: -1px; color: #ffc83d; }
+.ch-rank { display: grid; place-items: center; }
+.ch .ui-head { margin-bottom: 8px; }
+.mx-chp-ticket { display: grid; place-items: center; width: 84px; height: 84px; border-radius: 26px; color: #3b2300;
+  background: linear-gradient(135deg, #ffe08a, #f2a71c); box-shadow: 0 12px 30px rgba(242, 179, 61, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.6); }
+.mx-chp-prize { display: inline-flex; align-items: center; gap: 6px; }
+.chp-x { display: grid; place-items: center; }
+
+/* Турниры */
+.tt-choice .ui-tile { border-radius: 14px; }
+.mx-choice-chev { margin-left: auto; color: var(--muted); }
+.mx-ti-name { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.tournament-champion-name, .tournament-champion-line { display: inline-flex; align-items: center; gap: 6px; }
+.tournament-champion-card .tournament-champion-name { justify-self: center; }
+.tournament-detail-header .ui-head-title { font-size: 18px; }
+.participant-remove { display: inline-grid; place-items: center; }
+.bmatch-auto { display: inline-flex; align-items: center; gap: 4px; }
+.gt-member-rank { display: inline-grid; place-items: center start; }
+.gt-member-score { display: inline-flex; align-items: center; gap: 4px; }
+.profile-stat-value .ui-icon { opacity: 0.85; }
+
+/* Лига дуэлей: «как это работает» — под кнопкой «i» в шапке */
+.mx-dl-hero-info { position: absolute; top: 12px; right: 12px; z-index: 2;
+  border-color: rgba(255, 255, 255, 0.25); background: rgba(0, 0, 0, 0.3); color: #fff; }
+.mx-dl-how { margin: 4px 0 12px; }
+.dl .ui-head-aside { gap: 4px; }
+.ui-sheet-body .mx-dl-how { display: flex; gap: 14px; padding-left: 0; }

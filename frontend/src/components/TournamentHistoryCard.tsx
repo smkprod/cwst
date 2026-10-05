@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
 import type { PlayerTournamentHistory } from '../types'
 import { useT } from '../lib/i18n'
+import { SectionHead } from './ui/Section'
 
 interface Props {
   playerTag: string
@@ -22,7 +23,7 @@ export function TournamentHistoryCard({ playerTag }: Props) {
   if (state.kind === 'loading') {
     return (
       <div className="card">
-        <div className="card-title">{t.tournament.historyTitle}</div>
+        <SectionHead icon="trophy" tone="gold" title={t.tournament.historyTitle} />
         <div className="center" style={{ padding: 16 }}><div className="spinner" /></div>
       </div>
     )
@@ -30,7 +31,7 @@ export function TournamentHistoryCard({ playerTag }: Props) {
   if (state.kind === 'error' || state.items.length === 0) {
     return (
       <div className="card">
-        <div className="card-title">{t.tournament.historyTitle}</div>
+        <SectionHead icon="trophy" tone="gold" title={t.tournament.historyTitle} />
         <p className="muted small" style={{ margin: 0 }}>{t.tournament.historyEmpty}</p>
       </div>
     )
@@ -49,7 +50,7 @@ export function TournamentHistoryCard({ playerTag }: Props) {
 
   return (
     <div className="card">
-      <div className="card-title">{t.tournament.historyTitle}</div>
+      <SectionHead icon="trophy" tone="gold" title={t.tournament.historyTitle} />
       <ul className="tournament-history-list">
         {state.items.map(h => (
           <li key={h.tournamentId} className="tournament-history-row">
@@ -58,7 +59,9 @@ export function TournamentHistoryCard({ playerTag }: Props) {
               <span className="muted small">{statusLabel(h.status)} · {h.participantCount} {t.tournament.participantsCount}</span>
             </div>
             {h.finalPlacement && (
-              <span className="tournament-history-place">{t.tournament.place} {h.finalPlacement}</span>
+              h.finalPlacement <= 3
+                ? <span className={`mx-medal mx-medal-${h.finalPlacement}`} title={`${t.tournament.place} ${h.finalPlacement}`}>{h.finalPlacement}</span>
+                : <span className="tournament-history-place">{t.tournament.place} {h.finalPlacement}</span>
             )}
           </li>
         ))}

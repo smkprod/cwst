@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { haptic } from '../lib/telegram'
 import { useT } from '../lib/i18n'
+import { SectionHead } from './ui/Section'
 
 /** Ключ версии: если меню перестроят снова, достаточно поднять номер. */
 const SEEN_KEY = 'menuNoticeSeen:v2'
@@ -31,7 +32,7 @@ export function MenuChangedNotice() {
 
   return (
     <section className="card menu-notice fade-in">
-      <div className="connect-title">✨ {t.menuNotice.title}</div>
+      <SectionHead icon="menu" tone="violet" title={t.menuNotice.title} className="mx-connect-head" />
       <ul className="menu-notice-list">
         <li>{t.menuNotice.clan}</li>
         <li>{t.menuNotice.me}</li>
