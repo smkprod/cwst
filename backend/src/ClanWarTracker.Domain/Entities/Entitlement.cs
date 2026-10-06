@@ -150,6 +150,12 @@ public class PlayerAlertPrefs
     /// <summary>Бой, на котором сегодня показана бесплатная подсказка Плюса.</summary>
     public DateTime? TrackerHintBattleUtc { get; set; }
 
+    /// <summary>
+    /// Нажал «Не присылать» под утренним дайджестом. Отдельный флаг, а не DmBlocked:
+    /// от дайджеста отказались, а от остального (трекер, Стоп-тильт) - нет.
+    /// </summary>
+    public bool DigestOff { get; set; }
+
     // Личная скидка на Плюс (после челленджа): цена на себя до указанного момента.
     public int? PromoPrice7 { get; set; }
     public int? PromoPrice30 { get; set; }

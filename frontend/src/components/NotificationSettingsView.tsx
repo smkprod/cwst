@@ -204,6 +204,17 @@ export function NotificationSettingsView({ onClose }: { onClose: () => void }) {
               />
             </div>
 
+            {/* Вечерние итоги дня клана: старый сервер поле не присылает — считаем включённым */}
+            <div className="card notif-block">
+              <ToggleRow
+                icon="moon" tone="violet"
+                label={t.notif.dayRecapTitle}
+                desc={t.notif.dayRecapDesc}
+                on={state.s.dayRecapEnabled !== false}
+                onToggle={() => patch({ dayRecapEnabled: state.s.dayRecapEnabled === false })}
+              />
+            </div>
+
             {/* Входящие от других кланов.
                 Выключатель здесь, а не спрятан: это единственный способ прекратить
                 нежелательные сообщения, не жалуясь на бота — а жалоба ударит по боту. */}

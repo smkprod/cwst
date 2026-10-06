@@ -1461,6 +1461,18 @@ public class BotUpdateHandler(
             return;
         }
 
+        if (data == ClanWarTracker.Application.Battles.DigestText.DigestOffCallback)
+        {
+            // «Не присылать» под утренним дайджестом: выключаем только его, остальное не трогаем.
+            var prefsRepo = sp.GetRequiredService<IPlayerAlertPrefsRepository>();
+            var prefs = await prefsRepo.GetOrCreateAsync(callback.From.Id, ct);
+            prefs.DigestOff = true;
+            await prefsRepo.SaveChangesAsync(ct);
+            var t = await TextForUserAsync(callback.From.Id, callback.From.LanguageCode, sp, ct);
+            await bot.AnswerCallbackQuery(callback.Id, text: t.DgOffToast, cancellationToken: ct);
+            return;
+        }
+
         if (data.StartsWith("dl|", StringComparison.Ordinal))
         {
             await HandleDuelCallbackAsync(callback, data, sp, ct);

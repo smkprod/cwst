@@ -19,6 +19,11 @@ const VERDICT_ICON: Record<string, IconName> = {
   winLevels: 'shield', winRank: 'globe', winUpset: 'rocket', winClose: 'hourglass',
 }
 
+/** Значки причин поражения (LossReasons на сервере) — те же смыслы, что в карточке бота. */
+export const LOSS_REASON_ICON: Record<string, IconName> = {
+  levels: 'arrowUp', matchup: 'swords', tilt: 'snowflake', leak: 'droplet', close: 'crown', outplayed: 'target',
+}
+
 /**
  * История боёв заходами: сверху «кому ты проигрываешь», ниже вечера и бои в них.
  * Тап по бою — полный отчёт. Работает и без трекера: бои копятся и так.
@@ -223,6 +228,11 @@ function Row({ m, onOpen }: { m: MatchRow; onOpen: (id: number) => void }) {
           {m.topPct != null && (
             <span className={`trk-top ${m.topPct >= 50 ? 'trk-top-good' : 'trk-top-bad'}`}
               title={`${t.trk.topChip}: ${m.topGames ?? 0}`}><Icon name="chart" size={11} /> {Math.round(m.topPct)}%</span>
+          )}
+          {m.result < 0 && m.lossReason && (
+            <span className="trk-loss" title={t.trk.lossWhy}>
+              <Icon name={LOSS_REASON_ICON[m.lossReason] ?? 'target'} size={11} /> {t.trk.lossReasons[m.lossReason] ?? m.lossReason}
+            </span>
           )}
         </span>
       </span>

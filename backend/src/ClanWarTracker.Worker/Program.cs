@@ -27,6 +27,9 @@ builder.Services.AddScoped<AutoResolveTournamentMatchesUseCase>();
 // каждые двадцать секунд, и никакой адаптивности не получилось бы.
 builder.Services.AddSingleton<TournamentPollState>();
 builder.Services.AddScoped<SendRespectDigestUseCase>();
+// Дневные итоги: утренний дайджест в личку и вечерние итоги клана в чат
+builder.Services.AddScoped<SendMorningDigestUseCase>();
+builder.Services.AddScoped<SendClanDayRecapUseCase>();
 builder.Services.AddScoped<NudgePlayersUseCase>();
 builder.Services.AddScoped<LinkPlayerUseCase>();
 builder.Services.AddScoped<BindPlayerUseCase>();

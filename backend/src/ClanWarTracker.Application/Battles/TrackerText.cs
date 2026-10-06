@@ -83,6 +83,40 @@ public static class TrackerText
             ? string.Format(t.TrkMatchup, h.WinPercent.ToString("0", CultureInfo.InvariantCulture), h.Games)
             : null;
 
+    /// <summary>
+    /// «📉 Поражение: уровни карт ниже на 0.8» - главная причина поражения одной строкой.
+    /// null - не поражение или причина «переиграли»: строка без фактов карточку только удлиняет.
+    /// </summary>
+    public static string? LossLine(BotText t, LossReasons.Reason? r)
+    {
+        if (r is null) return null;
+        return r.Main switch
+        {
+            LossReasons.Levels => string.Format(t.LrCardLevels, Num(-(r.LevelGap ?? 0))),
+            LossReasons.Matchup => string.Format(t.LrCardMatchup,
+                (r.MatchupPercent ?? 0).ToString("0", CultureInfo.InvariantCulture)),
+            LossReasons.Tilt => string.Format(t.LrCardTilt, r.LossInRow),
+            LossReasons.Leak => string.Format(t.LrCardLeak, Num(r.Leak ?? 0)),
+            LossReasons.Close => t.LrCardClose,
+            _ => null,
+        };
+    }
+
+    /// <summary>Короткое имя причины для перечня: «уровни карт», «контр-колода»…</summary>
+    public static string LossLabel(BotText t, string reason) => reason switch
+    {
+        LossReasons.Levels => t.LrLevels,
+        LossReasons.Matchup => t.LrMatchup,
+        LossReasons.Tilt => t.LrTilt,
+        LossReasons.Leak => t.LrLeak,
+        LossReasons.Close => t.LrClose,
+        _ => t.LrOutplayed,
+    };
+
+    /// <summary>Подпись архетипа по ключу - как в карточке и итоге захода.</summary>
+    public static string ArchLabelOf(BotText t, string key, IReadOnlyDictionary<int, CrCatalogCard> catalog) =>
+        ArchLabel(t, new MatchReport.Arch(key, Archetypes.Label(key, catalog), Archetypes.IsOther(key)));
+
     /// <summary>Строка боя над тильт-сигналом: «Бой 4: 0–1 против Golem · −29🏆».</summary>
     public static string AlertPrefix(BotText t, MatchReport.Report r) =>
         string.Format(t.TrkAlertPrefix, r.Session.Index, r.CrownsFor, r.CrownsAgainst, ArchLabel(t, r.Arch), Trophies(r.TrophyChange));
@@ -92,7 +126,7 @@ public static class TrackerText
     public static string Card(
         BotText t, MatchReport.Report r, IReadOnlyList<PlayerBattle> session, int tz,
         IReadOnlyDictionary<int, CrCatalogCard> catalog, string? plusLine, DateTime? pauseUntilUtc,
-        string? matchupLine = null, string? challengeLine = null)
+        string? matchupLine = null, string? challengeLine = null, string? lossLine = null)
     {
         var lines = new List<string>
         {
@@ -103,6 +137,8 @@ public static class TrackerText
             string.Format(t.TrkLast, ResultMark(r.Result), r.CrownsFor, r.CrownsAgainst, Trophies(r.TrophyChange),
                 r.Opp.Name ?? "?", ArchLabel(t, r.Arch)),
         };
+        // Причина поражения - сразу под счётом: это первое, что человек хочет знать после слива.
+        if (lossLine is not null) lines.Add(lossLine);
         if (challengeLine is not null) lines.Add(challengeLine);
         if (Verdict(t, r.Verdict, catalog) is { } verdict) lines.Add(verdict);
         if (matchupLine is not null) lines.Add(matchupLine);

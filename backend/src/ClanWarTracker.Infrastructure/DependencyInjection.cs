@@ -912,6 +912,8 @@ CREATE TABLE IF NOT EXISTS ""PlayerAlertPrefs"" (
             "\"PromoPrice7\" integer",
             "\"PromoPrice30\" integer",
             "\"PromoUntilUtc\" timestamptz",
+            // Отказ от утреннего дайджеста
+            "\"DigestOff\" boolean NOT NULL DEFAULT FALSE",
         })
             await db.Database.ExecuteSqlRawAsync($"ALTER TABLE \"PlayerAlertPrefs\" ADD COLUMN IF NOT EXISTS {column};");
 

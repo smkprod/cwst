@@ -37,6 +37,8 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
     private readonly HashSet<string> _briefingKeys = [];
     private readonly HashSet<string> _perfectDayKeys = [];
     private readonly HashSet<string> _respectDigestKeys = [];
+    private readonly HashSet<string> _morningDigestKeys = [];
+    private readonly HashSet<string> _dayRecapKeys = [];
 
     private const string KindReport = "dailyreport";
     private const string KindFinalCall = "finalcall";
@@ -44,6 +46,14 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
     private const string KindBriefing = "briefing";
     private const string KindPerfectDay = "perfectday";
     private const string KindRespectDigest = "respectdigest";
+    private const string KindMorningDigest = "morningdigest";
+    private const string KindDayRecap = "dayrecap";
+
+    /// <summary>
+    /// Такт дневных итогов. Пять минут, а не полчаса: утренний дайджест созревает в
+    /// 10:00 у каждого по его часам, и опоздание на полчаса уже заметно.
+    /// </summary>
+    private static readonly TimeSpan DailyDigestInterval = TimeSpan.FromMinutes(5);
 
     /// <summary>
     /// Как далеко в прошлое поднимаем отметки при старте. Все наши уведомления привязаны
@@ -60,7 +70,8 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
             RunSnapshotLoopAsync(stoppingToken),
             RunFinalCallLoopAsync(stoppingToken),
             RunTournamentResultsLoopAsync(stoppingToken),
-            RunTiltLoopAsync(stoppingToken));
+            RunTiltLoopAsync(stoppingToken),
+            RunDailyDigestLoopAsync(stoppingToken));
     }
 
     /// <summary>
@@ -104,6 +115,50 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
             catch (Exception ex)
             {
                 logger.LogError(ex, "Challenge sync failed");
+            }
+        }
+        while (await timer.WaitForNextTickAsync(stoppingToken));
+    }
+
+    /// <summary>
+    /// Дневные итоги: утренний дайджест в личку (10:00 по местному времени игрока) и
+    /// вечерние итоги клана в чат (21:00 по Киеву). Когда пора, решают сами use case'ы;
+    /// отметки об отправленном переживают рестарт, поэтому повторов нет.
+    /// </summary>
+    private async Task RunDailyDigestLoopAsync(CancellationToken stoppingToken)
+    {
+        using var timer = new PeriodicTimer(DailyDigestInterval);
+        do
+        {
+            try
+            {
+                using var scope = scopeFactory.CreateScope();
+                var digest = scope.ServiceProvider.GetRequiredService<SendMorningDigestUseCase>();
+                var s = await digest.ExecuteAsync(_morningDigestKeys, stoppingToken);
+                await PersistKeysAsync(KindMorningDigest, _morningDigestKeys, stoppingToken);
+                if (s.Sent > 0 || s.Blocked > 0 || s.Failed > 0)
+                    logger.LogInformation(
+                        "Morning digest: due {Due}, sent {Sent}, skipped {Skipped}, blocked {Blocked}, failed {Failed}",
+                        s.Due, s.Sent, s.Skipped, s.Blocked, s.Failed);
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Morning digest failed");
+            }
+
+            try
+            {
+                using var scope = scopeFactory.CreateScope();
+                var recap = scope.ServiceProvider.GetRequiredService<SendClanDayRecapUseCase>();
+                var sent = await recap.ExecuteAsync(_dayRecapKeys, stoppingToken);
+                await PersistKeysAsync(KindDayRecap, _dayRecapKeys, stoppingToken);
+                if (sent > 0) logger.LogInformation("Clan day recap posted to {Count} chats", sent);
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Clan day recap failed");
             }
         }
         while (await timer.WaitForNextTickAsync(stoppingToken));
@@ -223,6 +278,8 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
         (KindBriefing, _briefingKeys),
         (KindPerfectDay, _perfectDayKeys),
         (KindRespectDigest, _respectDigestKeys),
+        (KindMorningDigest, _morningDigestKeys),
+        (KindDayRecap, _dayRecapKeys),
     ];
 
     /// <summary>
