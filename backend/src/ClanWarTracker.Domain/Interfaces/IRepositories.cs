@@ -321,6 +321,12 @@ public interface ITournamentRepository
     /// </summary>
     Task<List<Tournament>> GetForAutoResultsAsync(CancellationToken ct = default);
 
+    /// <summary>Турнир по ключу виджетов OBS - с участниками и матчами.</summary>
+    Task<Tournament?> GetByOverlayKeyAsync(string key, CancellationToken ct = default);
+
+    /// <summary>Турниры создателя, новые первыми - для «Студии» блогера.</summary>
+    Task<List<Tournament>> GetByCreatorAsync(long creatorTelegramUserId, int limit, CancellationToken ct = default);
+
     /// <summary>История участия игрока: его записи участника с загруженным турниром, новые — первыми.</summary>
     Task<List<TournamentParticipant>> GetPlayerHistoryAsync(string playerTag, CancellationToken ct = default);
 

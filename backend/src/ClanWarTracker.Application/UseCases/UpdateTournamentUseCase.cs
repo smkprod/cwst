@@ -12,6 +12,7 @@ public class UpdateTournamentUseCase(ITournamentRepository tournaments)
         int tournamentId, long telegramUserId, string name, string? description, string? prizeInfo,
         string clanInviteLink, int bestOf, int? finalBestOf, int minParticipants, int maxParticipants,
         DateTime? startsAtUtc = null, bool autoResults = true, bool announceResults = true,
+        string? gameMode = null,
         CancellationToken ct = default)
     {
         var tournament = await tournaments.GetByIdAsync(tournamentId, ct);
@@ -37,6 +38,11 @@ public class UpdateTournamentUseCase(ITournamentRepository tournaments)
         // не дожидаясь конца. Уже проставленные счета при этом остаются.
         tournament.AutoResults = autoResults;
         tournament.AnnounceResults = announceResults;
+
+        // Режим можно поменять до конца турнира: договорились на стриме играть
+        // тройной эликсир - бот должен начать считать именно его.
+        tournament.GameMode = TournamentValidation.GameMode(gameMode);
+        tournament.OverlayKey ??= TournamentValidation.NewOverlayKey();
 
         // Дату начала двигают чаще всего остального: собрались не все, перенесли на
         // завтра. Разрешаем менять и стирать, но не назначать на прошлое — кроме

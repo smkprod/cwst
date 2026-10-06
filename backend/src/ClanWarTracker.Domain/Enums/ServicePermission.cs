@@ -46,6 +46,12 @@ public enum ServicePermission
     /// <summary>Менять настройки приложения: состав нижних вкладок и подобное.</summary>
     AppSettings = 512,
 
+    /// <summary>
+    /// Блогер: «Студия» - турниры и челленджи для своих зрителей и виджеты для OBS.
+    /// Панель владельца ему не нужна, только этот раздел.
+    /// </summary>
+    Creator = 1024,
+
     All = EnterClans | ManageClans | ChatAdmin | Plans | Broadcast
-        | DeleteClans | ManageModerators | Maintenance | Sponsors | AppSettings,
+        | DeleteClans | ManageModerators | Maintenance | Sponsors | AppSettings | Creator,
 }

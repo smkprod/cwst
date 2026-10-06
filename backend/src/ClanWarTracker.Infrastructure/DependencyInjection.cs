@@ -680,6 +680,13 @@ CREATE TABLE IF NOT EXISTS ""Duels"" (
     ""InlineMessageId"" varchar(128) NULL,
     ""Lang"" varchar(8) NULL
 );");
+        // Турниры для блогеров: режим дружеского боя и ключ виджетов OBS
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Tournaments\" ADD COLUMN IF NOT EXISTS \"GameMode\" varchar(24) NULL;");
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"Tournaments\" ADD COLUMN IF NOT EXISTS \"OverlayKey\" varchar(32) NULL;");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_Tournaments_OverlayKey\" ON \"Tournaments\" (\"OverlayKey\");");
         // Режим дружеского боя - добавлен позже таблицы
         await db.Database.ExecuteSqlRawAsync(
             "ALTER TABLE \"Duels\" ADD COLUMN IF NOT EXISTS \"Mode\" varchar(24) NULL;");
