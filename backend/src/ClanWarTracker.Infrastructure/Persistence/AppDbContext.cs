@@ -149,6 +149,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(x => x.CreatorName).HasMaxLength(64);
             e.Property(x => x.Title).HasMaxLength(60);
             e.Property(x => x.Prize).HasMaxLength(60);
+            e.Property(x => x.Rule).HasMaxLength(16);
             e.Ignore(x => x.EventId);
         });
 

@@ -75,6 +75,8 @@ export function ChallengeView({ code = null }: {
   }
 
   const ev = data.event
+  // Формат челленджа блогера; у общего уикенд-челленджа всегда билеты
+  const rule = ev.rule ?? 'tickets'
   const start = new Date(ev.startUtc).getTime()
   const end = new Date(ev.endUtc).getTime()
   // Статус с сервера может отстать на опрос — считаем по часам, чтобы таймер не уходил в минус
@@ -98,8 +100,10 @@ export function ChallengeView({ code = null }: {
             <span className="ch-prize mx-ch-prize"><Icon name="trophy" size={15} /> {ev.prize ?? s.defaultPrize}</span>
             <InfoButton className="mx-ch-info" title={ev.title ?? s.title}>
               <ul className="mx-ch-rules">
-                <li><span>{s.rule1}</span> <Icon name="ticket" size={15} /></li>
-                <li><span>{s.rule2}</span> <Icon name="ticket" size={15} /></li>
+                {rule === 'tickets' ? <>
+                  <li><span>{s.rule1}</span> <Icon name="ticket" size={15} /></li>
+                  <li><span>{s.rule2}</span> <Icon name="ticket" size={15} /></li>
+                </> : <li><span>{s.ruleDescs[rule]}</span> <Icon name="star" size={15} /></li>}
                 <li><span>{s.rule3}</span> <Icon name="trophy" size={15} /></li>
               </ul>
               <p className="muted small">{s.unofficial}</p>
@@ -145,7 +149,7 @@ export function ChallengeView({ code = null }: {
             </button>
           )}
         </section>
-      ) : data.me && <MyCard me={data.me} leader={data.leaders[0]?.tickets ?? 0} t={t} />}
+      ) : data.me && <MyCard me={data.me} leader={data.leaders[0]?.tickets ?? 0} rule={rule} t={t} />}
 
       <section className="card ch-board">
         <SectionHead className="mx-ch-board-head" icon="list" tone="gold" title={s.board} info={s.honest} aside={
@@ -207,7 +211,7 @@ function Countdown({ ms, t }: { ms: number; t: Translations }) {
 }
 
 /** Своя карточка: место, билеты (докручиваются и вспыхивают при прибавке), серия до бонуса. */
-function MyCard({ me, leader, t }: { me: ChallengeRow; leader: number; t: Translations }) {
+function MyCard({ me, leader, rule, t }: { me: ChallengeRow; leader: number; rule: string; t: Translations }) {
   const s = t.ch
   const prev = useRef(me.tickets)
   const [bump, setBump] = useState(false)
@@ -233,15 +237,16 @@ function MyCard({ me, leader, t }: { me: ChallengeRow; leader: number; t: Transl
       </div>
       <div className="ch-me-main">
         <div className="ch-me-tickets">
-          <span className="ch-ticket-ic mx-ch-ticket"><Icon name="ticket" size={26} /></span>
+          <span className="ch-ticket-ic mx-ch-ticket"><Icon name={rule === 'tickets' ? 'ticket' : 'star'} size={26} /></span>
           <b>{Math.round(shown)}</b>
-          <span className="muted small">{s.tickets}</span>
+          <span className="muted small">{rule === 'tickets' ? s.tickets : rule === 'streak' ? s.streakPoints : s.points}</span>
         </div>
         <span className="muted small">{s.you} · {s.wl.replace('{w}', String(me.wins)).replace('{l}', String(me.losses))}</span>
         <div className="ch-streak">
           {[0, 1, 2].map(i => <i key={i} className={`ch-streak-dot ${i < inStreak ? 'ch-streak-on' : ''}`} />)}
           <span className="small">{me.streak > 0 ? s.streak.replace('{n}', String(me.streak)) : ''}</span>
-          <span className="muted small">{s.nextBonus.replace('{n}', String(toBonus))}</span>
+          {/* «До бонуса» есть только у билетов: в остальных форматах серия бонуса не даёт */}
+          {rule === 'tickets' && <span className="muted small">{s.nextBonus.replace('{n}', String(toBonus))}</span>}
         </div>
         {leader > 0 && (
           <span className="ch-me-bar"><span style={{ width: `${Math.min(100, (me.tickets / leader) * 100)}%` }} /></span>

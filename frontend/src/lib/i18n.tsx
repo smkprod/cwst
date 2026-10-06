@@ -125,6 +125,10 @@ const ru = {
   },
 
   ch: {
+    ruleNames: { tickets: 'Билеты', wins: 'Победы', threecrowns: 'Три короны', flawless: 'Без потери башни', streak: 'Лучшая серия', pol: 'Путь легенд' } as Record<string, string>,
+    ruleDescs: { tickets: 'Победа — 1 билет, каждая третья победа подряд — 2.', wins: 'Каждая победа в ладдере или Пути легенд — 1 очко.', threecrowns: 'Очко только за победу с тремя коронами.', flawless: 'Очко только за победу, в которой ты не потерял ни одной башни.', streak: 'Счёт — твоя лучшая серия побед подряд за челлендж.', pol: 'Очко за каждую победу только на Пути легенд.' } as Record<string, string>,
+    points: 'очков',
+    streakPoints: 'серия',
     promoBadge: 'Скидка до {date}',
     chGiftOn: 'Тебе Плюс в подарок до конца челленджа: Стоп-тильт бережёт твои билеты — остановит, пока серия поражений не сожгла вечер.',
     chPlusPitch: 'Стоп-тильт бережёт билеты: напишет «стоп» посреди серии поражений, пока ты не слил вечер. А полный разбор покажет, кому ты проигрываешь.',
@@ -1729,6 +1733,8 @@ const ru = {
     chObs: 'Таблица для OBS',
     chParticipants: '{n} участн.',
     chStatus: { upcoming: 'Скоро', live: 'Идёт', ended: 'Завершён' } as Record<string, string>,
+    chRuleLabel: 'Формат',
+    chRuleLocked: 'Формат нельзя менять после старта.',
     chErr: {
       bad_title: 'Укажи название — до 60 символов.',
       bad_dates: 'Проверь даты: конец позже начала, не в прошлом и не дольше 14 дней.',
@@ -1883,6 +1889,10 @@ const uk: Translations = {
   },
 
   ch: {
+    ruleNames: { tickets: 'Квитки', wins: 'Перемоги', threecrowns: 'Три корони', flawless: 'Без втрати башти', streak: 'Найкраща серія', pol: 'Шлях легенд' } as Record<string, string>,
+    ruleDescs: { tickets: 'Перемога — 1 квиток, кожна третя перемога поспіль — 2.', wins: 'Кожна перемога в ладері або Шляху легенд — 1 очко.', threecrowns: 'Очко лише за перемогу з трьома коронами.', flawless: 'Очко лише за перемогу, в якій ти не втратив жодної башти.', streak: 'Рахунок — твоя найкраща серія перемог поспіль за челендж.', pol: 'Очко за кожну перемогу лише на Шляху легенд.' } as Record<string, string>,
+    points: 'очок',
+    streakPoints: 'серія',
     promoBadge: 'Знижка до {date}',
     chGiftOn: 'Тобі Плюс у подарунок до кінця челенджу: Стоп-тільт береже твої квитки — зупинить, поки серія поразок не спалила вечір.',
     chPlusPitch: 'Стоп-тільт береже квитки: напише «стоп» посеред серії поразок, поки ти не злив вечір. А повний розбір покаже, кому ти програєш.',
@@ -3485,6 +3495,8 @@ const uk: Translations = {
     chObs: 'Таблиця для OBS',
     chParticipants: '{n} учасн.',
     chStatus: { upcoming: 'Скоро', live: 'Триває', ended: 'Завершено' } as Record<string, string>,
+    chRuleLabel: 'Формат',
+    chRuleLocked: 'Формат не можна змінити після старту.',
     chErr: {
       bad_title: 'Вкажи назву — до 60 символів.',
       bad_dates: 'Перевір дати: кінець пізніше за початок, не в минулому й не довше 14 днів.',
@@ -3637,6 +3649,10 @@ const en: Translations = {
   },
 
   ch: {
+    ruleNames: { tickets: 'Tickets', wins: 'Wins', threecrowns: 'Three crowns', flawless: 'No tower lost', streak: 'Best streak', pol: 'Path of Legends' } as Record<string, string>,
+    ruleDescs: { tickets: 'A win is 1 ticket, every third win in a row is 2.', wins: 'Every win in ladder or Path of Legends is 1 point.', threecrowns: 'A point only for a three-crown win.', flawless: 'A point only for a win where you lost no tower.', streak: 'Your score is your best win streak during the challenge.', pol: 'A point for every win in Path of Legends only.' } as Record<string, string>,
+    points: 'points',
+    streakPoints: 'streak',
     promoBadge: 'Discount until {date}',
     chGiftOn: 'Plus is a gift for you until the challenge ends: Stop-tilt protects your tickets — it stops you before a losing streak burns the evening.',
     chPlusPitch: 'Stop-tilt protects your tickets: it says «stop» mid-streak, before you throw the evening away. And the full review shows who you lose to.',
@@ -5239,6 +5255,8 @@ const en: Translations = {
     chObs: 'OBS table',
     chParticipants: '{n} joined',
     chStatus: { upcoming: 'Soon', live: 'Live', ended: 'Ended' } as Record<string, string>,
+    chRuleLabel: 'Format',
+    chRuleLocked: 'The format can’t change after the start.',
     chErr: {
       bad_title: 'Enter a title — up to 60 characters.',
       bad_dates: 'Check the dates: end after start, not in the past and no longer than 14 days.',
