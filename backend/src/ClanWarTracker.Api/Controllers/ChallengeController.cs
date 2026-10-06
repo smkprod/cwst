@@ -17,6 +17,14 @@ public class ChallengeController(ChallengeUseCase challenge) : ControllerBase
         return dto is null ? NotFound(new { error = "challenge_not_found" }) : Ok(dto);
     }
 
+    /// <summary>GET /api/challenge/creators — челленджи стримеров: идущие, будущие и вчерашние.</summary>
+    [HttpGet("creators")]
+    public async Task<IActionResult> Creators(CancellationToken ct)
+    {
+        var userId = (long)HttpContext.Items["TelegramUserId"]!;
+        return Ok(await challenge.CreatorListAsync(userId, ct));
+    }
+
     /// <summary>POST /api/challenge/join?code= — присоединиться. Нужен привязанный тег.</summary>
     [HttpPost("join")]
     public async Task<IActionResult> Join([FromQuery] string? code, CancellationToken ct)

@@ -16,6 +16,13 @@ public class CreatorChallengeRepository(AppDbContext db) : ICreatorChallengeRepo
             .Take(30)
             .ToListAsync(ct);
 
+    public Task<List<CreatorChallenge>> GetVisibleAsync(DateTime endedAfterUtc, int limit, CancellationToken ct = default) =>
+        db.CreatorChallenges.AsNoTracking()
+            .Where(c => c.EndUtc >= endedAfterUtc)
+            .OrderBy(c => c.StartUtc)
+            .Take(limit)
+            .ToListAsync(ct);
+
     public Task<List<CreatorChallenge>> GetRunningAsync(DateTime nowUtc, TimeSpan grace, CancellationToken ct = default)
     {
         var endedAfter = nowUtc - grace;
