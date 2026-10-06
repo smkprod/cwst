@@ -4,7 +4,7 @@ import type { Challenge } from '../types'
 import { Icon } from '../components/ui/Icon'
 import { useFlip, useNow } from './data'
 
-/** Таблица уикенд-челленджа, 520×720: приз, обратный отсчёт и топ-10 по билетам. */
+/** Таблица челленджа (общего или блогера), 520×720: приз, обратный отсчёт и топ-10 по билетам. */
 export function ChallengeWidget({ data, t }: { data: Challenge; t: Translations }) {
   const now = useNow()
   const ev = data.event
@@ -24,6 +24,8 @@ export function ChallengeWidget({ data, t }: { data: Challenge; t: Translations 
         <div className="ov-head-text">
           <div className="ov-head-title">{ev.title || t.ch.title}</div>
           <div className="ov-board-meta"><Icon name="gift" size={15} /> {ev.prize || t.ch.defaultPrize}</div>
+          {/* У челленджа блогера зрителю важно, чей он: в эфир может попасть и общий */}
+          {ev.host && <div className="ov-board-meta ov-ch-host"><Icon name="user" size={15} /> {t.ch.host.replace('{name}', ev.host)}</div>}
         </div>
       </div>
 

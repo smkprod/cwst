@@ -31,11 +31,20 @@ export const TOURNAMENT_WIDGETS = WIDGETS.filter(w => w.scope === 'tournament')
 export const PERSONAL_WIDGETS = WIDGETS.filter(w => w.scope === 'personal')
 
 /**
+ * Что стоит в ссылке: k — секретный ключ (турнира или личный), c — код челленджа
+ * блогера. Код не секрет — он и так в ссылке для зрителей, — поэтому отдельный параметр.
+ */
+export type OverlayParam = 'k' | 'c'
+
+/** Виджет таблицы для челленджа блогера: тот же, что у общего, только по коду. */
+export const CHALLENGE_WIDGET = WIDGETS.find(w => w.id === 'challenge')!
+
+/**
  * Язык в ссылку кладём, только если он не русский: русский — язык виджета по
  * умолчанию, и короткую ссылку проще проверить глазами в настройках OBS.
  */
-export function overlayUrl(widget: OverlayWidget, key: string, lang?: string): string {
-  const q = new URLSearchParams({ w: widget, k: key })
+export function overlayUrl(widget: OverlayWidget, key: string, lang?: string, param: OverlayParam = 'k'): string {
+  const q = new URLSearchParams({ w: widget, [param]: key })
   if (lang && lang !== 'ru') q.set('lang', lang)
   return `${window.location.origin}/overlay.html?${q}`
 }

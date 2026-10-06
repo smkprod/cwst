@@ -25,18 +25,24 @@ type Widget = keyof typeof SIZES
 
 const isWidget = (w: string | null): w is Widget => w !== null && w in SIZES
 
-export function Overlay({ widget, k, t }: { widget: string | null; k: string | null; t: Translations }) {
+export function Overlay({ widget, k, c, t }: { widget: string | null; k: string | null; c?: string | null; t: Translations }) {
+  // Челлендж блогера адресуется кодом, а не ключом: код и так открыт в ссылке для
+  // зрителей, и прятать его за личный ключ незачем.
+  if (widget === 'challenge' && c && /^[a-z0-9]{4,64}$/i.test(c)) return <Live widget="challenge" path={`/api/overlay/c/${encodeURIComponent(c)}`} t={t} />
   // Битую ссылку показываем той же плашкой, что и неизвестный ключ: блогеру в обоих
   // случаях нужно одно — заново скопировать ссылку из Студии.
   if (!isWidget(widget) || !k || !/^[a-z0-9]{8,64}$/i.test(k)) return <Missing t={t} />
-  return <Live widget={widget} k={k} t={t} />
+  return <Live widget={widget} path={keyPath(widget, k)} t={t} />
 }
 
-function Live({ widget, k, t }: { widget: Widget; k: string; t: Translations }) {
+function keyPath(widget: Widget, k: string): string {
   const scope = widget === 'league' || widget === 'challenge' ? 's' : 't'
-  const path = scope === 't'
+  return scope === 't'
     ? `/api/overlay/t/${encodeURIComponent(k)}`
     : `/api/overlay/s/${encodeURIComponent(k)}/${widget}${widget === 'league' ? '?limit=10' : ''}`
+}
+
+function Live({ widget, path, t }: { widget: Widget; path: string; t: Translations }) {
   const poll = usePoll<unknown>(path)
 
   // Плашка «не найден» — вне масштабируемой сцены: это служебное сообщение для

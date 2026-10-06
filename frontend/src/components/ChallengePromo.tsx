@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
 import type { Challenge } from '../types'
-import { haptic, initData, startParam } from '../lib/telegram'
+import { haptic, initData, startChallengeCode, startParam } from '../lib/telegram'
 import { useT } from '../lib/i18n'
 import { openChallenge, promoDone } from '../lib/promo'
 import { Icon } from './ui/Icon'
@@ -20,8 +20,10 @@ export function ChallengePromo() {
   const [now, setNow] = useState(() => Date.now())
 
   useEffect(() => {
-    // Вне Telegram, или пришёл по ссылке прямо на челлендж — анонс не нужен
-    if (!initData || startParam === 'challenge') { promoDone(); return }
+    // Вне Telegram, или пришёл по ссылке прямо на челлендж — анонс не нужен. Тем
+    // более по ссылке на челлендж блогера: зазывать его зрителя в общий — уводить
+    // со стрима, ради которого он открыл приложение.
+    if (!initData || startParam === 'challenge' || startChallengeCode) { promoDone(); return }
     let alive = true
     const id = window.setTimeout(() => {
       api.getChallenge()

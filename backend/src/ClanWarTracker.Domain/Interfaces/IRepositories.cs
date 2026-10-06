@@ -539,3 +539,17 @@ public interface IDuelRepository
 
     Task SaveChangesAsync(CancellationToken ct = default);
 }
+
+/// <summary>Челленджи блогеров.</summary>
+public interface ICreatorChallengeRepository
+{
+    Task<CreatorChallenge?> GetByCodeAsync(string code, CancellationToken ct = default);
+    Task<List<CreatorChallenge>> GetByCreatorAsync(long creatorTelegramUserId, CancellationToken ct = default);
+
+    /// <summary>Идут сейчас (с запасом после конца - добрать последние бои).</summary>
+    Task<List<CreatorChallenge>> GetRunningAsync(DateTime nowUtc, TimeSpan grace, CancellationToken ct = default);
+
+    Task AddAsync(CreatorChallenge challenge, CancellationToken ct = default);
+    Task DeleteAsync(CreatorChallenge challenge, CancellationToken ct = default);
+    Task SaveChangesAsync(CancellationToken ct = default);
+}

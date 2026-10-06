@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Icon, type IconName } from './ui/Icon'
 import { SectionHead } from './ui/Section'
 import { api } from '../lib/api'
-import type { ClanOverview, PlayerProfile } from '../types'
+import type { AppConfig, ClanOverview, PlayerProfile } from '../types'
 import { useT } from '../lib/i18n'
 import { haptic, shareToTelegram, botStartLink } from '../lib/telegram'
 import { useBotUsername } from '../lib/botUsername'
@@ -11,15 +11,14 @@ import { PlayerSearchView } from './PlayerSearchView'
 import { TopPlayersTeaser } from './TopPlayersTeaser'
 import { RegionTopCard } from './RegionTopCard'
 import { BotTourCard } from './BotTourCard'
-import { ChallengeView } from './ChallengeView'
+import { ChallengeView, CreatorChallengeScreen } from './ChallengeView'
 import { DuelView } from './DuelView'
 import { OPEN_CHALLENGE } from '../lib/promo'
 import { MyStatsView, type BattlesView, type MeSection } from './MyStatsView'
 import { WorldTopView } from './WorldTopView'
 import { MoreView } from './MoreView'
-import { StudioView } from './StudioView'
 
-export type SoloTab = 'me' | 'meta' | 'clan' | 'search' | 'more' | 'challenge' | 'duel' | 'studio'
+export type SoloTab = 'me' | 'meta' | 'clan' | 'search' | 'more' | 'challenge' | 'duel' | 'creatorChallenge'
 
 /** Почему у игрока нет экрана войны: клан не подключён или у подключённого нет войны. */
 export type SoloReason = 'noClan' | 'noWar'
@@ -32,7 +31,7 @@ export type SoloReason = 'noClan' | 'noWar'
  * Теперь это то же приложение для игрока: разбор своих боёв первым, мета топа,
  * поиск, «Ещё» с языком и Плюсом. Клан — одна из вкладок, а не условие входа.
  */
-export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection = 'battles', battlesView = 'history', openMatchId = null, showChallenge = false, showDuel = false, showStudio = false }: {
+export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection = 'battles', battlesView = 'history', openMatchId = null, showChallenge = false, showDuel = false, showStudio = false, challengeCode = null, config = null, onConfigChanged }: {
   reason?: SoloReason
   initialTab?: SoloTab
   meSection?: MeSection
@@ -42,8 +41,13 @@ export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection =
   showChallenge?: boolean
   /** Вкладка лиги дуэлей - по тому же выбору владельца. */
   showDuel?: boolean
-  /** «Студия» блогера — по праву, а не по выбору владельца. Клан блогеру не обязателен. */
+  /** «Студия» блогера — по праву, а не по выбору владельца. Клан блогеру не обязателен. Живёт в «Ещё». */
   showStudio?: boolean
+  /** Челлендж блогера из ссылки со стрима (startapp=ch_<код>) — экран initialTab='creatorChallenge'. */
+  challengeCode?: string | null
+  /** Для Аллеи славы в «Ещё». */
+  config?: AppConfig | null
+  onConfigChanged?: () => void
 } = {}) {
   const { t } = useT()
   const botUsername = useBotUsername()
@@ -102,7 +106,6 @@ export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection =
     ...(showDuel ? [{ id: 'duel' as SoloTab, icon: 'swords' as IconName, label: t.tabs.duel }] : []),
     { id: 'clan', icon: 'castle' as IconName, label: t.clanless.tabClan },
     { id: 'search', icon: 'search' as IconName, label: t.tabs.search },
-    ...(showStudio ? [{ id: 'studio' as SoloTab, icon: 'rocket' as IconName, label: t.tabs.studio }] : []),
     { id: 'more', icon: 'gear' as IconName, label: t.tabs.more },
   ]
 
@@ -161,9 +164,12 @@ export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection =
         )}
 
         {tab === 'search' && <div className="fade-in"><PlayerSearchView /></div>}
-        {tab === 'studio' && showStudio && <StudioView />}
+        {tab === 'creatorChallenge' && challengeCode && (
+          <CreatorChallengeScreen code={challengeCode} onBack={() => switchTab('me')} />
+        )}
         {tab === 'more' && (
-          <MoreView canManage={false} isLeader={false} onOpenNotifications={() => { /* уведомления — у клана */ }} />
+          <MoreView canManage={false} isLeader={false} onOpenNotifications={() => { /* уведомления — у клана */ }}
+            config={config} onConfigChanged={onConfigChanged} showStudio={showStudio} />
         )}
       </main>
 

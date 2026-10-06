@@ -24,6 +24,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<MetaBattle> MetaBattles => Set<MetaBattle>();
     public DbSet<ChallengeEntry> ChallengeEntries => Set<ChallengeEntry>();
     public DbSet<DuelProfile> DuelProfiles => Set<DuelProfile>();
+    public DbSet<CreatorChallenge> CreatorChallenges => Set<CreatorChallenge>();
     public DbSet<Duel> Duels => Set<Duel>();
     public DbSet<PlayerBattle> PlayerBattles => Set<PlayerBattle>();
     public DbSet<Entitlement> Entitlements => Set<Entitlement>();
@@ -138,6 +139,17 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(x => x.EventId).HasMaxLength(32);
             e.Property(x => x.PlayerTag).HasMaxLength(16);
             e.Property(x => x.Name).HasMaxLength(64);
+        });
+
+        mb.Entity<CreatorChallenge>(e =>
+        {
+            e.HasIndex(x => x.Code).IsUnique();
+            e.HasIndex(x => x.CreatorTelegramUserId);
+            e.Property(x => x.Code).HasMaxLength(16);
+            e.Property(x => x.CreatorName).HasMaxLength(64);
+            e.Property(x => x.Title).HasMaxLength(60);
+            e.Property(x => x.Prize).HasMaxLength(60);
+            e.Ignore(x => x.EventId);
         });
 
         mb.Entity<DuelProfile>(e =>

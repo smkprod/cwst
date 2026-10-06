@@ -78,6 +78,7 @@ public static class DependencyInjection
         services.AddScoped<IMetaRepository, MetaRepository>();
         services.AddScoped<IChallengeRepository, ChallengeRepository>();
         services.AddScoped<IDuelRepository, DuelRepository>();
+        services.AddScoped<ICreatorChallengeRepository, CreatorChallengeRepository>();
         services.AddScoped<IPlayerBattleRepository, PlayerBattleRepository>();
         services.AddScoped<IEntitlementRepository, EntitlementRepository>();
         services.AddScoped<IPlayerAlertPrefsRepository, PlayerAlertPrefsRepository>();
@@ -632,6 +633,24 @@ CREATE TABLE IF NOT EXISTS ""ChallengeEntries"" (
 );");
         await db.Database.ExecuteSqlRawAsync(
             "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_ChallengeEntries_EventId_TelegramUserId\" ON \"ChallengeEntries\" (\"EventId\", \"TelegramUserId\");");
+
+        // Челленджи блогеров для своих зрителей
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""CreatorChallenges"" (
+    ""Id"" serial PRIMARY KEY,
+    ""Code"" varchar(16) NOT NULL,
+    ""CreatorTelegramUserId"" bigint NOT NULL,
+    ""CreatorName"" varchar(64) NOT NULL,
+    ""Title"" varchar(60) NOT NULL,
+    ""Prize"" varchar(60) NULL,
+    ""StartUtc"" timestamptz NOT NULL,
+    ""EndUtc"" timestamptz NOT NULL,
+    ""CreatedUtc"" timestamptz NOT NULL
+);");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_CreatorChallenges_Code\" ON \"CreatorChallenges\" (\"Code\");");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_CreatorChallenges_CreatorTelegramUserId\" ON \"CreatorChallenges\" (\"CreatorTelegramUserId\");");
 
         // Лига дуэлей 1х1: профили с рейтингом и принятые вызовы.
         await db.Database.ExecuteSqlRawAsync(@"

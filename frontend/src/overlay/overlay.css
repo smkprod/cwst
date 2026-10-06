@@ -304,3 +304,6 @@ html.ov-preview {
 @keyframes ov-champ { from { transform: translateY(-50%) scale(0.6); opacity: 0; } }
 @keyframes ov-crown { from { transform: scale(0.6) rotate(-12deg); opacity: 0; } }
 @keyframes ov-turn { 0%, 40% { transform: rotate(0); } 60%, 100% { transform: rotate(180deg); } }
+
+/* «Проводит …» у челленджа блогера — тише приза: приз зрителю важнее, чем чей он */
+.ov-ch-host { margin-top: 2px; font-size: 14px; font-weight: 700; color: rgba(255, 255, 255, 0.5); }

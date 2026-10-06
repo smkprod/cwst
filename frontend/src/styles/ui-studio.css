@@ -93,3 +93,37 @@
 
 /* Виджеты в карточке своего турнира */
 .st-detail-obs { margin-top: 12px; }
+
+/* «Мои челленджи»: у каждого — своя ссылка для зрителей и виджет, поэтому карточка
+   крупнее строки турнира, а не строка списка. */
+.stc-create { width: 100%; }
+.stc-empty { margin-top: 10px; }
+.stc-rules { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+.stc-list { display: grid; gap: 10px; margin-top: 12px; }
+.stc-item { display: grid; gap: 10px; padding: 12px; border-radius: 16px;
+  background: var(--ui-surface); border: 1px solid var(--ui-line); }
+.stc-item-off { opacity: 0.7; }
+.stc-item-editing { border-color: var(--accent); }
+.stc-top { display: grid; gap: 6px; min-width: 0; }
+.stc-period { display: inline-flex; align-items: center; gap: 5px; }
+.stc-link { display: grid; gap: 8px; }
+.stc-link-head { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 800;
+  letter-spacing: 0.4px; text-transform: uppercase; color: var(--muted); }
+.stc-link-val { display: block; padding: 8px 10px; border-radius: 10px; font-size: 12.5px;
+  background: rgba(0, 0, 0, 0.25); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stc-item .st-widgets { margin: 0; }
+.stc-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.stc-actions .btn-mini { display: inline-flex; align-items: center; gap: 5px; }
+
+.stc-form { display: grid; gap: 4px; padding: 12px; border-radius: 16px;
+  background: var(--ui-surface); border: 1px solid var(--accent); }
+.stc-form-title { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 4px;
+  font-size: 14px; font-weight: 800; }
+.stc-form .search-input { width: 100%; }
+.stc-duration { display: inline-flex; align-items: center; gap: 5px; margin: 2px 0 0; }
+.stc-duration-bad { color: #ff7a76; }
+/* Виджет внутри карточки челленджа — без своей рамки: коробка в коробке в коробке
+   съедала ширину, и «Копировать ссылку» ломалась на две строки */
+.stc-item .st-widget { padding: 10px 0 0; border: none; border-top: 1px solid var(--ui-line);
+  border-radius: 0; background: none; }
+.stc-item .st-widget-actions .ui-btn { white-space: nowrap; }

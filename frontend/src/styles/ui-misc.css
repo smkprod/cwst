@@ -48,6 +48,9 @@
 .mx-ch-hero-aside { display: inline-flex; align-items: center; gap: 8px; }
 .mx-ch-prize { display: inline-flex; align-items: center; gap: 6px; }
 .mx-ch-info { border-color: rgba(255, 255, 255, 0.25); background: rgba(0, 0, 0, 0.28); color: #fff; }
+/* «Проводит …» под названием челленджа блогера: зритель должен видеть, чей это челлендж */
+.ch-host { position: relative; display: inline-flex; align-items: center; gap: 6px; margin: -2px 0 0;
+  font-size: 13px; font-weight: 700; opacity: 0.85; }
 .mx-ch-rules { list-style: none; padding: 0 !important; }
 .mx-ch-rules li { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 12px;
   background: rgba(255, 255, 255, 0.05); font-weight: 600; }

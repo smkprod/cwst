@@ -21,18 +21,23 @@ const IDLE_POLL = 60_000
  * бот считает сам по журналу боёв, поэтому таблица меняется прямо во время игры:
  * сыграл — открыл — твоя строка уже выросла.
  */
-export function ChallengeView() {
+export function ChallengeView({ code = null }: {
+  /** Код челленджа блогера (ссылка со стрима). Без кода — общий уикенд-челлендж. */
+  code?: string | null
+} = {}) {
   const { t } = useT()
   const s = t.ch
   const openPlus = usePlusSheet()
   const [data, setData] = useState<Challenge | null>(null)
-  const [error, setError] = useState(false)
+  const [error, setError] = useState<'load' | 'missing' | null>(null)
   const [joining, setJoining] = useState(false)
   const [now, setNow] = useState(() => Date.now())
 
   const load = useCallback(() => {
-    api.getChallenge().then(d => { setData(d); setError(false) }).catch(() => setError(true))
-  }, [])
+    api.getChallenge(code).then(d => { setData(d); setError(null) })
+      // Блогер удалил челлендж — это не сбой сети, и «попробуй позже» тут соврало бы
+      .catch(e => setError(e instanceof ApiError && e.code === 'challenge_not_found' ? 'missing' : 'load'))
+  }, [code])
   useEffect(load, [load])
 
   // Живой опрос: чаще, пока идёт, и только когда страница на экране
@@ -52,11 +57,12 @@ export function ChallengeView() {
     haptic('medium')
     setJoining(true)
     try {
-      setData(await api.joinChallenge())
+      setData(await api.joinChallenge(code))
       hapticNotify('success')
     } catch (e) {
       hapticNotify('error')
       if (e instanceof ApiError && e.status === 409) load()
+      else if (e instanceof ApiError && e.code === 'challenge_not_found') { setData(null); setError('missing') }
     } finally {
       setJoining(false)
     }
@@ -64,7 +70,7 @@ export function ChallengeView() {
 
   if (!data) {
     return error
-      ? <p className="center muted" style={{ marginTop: 24 }}>{t.trk.loadError}</p>
+      ? <p className="center muted" style={{ marginTop: 24 }}>{error === 'missing' ? s.notFound : t.trk.loadError}</p>
       : <div className="center"><div className="spinner" /></div>
   }
 
@@ -75,6 +81,9 @@ export function ChallengeView() {
   const status = now < start ? 'upcoming' : now <= end ? 'live' : 'ended'
   const target = status === 'upcoming' ? start : end
   const winner = status === 'ended' ? data.leaders[0] : null
+  // Плюс в подарок и его реклама — часть только общего события: у блогера свой
+  // приз и свои зрители, и чужое предложение посреди его челленджа было бы лишним.
+  const isCreator = Boolean(ev.code)
 
   return (
     <div className="fade-in ch">
@@ -98,6 +107,7 @@ export function ChallengeView() {
           </span>
         </div>
         <h2 className="ch-title">{ev.title ?? s.title}</h2>
+        {ev.host && <p className="ch-host"><Icon name="user" size={14} /> {s.host.replace('{name}', ev.host)}</p>}
         {status !== 'ended' ? (
           <>
             <span className="ch-count-label">{status === 'upcoming' ? s.startsIn : s.endsIn}</span>
@@ -111,7 +121,7 @@ export function ChallengeView() {
         </div>
       </section>
 
-      {status !== 'ended' && (
+      {status !== 'ended' && !isCreator && (
         ev.giftPlus && data.joined
           ? <section className="card ch-plus ch-plus-gift">{s.chGiftOn}</section>
           : (
@@ -148,6 +158,22 @@ export function ChallengeView() {
           ? <p className="muted small" style={{ margin: '8px 0 0' }}>{s.empty}</p>
           : <Board rows={data.leaders} me={data.me} />}
       </section>
+    </div>
+  )
+}
+
+/**
+ * Челлендж блогера, открытый по ссылке со стрима, — отдельным экраном поверх
+ * вкладок: зритель пришёл за ним, но должен и вернуться в обычное приложение.
+ */
+export function CreatorChallengeScreen({ code, onBack }: { code: string; onBack: () => void }) {
+  const { t } = useT()
+  return (
+    <div className="fade-in">
+      <button className="btn-mini more-back" onClick={() => { haptic('light'); onBack() }}>
+        <Icon name="chevronLeft" size={15} /> {t.ch.toApp}
+      </button>
+      <ChallengeView code={code} />
     </div>
   )
 }
