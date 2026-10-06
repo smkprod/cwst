@@ -27,7 +27,8 @@ public class ChallengeUseCase(
     ITiltAlertRepository alerts,
     IClanRepository clans,
     INotificationSender sender,
-    ICreatorChallengeRepository creatorChallenges)
+    ICreatorChallengeRepository creatorChallenges,
+    IClashRoyaleApi crApi)
 {
     public const string SettingKey = "challenge.event";
 
@@ -97,7 +98,8 @@ public class ChallengeUseCase(
     /// наиграть с другом. Поражение билет не отнимает, но обрывает серию.
     /// </summary>
     /// <param name="rule">Формат челленджа (ChallengeRules); null - билеты.</param>
-    public static Score Compute(IEnumerable<PlayerBattle> list, string? rule = null)
+    /// <param name="deckElixir">Средний эликсир колоды по её ключу - нужен формату «тяжёлая колода».</param>
+    public static Score Compute(IEnumerable<PlayerBattle> list, string? rule = null, Func<string, double?>? deckElixir = null)
     {
         rule = ChallengeRules.Normalize(rule);
         int tickets = 0, wins = 0, losses = 0, streak = 0, best = 0;
@@ -106,7 +108,6 @@ public class ChallengeUseCase(
         {
             var mode = MatchReport.ModeKey(b.Type);
             if (mode is not ("ladder" or "pol")) continue;
-            if (rule == ChallengeRules.PathOfLegends && mode != "pol") continue;
             if (b.Result > 0)
             {
                 wins++;
@@ -121,6 +122,10 @@ public class ChallengeUseCase(
                     ChallengeRules.Flawless => b.CrownsAgainst == 0 ? 1 : 0,
                     // Счёт - сама лучшая серия: растёт, только когда серия её побила
                     ChallengeRules.Streak => best - before,
+                    // Неизвестная стоимость (карты нет в справочнике) - не засчитываем: лучше
+                    // пропустить, чем дать очко колоде, которую не смогли проверить
+                    ChallengeRules.Heavy => deckElixir?.Invoke(b.DeckKey) is double avg
+                                            && avg > ChallengeRules.HeavyMinAvgElixir ? 1 : 0,
                     _ => 1,
                 };
                 tickets += points;
@@ -369,6 +374,7 @@ public class ChallengeUseCase(
         if (BoardCache.TryGetValue(e.Id, out var cached) && DateTime.UtcNow - cached.BuiltUtc < BoardTtl) return cached;
 
         var list = await entries.GetEntriesAsync(e.Id, ct);
+        var deckElixir = ChallengeRules.Normalize(e.Rule) == ChallengeRules.Heavy ? await DeckElixirAsync(ct) : null;
         var tags = list.Select(x => x.PlayerTag).Distinct().ToList();
         List<PlayerBattle> all = tags.Count == 0 ? [] : await battles.GetForTagsBetweenAsync(tags, e.StartUtc, e.EndUtc, ct);
         var byTag = all.GroupBy(b => b.PlayerTag).ToDictionary(g => g.Key, g => g.ToList());
@@ -378,7 +384,7 @@ public class ChallengeUseCase(
             {
                 var from = x.JoinedUtc > e.StartUtc ? x.JoinedUtc : e.StartUtc;
                 var mineBattles = byTag.GetValueOrDefault(x.PlayerTag) ?? [];
-                return (Entry: x, Score: Compute(mineBattles.Where(b => b.BattleTimeUtc >= from), e.Rule));
+                return (Entry: x, Score: Compute(mineBattles.Where(b => b.BattleTimeUtc >= from), e.Rule, deckElixir));
             })
             // Больше билетов; поровну - больше побед; поровну - кто набрал раньше
             .OrderByDescending(s => s.Score.Tickets)
@@ -394,6 +400,28 @@ public class ChallengeUseCase(
         var board = new Board(DateTime.UtcNow, rows);
         BoardCache[e.Id] = board;
         return board;
+    }
+
+    /// <summary>
+    /// Средний эликсир колоды по ключу (id карт, эволюция - с минусом). null - справочник
+    /// недоступен или в колоде карта, которой в нём нет.
+    /// </summary>
+    private async Task<Func<string, double?>?> DeckElixirAsync(CancellationToken ct)
+    {
+        var catalog = await GetMetaDecksUseCase.SafeCatalogAsync(crApi, ct);
+        if (catalog.Count == 0) return null;
+        return deckKey =>
+        {
+            var keys = MetaCard.ParseDeckKey(deckKey);
+            if (keys.Length == 0) return null;
+            var total = 0;
+            foreach (var k in keys)
+            {
+                if (!catalog.TryGetValue(Math.Abs(k), out var card) || card.ElixirCost <= 0) return null;
+                total += card.ElixirCost;
+            }
+            return (double)total / keys.Length;
+        };
     }
 
     /// <summary>Когда журнал участника читали последний раз - чтобы идти по кругу, а не читать всех разом.</summary>

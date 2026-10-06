@@ -21,11 +21,10 @@ type FormState = { edit: StudioChallenge | null } | null
 /** Форматы челленджа (ChallengeRules на сервере) и их иконки. Порядок — как в выборе. */
 const RULES: { key: string; icon: IconName }[] = [
   { key: 'tickets', icon: 'ticket' },
-  { key: 'wins', icon: 'trophy' },
   { key: 'threecrowns', icon: 'crown' },
   { key: 'flawless', icon: 'shieldCheck' },
   { key: 'streak', icon: 'flame' },
-  { key: 'pol', icon: 'medal' },
+  { key: 'heavy', icon: 'droplet' },
 ]
 
 /**

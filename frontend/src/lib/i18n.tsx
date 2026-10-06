@@ -125,8 +125,8 @@ const ru = {
   },
 
   ch: {
-    ruleNames: { tickets: 'Билеты', wins: 'Победы', threecrowns: 'Три короны', flawless: 'Без потери башни', streak: 'Лучшая серия', pol: 'Путь легенд' } as Record<string, string>,
-    ruleDescs: { tickets: 'Победа — 1 билет, каждая третья победа подряд — 2.', wins: 'Каждая победа в ладдере или Пути легенд — 1 очко.', threecrowns: 'Очко только за победу с тремя коронами.', flawless: 'Очко только за победу, в которой ты не потерял ни одной башни.', streak: 'Счёт — твоя лучшая серия побед подряд за челлендж.', pol: 'Очко за каждую победу только на Пути легенд.' } as Record<string, string>,
+    ruleNames: { tickets: 'Билеты', threecrowns: 'Три короны', flawless: 'Без потери башни', streak: 'Лучшая серия', heavy: 'Тяжёлая колода' } as Record<string, string>,
+    ruleDescs: { tickets: 'Победа — 1 билет, каждая третья победа подряд — 2.', threecrowns: 'Очко только за победу с тремя коронами.', flawless: 'Очко только за победу, в которой ты не потерял ни одной башни.', streak: 'Счёт — твоя лучшая серия побед подряд за челлендж.', heavy: 'Очко за победу колодой со средним эликсиром больше 7.' } as Record<string, string>,
     points: 'очков',
     streakPoints: 'серия',
     promoBadge: 'Скидка до {date}',
@@ -1889,8 +1889,8 @@ const uk: Translations = {
   },
 
   ch: {
-    ruleNames: { tickets: 'Квитки', wins: 'Перемоги', threecrowns: 'Три корони', flawless: 'Без втрати башти', streak: 'Найкраща серія', pol: 'Шлях легенд' } as Record<string, string>,
-    ruleDescs: { tickets: 'Перемога — 1 квиток, кожна третя перемога поспіль — 2.', wins: 'Кожна перемога в ладері або Шляху легенд — 1 очко.', threecrowns: 'Очко лише за перемогу з трьома коронами.', flawless: 'Очко лише за перемогу, в якій ти не втратив жодної башти.', streak: 'Рахунок — твоя найкраща серія перемог поспіль за челендж.', pol: 'Очко за кожну перемогу лише на Шляху легенд.' } as Record<string, string>,
+    ruleNames: { tickets: 'Квитки', threecrowns: 'Три корони', flawless: 'Без втрати башти', streak: 'Найкраща серія', heavy: 'Важка колода' } as Record<string, string>,
+    ruleDescs: { tickets: 'Перемога — 1 квиток, кожна третя перемога поспіль — 2.', threecrowns: 'Очко лише за перемогу з трьома коронами.', flawless: 'Очко лише за перемогу, в якій ти не втратив жодної башти.', streak: 'Рахунок — твоя найкраща серія перемог поспіль за челендж.', heavy: 'Очко за перемогу колодою з середнім еліксиром понад 7.' } as Record<string, string>,
     points: 'очок',
     streakPoints: 'серія',
     promoBadge: 'Знижка до {date}',
@@ -3649,8 +3649,8 @@ const en: Translations = {
   },
 
   ch: {
-    ruleNames: { tickets: 'Tickets', wins: 'Wins', threecrowns: 'Three crowns', flawless: 'No tower lost', streak: 'Best streak', pol: 'Path of Legends' } as Record<string, string>,
-    ruleDescs: { tickets: 'A win is 1 ticket, every third win in a row is 2.', wins: 'Every win in ladder or Path of Legends is 1 point.', threecrowns: 'A point only for a three-crown win.', flawless: 'A point only for a win where you lost no tower.', streak: 'Your score is your best win streak during the challenge.', pol: 'A point for every win in Path of Legends only.' } as Record<string, string>,
+    ruleNames: { tickets: 'Tickets', threecrowns: 'Three crowns', flawless: 'No tower lost', streak: 'Best streak', heavy: 'Heavy deck' } as Record<string, string>,
+    ruleDescs: { tickets: 'A win is 1 ticket, every third win in a row is 2.', threecrowns: 'A point only for a three-crown win.', flawless: 'A point only for a win where you lost no tower.', streak: 'Your score is your best win streak during the challenge.', heavy: 'A point for a win with a deck averaging more than 7 elixir.' } as Record<string, string>,
     points: 'points',
     streakPoints: 'streak',
     promoBadge: 'Discount until {date}',
