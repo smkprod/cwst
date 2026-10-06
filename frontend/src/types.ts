@@ -972,6 +972,7 @@ export interface NotificationSettings {
   warEndMinuteUtc: number | null   // во сколько заканчивается КВ (минуты от 00:00 UTC), null = 10:00 по умолчанию
   perfectDayEnabled: boolean       // поздравление «900 за день» в чат
   acceptsClanMail: boolean         // принимать ли сообщения от других кланов
+  dayRecapEnabled?: boolean        // вечерние «Итоги дня клана» в чат (нет в ответе старого сервера — считаем включёнными)
 }
 
 export type BroadcastTarget = 'dm' | 'chats' | 'both'
@@ -1571,6 +1572,8 @@ export interface MatchRow {
   /** Как этот матчап играет в топ-500; null — боёв мало или меты нет. */
   topPct?: number | null
   topGames?: number
+  /** Главная причина поражения: levels | matchup | tilt | leak | close | outplayed; null — не поражение. */
+  lossReason?: string | null
 }
 
 export interface MatchSession {
@@ -1658,6 +1661,8 @@ export interface MatchReport {
   hasDetail: boolean
   unlocked: boolean
   matchup?: Matchup | null
+  /** Главная причина поражения (как в строке истории); null — не поражение. */
+  lossReason?: string | null
 }
 
 export interface MatchupTier {

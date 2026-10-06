@@ -528,6 +528,64 @@ public sealed class BotText
     /// <summary>Кнопка: открыть трекер в личке.</summary>
     public required string TrkBtnDm { get; init; }
 
+    /* --- «Почему проиграл» (LossReasons): строка карточки трекера и перечень в дайджесте --- */
+    /// <summary>{0} — на сколько уровней в среднем карты соперника выше.</summary>
+    public required string LrCardLevels { get; init; }
+    /// <summary>{0} — % побед такого матчапа в топ-500.</summary>
+    public required string LrCardMatchup { get; init; }
+    /// <summary>{0} — каким по счёту подряд было это поражение.</summary>
+    public required string LrCardTilt { get; init; }
+    /// <summary>{0} — сколько эликсира утекло.</summary>
+    public required string LrCardLeak { get; init; }
+    public required string LrCardClose { get; init; }
+    /// <summary>Короткие имена причин для перечня «уровни карт — 2, тильт — 1».</summary>
+    public required string LrLevels { get; init; }
+    public required string LrMatchup { get; init; }
+    public required string LrTilt { get; init; }
+    public required string LrLeak { get; init; }
+    public required string LrClose { get; init; }
+    public required string LrOutplayed { get; init; }
+
+    /* --- Формы слов для чисел: «одна|две-четыре|пять», см. DigestText.Count --- */
+    public required string FormsBattles { get; init; }
+    public required string FormsWins { get; init; }
+    public required string FormsThreeCrowns { get; init; }
+    public required string FormsPlayers { get; init; }
+
+    /* --- Утренний дайджест «как прошло вчера» (личка) --- */
+    /// <summary>{0} — «14 боёв», {1} — побед, {2} — поражений, {3} — « · +86 🏆» или пусто.</summary>
+    public required string DgHead { get; init; }
+    /// <summary>{0} — «5 побед».</summary>
+    public required string DgStreak { get; init; }
+    /// <summary>{0} — «3 трёхкоронки».</summary>
+    public required string DgCrowns { get; init; }
+    /// <summary>{0} — «уровни карт — 2, контр-колода — 2».</summary>
+    public required string DgReasons { get; init; }
+    /// <summary>{0} — поражений против архетипа, {1} — всего поражений, {2} — архетип.</summary>
+    public required string DgMain { get; init; }
+    /// <summary>{0} — % побед за день.</summary>
+    public required string DgPraise { get; init; }
+    public required string DgBtnReview { get; init; }
+    public required string DgBtnDuel { get; init; }
+    public required string DgBtnOff { get; init; }
+    /// <summary>Всплывающий ответ на «Не присылать».</summary>
+    public required string DgOffToast { get; init; }
+
+    /* --- Вечерние итоги дня клана (чат) --- */
+    /// <summary>{0} — название клана.</summary>
+    public required string RcHead { get; init; }
+    /// <summary>{0} — игрок, {1} — побед, {2} — поражений, {3} — « (+96 🏆)» или пусто.</summary>
+    public required string RcFighter { get; init; }
+    /// <summary>{0} — игрок, {1} — «7 побед».</summary>
+    public required string RcStreak { get; init; }
+    /// <summary>{0} — игрок, {1} — сколько трёхкоронок.</summary>
+    public required string RcCrowns { get; init; }
+    /// <summary>{0} — игрок, {1} — «+140».</summary>
+    public required string RcTrophies { get; init; }
+    /// <summary>{0} — «18 игроков», {1} — «214 боёв», {2} — % побед.</summary>
+    public required string RcTotal { get; init; }
+    public required string RcBtn { get; init; }
+
     /* --- Inline-режим: карточка в любом чате Telegram --- */
     public required string InlineWarTitle { get; init; }
     public required string InlineWarDesc { get; init; }
@@ -944,6 +1002,38 @@ public sealed class BotText
         TrkMatchup = "📊 В топ-500 такой матчап: {0}% побед ({1} боёв)",
         TrkInGroup = "🎯 Трекер боёв работает в личке: там я после каждого боя тихо присылаю разбор. Нажми кнопку ниже — и включи в один тап.",
         TrkBtnDm = "🎯 Включить в личке",
+        LrCardLevels = "📉 Поражение: уровни карт ниже на {0}",
+        LrCardMatchup = "📉 Поражение: контр-колода ({0}% в топ-500)",
+        LrCardTilt = "📉 Поражение: тильт — {0}-е поражение подряд",
+        LrCardLeak = "📉 Поражение: утекло {0} эликсира",
+        LrCardClose = "📉 Поражение: проиграл в одну корону",
+        LrLevels = "уровни карт",
+        LrMatchup = "контр-колода",
+        LrTilt = "тильт",
+        LrLeak = "утечка эликсира",
+        LrClose = "в одну корону",
+        LrOutplayed = "переиграли",
+        FormsBattles = "бой|боя|боёв",
+        FormsWins = "победа|победы|побед",
+        FormsThreeCrowns = "трёхкоронка|трёхкоронки|трёхкоронок",
+        FormsPlayers = "игрок|игрока|игроков",
+        DgHead = "☀️ Вчера: {0} · {1}–{2}{3}",
+        DgStreak = "🔥 Лучшая серия: {0}",
+        DgCrowns = "👑 {0}",
+        DgReasons = "💡 Почему проигрывал: {0}",
+        DgMain = "🎯 Главное: {0} из {1} поражений — против {2}",
+        DgPraise = "🏆 Отличный день — {0}% побед! Так держать.",
+        DgBtnReview = "📊 Разбор",
+        DgBtnDuel = "⚔️ Вызвать на дуэль",
+        DgBtnOff = "🔕 Не присылать",
+        DgOffToast = "Ок, утренние итоги больше не пришлю.",
+        RcHead = "🌙 Итоги дня · {0}",
+        RcFighter = "🏆 Боец дня: {0} — {1}–{2}{3}",
+        RcStreak = "🔥 Лучшая серия: {0} — {1} подряд",
+        RcCrowns = "👑 Трёхкоронки: {0} — {1}",
+        RcTrophies = "📈 Больше всех кубков: {0} {1}",
+        RcTotal = "Всего: {0} · {1} · {2}% побед",
+        RcBtn = "📊 Моя статистика",
     };
 
     public static readonly BotText Uk = new()
@@ -1310,6 +1400,38 @@ public sealed class BotText
         TrkMatchup = "📊 У топ-500 такий матчап: {0}% перемог ({1} боїв)",
         TrkInGroup = "🎯 Трекер боїв працює в особистих: там я після кожного бою тихо надсилаю розбір. Натисни кнопку нижче — і увімкни в один тап.",
         TrkBtnDm = "🎯 Увімкнути в особистих",
+        LrCardLevels = "📉 Поразка: рівні карт нижчі на {0}",
+        LrCardMatchup = "📉 Поразка: контр-колода ({0}% у топ-500)",
+        LrCardTilt = "📉 Поразка: тільт — {0}-га поразка поспіль",
+        LrCardLeak = "📉 Поразка: витекло {0} еліксиру",
+        LrCardClose = "📉 Поразка: програв в одну корону",
+        LrLevels = "рівні карт",
+        LrMatchup = "контр-колода",
+        LrTilt = "тільт",
+        LrLeak = "витік еліксиру",
+        LrClose = "в одну корону",
+        LrOutplayed = "переграли",
+        FormsBattles = "бій|бої|боїв",
+        FormsWins = "перемога|перемоги|перемог",
+        FormsThreeCrowns = "трикоронка|трикоронки|трикоронок",
+        FormsPlayers = "гравець|гравці|гравців",
+        DgHead = "☀️ Учора: {0} · {1}–{2}{3}",
+        DgStreak = "🔥 Найкраща серія: {0}",
+        DgCrowns = "👑 {0}",
+        DgReasons = "💡 Чому програвав: {0}",
+        DgMain = "🎯 Головне: {0} з {1} поразок — проти {2}",
+        DgPraise = "🏆 Чудовий день — {0}% перемог! Так тримати.",
+        DgBtnReview = "📊 Розбір",
+        DgBtnDuel = "⚔️ Викликати на дуель",
+        DgBtnOff = "🔕 Не надсилати",
+        DgOffToast = "Гаразд, ранкові підсумки більше не надсилатиму.",
+        RcHead = "🌙 Підсумки дня · {0}",
+        RcFighter = "🏆 Боєць дня: {0} — {1}–{2}{3}",
+        RcStreak = "🔥 Найкраща серія: {0} — {1} поспіль",
+        RcCrowns = "👑 Трикоронки: {0} — {1}",
+        RcTrophies = "📈 Найбільше кубків: {0} {1}",
+        RcTotal = "Усього: {0} · {1} · {2}% перемог",
+        RcBtn = "📊 Моя статистика",
     };
 
     public static readonly BotText En = new()
@@ -1676,5 +1798,37 @@ public sealed class BotText
         TrkMatchup = "📊 In the top 500 this matchup wins {0}% ({1} battles)",
         TrkInGroup = "🎯 The battle tracker works in private chat: that's where I quietly send a breakdown after every battle. Tap the button below to turn it on.",
         TrkBtnDm = "🎯 Turn on in private chat",
+        LrCardLevels = "📉 Loss: your cards were {0} levels lower",
+        LrCardMatchup = "📉 Loss: counter deck ({0}% in the top 500)",
+        LrCardTilt = "📉 Loss: tilt — loss #{0} in a row",
+        LrCardLeak = "📉 Loss: {0} elixir leaked",
+        LrCardClose = "📉 Loss: lost by one crown",
+        LrLevels = "card levels",
+        LrMatchup = "counter deck",
+        LrTilt = "tilt",
+        LrLeak = "elixir leak",
+        LrClose = "by one crown",
+        LrOutplayed = "outplayed",
+        FormsBattles = "battle|battles|battles",
+        FormsWins = "win|wins|wins",
+        FormsThreeCrowns = "three-crown win|three-crown wins|three-crown wins",
+        FormsPlayers = "player|players|players",
+        DgHead = "☀️ Yesterday: {0} · {1}–{2}{3}",
+        DgStreak = "🔥 Best streak: {0}",
+        DgCrowns = "👑 {0}",
+        DgReasons = "💡 Why you lost: {0}",
+        DgMain = "🎯 Key point: {0} of {1} losses — against {2}",
+        DgPraise = "🏆 Great day — {0}% wins! Keep it up.",
+        DgBtnReview = "📊 Review",
+        DgBtnDuel = "⚔️ Challenge to a duel",
+        DgBtnOff = "🔕 Don't send",
+        DgOffToast = "OK, no more morning recaps.",
+        RcHead = "🌙 Day recap · {0}",
+        RcFighter = "🏆 Fighter of the day: {0} — {1}–{2}{3}",
+        RcStreak = "🔥 Best streak: {0} — {1} in a row",
+        RcCrowns = "👑 Three-crown wins: {0} — {1}",
+        RcTrophies = "📈 Most trophies: {0} {1}",
+        RcTotal = "Total: {0} · {1} · {2}% wins",
+        RcBtn = "📊 My stats",
     };
 }

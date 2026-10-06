@@ -102,6 +102,15 @@ public interface INotificationSender
         long chatId, string text, int? threadId = null, bool html = false, CancellationToken ct = default);
 
     /// <summary>
+    /// Сообщение в чат со своими кнопками вместо общей «Открыть в Mini App»: так кнопка
+    /// под постом ведёт сразу в нужный раздел (startapp:review). false - не доставлено
+    /// (бота выгнали, тема закрыта): вызывающий попробует в следующий проход.
+    /// </summary>
+    Task<bool> SendToChatWithButtonsAsync(
+        long chatId, string text, IReadOnlyList<IReadOnlyList<BotButton>> rows, int? threadId = null,
+        CancellationToken ct = default);
+
+    /// <summary>
     /// Публикует сообщение и возвращает его id, чтобы потом редактировать. Нужно для
     /// живого табло: одно сообщение, которое обновляется, вместо потока новых.
     /// null — отправить не вышло.

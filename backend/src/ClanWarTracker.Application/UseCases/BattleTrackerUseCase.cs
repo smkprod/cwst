@@ -117,10 +117,19 @@ public class BattleTrackerUseCase(
                     prefix = TrackerText.AlertPrefix(c.T, report);
 
                     var plusLine = PlusLine(c, newest, session, report, catalog);
+                    var matchup = await MatchupAsync(newest, catalog, ct);
+                    // Причина поражения. Если вывод боя говорит о том же (уровни, утечка, АФК), он
+                    // подробнее - вторую строку про то же самое не пишем.
+                    var reason = LossReasons.Classify(newest, c.Recent, matchup);
+                    var verdictCode = report.Verdict?.Code;
+                    var sameAsVerdict = reason is not null
+                        && (reason.Main == verdictCode || (reason.Main == LossReasons.Leak && verdictCode == "afk"));
+                    var lossLine = sameAsVerdict ? null : TrackerText.LossLine(c.T, reason);
                     var text = TrackerText.Card(c.T, report, session, c.Tz, catalog, plusLine,
                         p.PauseUntilUtc > c.Now ? p.PauseUntilUtc : null,
-                        TrackerText.Matchup(c.T, await MatchupAsync(newest, catalog, ct)),
-                        await ChallengeLineAsync(c, ct));
+                        TrackerText.Matchup(c.T, matchup),
+                        await ChallengeLineAsync(c, ct),
+                        lossLine);
                     var lossStreak = 0;
                     for (var i = session.Count - 1; i >= 0 && session[i].Result < 0; i--) lossStreak++;
                     var buttons = TrackerText.CardButtons(c.T, newest.Id,

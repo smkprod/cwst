@@ -7,6 +7,7 @@ public record TrackerStateDto(bool Available, bool Enabled, bool DmBlocked, bool
 public record ArchDto(string Key, string Label, MetaCardDto? Card);
 
 /// <param name="Verdict">Код вывода (afk, levels, close, ...) - для значка в строке.</param>
+/// <param name="LossReason">Главная причина поражения (levels, matchup, tilt, leak, close, outplayed); null - не поражение.</param>
 public record MatchRowDto(
     int Id,
     DateTime TimeUtc,
@@ -21,7 +22,8 @@ public record MatchRowDto(
     string? Verdict,
     double? LevelGap,
     double? TopPct = null,
-    int TopGames = 0);
+    int TopGames = 0,
+    string? LossReason = null);
 
 /// <param name="Tilt">В заходе была серия из трёх поражений и больше.</param>
 public record MatchSessionDto(
@@ -83,6 +85,7 @@ public record MatchPlusDto(string? VsArch, string? BetterDeck, int? DeckVsArchWi
 /// <param name="Hint">Строки Плюса открыты как бесплатная подсказка дня (🎁).</param>
 /// <param name="LockedCount">Сколько строк Плюса скрыто.</param>
 /// <param name="HasDetail">Есть подробности (башни, уровни) - у боёв до трекера их нет.</param>
+/// <param name="LossReason">Главная причина поражения, см. LossReasons; null - не поражение.</param>
 public record MatchReportDto(
     int Id,
     DateTime TimeUtc,
@@ -107,7 +110,8 @@ public record MatchReportDto(
     int LockedCount,
     bool HasDetail,
     bool Unlocked,
-    MatchupDto? Matchup = null);
+    MatchupDto? Matchup = null,
+    string? LossReason = null);
 
 /// <param name="Reliability">reliable (100+ боёв), adequate (20+), low.</param>
 public record MatchupTierDto(string Key, int Wins, int Draws, int Losses, int Games, double WinPercent, string Reliability);

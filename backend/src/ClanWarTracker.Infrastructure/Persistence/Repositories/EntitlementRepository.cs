@@ -105,6 +105,9 @@ public class PlayerAlertPrefsRepository(AppDbContext db) : IPlayerAlertPrefsRepo
         return (enabled, total);
     }
 
+    public Task<List<PlayerAlertPrefs>> GetAllAsync(CancellationToken ct = default) =>
+        db.PlayerAlertPrefs.AsNoTracking().ToListAsync(ct);
+
     public async Task<HashSet<long>> IntroducedAsync(CancellationToken ct = default) =>
         (await db.PlayerAlertPrefs.AsNoTracking()
             .Where(p => p.IntroSentUtc != null)
