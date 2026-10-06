@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { api, ApiError } from '../lib/api'
-import type { Challenge, ChallengeRow } from '../types'
+import type { Challenge, ChallengeRow, CreatorChallengeCard } from '../types'
 import { haptic, hapticNotify } from '../lib/telegram'
 import { useT, type Translations } from '../lib/i18n'
 import { REDUCED, useCountUp } from '../lib/anim'
 import { usePlusSheet } from '../lib/plusSheet'
 import { usePlayerSheet } from '../lib/playerSheet'
 import { Icon } from './ui/Icon'
-import { SectionHead } from './ui/Section'
+import { Chip, SectionHead } from './ui/Section'
 import { InfoButton } from './ui/Info'
 
 /** Пока челлендж идёт — таблица обновляется каждые 15 секунд, иначе раз в минуту. */
@@ -25,6 +25,69 @@ export function ChallengeView({ code = null }: {
   /** Код челленджа блогера (ссылка со стрима). Без кода — общий уикенд-челлендж. */
   code?: string | null
 } = {}) {
+  const { t } = useT()
+  // Челлендж стримера, открытый из списка под общим, — поверх, с возвратом назад
+  const [opened, setOpened] = useState<string | null>(null)
+  if (code) return <ChallengeBoard code={code} />
+  if (opened) {
+    return (
+      <div className="fade-in">
+        <button className="btn-back" onClick={() => { haptic('light'); setOpened(null) }}>
+          <Icon name="chevronLeft" size={16} /> {t.ch.backToMain}
+        </button>
+        <ChallengeBoard code={opened} />
+      </div>
+    )
+  }
+  return (
+    <>
+      <ChallengeBoard code={null} />
+      <CreatorChallenges onOpen={c => { haptic('light'); setOpened(c); window.scrollTo({ top: 0 }) }} />
+    </>
+  )
+}
+
+/**
+ * Челленджи стримеров под общим: их делают для зрителей трансляции, но вступить
+ * может любой — и найти их должно быть можно не только по ссылке со стрима.
+ */
+function CreatorChallenges({ onOpen }: { onOpen: (code: string) => void }) {
+  const { t } = useT()
+  const s = t.ch
+  const [list, setList] = useState<CreatorChallengeCard[] | null>(null)
+  useEffect(() => {
+    api.getCreatorChallenges().then(setList).catch(() => setList([]))
+  }, [])
+  if (!list || list.length === 0) return null
+  return (
+    <section className="card mx-ch-creators">
+      <SectionHead icon="rocket" tone="orange" title={s.creatorsTitle} info={<p>{s.creatorsHint}</p>} />
+      <div className="ui-list">
+        {list.map(c => (
+          <button key={c.code} className="ui-row mx-ch-creator" onClick={() => onOpen(c.code)}>
+            <span className="mx-ch-creator-main">
+              <b>{c.title}</b>
+              <span className="muted small">{s.host.replace('{name}', c.host)}</span>
+              <span className="mx-ch-creator-chips">
+                <Chip icon={c.status === 'live' ? 'dot' : c.status === 'upcoming' ? 'clock' : 'flag'}
+                  tone={c.status === 'live' ? 'red' : c.status === 'upcoming' ? 'blue' : 'gray'}>
+                  {c.status === 'live' ? s.liveDot : c.status === 'upcoming' ? s.upcoming : s.ended}
+                </Chip>
+                <Chip icon="star" tone="violet">{s.ruleNames[c.rule] ?? c.rule}</Chip>
+                {c.prize && <Chip icon="gift" tone="gold">{c.prize}</Chip>}
+                <Chip icon="users" tone="gray">{c.participants}</Chip>
+                {c.joined && <Chip icon="check" tone="green">{s.joinedShort}</Chip>}
+              </span>
+            </span>
+            <Icon name="chevronRight" size={18} className="muted" />
+          </button>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function ChallengeBoard({ code }: { code: string | null }) {
   const { t } = useT()
   const s = t.ch
   const openPlus = usePlusSheet()

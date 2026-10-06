@@ -1063,6 +1063,8 @@ export interface TournamentSummary {
   completedAtUtc: string | null
   /** Режим дружеского боя (ключ из t.duel.modes); null — любой. */
   gameMode: string | null
+  /** Турнир провёл стример — в списке выше и с пометкой. */
+  streamer?: boolean
 }
 
 export interface TournamentParticipant {
@@ -1801,4 +1803,18 @@ export interface DuelLeague {
   players: number
   floors: number[]
   leagues: DuelLeagueKey[]
+}
+
+/** Челлендж стримера в списке вкладки «Челлендж». */
+export interface CreatorChallengeCard {
+  code: string
+  title: string
+  prize: string | null
+  host: string
+  startUtc: string
+  endUtc: string
+  status: 'upcoming' | 'live' | 'ended'
+  rule: string
+  participants: number
+  joined: boolean
 }

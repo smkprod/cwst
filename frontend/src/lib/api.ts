@@ -1,5 +1,5 @@
 import { initData } from './telegram'
-import type { AppConfig, AppTab, BackgroundKey, ClanDesignKey, ClanPage, PlayerPage, HallOfFame, OwnerSponsor, Moderator, ServiceIdentity, ServicePermission, BroadcastTarget, TopStatus, SponsorSales, CampaignFunnel, ClanDiscipline, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, MetaDecks, BattleAnalysis, PlayerSheet, PlusStatus, OwnerPlus, TiltProfile, Challenge, OwnerChallenge, OwnerFoundPlayer, TrackerState, MatchHistory, MatchReport, TopPlayerRow, TopPlayerDetail, DuelLeague, Tournament, TournamentSummary, WarJournal, Studio, StudioChallengeRequest } from '../types'
+import type { AppConfig, AppTab, BackgroundKey, ClanDesignKey, ClanPage, PlayerPage, HallOfFame, OwnerSponsor, Moderator, ServiceIdentity, ServicePermission, BroadcastTarget, TopStatus, SponsorSales, CampaignFunnel, ClanDiscipline, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, MetaDecks, BattleAnalysis, PlayerSheet, PlusStatus, OwnerPlus, TiltProfile, Challenge, OwnerChallenge, OwnerFoundPlayer, TrackerState, MatchHistory, MatchReport, TopPlayerRow, TopPlayerDetail, DuelLeague, Tournament, TournamentSummary, WarJournal, Studio, StudioChallengeRequest, CreatorChallengeCard } from '../types'
 
 // Адрес API вынесен в отдельный модуль: им же пользуются виджеты OBS, которым
 // нельзя тянуть сюда Telegram (см. apiBase.ts).
@@ -187,6 +187,7 @@ export const api = {
       body: JSON.stringify({ link, lang }),
     }),
   /** Без кода — общий уикенд-челлендж, с кодом — челлендж блогера. */
+  getCreatorChallenges: () => request<CreatorChallengeCard[]>('/api/challenge/creators'),
   getChallenge: (code?: string | null) =>
     request<Challenge>(code ? `/api/challenge?code=${encodeURIComponent(code)}` : '/api/challenge'),
   joinChallenge: (code?: string | null) =>

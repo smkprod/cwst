@@ -339,6 +339,30 @@ public class ChallengeUseCase(
     private static readonly ConcurrentDictionary<string, Board> BoardCache = new();
     private static readonly TimeSpan BoardTtl = TimeSpan.FromSeconds(10);
 
+    public record CreatorChallengeCard(string Code, string Title, string? Prize, string Host, DateTime StartUtc,
+        DateTime EndUtc, string Status, string Rule, int Participants, bool Joined);
+
+    /// <summary>
+    /// Челленджи стримеров для вкладки «Челлендж»: идущие и будущие, а закончившиеся -
+    /// ещё сутки, чтобы зрители успели увидеть итог. Идущие - первыми.
+    /// </summary>
+    public async Task<List<CreatorChallengeCard>> CreatorListAsync(long tg, CancellationToken ct = default)
+    {
+        var now = DateTime.UtcNow;
+        var list = await creatorChallenges.GetVisibleAsync(now.AddDays(-1), 30, ct);
+        if (list.Count == 0) return [];
+        var counts = (await entries.GetEventCountsAsync(ct)).ToDictionary(x => x.EventId, x => x.Count);
+        var cards = new List<CreatorChallengeCard>();
+        foreach (var c in list)
+        {
+            var joined = tg != 0 && await entries.GetEntryAsync(c.EventId, tg, ct) is not null;
+            cards.Add(new CreatorChallengeCard(c.Code, c.Title, c.Prize, c.CreatorName, c.StartUtc, c.EndUtc,
+                FromCreator(c).Status(now), ChallengeRules.Normalize(c.Rule), counts.GetValueOrDefault(c.EventId), joined));
+        }
+        var order = new Dictionary<string, int> { ["live"] = 0, ["upcoming"] = 1, ["ended"] = 2 };
+        return cards.OrderBy(c => order[c.Status]).ThenBy(c => c.StartUtc).ToList();
+    }
+
     public async Task<ChallengeDto?> GetAsync(long tg, string? code = null, CancellationToken ct = default)
     {
         var now = DateTime.UtcNow;
