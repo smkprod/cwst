@@ -51,6 +51,9 @@ public class NotificationSettings
     /// <summary>Поздравление в чат, когда игрок набирает 900 медалей за день (идеальный день).</summary>
     public Toggle PerfectDay { get; set; } = new();
 
+    /// <summary>Вечерние «Итоги дня клана» в чат (боец дня, серии, кубки) - по ладдеру и Пути легенд.</summary>
+    public Toggle DayRecap { get; set; } = new();
+
     /// <summary>
     /// Язык, на котором бот пишет клану: "ru" | "uk" | "en". null/мусор — русский,
     /// то есть поведение кланов, заведённых до появления настройки, не меняется.
@@ -103,6 +106,9 @@ public class NotificationSettings
             s.WarStart ??= new ToggleChannel();
             s.FinalCall ??= new Toggle();
             s.DailyReport ??= new Toggle();
+            s.PerfectDay ??= new Toggle();
+            // Кланы, сохранившие настройки до появления итогов дня, получают их включёнными.
+            s.DayRecap ??= new Toggle();
             return s;
         }
         catch { return new NotificationSettings(); }

@@ -190,6 +190,21 @@ public class TelegramNotificationSender(ITelegramBotClient bot) : INotificationS
         long chatId, string text, int? threadId = null, bool html = false, CancellationToken ct = default) =>
         SendAsync(chatId, text, threadId, html, ct);
 
+    public async Task<bool> SendToChatWithButtonsAsync(
+        long chatId, string text, IReadOnlyList<IReadOnlyList<BotButton>> rows, int? threadId = null,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            var keyboard = await KeyboardAsync(rows, ct);
+            await bot.SendMessage(chatId, text,
+                replyMarkup: keyboard, messageThreadId: threadId, cancellationToken: ct);
+            return true;
+        }
+        catch (ApiRequestException) { return false; }
+        catch (HttpRequestException) { return false; }
+    }
+
     public async Task<bool> SendPhotoToChatAsync(
         long chatId, string photoUrl, string caption, int? threadId = null, CancellationToken ct = default)
     {

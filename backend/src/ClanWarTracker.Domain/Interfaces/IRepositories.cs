@@ -477,6 +477,12 @@ public interface IPlayerAlertPrefsRepository
     /// <summary>Для панели владельца: у скольких трекер включён сейчас и сколько его вообще включали.</summary>
     Task<(int Enabled, int Total)> TrackerCountsAsync(CancellationToken ct = default);
 
+    /// <summary>
+    /// Все настройки разом, без отслеживания - для ежедневных рассылок: часовой пояс,
+    /// отказ и «личка закрыта» каждого одним запросом, а не запросом на человека.
+    /// </summary>
+    Task<List<PlayerAlertPrefs>> GetAllAsync(CancellationToken ct = default);
+
     Task SaveChangesAsync(CancellationToken ct = default);
 }
 

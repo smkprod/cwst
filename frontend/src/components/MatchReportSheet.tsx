@@ -5,7 +5,7 @@ import { haptic, openExternalLink } from '../lib/telegram'
 import { useT, type Translations } from '../lib/i18n'
 import { usePlusSheet } from '../lib/plusSheet'
 import { usePlayerSheet } from '../lib/playerSheet'
-import { signed } from './MatchHistoryView'
+import { LOSS_REASON_ICON, signed } from './MatchHistoryView'
 import { MatchupPanel } from './MatchupPanel'
 import { Icon } from './ui/Icon'
 import { SectionHead } from './ui/Section'
@@ -102,6 +102,12 @@ function Report({ r, t, onPlus, onOpponent }: {
         {r.opp.tag && <span className="ba-locked-arrow"><Icon name="chevronRight" size={16} /></span>}
       </button>
 
+      {r.result < 0 && r.lossReason && s.lossExplain[r.lossReason] && (
+        <p className="trk-loss-why">
+          <Icon name={LOSS_REASON_ICON[r.lossReason] ?? 'target'} size={14} />
+          <span><b>{s.lossWhy}:</b> {s.lossExplain[r.lossReason]}</span>
+        </p>
+      )}
       {r.verdict && <p className="trk-verdict">{noEmoji(r.verdict)}</p>}
 
       <div className="trk-side-title">

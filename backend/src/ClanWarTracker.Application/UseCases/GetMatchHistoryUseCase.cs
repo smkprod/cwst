@@ -131,7 +131,10 @@ public class GetMatchHistoryUseCase(
             b.Id, b.BattleTimeUtc, report.ModeKey, b.Result, b.CrownsFor, b.CrownsAgainst, b.TrophyChange,
             b.OppName, Arch(report.Arch, catalog, t), KeyCards(b.OppDeckKey, report.Arch, catalog),
             report.Verdict?.Code, b.LevelGap,
-            top?.Headline?.WinPercent, top?.Headline?.Games ?? 0);
+            top?.Headline?.WinPercent, top?.Headline?.Games ?? 0,
+            // Серию считаем по всем боям месяца, а не по странице: третье поражение подряд
+            // остаётся третьим, даже если первые два отрезал фильтр.
+            LossReasons.Classify(b, all, top)?.Main);
     }
 
     public static ArchDto? Arch(MatchReport.Arch? arch, Dictionary<int, CrCatalogCard> catalog, BotText t)
@@ -283,8 +286,26 @@ public class GetMatchReportUseCase(
             new MatchReportSessionDto(r.Session.StartUtc, r.Session.Index, r.Session.Count, r.Session.Wins,
                 r.Session.Losses, r.Session.Draws, r.Session.Trophies, r.Session.Strip),
             plusDto, hint && plusDto is not null, r.LockedCount, r.HasDetail, access.Unlocked,
-            await MatchupAsync(b, month, access.Unlocked, catalog, ct));
+            await MatchupAsync(b, month, access.Unlocked, catalog, ct),
+            b.Result < 0 ? await LossReasonAsync(b, month, catalog, ct) : null);
         return (Outcome.Ok, dto);
+    }
+
+    /// <summary>
+    /// Главная причина поражения - та же, что в строке истории и в карточке бота.
+    /// Неделя топа уже в памяти (MatchupWindow), так что повторный подсчёт матчапа дёшев.
+    /// </summary>
+    private async Task<string?> LossReasonAsync(
+        PlayerBattle b, List<PlayerBattle> month, Dictionary<int, CrCatalogCard> catalog, CancellationToken ct)
+    {
+        MatchupStats.Result? top = null;
+        try
+        {
+            var window = await MatchupWindow.LoadAsync(meta, ct);
+            if (window is not null) top = MatchupStats.FromTop(b.DeckKey, b.OppDeckKey, window, catalog);
+        }
+        catch { /* без меты причина считается по остальным фактам */ }
+        return LossReasons.Classify(b, month, top)?.Main;
     }
 
     /// <summary>
