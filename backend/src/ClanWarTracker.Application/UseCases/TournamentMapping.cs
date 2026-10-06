@@ -45,7 +45,8 @@ public static class TournamentMapping
         t.Participants.FirstOrDefault(p => p.FinalPlacement == 1) is { } champ
             ? champ.TeamName ?? champ.PlayerName
             : null,
-        t.CompletedAtUtc);
+        t.CompletedAtUtc,
+        t.GameMode);
 
     public static TournamentParticipantDto ToDto(TournamentParticipant p, long requestingTelegramUserId = 0) => new(
         p.Id, p.PlayerTag, p.PlayerName,
@@ -90,6 +91,8 @@ public static class TournamentMapping
                 && participants.Count < t.MaxParticipants,
             AutoResults: t.AutoResults,
             AnnounceResults: t.AnnounceResults,
-            participants, matches);
+            participants, matches,
+            GameMode: t.GameMode,
+            OverlayKey: t.CreatorTelegramUserId == requestingTelegramUserId ? t.OverlayKey : null);
     }
 }

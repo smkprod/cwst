@@ -36,6 +36,14 @@ public class TelegramAuthMiddleware(RequestDelegate next, IConfiguration config,
         // Версия сборки: нужна ровно тогда, когда что-то пошло не так и надо понять,
         // какой код крутится на сервере. Требовать для этого Telegram — значит лишить
         // себя диагностики в тот момент, когда она нужнее всего.
+        // Виджеты для OBS: стример открывает их в OBS, где Telegram нет. Доступ даёт
+        // секрет в ссылке, а отдаётся только публичное (имена, теги, счёт).
+        if (ctx.Request.Path.StartsWithSegments("/api/overlay"))
+        {
+            await next(ctx);
+            return;
+        }
+
         if (ctx.Request.Path.StartsWithSegments("/api/version"))
         {
             await next(ctx);

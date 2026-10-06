@@ -32,6 +32,9 @@ export function TournamentForm({ mode, initial, onSaved, onCancel }: Props) {
   // могут стоять команды, и превращать их в одиночек некуда.
   const [format, setFormat] = useState<TournamentMode>(initial?.mode ?? 'solo')
   const [startsAt, setStartsAt] = useState(toLocalInput(initial?.startsAtUtc ?? null))
+  // Режим дружеского боя: null — «любой». Только для 1×1: у режимов 2×2 в игре
+  // свои идентификаторы, и фильтровать по ним бот не умеет.
+  const [gameMode, setGameMode] = useState<string | null>(initial?.gameMode ?? null)
   const [autoResults, setAutoResults] = useState(initial?.autoResults ?? true)
   const [announceResults, setAnnounceResults] = useState(initial?.announceResults ?? true)
   const [busy, setBusy] = useState(false)
@@ -68,6 +71,9 @@ export function TournamentForm({ mode, initial, onSaved, onCancel }: Props) {
         startsAtUtc: startsAt ? new Date(startsAt).toISOString() : null,
         autoResults,
         announceResults,
+        // Шлём всегда, даже при правке: сервер берёт режим из каждого запроса,
+        // и пропущенное поле молча сбросило бы его на «любой».
+        gameMode: format === 'solo' ? gameMode : null,
       }
       const result = mode === 'create'
         ? await api.createTournament(req)
@@ -171,6 +177,24 @@ export function TournamentForm({ mode, initial, onSaved, onCancel }: Props) {
             <option value="duo">{t.tournament.formatDuo}</option>
           </select>
         </div>
+        {format === 'solo' && (
+          <div className="form-field">
+            <label className="muted small mx-label">
+              {t.tournament.gameModeLabel}
+              <InfoButton size={18} title={t.tournament.gameModeLabel}>{t.tournament.gameModeHint}</InfoButton>
+            </label>
+            <select
+              className="rating-select tournament-select"
+              value={gameMode ?? ''}
+              onChange={e => setGameMode(e.target.value || null)}
+            >
+              <option value="">{t.tournament.gameModeAny}</option>
+              {Object.entries(t.duel.modes).map(([key, label]) => (
+                <option key={key} value={key}>{label}</option>
+              ))}
+            </select>
+          </div>
+        )}
         <div className="form-field">
           <label className="muted small">{t.tournament.startsAtLabel}</label>
           <input

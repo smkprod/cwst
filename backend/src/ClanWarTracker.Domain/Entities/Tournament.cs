@@ -41,6 +41,18 @@ public class Tournament
     public TournamentMode Mode { get; set; } = TournamentMode.Solo;
 
     /// <summary>
+    /// Режим дружеского боя (ключ DuelModes): автозачёт берёт только бои в нём.
+    /// null — любой режим, как было до появления выбора.
+    /// </summary>
+    public string? GameMode { get; set; }
+
+    /// <summary>
+    /// Секрет ссылок на виджеты для OBS: по нему сетка и текущий матч открываются
+    /// без Telegram. Видит его только создатель.
+    /// </summary>
+    public string? OverlayKey { get; set; }
+
+    /// <summary>
     /// Когда турнир начинается. Нужна для предварительной регистрации: люди
     /// записываются заранее, зная дату, а не гадают, когда всё стартует.
     /// null — дата не объявлена, собираемся и стартуем вручную.

@@ -14,7 +14,7 @@ const ru = {
 
   tabs: { duel: 'Дуэли', challenge: 'Челлендж', war: 'Война', rating: 'Рейтинг', me: 'Я', search: 'Поиск', owner: 'Панель',
           recruit: 'Биржа', tournament: 'Турнир', clan: 'Клан', more: 'Ещё', roster: 'Состав',
-          hall: 'Аллея' },
+          hall: 'Аллея', studio: 'Студия' },
 
   tilt: {
     title: 'Стоп-тильт',
@@ -1336,6 +1336,9 @@ const ru = {
     finalBestOfLabel: 'Формат финала',
     finalSameAsAll: 'Как везде',
     finalBestOfHint: 'Можно сделать весь турнир Bo1, а финал — длиннее.',
+    gameModeLabel: 'Режим дружеского боя',
+    gameModeAny: 'Любой',
+    gameModeHint: 'Бот засчитает в матчах только бои в этом режиме — остальные дружеские пары не влияют на счёт. «Любой» — без ограничений.',
     finalFormatLabel: 'финал',
     minParticipantsLabel: 'Мин. для старта',
     minParticipantsHint: 'Турнир можно будет запустить, когда наберётся минимум участников.',
@@ -1516,6 +1519,7 @@ const ru = {
       Sponsors: 'Спонсоры',
       AppSettings: 'Настройки приложения',
       ManageModerators: 'Выдавать права',
+      Creator: 'Блогер: Студия',
     },
     permHint: {
       EnterClans: 'Смотреть любой клан изнутри',
@@ -1528,6 +1532,7 @@ const ru = {
       Sponsors: 'Выдавать и снимать спонсорство',
       AppSettings: 'Менять состав нижних вкладок',
       ManageModerators: 'Назначать других. По сути — второй владелец',
+      Creator: 'Студия: свои турниры и виджеты OBS для трансляций. Панель владельца не видит',
     },
     modRemove: 'Снять',
     modEmpty: 'Модераторов пока нет.',
@@ -1628,6 +1633,75 @@ const ru = {
     btn: 'Рассказать клану',
     shareText: 'Подключим Clanify к нашему клану — статус войны, напоминания и итоги дня прямо в чате. Лидер: добавь бота в группу и напиши /setup #нашТег',
   },
+
+  studio: {
+    title: 'Студия',
+    subtitle: 'Турниры для зрителей и виджеты прямо в трансляцию',
+    createBtn: 'Создать турнир',
+    myTitle: 'Мои турниры',
+    myEmpty: 'Турниров пока нет. Создай первый — для него сразу появятся виджеты.',
+    participants: '{n}/{max}',
+    widgetsBtn: 'OBS',
+    widgetsTitle: 'Виджеты для OBS',
+    obsInfoTitle: 'Как добавить виджет в OBS',
+    obsSteps: [
+      'Скопируй ссылку нужного виджета.',
+      'В OBS: «Источники» → «+» → «Браузер».',
+      'Вставь ссылку в поле URL и задай ширину и высоту — как указано у виджета.',
+      'Галочку «Отключать источник, когда он не виден» оставь выключенной: иначе виджет будет загружаться заново при каждой смене сцены.',
+      'Фон прозрачный — ставь виджет прямо поверх игры. Данные обновляются сами каждые 5 секунд.',
+    ],
+    tournamentWidgets: 'Турнир',
+    noTournamentWidgets: 'Создай турнир — у него будут сетка, текущий матч и список участников.',
+    globalWidgets: 'Общие виджеты',
+    widget: { bracket: 'Сетка', match: 'Текущий матч', list: 'Участники и итог', league: 'Топ лиги дуэлей', challenge: 'Таблица челленджа' } as Record<string, string>,
+    widgetDesc: {
+      bracket: 'Весь турнир по раундам, идущие матчи подсвечены',
+      match: 'Кто играет сейчас и счёт серии — плашка внизу экрана',
+      list: 'Регистрация, а после финала — пьедестал',
+      league: 'Топ-10 лиги дуэлей с рангами и кубками',
+      challenge: 'Лидеры уикенд-челленджа и обратный отсчёт',
+    } as Record<string, string>,
+    copy: 'Копировать ссылку',
+    copied: 'Скопировано',
+    copyFailed: 'Не скопировалось',
+    open: 'Открыть',
+    keyTitle: 'Личный ключ',
+    keyHint: 'Ключ стоит в ссылках общих виджетов. Новый нужен, если ссылка утекла: старые ссылки лиги и челленджа перестанут работать, и их придётся заменить в OBS. Ссылки турниров не меняются.',
+    rotate: 'Сменить ключ',
+    rotateConfirm: 'Старые ссылки перестанут работать. Сменить?',
+    rotated: 'Ключ обновлён — замени ссылки в OBS',
+    ideasTitle: 'Идеи для стрима',
+    soon: 'скоро',
+    now: 'уже можно',
+    ideas: [
+      { title: 'Стример против всех', text: 'Зрители по очереди вызывают тебя на Bo1. Кто победит — попадает в зал славы трансляции.' },
+      { title: 'Победитель остаётся', text: 'Выигравший остаётся за столом, следующий из очереди бросает ему вызов. Считаем самую длинную серию.' },
+      { title: 'Турнир в режиме недели', text: 'Сетка, где все матчи играются в одном режиме — тройной эликсир, драфт или зеркальный бой. Режим задаётся при создании турнира.' },
+      { title: 'Дуэли с подписчиками на время', text: 'Час на стриме: сколько дуэлей лиги успеешь выиграть у подписчиков. Топ лиги на экране показывает, кто поднялся.' },
+      { title: '2×2 со зрителями', text: 'Парный турнир: ты в паре со зрителем против других пар. Создай турнир в формате 2×2.' },
+    ],
+    error: 'Не удалось загрузить Студию',
+    notCreator: 'Студия доступна блогерам — попроси владельца выдать право.',
+  },
+
+  overlay: {
+    notFound: 'Виджет не найден — проверьте ссылку в Студии',
+    waiting: 'Ожидаем следующий матч',
+    champion: 'Чемпион',
+    live: 'LIVE',
+    next: 'Следующий матч',
+    final: 'Финал',
+    semi: 'Полуфинал',
+    quarter: '1/4 финала',
+    eighth: '1/8 финала',
+    round: 'Раунд {n}',
+    participants: 'Участники',
+    registration: 'Регистрация открыта',
+    standings: 'Итоги турнира',
+    inProgress: 'Турнир идёт',
+    noParticipants: 'Пока никто не записался',
+  },
 }
 
 export type Translations = typeof ru
@@ -1644,7 +1718,7 @@ const uk: Translations = {
 
   tabs: { duel: 'Дуелі', challenge: 'Челендж', roster: 'Склад', war: 'Війна', rating: 'Рейтинг', me: 'Я', search: 'Пошук', owner: 'Панель',
           recruit: 'Біржа', tournament: 'Турнір', clan: 'Клан', more: 'Ще',
-          hall: 'Алея' },
+          hall: 'Алея', studio: 'Студія' },
 
   tilt: {
     title: 'Стоп-тільт',
@@ -2964,6 +3038,9 @@ const uk: Translations = {
     finalBestOfLabel: 'Формат фіналу',
     finalSameAsAll: 'Як скрізь',
     finalBestOfHint: 'Можна зробити весь турнір Bo1, а фінал — довшим.',
+    gameModeLabel: 'Режим дружнього бою',
+    gameModeAny: 'Будь-який',
+    gameModeHint: 'Бот зарахує в матчах лише бої в цьому режимі — інші дружні бої пари не впливають на рахунок. «Будь-який» — без обмежень.',
     finalFormatLabel: 'фінал',
     minParticipantsLabel: 'Мін. для старту',
     minParticipantsHint: 'Турнір можна буде запустити, коли набереться мінімум учасників.',
@@ -3144,6 +3221,7 @@ const uk: Translations = {
       Sponsors: 'Спонсори',
       AppSettings: 'Налаштування застосунку',
       ManageModerators: 'Видавати права',
+      Creator: 'Блогер: Студія',
     },
     permHint: {
       EnterClans: 'Дивитися будь-який клан зсередини',
@@ -3156,6 +3234,7 @@ const uk: Translations = {
       Sponsors: 'Видавати та знімати спонсорство',
       AppSettings: 'Змінювати склад нижніх вкладок',
       ManageModerators: 'Призначати інших. По суті — другий власник',
+      Creator: 'Студія: свої турніри та віджети OBS для трансляцій. Панелі власника не бачить',
     },
     modRemove: 'Зняти',
     modEmpty: 'Модераторів поки немає.',
@@ -3256,6 +3335,75 @@ const uk: Translations = {
     btn: 'Розповісти клану',
     shareText: 'Підключімо Clanify до нашого клану — статус війни, нагадування та підсумки дня прямо в чаті. Лідере: додай бота в групу й напиши /setup #нашТег',
   },
+
+  studio: {
+    title: 'Студія',
+    subtitle: 'Турніри для глядачів і віджети просто в трансляцію',
+    createBtn: 'Створити турнір',
+    myTitle: 'Мої турніри',
+    myEmpty: 'Турнірів поки немає. Створи перший — для нього одразу з’являться віджети.',
+    participants: '{n}/{max}',
+    widgetsBtn: 'OBS',
+    widgetsTitle: 'Віджети для OBS',
+    obsInfoTitle: 'Як додати віджет в OBS',
+    obsSteps: [
+      'Скопіюй посилання потрібного віджета.',
+      'В OBS: «Джерела» → «+» → «Браузер».',
+      'Встав посилання в поле URL і задай ширину та висоту — як вказано у віджета.',
+      'Галочку «Вимикати джерело, коли воно не видиме» залиш вимкненою: інакше віджет завантажуватиметься заново при кожній зміні сцени.',
+      'Фон прозорий — став віджет просто поверх гри. Дані оновлюються самі кожні 5 секунд.',
+    ],
+    tournamentWidgets: 'Турнір',
+    noTournamentWidgets: 'Створи турнір — у нього будуть сітка, поточний матч і список учасників.',
+    globalWidgets: 'Загальні віджети',
+    widget: { bracket: 'Сітка', match: 'Поточний матч', list: 'Учасники та підсумок', league: 'Топ ліги дуелей', challenge: 'Таблиця челенджу' } as Record<string, string>,
+    widgetDesc: {
+      bracket: 'Весь турнір за раундами, поточні матчі підсвічені',
+      match: 'Хто грає зараз і рахунок серії — плашка внизу екрана',
+      list: 'Реєстрація, а після фіналу — п’єдестал',
+      league: 'Топ-10 ліги дуелей з рангами та кубками',
+      challenge: 'Лідери вікенд-челенджу та зворотний відлік',
+    } as Record<string, string>,
+    copy: 'Копіювати посилання',
+    copied: 'Скопійовано',
+    copyFailed: 'Не скопіювалося',
+    open: 'Відкрити',
+    keyTitle: 'Особистий ключ',
+    keyHint: 'Ключ стоїть у посиланнях загальних віджетів. Новий потрібен, якщо посилання витекло: старі посилання ліги та челенджу перестануть працювати, і їх доведеться замінити в OBS. Посилання турнірів не змінюються.',
+    rotate: 'Змінити ключ',
+    rotateConfirm: 'Старі посилання перестануть працювати. Змінити?',
+    rotated: 'Ключ оновлено — заміни посилання в OBS',
+    ideasTitle: 'Ідеї для стріму',
+    soon: 'скоро',
+    now: 'вже можна',
+    ideas: [
+      { title: 'Стрімер проти всіх', text: 'Глядачі по черзі викликають тебе на Bo1. Хто переможе — потрапляє до залу слави трансляції.' },
+      { title: 'Переможець залишається', text: 'Хто виграв — залишається, наступний із черги кидає йому виклик. Рахуємо найдовшу серію.' },
+      { title: 'Турнір у режимі тижня', text: 'Сітка, де всі матчі граються в одному режимі — потрійний еліксир, драфт чи дзеркальний бій. Режим задається під час створення турніру.' },
+      { title: 'Дуелі з підписниками на час', text: 'Година на стрімі: скільки дуелей ліги встигнеш виграти в підписників. Топ ліги на екрані показує, хто піднявся.' },
+      { title: '2×2 з глядачами', text: 'Парний турнір: ти в парі з глядачем проти інших пар. Створи турнір у форматі 2×2.' },
+    ],
+    error: 'Не вдалося завантажити Студію',
+    notCreator: 'Студія доступна блогерам — попроси власника видати право.',
+  },
+
+  overlay: {
+    notFound: 'Віджет не знайдено — перевірте посилання в Студії',
+    waiting: 'Чекаємо на наступний матч',
+    champion: 'Чемпіон',
+    live: 'LIVE',
+    next: 'Наступний матч',
+    final: 'Фінал',
+    semi: 'Півфінал',
+    quarter: '1/4 фіналу',
+    eighth: '1/8 фіналу',
+    round: 'Раунд {n}',
+    participants: 'Учасники',
+    registration: 'Реєстрацію відкрито',
+    standings: 'Підсумки турніру',
+    inProgress: 'Турнір триває',
+    noParticipants: 'Поки ніхто не записався',
+  },
 }
 
 const en: Translations = {
@@ -3270,7 +3418,7 @@ const en: Translations = {
 
   tabs: { duel: 'Duels', challenge: 'Challenge', roster: 'Roster', war: 'War', rating: 'Rating', me: 'Me', search: 'Search', owner: 'Panel',
           recruit: 'Market', tournament: 'Tournament', clan: 'Clan', more: 'More',
-          hall: 'Hall' },
+          hall: 'Hall', studio: 'Studio' },
 
   tilt: {
     title: 'Stop-tilt',
@@ -4590,6 +4738,9 @@ const en: Translations = {
     finalBestOfLabel: 'Final format',
     finalSameAsAll: 'Same as the rest',
     finalBestOfHint: 'You can run the whole tournament as Bo1 and make the final longer.',
+    gameModeLabel: 'Friendly battle mode',
+    gameModeAny: 'Any',
+    gameModeHint: 'The bot counts only battles in this mode — other friendlies of the pair don’t affect the score. “Any” — no restriction.',
     finalFormatLabel: 'final',
     minParticipantsLabel: 'Min. to start',
     minParticipantsHint: 'You can start the tournament once the minimum number of participants is reached.',
@@ -4770,6 +4921,7 @@ const en: Translations = {
       Sponsors: 'Sponsors',
       AppSettings: 'App settings',
       ManageModerators: 'Grant rights',
+      Creator: 'Creator: Studio',
     },
     permHint: {
       EnterClans: 'View any clan from the inside',
@@ -4782,6 +4934,7 @@ const en: Translations = {
       Sponsors: 'Grant and revoke sponsorship',
       AppSettings: 'Change the bottom tab set',
       ManageModerators: 'Appoint others. Effectively a second owner',
+      Creator: 'Studio: own tournaments and OBS widgets for streams. Doesn’t see the owner panel',
     },
     modRemove: 'Remove',
     modEmpty: 'No moderators yet.',
@@ -4882,6 +5035,75 @@ const en: Translations = {
     btn: 'Tell the clan',
     shareText: 'Let\'s connect Clanify to our clan — war status, nudges and daily recaps right in the chat. Leader: add the bot to the group and run /setup #ourTag',
   },
+
+  studio: {
+    title: 'Studio',
+    subtitle: 'Tournaments for your viewers and widgets right in the stream',
+    createBtn: 'Create tournament',
+    myTitle: 'My tournaments',
+    myEmpty: 'No tournaments yet. Create the first one — its widgets appear right away.',
+    participants: '{n}/{max}',
+    widgetsBtn: 'OBS',
+    widgetsTitle: 'OBS widgets',
+    obsInfoTitle: 'How to add a widget to OBS',
+    obsSteps: [
+      'Copy the link of the widget you need.',
+      'In OBS: Sources → “+” → “Browser”.',
+      'Paste the link into the URL field and set width and height as shown for the widget.',
+      'Keep “Shutdown source when not visible” off — otherwise the widget reloads on every scene switch.',
+      'The background is transparent — put the widget right over the game. Data refreshes by itself every 5 seconds.',
+    ],
+    tournamentWidgets: 'Tournament',
+    noTournamentWidgets: 'Create a tournament — it gets a bracket, current match and participant list.',
+    globalWidgets: 'Global widgets',
+    widget: { bracket: 'Bracket', match: 'Current match', list: 'Participants & results', league: 'Duel league top', challenge: 'Challenge table' } as Record<string, string>,
+    widgetDesc: {
+      bracket: 'The whole tournament by rounds, live matches highlighted',
+      match: 'Who is playing now and the series score — a lower-third bar',
+      list: 'Registration, and the podium after the final',
+      league: 'Duel league top 10 with ranks and trophies',
+      challenge: 'Weekend challenge leaders and a countdown',
+    } as Record<string, string>,
+    copy: 'Copy link',
+    copied: 'Copied',
+    copyFailed: 'Couldn’t copy',
+    open: 'Open',
+    keyTitle: 'Personal key',
+    keyHint: 'The key is part of the global widget links. Get a new one if a link leaked: old league and challenge links stop working and must be replaced in OBS. Tournament links don’t change.',
+    rotate: 'Change key',
+    rotateConfirm: 'Old links will stop working. Change?',
+    rotated: 'Key updated — replace the links in OBS',
+    ideasTitle: 'Stream ideas',
+    soon: 'soon',
+    now: 'available',
+    ideas: [
+      { title: 'Streamer vs everyone', text: 'Viewers take turns challenging you to a Bo1. Whoever wins gets into the stream’s hall of fame.' },
+      { title: 'Winner stays', text: 'The winner stays on, the next in the queue challenges them. We track the longest streak.' },
+      { title: 'Mode of the week tournament', text: 'A bracket where every match is played in one mode — triple elixir, draft or mirror. Set the mode when creating the tournament.' },
+      { title: 'Timed duels with subscribers', text: 'An hour on stream: how many league duels can you win against subscribers. The league top on screen shows who climbed.' },
+      { title: '2v2 with viewers', text: 'A duo tournament: you team up with a viewer against other pairs. Create a 2v2 tournament.' },
+    ],
+    error: 'Couldn’t load the Studio',
+    notCreator: 'The Studio is for creators — ask the owner to grant the right.',
+  },
+
+  overlay: {
+    notFound: 'Widget not found — check the link in the Studio',
+    waiting: 'Waiting for the next match',
+    champion: 'Champion',
+    live: 'LIVE',
+    next: 'Next match',
+    final: 'Final',
+    semi: 'Semifinal',
+    quarter: 'Quarterfinal',
+    eighth: 'Round of 16',
+    round: 'Round {n}',
+    participants: 'Participants',
+    registration: 'Registration open',
+    standings: 'Final standings',
+    inProgress: 'Tournament in progress',
+    noParticipants: 'No one has signed up yet',
+  },
 }
 
 const TRANSLATIONS: Record<Lang, Translations> = { ru, uk, en }
@@ -4915,6 +5137,14 @@ export function LangProvider({ children }: { children: ReactNode }) {
   }
 
   return <LangCtx.Provider value={{ lang, setLang, t: TRANSLATIONS[lang] }}>{children}</LangCtx.Provider>
+}
+
+/**
+ * Словарь без React-контекста. Нужен виджетам OBS: язык там задаётся ссылкой,
+ * а не настройкой пользователя, и провайдер с localStorage им ни к чему.
+ */
+export function translationsFor(lang: string | null | undefined): Translations {
+  return lang && lang in TRANSLATIONS ? TRANSLATIONS[lang as Lang] : ru
 }
 
 export function useT() {

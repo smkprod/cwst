@@ -3,6 +3,21 @@ namespace ClanWarTracker.Application.UseCases;
 /// <summary>Общие правила валидации полей турнира — используются при создании и редактировании.</summary>
 public static class TournamentValidation
 {
+    /// <summary>Режим дружеского боя: известный ключ DuelModes или null («любой»).</summary>
+    public static string? GameMode(string? key) =>
+        string.IsNullOrWhiteSpace(key) || DuelModes.All.All(m => m.Key != key) ? null : key;
+
+    /// <summary>Секрет ссылок на виджеты OBS: 24 символа из букв и цифр, угадать нельзя.</summary>
+    public static string NewOverlayKey()
+    {
+        const string alphabet = "abcdefghijkmnpqrstuvwxyz23456789";
+        Span<byte> bytes = stackalloc byte[24];
+        System.Security.Cryptography.RandomNumberGenerator.Fill(bytes);
+        var chars = new char[24];
+        for (var i = 0; i < chars.Length; i++) chars[i] = alphabet[bytes[i] % alphabet.Length];
+        return new string(chars);
+    }
+
     /// <summary>
     /// Только ссылки на clashroyale.com — поле рассылается всем участникам и кликается,
     /// произвольный URL здесь превращает турнир в вектор фишинга/спама.

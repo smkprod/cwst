@@ -134,7 +134,12 @@ public class AutoResolveTournamentMatchesUseCase(
             return Resolution.Nothing;
         }
 
-        var facts = battles.Select(b => new TournamentAutoResult.BattleFact(
+        // Режим дружеского боя: в одиночном турнире засчитываем только бои в нём.
+        // В 2х2 у тех же режимов свои id, и их список мы не ведём - там без фильтра.
+        var inMode = tournament.Mode == TournamentMode.Solo
+            ? battles.Where(b => DuelModes.Matches(tournament.GameMode, b.GameModeId, b.GameModeName))
+            : battles;
+        var facts = inMode.Select(b => new TournamentAutoResult.BattleFact(
             b.BattleTimeUtc,
             b.TeamTags.Select(LinkPlayerUseCase.Normalize).ToList(),
             b.OpponentTags.Select(LinkPlayerUseCase.Normalize).ToList(),
