@@ -29,7 +29,7 @@ public class StudioUseCase(
 
     public record StudioTournament(TournamentSummaryDto Tournament, string OverlayKey);
     public record StudioChallenge(string Code, string Title, string? Prize, DateTime StartUtc, DateTime EndUtc,
-        string Status, int Participants);
+        string Status, int Participants, string Rule);
     public record StudioDto(string OverlayKey, List<StudioTournament> Tournaments, List<StudioChallenge> Challenges);
 
     public async Task<StudioDto> GetAsync(long userId, CancellationToken ct = default)
@@ -50,7 +50,8 @@ public class StudioUseCase(
         var counts = (await challengeEntries.GetEventCountsAsync(ct)).ToDictionary(x => x.EventId, x => x.Count);
         var myChallenges = (await challenges.GetByCreatorAsync(userId, ct))
             .Select(c => new StudioChallenge(c.Code, c.Title, c.Prize, c.StartUtc, c.EndUtc,
-                ChallengeUseCase.FromCreator(c).Status(now), counts.GetValueOrDefault(c.EventId)))
+                ChallengeUseCase.FromCreator(c).Status(now), counts.GetValueOrDefault(c.EventId),
+                ChallengeRules.Normalize(c.Rule)))
             .ToList();
 
         return new StudioDto(key,
@@ -61,7 +62,7 @@ public class StudioUseCase(
     public enum ChallengeError { BadTitle, BadDates, TooMany, NotFound, NotYours }
 
     public async Task<ChallengeError?> CreateChallengeAsync(long userId, string? title, string? prize,
-        DateTime startUtc, DateTime endUtc, CancellationToken ct = default)
+        DateTime startUtc, DateTime endUtc, string? rule = null, CancellationToken ct = default)
     {
         if (Validate(title, startUtc, endUtc, isNew: true) is { } bad) return bad;
         var now = DateTime.UtcNow;
@@ -79,21 +80,25 @@ public class StudioUseCase(
             StartUtc = Utc(startUtc),
             EndUtc = Utc(endUtc),
             CreatedUtc = now,
+            Rule = ChallengeRules.Normalize(rule),
         }, ct);
         return null;
     }
 
     public async Task<ChallengeError?> UpdateChallengeAsync(long userId, string code, string? title, string? prize,
-        DateTime startUtc, DateTime endUtc, CancellationToken ct = default)
+        DateTime startUtc, DateTime endUtc, string? rule = null, CancellationToken ct = default)
     {
         var c = await challenges.GetByCodeAsync(code, ct);
         if (c is null) return ChallengeError.NotFound;
         if (c.CreatorTelegramUserId != userId) return ChallengeError.NotYours;
         if (Validate(title, startUtc, endUtc, isNew: false) is { } bad) return bad;
+        var notStarted = c.StartUtc > DateTime.UtcNow;
         c.Title = Cut(title, 60)!;
         c.Prize = Cut(prize, 60);
         c.StartUtc = Utc(startUtc);
         c.EndUtc = Utc(endUtc);
+        // Формат меняется только до старта: посреди челленджа смена правил переписала бы таблицу
+        if (notStarted) c.Rule = ChallengeRules.Normalize(rule);
         await challenges.SaveChangesAsync(ct);
         return null;
     }

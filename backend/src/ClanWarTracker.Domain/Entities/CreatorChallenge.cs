@@ -21,5 +21,11 @@ public class CreatorChallenge
     public DateTime EndUtc { get; set; }
     public DateTime CreatedUtc { get; set; }
 
+    /// <summary>
+    /// Формат: за что дают очко (ChallengeRules). Блогеру нужен не один и тот же
+    /// челлендж каждый стрим, а повод для нового: «только три короны», «без потери башни».
+    /// </summary>
+    public string Rule { get; set; } = "tickets";
+
     public string EventId => "c-" + Code;
 }

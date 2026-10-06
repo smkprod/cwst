@@ -651,6 +651,8 @@ CREATE TABLE IF NOT EXISTS ""CreatorChallenges"" (
             "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_CreatorChallenges_Code\" ON \"CreatorChallenges\" (\"Code\");");
         await db.Database.ExecuteSqlRawAsync(
             "CREATE INDEX IF NOT EXISTS \"IX_CreatorChallenges_CreatorTelegramUserId\" ON \"CreatorChallenges\" (\"CreatorTelegramUserId\");");
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"CreatorChallenges\" ADD COLUMN IF NOT EXISTS \"Rule\" varchar(16) NOT NULL DEFAULT 'tickets';");
 
         // Лига дуэлей 1х1: профили с рейтингом и принятые вызовы.
         await db.Database.ExecuteSqlRawAsync(@"

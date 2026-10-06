@@ -6,7 +6,7 @@ namespace ClanWarTracker.Application.DTOs;
 /// <param name="Code">Код челленджа блогера; null - общий челлендж.</param>
 /// <param name="Host">Кто проводит челлендж блогера.</param>
 public record ChallengeEventDto(string Id, string? Title, string? Prize, DateTime StartUtc, DateTime EndUtc, string Status, bool GiftPlus = false,
-    string? Code = null, string? Host = null);
+    string? Code = null, string? Host = null, string Rule = "tickets");
 
 /// <param name="Streak">Текущая серия побед - сколько до бонусного билета.</param>
 public record ChallengeRowDto(

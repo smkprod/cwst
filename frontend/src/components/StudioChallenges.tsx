@@ -18,6 +18,16 @@ const DEFAULT_LENGTH_MS = 3 * 3600_000
 
 type FormState = { edit: StudioChallenge | null } | null
 
+/** Форматы челленджа (ChallengeRules на сервере) и их иконки. Порядок — как в выборе. */
+const RULES: { key: string; icon: IconName }[] = [
+  { key: 'tickets', icon: 'ticket' },
+  { key: 'wins', icon: 'trophy' },
+  { key: 'threecrowns', icon: 'crown' },
+  { key: 'flawless', icon: 'shieldCheck' },
+  { key: 'streak', icon: 'flame' },
+  { key: 'pol', icon: 'medal' },
+]
+
 /**
  * «Мои челленджи»: челлендж блогера для своих зрителей.
  *
@@ -125,6 +135,7 @@ function ChallengeItem({ item, editing, onEdit, onChanged, t }: {
         <span className="st-trow-chips">
           <Chip icon={look.icon} tone={look.tone}>{s.chStatus[item.status]}</Chip>
           <Chip icon="user" tone="gray">{s.chParticipants.replace('{n}', String(item.participants))}</Chip>
+          <Chip icon={RULES.find(r => r.key === item.rule)?.icon ?? 'ticket'} tone="violet">{t.ch.ruleNames[item.rule] ?? item.rule}</Chip>
           {item.prize && <Chip icon="gift" tone="gold">{item.prize}</Chip>}
         </span>
         <span className="muted small stc-period"><Icon name="calendar" size={13} /> {fmtPeriod(item.startUtc, item.endUtc, t)}</span>
@@ -213,6 +224,9 @@ function ChallengeForm({ edit, onSaved, onCancel, t }: {
   const s = t.studio
   const [title, setTitle] = useState(edit?.title ?? '')
   const [prize, setPrize] = useState(edit?.prize ?? '')
+  const [rule, setRule] = useState(edit?.rule ?? 'tickets')
+  // Посреди челленджа смена правил переписала бы таблицу — сервер её не примет
+  const ruleLocked = edit !== null && edit.status !== 'upcoming'
   const [start, setStart] = useState(() => toLocalInput(edit?.startUtc ?? nextHour().toISOString()))
   const [end, setEnd] = useState(() => toLocalInput(edit?.endUtc ?? new Date(nextHour().getTime() + DEFAULT_LENGTH_MS).toISOString()))
   const [busy, setBusy] = useState(false)
@@ -248,6 +262,7 @@ function ChallengeForm({ edit, onSaved, onCancel, t }: {
         prize: prize.trim() || null,
         startUtc: new Date(startMs).toISOString(),
         endUtc: new Date(endMs).toISOString(),
+        rule,
       }
       const fresh = edit ? await api.updateStudioChallenge(edit.code, body) : await api.createStudioChallenge(body)
       hapticNotify('success')
@@ -274,6 +289,21 @@ function ChallengeForm({ edit, onSaved, onCancel, t }: {
         <label className="muted small">{s.chPrizeLabel}</label>
         <input className="search-input" value={prize} maxLength={60} placeholder={s.chPrizePh}
           onChange={e => setPrize(e.target.value)} />
+      </div>
+
+      <div className="form-field">
+        <label className="muted small">{s.chRuleLabel}</label>
+        <div className="stc-rules">
+          {RULES.map(r => (
+            <button key={r.key} type="button" disabled={ruleLocked}
+              className={`stc-rule ${rule === r.key ? 'stc-rule-on' : ''}`}
+              onClick={() => { haptic('light'); setRule(r.key) }}>
+              <Icon name={r.icon} size={16} />
+              <span>{t.ch.ruleNames[r.key]}</span>
+            </button>
+          ))}
+        </div>
+        <p className="muted small stc-rule-desc">{ruleLocked ? s.chRuleLocked : t.ch.ruleDescs[rule]}</p>
       </div>
 
       <div className="form-field">

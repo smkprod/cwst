@@ -3716,3 +3716,12 @@ button.hall-step {
 .ui-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px;
   background: var(--ui-surface); border: 1px solid var(--ui-line); }
 .ui-list { display: flex; flex-direction: column; gap: 8px; }
+
+/* Поля даты на iPhone: Safari рисует их своим элементом и игнорирует ширину — поле
+   вылезало за карточку. Сбрасываем системный вид и ограничиваем шириной родителя. */
+input[type="datetime-local"], input[type="date"], input[type="time"] {
+  -webkit-appearance: none; appearance: none;
+  display: block; width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; text-align: left;
+}
+input[type="datetime-local"]::-webkit-date-and-time-value,
+input[type="date"]::-webkit-date-and-time-value { text-align: left; }

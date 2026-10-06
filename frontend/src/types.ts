@@ -1177,6 +1177,8 @@ export interface StudioChallenge {
   endUtc: string
   status: ChallengeStatus
   participants: number
+  /** Формат: tickets | wins | threecrowns | flawless | streak | pol. */
+  rule: string
 }
 
 export interface Studio {
@@ -1191,6 +1193,7 @@ export interface StudioChallengeRequest {
   prize: string | null
   startUtc: string
   endUtc: string
+  rule: string
 }
 
 /** Топ лиги дуэлей для виджета — публичная часть DuelLeague. */
@@ -1698,6 +1701,8 @@ export interface Challenge {
     code?: string | null
     /** Имя блогера, который его проводит. */
     host?: string | null
+    /** Формат подсчёта; tickets — билеты уикенд-челленджа. */
+    rule?: string
   }
   linked: boolean
   joined: boolean
