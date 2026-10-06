@@ -17,8 +17,9 @@ import { OPEN_CHALLENGE } from '../lib/promo'
 import { MyStatsView, type BattlesView, type MeSection } from './MyStatsView'
 import { WorldTopView } from './WorldTopView'
 import { MoreView } from './MoreView'
+import { StudioView } from './StudioView'
 
-export type SoloTab = 'me' | 'meta' | 'clan' | 'search' | 'more' | 'challenge' | 'duel'
+export type SoloTab = 'me' | 'meta' | 'clan' | 'search' | 'more' | 'challenge' | 'duel' | 'studio'
 
 /** Почему у игрока нет экрана войны: клан не подключён или у подключённого нет войны. */
 export type SoloReason = 'noClan' | 'noWar'
@@ -31,7 +32,7 @@ export type SoloReason = 'noClan' | 'noWar'
  * Теперь это то же приложение для игрока: разбор своих боёв первым, мета топа,
  * поиск, «Ещё» с языком и Плюсом. Клан — одна из вкладок, а не условие входа.
  */
-export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection = 'battles', battlesView = 'history', openMatchId = null, showChallenge = false, showDuel = false }: {
+export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection = 'battles', battlesView = 'history', openMatchId = null, showChallenge = false, showDuel = false, showStudio = false }: {
   reason?: SoloReason
   initialTab?: SoloTab
   meSection?: MeSection
@@ -41,6 +42,8 @@ export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection =
   showChallenge?: boolean
   /** Вкладка лиги дуэлей - по тому же выбору владельца. */
   showDuel?: boolean
+  /** «Студия» блогера — по праву, а не по выбору владельца. Клан блогеру не обязателен. */
+  showStudio?: boolean
 } = {}) {
   const { t } = useT()
   const botUsername = useBotUsername()
@@ -99,6 +102,7 @@ export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection =
     ...(showDuel ? [{ id: 'duel' as SoloTab, icon: 'swords' as IconName, label: t.tabs.duel }] : []),
     { id: 'clan', icon: 'castle' as IconName, label: t.clanless.tabClan },
     { id: 'search', icon: 'search' as IconName, label: t.tabs.search },
+    ...(showStudio ? [{ id: 'studio' as SoloTab, icon: 'rocket' as IconName, label: t.tabs.studio }] : []),
     { id: 'more', icon: 'gear' as IconName, label: t.tabs.more },
   ]
 
@@ -157,6 +161,7 @@ export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection =
         )}
 
         {tab === 'search' && <div className="fade-in"><PlayerSearchView /></div>}
+        {tab === 'studio' && showStudio && <StudioView />}
         {tab === 'more' && (
           <MoreView canManage={false} isLeader={false} onOpenNotifications={() => { /* уведомления — у клана */ }} />
         )}

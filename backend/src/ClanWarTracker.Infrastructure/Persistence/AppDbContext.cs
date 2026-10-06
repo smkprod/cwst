@@ -319,6 +319,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(t => t.ClanInviteLink).HasMaxLength(300);
             e.Property(t => t.CreatorPlayerTag).HasMaxLength(16);
             e.Property(t => t.CreatorName).HasMaxLength(64);
+            e.Property(t => t.GameMode).HasMaxLength(24);
+            e.Property(t => t.OverlayKey).HasMaxLength(32);
+            e.HasIndex(t => t.OverlayKey).IsUnique();
         });
 
         mb.Entity<TournamentParticipant>(e =>

@@ -15,7 +15,9 @@ public record TournamentSummaryDto(
     DateTime CreatedAtUtc,
     /// <summary>Чемпион; null — турнир ещё не завершён или победитель не определился.</summary>
     string? ChampionName = null,
-    DateTime? CompletedAtUtc = null);
+    DateTime? CompletedAtUtc = null,
+    /// <summary>Режим дружеского боя (ключ DuelModes); null — любой.</summary>
+    string? GameMode = null);
 
 public record TournamentDto(
     int Id,
@@ -41,7 +43,11 @@ public record TournamentDto(
     /// <summary>Объявлять результаты матчей в чат клана организатора.</summary>
     bool AnnounceResults,
     List<TournamentParticipantDto> Participants,
-    List<TournamentMatchDto> Matches);
+    List<TournamentMatchDto> Matches,
+    /// <summary>Режим дружеского боя (ключ DuelModes); null — любой.</summary>
+    string? GameMode = null,
+    /// <summary>Ключ виджетов OBS — только создателю, остальным null.</summary>
+    string? OverlayKey = null);
 
 public record TournamentParticipantDto(
     int Id,

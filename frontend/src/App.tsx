@@ -28,6 +28,7 @@ import { LinkPrompt } from './components/LinkPrompt'
 import { HallOfFame } from './components/HallOfFame'
 import { PlayerSearchView } from './components/PlayerSearchView'
 import { TournamentView } from './components/TournamentView'
+import { StudioView } from './components/StudioView'
 import { ClanlessView, type SoloReason } from './components/ClanlessView'
 import { GuestEntry } from './components/GuestEntry'
 import { GuestMyStats } from './components/GuestMyStats'
@@ -41,6 +42,7 @@ import { DisciplineCard } from './components/DisciplineCard'
 import { ScoutCard } from './components/ScoutCard'
 import { WorldTopEntry } from './components/WorldTopEntry'
 import { weekKing } from './lib/king'
+import { canUseOwnerPanel, canUseStudio } from './lib/serviceAccess'
 
 type State =
   | { kind: 'loading' }
@@ -62,7 +64,7 @@ const TRANSIENT_TOLERANCE = 3
  * редкое собрано в «Ещё». Панель владельца — пятая и только у владельца: она невидима
  * для остальных, так что места в баре ни у кого не занимает.
  */
-type Tab = 'clan' | 'me' | 'hall' | 'tournament' | 'search' | 'more' | 'challenge' | 'duel' | 'owner'
+type Tab = 'clan' | 'me' | 'hall' | 'tournament' | 'search' | 'more' | 'challenge' | 'duel' | 'owner' | 'studio'
 
 /** Набор вкладок, пока сервер не ответил. Совпадает с умолчанием на сервере. */
 const DEFAULT_TABS: AppTab[] = ['clan', 'me', 'hall', 'search', 'more']
@@ -321,14 +323,16 @@ export default function App() {
       )
     case 'clanless':
       // Админ сервиса без своего клана — не тупик: панель и есть то, зачем он зашёл,
-      // а заход в чужой клан из неё вернёт обычные экраны.
-      return me.role !== 'none'
+      // а заход в чужой клан из неё вернёт обычные экраны. Блогеру панель не нужна —
+      // он получает обычное приложение игрока с вкладкой «Студия».
+      return canUseOwnerPanel(me)
         ? <OwnerPanel me={me} />
         : <ClanlessView reason={state.reason}
             initialTab={startParam === 'meta' ? 'meta' : startParam === 'challenge' ? 'challenge' : startParam === 'duel' ? 'duel' : 'me'}
             battlesView={START_BATTLES_VIEW} openMatchId={startMatchId}
             showChallenge={Boolean(config?.tabs.includes('challenge')) || startParam === 'challenge'}
-            showDuel={Boolean(config?.tabs.includes('duel')) || startParam === 'duel'} />
+            showDuel={Boolean(config?.tabs.includes('duel')) || startParam === 'duel'}
+            showStudio={canUseStudio(me)} />
     case 'notInTelegram':
       return (
         <div className="center">
@@ -358,10 +362,13 @@ export default function App() {
       const king = weekKing(data.players, data.warLog, data.periodType)
 
       // Панель владельца всегда последней и всегда вне настраиваемого набора:
-      // выключить её из панели значило бы потерять доступ к самой панели.
+      // выключить её из панели значило бы потерять доступ к самой панели. Студия —
+      // так же по праву, а не по настройке: блогеру она нужна независимо от того,
+      // какие вкладки владелец включил остальным.
       const tabs = [
         ...(config?.tabs ?? DEFAULT_TABS).map(id => ({ id: id as Tab, ...TAB_LOOKS(t)[id] })),
-        ...(me.role !== 'none' ? [{ id: 'owner' as Tab, icon: 'dashboard' as IconName, label: t.tabs.owner }] : []),
+        ...(canUseStudio(me) ? [{ id: 'studio' as Tab, icon: 'rocket' as IconName, label: t.tabs.studio }] : []),
+        ...(canUseOwnerPanel(me) ? [{ id: 'owner' as Tab, icon: 'dashboard' as IconName, label: t.tabs.owner }] : []),
       ]
 
       return (
@@ -457,7 +464,8 @@ export default function App() {
             )}
             {tab === 'challenge' && <ChallengeView />}
             {tab === 'duel' && <DuelView />}
-            {tab === 'owner' && me.role !== 'none' && (
+            {tab === 'studio' && canUseStudio(me) && <StudioView />}
+            {tab === 'owner' && canUseOwnerPanel(me) && (
               <div className="fade-in">
                 <OwnerPanel me={me} />
               </div>

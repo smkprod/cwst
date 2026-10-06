@@ -7,6 +7,7 @@ type Can = (p: ServicePermission) => boolean
 import { botStartLink, copyText, haptic, hapticNotify, openExternalLink, openTelegramLink } from '../lib/telegram'
 import { useT, type Translations } from '../lib/i18n'
 import { SignupsChart } from './SignupsChart'
+import { StudioView } from './StudioView'
 import { Icon, type IconName } from './ui/Icon'
 import { IconTile, SectionHead, type Tone } from './ui/Section'
 
@@ -30,7 +31,7 @@ function Stars({ n }: { n: number }) {
   return <span className="ow-stars">{n}<Icon name="star" size={12} /></span>
 }
 
-type Section = 'overview' | 'clans' | 'find' | 'broadcast' | 'moderators' | 'plus' | 'sponsors' | 'settings' | 'top' | 'campaigns'
+type Section = 'overview' | 'clans' | 'find' | 'broadcast' | 'moderators' | 'plus' | 'sponsors' | 'settings' | 'top' | 'campaigns' | 'studio'
 type ClanFilter = 'all' | 'silent'
 
 /** Сколько дней назад (для «активность» и «подключён»). null — даты нет. */
@@ -89,6 +90,8 @@ export function OwnerPanel({ me }: { me: ServiceIdentity }) {
     ...(can('AppSettings') ? [{ key: 'settings', icon: 'gear', tone: 'gray', label: 'Вкладки', hint: 'Меню и челлендж' } as Item] : []),
     ...(can('AppSettings') ? [{ key: 'campaigns', icon: 'trendUp', tone: 'green', label: 'Кампании', hint: 'Реклама и ссылки' } as Item] : []),
     ...(can('Maintenance') ? [{ key: 'top', icon: 'globe', tone: 'blue', label: 'Топ', hint: 'Снимок и мета' } as Item] : []),
+    // Студия и здесь: владелец без клана попадает сразу в панель, и другого входа у него нет
+    ...(can('Creator') ? [{ key: 'studio', icon: 'rocket', tone: 'orange', label: 'Студия', hint: 'Турниры и виджеты OBS' } as Item] : []),
     ...(can('ManageModerators') ? [{ key: 'moderators', icon: 'shield', tone: 'red', label: 'Модераторы', hint: 'Права помощников' } as Item] : []),
   ]
   // Запомненный раздел мог пропасть (права сняли) — тогда сводка
@@ -146,6 +149,7 @@ export function OwnerPanel({ me }: { me: ServiceIdentity }) {
       {current.key === 'settings' && can('AppSettings') && <TabsSection t={t} />}
       {current.key === 'top' && can('Maintenance') && <TopSection t={t} />}
       {current.key === 'campaigns' && can('AppSettings') && <CampaignsSection t={t} />}
+      {current.key === 'studio' && can('Creator') && <StudioView />}
     </div>
   )
 }
@@ -623,7 +627,11 @@ const PERMISSIONS: ServicePermission[] = [
   // 'Plans' убран: тарифов больше нет. Сам флаг остаётся в типе — права хранятся
   // числом, и выкинуть значение значило бы сдвинуть уже выданные модераторам права.
   'Sponsors', 'Broadcast', 'DeleteClans',
-  'Maintenance', 'AppSettings', 'ManageModerators',
+  'Maintenance', 'AppSettings',
+  // Блогер — отдельная роль, а не ступень модератора: панель он не видит, поэтому
+  // право стоит рядом с остальными, но означает только «Студию».
+  'Creator',
+  'ManageModerators',
 ]
 
 /**

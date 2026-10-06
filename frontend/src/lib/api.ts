@@ -1,11 +1,9 @@
 import { initData } from './telegram'
-import type { AppConfig, AppTab, BackgroundKey, ClanDesignKey, ClanPage, PlayerPage, HallOfFame, OwnerSponsor, Moderator, ServiceIdentity, ServicePermission, BroadcastTarget, TopStatus, SponsorSales, CampaignFunnel, ClanDiscipline, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, MetaDecks, BattleAnalysis, PlayerSheet, PlusStatus, OwnerPlus, TiltProfile, Challenge, OwnerChallenge, OwnerFoundPlayer, TrackerState, MatchHistory, MatchReport, TopPlayerRow, TopPlayerDetail, DuelLeague, Tournament, TournamentSummary, WarJournal } from '../types'
+import type { AppConfig, AppTab, BackgroundKey, ClanDesignKey, ClanPage, PlayerPage, HallOfFame, OwnerSponsor, Moderator, ServiceIdentity, ServicePermission, BroadcastTarget, TopStatus, SponsorSales, CampaignFunnel, ClanDiscipline, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, MetaDecks, BattleAnalysis, PlayerSheet, PlusStatus, OwnerPlus, TiltProfile, Challenge, OwnerChallenge, OwnerFoundPlayer, TrackerState, MatchHistory, MatchReport, TopPlayerRow, TopPlayerDetail, DuelLeague, Tournament, TournamentSummary, WarJournal, Studio } from '../types'
 
-// Если мы на Render (production), BASE должен быть пустой строкой '', чтобы запросы шли на тот же домен.
-// Для локальной разработки (Development) оставляем localhost:5000.
-const BASE = import.meta.env.DEV 
-  ? (import.meta.env.VITE_API_URL ?? 'http://localhost:5000') 
-  : '';
+// Адрес API вынесен в отдельный модуль: им же пользуются виджеты OBS, которым
+// нельзя тянуть сюда Telegram (см. apiBase.ts).
+import { API_BASE as BASE } from './apiBase'
 
 /**
  * Без таймаута зависший запрос ждёт бесконечно: мобильная сеть умеет «принять»
@@ -419,6 +417,7 @@ export const api = {
     clanInviteLink?: string; bestOf: number; finalBestOf?: number | null
     minParticipants: number; maxParticipants: number
     mode?: TournamentMode; startsAtUtc?: string | null
+    gameMode?: string | null
   }) =>
     request<Tournament>('/api/tournaments', {
       method: 'POST',
@@ -436,6 +435,8 @@ export const api = {
     startsAtUtc?: string | null
     autoResults?: boolean
     announceResults?: boolean
+    /** Сервер ставит режим из запроса каждый раз: не прислать — значит сбросить на «любой». */
+    gameMode: string | null
   }) =>
     request<Tournament>(`/api/tournaments/${id}`, {
       method: 'PUT',
@@ -467,6 +468,11 @@ export const api = {
     request<{ ok: boolean }>(`/api/tournaments/${id}`, { method: 'DELETE' }),
   getPlayerTournamentHistory: (tag: string) =>
     request<PlayerTournamentHistory[]>(`/api/players/${encodeURIComponent(tag.replace('#', ''))}/tournaments`),
+
+  // Студия блогера: свои турниры с ключами виджетов OBS
+  getStudio: () => request<Studio>('/api/studio'),
+  /** Новый личный ключ — ссылки на общие виджеты со старым перестают работать. */
+  rotateStudioKey: () => request<Studio>('/api/studio/rotate', { method: 'POST' }),
 
   // Игровые турниры (отслеживание турнира CR по тегу)
   getGameTournaments: () => request<GameTournament[]>('/api/game-tournaments'),

@@ -6,7 +6,9 @@ import { useT } from '../lib/i18n'
 import { TournamentForm } from './TournamentForm'
 import { TournamentBracket } from './TournamentBracket'
 import { Icon } from './ui/Icon'
-import { SectionHead } from './ui/Section'
+import { Chip, SectionHead } from './ui/Section'
+import { ObsSteps, WidgetLinks } from './WidgetLinks'
+import { TOURNAMENT_WIDGETS } from '../lib/overlayLinks'
 
 interface Props {
   tournamentId: number
@@ -202,6 +204,11 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
           {d.finalBestOf != null && ` (${t.tournament.finalFormatLabel} — ${t.tournament.bestOfLabel.toLowerCase()} ${d.finalBestOf})`}
           {' · '}{d.participants.length}/{d.maxParticipants} {t.tournament.participantsCount}
         </p>
+        {d.gameMode && (
+          <div className="st-mode-line">
+            <Chip icon="swords" tone="violet">{t.duel.modes[d.gameMode] ?? d.gameMode}</Chip>
+          </div>
+        )}
         {d.isCreator && d.status === 'registrationOpen' && (
           <p className="muted small">
             {t.tournament.startThresholdLabel}: {d.participants.length}/{minToStart}
@@ -348,6 +355,16 @@ export function TournamentDetail({ tournamentId, onBack, onCancelled }: Props) {
       </div>
 
       <TournamentBracket tournament={d} onUpdated={update} />
+
+      {/* Ключ приходит только создателю — по нему и понятно, что блок его. Стоит в
+          самом низу: участникам турнира он не нужен, а организатор найдёт. */}
+      {d.overlayKey && d.status !== 'cancelled' && (
+        <div className="card st-detail-obs">
+          <SectionHead icon="image" tone="orange" title={t.studio.widgetsTitle}
+            infoTitle={t.studio.obsInfoTitle} info={<ObsSteps steps={t.studio.obsSteps} />} />
+          <WidgetLinks widgets={TOURNAMENT_WIDGETS} overlayKey={d.overlayKey} compact />
+        </div>
+      )}
     </div>
   )
 }

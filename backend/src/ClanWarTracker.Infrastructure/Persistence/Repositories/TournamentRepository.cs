@@ -16,6 +16,22 @@ public class TournamentRepository(AppDbContext db) : ITournamentRepository
             .Include(t => t.Matches).ThenInclude(m => m.WinnerParticipant)
             .FirstOrDefaultAsync(t => t.Id == id, ct);
 
+    public Task<Tournament?> GetByOverlayKeyAsync(string key, CancellationToken ct = default) =>
+        db.Tournaments.AsNoTracking()
+            .Include(t => t.Participants)
+            .Include(t => t.Matches).ThenInclude(m => m.ParticipantA)
+            .Include(t => t.Matches).ThenInclude(m => m.ParticipantB)
+            .Include(t => t.Matches).ThenInclude(m => m.WinnerParticipant)
+            .FirstOrDefaultAsync(t => t.OverlayKey == key, ct);
+
+    public Task<List<Tournament>> GetByCreatorAsync(long creatorTelegramUserId, int limit, CancellationToken ct = default) =>
+        db.Tournaments
+            .Include(t => t.Participants)
+            .Where(t => t.CreatorTelegramUserId == creatorTelegramUserId)
+            .OrderByDescending(t => t.CreatedAtUtc)
+            .Take(limit)
+            .ToListAsync(ct);
+
     public Task<List<Tournament>> GetActiveAsync(CancellationToken ct = default) =>
         db.Tournaments
             .Where(t => t.Status != TournamentStatus.Completed && t.Status != TournamentStatus.Cancelled)

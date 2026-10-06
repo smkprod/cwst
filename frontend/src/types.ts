@@ -269,6 +269,8 @@ export type ServicePermission =
   | 'Maintenance'
   | 'Sponsors'
   | 'AppSettings'
+  /** Блогер: «Студия» — свои турниры и виджеты для OBS. Панель владельца ему не нужна. */
+  | 'Creator'
 
 export interface ServiceIdentity {
   role: ServiceRole
@@ -1059,6 +1061,8 @@ export interface TournamentSummary {
   /** Чемпион; null — турнир не завершён. */
   championName: string | null
   completedAtUtc: string | null
+  /** Режим дружеского боя (ключ из t.duel.modes); null — любой. */
+  gameMode: string | null
 }
 
 export interface TournamentParticipant {
@@ -1148,6 +1152,30 @@ export interface Tournament {
   announceResults: boolean
   participants: TournamentParticipant[]
   matches: TournamentMatch[]
+  /** Режим дружеского боя (ключ из t.duel.modes); null — любой. */
+  gameMode: string | null
+  /** Ключ виджетов OBS — приходит только создателю, остальным null. */
+  overlayKey: string | null
+}
+
+/* --- Студия блогера --- */
+export interface StudioTournament {
+  tournament: TournamentSummary
+  /** Ключ виджетов этого турнира: сетка, текущий матч, участники. */
+  overlayKey: string
+}
+
+export interface Studio {
+  /** Личный ключ: общие виджеты (лига дуэлей, челлендж). */
+  overlayKey: string
+  tournaments: StudioTournament[]
+}
+
+/** Топ лиги дуэлей для виджета — публичная часть DuelLeague. */
+export interface OverlayLeague {
+  players: number
+  top: DuelTopRow[]
+  recent: DuelRow[]
 }
 
 export interface PlayerTournamentHistory {

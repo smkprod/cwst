@@ -36,6 +36,7 @@ builder.Services.AddScoped<GetTiltProfileUseCase>();
 builder.Services.AddScoped<TrackerActionsUseCase>();
 builder.Services.AddScoped<ChallengeUseCase>();
 builder.Services.AddScoped<DuelUseCase>();
+builder.Services.AddScoped<StudioUseCase>();
 builder.Services.AddScoped<GetMatchHistoryUseCase>();
 builder.Services.AddScoped<GetMatchReportUseCase>();
 builder.Services.AddScoped<GetRaceScoutUseCase>();

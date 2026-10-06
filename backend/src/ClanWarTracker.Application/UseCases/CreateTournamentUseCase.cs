@@ -10,6 +10,9 @@ public class CreateTournamentUseCase(IPlayerRepository players, ITournamentRepos
 {
     /// <summary>Сколько турниров одновременно может вести один создатель — против спама турнирами.</summary>
     private const int MaxActivePerCreator = 3;
+
+    /// <summary>Блогеру - больше: он ведёт турниры для зрителей сериями, по несколько за стрим.</summary>
+    private const int MaxActiveForCreatorRole = 10;
     private const int MinParticipants = 2;
     private const int MaxParticipantsLimit = 64;
 
@@ -17,6 +20,7 @@ public class CreateTournamentUseCase(IPlayerRepository players, ITournamentRepos
         long telegramUserId, string name, string? description, string? prizeInfo,
         string clanInviteLink, int bestOf, int? finalBestOf, int minParticipants, int maxParticipants,
         TournamentMode mode = TournamentMode.Solo, DateTime? startsAtUtc = null,
+        string? gameMode = null, bool creator = false,
         CancellationToken ct = default)
     {
         var player = await players.GetByTelegramIdAsync(telegramUserId, ct);
@@ -61,6 +65,8 @@ public class CreateTournamentUseCase(IPlayerRepository players, ITournamentRepos
             // это одно состояние, и два способа его записать только мешают.
             FinalBestOf = finalBestOf == bestOf ? null : finalBestOf,
             Mode = mode,
+            GameMode = TournamentValidation.GameMode(gameMode),
+            OverlayKey = TournamentValidation.NewOverlayKey(),
             StartsAtUtc = startsAtUtc,
             MinParticipants = minParticipants,
             MaxParticipants = maxParticipants,
@@ -85,7 +91,7 @@ public class CreateTournamentUseCase(IPlayerRepository players, ITournamentRepos
         // Атомарная проверка лимита + вставка: защищает от спама турнирами даже при
         // одновременных запросах в обход UI (см. TryAddWithinActiveLimitAsync).
         var added = await tournaments.TryAddWithinActiveLimitAsync(
-            tournament, telegramUserId, MaxActivePerCreator, ct);
+            tournament, telegramUserId, creator ? MaxActiveForCreatorRole : MaxActivePerCreator, ct);
         if (!added) return (null, CreateTournamentError.TooManyActive);
         return (tournament, null);
     }
