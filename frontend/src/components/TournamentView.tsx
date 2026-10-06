@@ -7,7 +7,7 @@ import { TournamentForm } from './TournamentForm'
 import { TournamentDetail } from './TournamentDetail'
 import { GameAddForm, GameTournamentDetail, gameStatusInfo } from './GameTournamentView'
 import { Icon } from './ui/Icon'
-import { IconTile, SectionHead } from './ui/Section'
+import { Chip, IconTile, SectionHead } from './ui/Section'
 
 type View =
   | { kind: 'list' }
@@ -153,6 +153,8 @@ export function TournamentView() {
                 {tr.creatorName} · {t.tournament.bestOfLabel} {tr.bestOf} · {tr.participantCount}/{tr.maxParticipants} {t.tournament.participantsCount}
                 {tr.startsAtUtc !== null && <> · <Icon name="calendar" size={12} /> {new Date(tr.startsAtUtc).toLocaleString()}</>}
               </p>
+              {/* Режим — условие участия: в драфт-турнир идут не с той колодой, что в обычный */}
+              {tr.gameMode && <div className="st-mode-line"><Chip icon="swords" tone="violet">{t.duel.modes[tr.gameMode] ?? tr.gameMode}</Chip></div>}
             </li>
           ))}
 

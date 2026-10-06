@@ -14,6 +14,7 @@ import './styles/ui-player.css'
 import './styles/ui-clan.css'
 import './styles/ui-battles.css'
 import './styles/ui-misc.css'
+import './styles/ui-studio.css'
 
 initTelegram()
 
