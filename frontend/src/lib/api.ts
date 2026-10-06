@@ -1,5 +1,5 @@
 import { initData } from './telegram'
-import type { AppConfig, AppTab, BackgroundKey, ClanDesignKey, ClanPage, PlayerPage, HallOfFame, OwnerSponsor, Moderator, ServiceIdentity, ServicePermission, BroadcastTarget, TopStatus, SponsorSales, CampaignFunnel, ClanDiscipline, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, MetaDecks, BattleAnalysis, PlayerSheet, PlusStatus, OwnerPlus, TiltProfile, Challenge, OwnerChallenge, OwnerFoundPlayer, TrackerState, MatchHistory, MatchReport, TopPlayerRow, TopPlayerDetail, DuelLeague, Tournament, TournamentSummary, WarJournal, Studio } from '../types'
+import type { AppConfig, AppTab, BackgroundKey, ClanDesignKey, ClanPage, PlayerPage, HallOfFame, OwnerSponsor, Moderator, ServiceIdentity, ServicePermission, BroadcastTarget, TopStatus, SponsorSales, CampaignFunnel, ClanDiscipline, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, MetaDecks, BattleAnalysis, PlayerSheet, PlusStatus, OwnerPlus, TiltProfile, Challenge, OwnerChallenge, OwnerFoundPlayer, TrackerState, MatchHistory, MatchReport, TopPlayerRow, TopPlayerDetail, DuelLeague, Tournament, TournamentSummary, WarJournal, Studio, StudioChallengeRequest } from '../types'
 
 // Адрес API вынесен в отдельный модуль: им же пользуются виджеты OBS, которым
 // нельзя тянуть сюда Telegram (см. apiBase.ts).
@@ -186,8 +186,11 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ link, lang }),
     }),
-  getChallenge: () => request<Challenge>('/api/challenge'),
-  joinChallenge: () => request<Challenge>('/api/challenge/join', { method: 'POST' }),
+  /** Без кода — общий уикенд-челлендж, с кодом — челлендж блогера. */
+  getChallenge: (code?: string | null) =>
+    request<Challenge>(code ? `/api/challenge?code=${encodeURIComponent(code)}` : '/api/challenge'),
+  joinChallenge: (code?: string | null) =>
+    request<Challenge>(code ? `/api/challenge/join?code=${encodeURIComponent(code)}` : '/api/challenge/join', { method: 'POST' }),
   ownerGetChallenge: () => request<OwnerChallenge>('/api/owner/challenge'),
   ownerFindPlayer: (tag: string) =>
     request<OwnerFoundPlayer>(`/api/owner/find-player?tag=${encodeURIComponent(tag)}`),
@@ -473,6 +476,21 @@ export const api = {
   getStudio: () => request<Studio>('/api/studio'),
   /** Новый личный ключ — ссылки на общие виджеты со старым перестают работать. */
   rotateStudioKey: () => request<Studio>('/api/studio/rotate', { method: 'POST' }),
+  // Челленджи блогера: каждая ручка возвращает Студию целиком — список пересобирать не нужно
+  createStudioChallenge: (body: StudioChallengeRequest) =>
+    request<Studio>('/api/studio/challenges', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }),
+  updateStudioChallenge: (code: string, body: StudioChallengeRequest) =>
+    request<Studio>(`/api/studio/challenges/${encodeURIComponent(code)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }),
+  deleteStudioChallenge: (code: string) =>
+    request<Studio>(`/api/studio/challenges/${encodeURIComponent(code)}`, { method: 'DELETE' }),
 
   // Игровые турниры (отслеживание турнира CR по тегу)
   getGameTournaments: () => request<GameTournament[]>('/api/game-tournaments'),

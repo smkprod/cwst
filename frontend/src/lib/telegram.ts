@@ -50,6 +50,15 @@ export const startMatchId: number | null = (() => {
   return m ? Number(m[1]) : null
 })()
 
+/**
+ * Челлендж блогера: startapp=ch_<код> — зритель пришёл по ссылке со стрима и
+ * должен сразу попасть в таблицу этого челленджа, а не на первый экран.
+ */
+export const startChallengeCode: string | null = (() => {
+  const m = /^ch_([A-Za-z0-9]{4,64})$/.exec(startParam)
+  return m ? m[1] : null
+})()
+
 /** Параметр ведёт в историю боёв: «📜 Все бои», «📖 Разбор» из карточки трекера. */
 export const startToMatches = startParam === 'matches' || startMatchId !== null
 
@@ -82,6 +91,15 @@ export function botStartLink(payload?: string): string {
   return payload
     ? `https://t.me/${botUsername}?start=${encodeURIComponent(payload)}`
     : `https://t.me/${botUsername}`
+}
+
+/**
+ * Ссылка, которая открывает само мини-приложение (startapp), а не чат с ботом:
+ * зрителю со стрима нужна таблица челленджа, а не приветствие бота. Пустая
+ * строка, пока юзернейм бота неизвестен, — делиться ссылкой в никуда незачем.
+ */
+export function botAppLink(payload: string): string {
+  return botUsername ? `https://t.me/${botUsername}?startapp=${encodeURIComponent(payload)}` : ''
 }
 
 /** Лёгкая вибрация при тапах (no-op вне Telegram). */

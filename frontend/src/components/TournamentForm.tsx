@@ -276,7 +276,7 @@ export function TournamentForm({ mode, initial, onSaved, onCancel }: Props) {
  * Пустая строка, если даты нет: поле должно остаться незаполненным, а не показывать
  * начало эпохи.
  */
-function toLocalInput(iso: string | null): string {
+export function toLocalInput(iso: string | null): string {
   if (!iso) return ''
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return ''

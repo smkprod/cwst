@@ -7,6 +7,7 @@ import { PERSONAL_WIDGETS, TOURNAMENT_WIDGETS } from '../lib/overlayLinks'
 import { TournamentForm } from './TournamentForm'
 import { TournamentDetail } from './TournamentDetail'
 import { ObsSteps, WidgetLinks } from './WidgetLinks'
+import { StudioChallenges } from './StudioChallenges'
 import { Icon, type IconName } from './ui/Icon'
 import { Chip, IconTile, SectionHead, type Tone } from './ui/Section'
 import { InfoButton } from './ui/Info'
@@ -32,7 +33,8 @@ const IDEAS: { icon: IconName; tone: Tone; soon: boolean }[] = [
 ]
 
 /**
- * «Студия» блогера: свои турниры и виджеты для OBS в одном месте.
+ * «Студия» блогера: свои челленджи, турниры и виджеты для OBS в одном месте.
+ * Вкладкой в баре её больше нет — открывается из «Ещё» и из меню панели.
  *
  * Турниры здесь те же, что во вкладке «Турнир», — форма и карточка переиспользуются
  * целиком. Своё у Студии только то, что нужно на трансляции: ссылки на виджеты,
@@ -116,6 +118,7 @@ export function StudioView() {
 function StudioHome({ data, onOpen, onRotated, t }: {
   data: Studio
   onOpen: (id: number) => void
+  /** Свежая Студия после смены ключа или правки челленджа. */
   onRotated: (s: Studio) => void
   t: Translations
 }) {
@@ -135,6 +138,9 @@ function StudioHome({ data, onOpen, onRotated, t }: {
 
   return (
     <>
+      {/* Челленджи первыми: их устраивают на каждый стрим, турнир — от случая к случаю */}
+      <StudioChallenges items={data.challenges ?? []} onChanged={onRotated} t={t} />
+
       <section className="card st-card">
         <SectionHead icon="trophy" tone="gold" title={t.studio.myTitle} aside={data.tournaments.length || undefined} />
         {data.tournaments.length === 0 && <p className="muted small st-empty">{t.studio.myEmpty}</p>}

@@ -43,7 +43,17 @@ public class OverlayController(
     {
         NoCache();
         if (!await studio.IsValidKeyAsync(key, ct)) return NotFound(new { error = "not_found" });
-        return Ok(await challenge.GetAsync(0, ct));
+        return Ok(await challenge.GetAsync(0, ct: ct));
+    }
+
+    /// <summary>GET /api/overlay/c/{code} — челлендж блогера: код и так открыт в ссылке вступления.</summary>
+    [HttpGet("c/{code}")]
+    public async Task<IActionResult> CreatorChallenge(string code, CancellationToken ct)
+    {
+        NoCache();
+        if (code.Length is < 6 or > 16) return NotFound();
+        var dto = await challenge.GetAsync(0, code, ct);
+        return dto is null ? NotFound(new { error = "not_found" }) : Ok(dto);
     }
 
     private void NoCache() => Response.Headers.CacheControl = "no-store";

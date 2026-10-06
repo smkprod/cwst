@@ -1165,10 +1165,32 @@ export interface StudioTournament {
   overlayKey: string
 }
 
+export type ChallengeStatus = 'upcoming' | 'live' | 'ended'
+
+/** Челлендж блогера для своих зрителей: те же билеты, что в уикенд-челлендже. */
+export interface StudioChallenge {
+  /** Код в ссылке для зрителей (startapp=ch_<code>) и в виджете OBS. */
+  code: string
+  title: string
+  prize: string | null
+  startUtc: string
+  endUtc: string
+  status: ChallengeStatus
+  participants: number
+}
+
 export interface Studio {
   /** Личный ключ: общие виджеты (лига дуэлей, челлендж). */
   overlayKey: string
   tournaments: StudioTournament[]
+  challenges: StudioChallenge[]
+}
+
+export interface StudioChallengeRequest {
+  title: string
+  prize: string | null
+  startUtc: string
+  endUtc: string
 }
 
 /** Топ лиги дуэлей для виджета — публичная часть DuelLeague. */
@@ -1670,7 +1692,13 @@ export interface ChallengeRow {
 }
 
 export interface Challenge {
-  event: { id: string; title: string | null; prize: string | null; startUtc: string; endUtc: string; status: 'upcoming' | 'live' | 'ended'; giftPlus?: boolean }
+  event: {
+    id: string; title: string | null; prize: string | null; startUtc: string; endUtc: string; status: ChallengeStatus; giftPlus?: boolean
+    /** Код челленджа блогера; null — общий уикенд-челлендж. */
+    code?: string | null
+    /** Имя блогера, который его проводит. */
+    host?: string | null
+  }
   linked: boolean
   joined: boolean
   me: ChallengeRow | null

@@ -20,6 +20,6 @@ if (!('obsstudio' in window)) document.documentElement.classList.add('ov-preview
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <Overlay widget={params.get('w')} k={params.get('k')} t={t} />
+    <Overlay widget={params.get('w')} k={params.get('k')} c={params.get('c')} t={t} />
   </StrictMode>,
 )
