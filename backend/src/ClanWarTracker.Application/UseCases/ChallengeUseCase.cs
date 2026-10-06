@@ -26,7 +26,8 @@ public class ChallengeUseCase(
     IPlayerAlertPrefsRepository alertPrefs,
     ITiltAlertRepository alerts,
     IClanRepository clans,
-    INotificationSender sender)
+    INotificationSender sender,
+    ICreatorChallengeRepository creatorChallenges)
 {
     public const string SettingKey = "challenge.event";
 
@@ -72,6 +73,17 @@ public class ChallengeUseCase(
         return new Event($"weekend-{saturday:yyyyMMdd}", null, "Pass Royale", start, start.AddDays(2).AddSeconds(-1));
     }
 
+    /// <summary>Событие челленджа блогера как обычное событие: подсчёт и таблица те же.</summary>
+    public static Event FromCreator(CreatorChallenge c) => new(c.EventId, c.Title, c.Prize, c.StartUtc, c.EndUtc);
+
+    /// <summary>Событие по коду блогера, без кода - общий челлендж. null - кода такого нет.</summary>
+    private async Task<(Event? Event, CreatorChallenge? Creator)> EventAsync(string? code, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(code)) return (await CurrentAsync(ct), null);
+        var c = await creatorChallenges.GetByCodeAsync(code.Trim(), ct);
+        return c is null ? (null, null) : (FromCreator(c), c);
+    }
+
     public async Task SaveAsync(Event e, CancellationToken ct = default) =>
         await settings.SetAsync(SettingKey, JsonSerializer.Serialize(e), ct);
 
@@ -106,11 +118,12 @@ public class ChallengeUseCase(
         return new Score(tickets, wins, losses, streak, best, last);
     }
 
-    public enum JoinOutcome { Ok, NotLinked, Ended }
+    public enum JoinOutcome { Ok, NotLinked, Ended, NotFound }
 
-    public async Task<JoinOutcome> JoinAsync(long tg, CancellationToken ct = default)
+    public async Task<JoinOutcome> JoinAsync(long tg, string? code = null, CancellationToken ct = default)
     {
-        var e = await CurrentAsync(ct);
+        var (e, _) = await EventAsync(code, ct);
+        if (e is null) return JoinOutcome.NotFound;
         if (e.Status(DateTime.UtcNow) == "ended") return JoinOutcome.Ended;
         var player = await players.GetByTelegramIdAsync(tg, ct);
         if (player is null) return JoinOutcome.NotLinked;
@@ -304,10 +317,11 @@ public class ChallengeUseCase(
     private static readonly ConcurrentDictionary<string, Board> BoardCache = new();
     private static readonly TimeSpan BoardTtl = TimeSpan.FromSeconds(10);
 
-    public async Task<ChallengeDto> GetAsync(long tg, CancellationToken ct = default)
+    public async Task<ChallengeDto?> GetAsync(long tg, string? code = null, CancellationToken ct = default)
     {
         var now = DateTime.UtcNow;
-        var e = await CurrentAsync(ct);
+        var (e, creator) = await EventAsync(code, ct);
+        if (e is null) return null;
         var status = e.Status(now);
         var player = await players.GetByTelegramIdAsync(tg, ct);
         var mine = await entries.GetEntryAsync(e.Id, tg, ct);
@@ -328,7 +342,8 @@ public class ChallengeUseCase(
         var leaders = rows.Take(LeadersShown).ToList();
 
         return new ChallengeDto(
-            new ChallengeEventDto(e.Id, e.Title, e.Prize, e.StartUtc, e.EndUtc, status, e.GiftPlus),
+            new ChallengeEventDto(e.Id, e.Title, e.Prize, e.StartUtc, e.EndUtc, status, e.GiftPlus,
+                Code: creator?.Code, Host: creator?.CreatorName),
             player is not null, mine is not null, me, leaders, rows.Count, board.BuiltUtc);
     }
 
@@ -375,12 +390,20 @@ public class ChallengeUseCase(
     public async Task<int> SyncAsync(int limit, CancellationToken ct = default)
     {
         var now = DateTime.UtcNow;
-        var e = await CurrentAsync(ct);
+        // Общий челлендж и идущие челленджи блогеров - журналы одни и те же, читаем
+        // участников всех событий одним кругом.
+        var grace = TimeSpan.FromMinutes(30);
+        var events = new List<Event>();
+        var current = await CurrentAsync(ct);
         // Полчаса после конца - добрать бои, сыгранные в последние минуты
-        if (now < e.StartUtc || now > e.EndUtc.AddMinutes(30)) return 0;
+        if (now >= current.StartUtc && now <= current.EndUtc + grace) events.Add(current);
+        events.AddRange((await creatorChallenges.GetRunningAsync(now, grace, ct)).Select(FromCreator));
+        if (events.Count == 0) return 0;
 
-        var due = (await entries.GetEntriesAsync(e.Id, ct))
-            .Select(x => x.PlayerTag).Distinct()
+        var tags = new List<string>();
+        foreach (var ev in events) tags.AddRange((await entries.GetEntriesAsync(ev.Id, ct)).Select(x => x.PlayerTag));
+
+        var due = tags.Distinct()
             .Where(tag => now - LastSync.GetValueOrDefault(tag) >= TimeSpan.FromMinutes(2))
             .OrderBy(tag => LastSync.GetValueOrDefault(tag))
             .Take(limit)
@@ -397,7 +420,7 @@ public class ChallengeUseCase(
             catch { /* один журнал не открылся - остальные дальше */ }
             LastSync[tag] = now;
         }
-        if (synced > 0) BoardCache.TryRemove(e.Id, out _);
+        if (synced > 0) foreach (var ev in events) BoardCache.TryRemove(ev.Id, out _);
         return synced;
     }
 }

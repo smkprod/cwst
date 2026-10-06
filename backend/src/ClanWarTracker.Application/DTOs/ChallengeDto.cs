@@ -3,7 +3,10 @@ namespace ClanWarTracker.Application.DTOs;
 /// <param name="Title">null - название по умолчанию из перевода приложения.</param>
 /// <param name="Status">upcoming, live или ended.</param>
 /// <param name="GiftPlus">Участникам Плюс в подарок до конца челленджа.</param>
-public record ChallengeEventDto(string Id, string? Title, string? Prize, DateTime StartUtc, DateTime EndUtc, string Status, bool GiftPlus = false);
+/// <param name="Code">Код челленджа блогера; null - общий челлендж.</param>
+/// <param name="Host">Кто проводит челлендж блогера.</param>
+public record ChallengeEventDto(string Id, string? Title, string? Prize, DateTime StartUtc, DateTime EndUtc, string Status, bool GiftPlus = false,
+    string? Code = null, string? Host = null);
 
 /// <param name="Streak">Текущая серия побед - сколько до бонусного билета.</param>
 public record ChallengeRowDto(

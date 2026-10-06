@@ -1,4 +1,5 @@
 using ClanWarTracker.Application.DTOs;
+using ClanWarTracker.Domain.Entities;
 using ClanWarTracker.Domain.Interfaces;
 
 namespace ClanWarTracker.Application.UseCases;
@@ -10,13 +11,26 @@ namespace ClanWarTracker.Application.UseCases;
 /// доступ к нему даёт только секрет в ссылке. У турнира секрет свой (сетка и
 /// текущий матч), у блогера - личный: для общих таблиц лиги и челленджа.
 /// </summary>
-public class StudioUseCase(ITournamentRepository tournaments, IServiceSettingRepository settings)
+public class StudioUseCase(
+    ITournamentRepository tournaments,
+    IServiceSettingRepository settings,
+    ICreatorChallengeRepository challenges,
+    IChallengeRepository challengeEntries,
+    IPlayerRepository players)
 {
+    /// <summary>Сколько незавершённых челленджей может вести блогер одновременно.</summary>
+    public const int MaxOpenChallenges = 5;
+
+    /// <summary>Самый длинный челлендж: дольше двух недель таблица перестаёт быть событием.</summary>
+    public static readonly TimeSpan MaxChallengeLength = TimeSpan.FromDays(14);
+
     private static string KeyOf(long userId) => $"studio.key.{userId}";
     private static string OwnerOf(string key) => $"studio.by.{key}";
 
     public record StudioTournament(TournamentSummaryDto Tournament, string OverlayKey);
-    public record StudioDto(string OverlayKey, List<StudioTournament> Tournaments);
+    public record StudioChallenge(string Code, string Title, string? Prize, DateTime StartUtc, DateTime EndUtc,
+        string Status, int Participants);
+    public record StudioDto(string OverlayKey, List<StudioTournament> Tournaments, List<StudioChallenge> Challenges);
 
     public async Task<StudioDto> GetAsync(long userId, CancellationToken ct = default)
     {
@@ -32,9 +46,83 @@ public class StudioUseCase(ITournamentRepository tournaments, IServiceSettingRep
         }
         if (issued) await tournaments.SaveChangesAsync(ct);
 
-        return new StudioDto(key, mine
-            .Select(t => new StudioTournament(TournamentMapping.ToSummary(t), t.OverlayKey!))
-            .ToList());
+        var now = DateTime.UtcNow;
+        var counts = (await challengeEntries.GetEventCountsAsync(ct)).ToDictionary(x => x.EventId, x => x.Count);
+        var myChallenges = (await challenges.GetByCreatorAsync(userId, ct))
+            .Select(c => new StudioChallenge(c.Code, c.Title, c.Prize, c.StartUtc, c.EndUtc,
+                ChallengeUseCase.FromCreator(c).Status(now), counts.GetValueOrDefault(c.EventId)))
+            .ToList();
+
+        return new StudioDto(key,
+            mine.Select(t => new StudioTournament(TournamentMapping.ToSummary(t), t.OverlayKey!)).ToList(),
+            myChallenges);
+    }
+
+    public enum ChallengeError { BadTitle, BadDates, TooMany, NotFound, NotYours }
+
+    public async Task<ChallengeError?> CreateChallengeAsync(long userId, string? title, string? prize,
+        DateTime startUtc, DateTime endUtc, CancellationToken ct = default)
+    {
+        if (Validate(title, startUtc, endUtc, isNew: true) is { } bad) return bad;
+        var now = DateTime.UtcNow;
+        var open = (await challenges.GetByCreatorAsync(userId, ct)).Count(c => c.EndUtc > now);
+        if (open >= MaxOpenChallenges) return ChallengeError.TooMany;
+
+        var player = await players.GetByTelegramIdAsync(userId, ct);
+        await challenges.AddAsync(new CreatorChallenge
+        {
+            Code = TournamentValidation.NewOverlayKey()[..10],
+            CreatorTelegramUserId = userId,
+            CreatorName = Cut(player?.Name ?? "Clanify", 64)!,
+            Title = Cut(title, 60)!,
+            Prize = Cut(prize, 60),
+            StartUtc = Utc(startUtc),
+            EndUtc = Utc(endUtc),
+            CreatedUtc = now,
+        }, ct);
+        return null;
+    }
+
+    public async Task<ChallengeError?> UpdateChallengeAsync(long userId, string code, string? title, string? prize,
+        DateTime startUtc, DateTime endUtc, CancellationToken ct = default)
+    {
+        var c = await challenges.GetByCodeAsync(code, ct);
+        if (c is null) return ChallengeError.NotFound;
+        if (c.CreatorTelegramUserId != userId) return ChallengeError.NotYours;
+        if (Validate(title, startUtc, endUtc, isNew: false) is { } bad) return bad;
+        c.Title = Cut(title, 60)!;
+        c.Prize = Cut(prize, 60);
+        c.StartUtc = Utc(startUtc);
+        c.EndUtc = Utc(endUtc);
+        await challenges.SaveChangesAsync(ct);
+        return null;
+    }
+
+    public async Task<ChallengeError?> DeleteChallengeAsync(long userId, string code, CancellationToken ct = default)
+    {
+        var c = await challenges.GetByCodeAsync(code, ct);
+        if (c is null) return ChallengeError.NotFound;
+        if (c.CreatorTelegramUserId != userId) return ChallengeError.NotYours;
+        await challenges.DeleteAsync(c, ct);
+        return null;
+    }
+
+    private static ChallengeError? Validate(string? title, DateTime start, DateTime end, bool isNew)
+    {
+        if (string.IsNullOrWhiteSpace(title)) return ChallengeError.BadTitle;
+        if (end <= start || end - start > MaxChallengeLength) return ChallengeError.BadDates;
+        // Новый - не в прошлом; правка может трогать уже идущий
+        if (isNew && Utc(end) <= DateTime.UtcNow) return ChallengeError.BadDates;
+        return null;
+    }
+
+    private static DateTime Utc(DateTime d) => d.Kind == DateTimeKind.Utc ? d : DateTime.SpecifyKind(d.ToUniversalTime(), DateTimeKind.Utc);
+
+    private static string? Cut(string? s, int max)
+    {
+        s = s?.Trim();
+        if (string.IsNullOrEmpty(s)) return null;
+        return s.Length > max ? s[..max] : s;
     }
 
     /// <summary>Новый личный ключ: старые ссылки в OBS перестают работать (если ключ утёк).</summary>
