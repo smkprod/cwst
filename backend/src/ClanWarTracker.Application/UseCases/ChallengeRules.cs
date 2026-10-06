@@ -8,18 +8,19 @@ public static class ChallengeRules
 {
     /// <summary>Билеты: победа - 1, каждая третья победа подряд - 2. Формат уикенд-челленджа.</summary>
     public const string Tickets = "tickets";
-    /// <summary>Каждая победа - очко, без бонусов: самый понятный формат.</summary>
-    public const string Wins = "wins";
     /// <summary>Очко только за победу с тремя коронами.</summary>
     public const string ThreeCrowns = "threecrowns";
     /// <summary>Очко только за победу, в которой не потеряно ни одной башни.</summary>
     public const string Flawless = "flawless";
     /// <summary>Счёт - лучшая серия побед подряд за время челленджа.</summary>
     public const string Streak = "streak";
-    /// <summary>Очко за победу только на Пути легенд.</summary>
-    public const string PathOfLegends = "pol";
+    /// <summary>Очко за победу «тяжёлой» колодой: средний эликсир строго больше <see cref="HeavyMinAvgElixir"/>.</summary>
+    public const string Heavy = "heavy";
 
-    public static readonly string[] All = [Tickets, Wins, ThreeCrowns, Flawless, Streak, PathOfLegends];
+    /// <summary>Порог «тяжёлой» колоды. Больше 7 - это почти одни семёрки и восьмёрки: челлендж на смелость.</summary>
+    public const double HeavyMinAvgElixir = 7.0;
+
+    public static readonly string[] All = [Tickets, ThreeCrowns, Flawless, Streak, Heavy];
 
     public static string Normalize(string? rule) =>
         rule is not null && All.Contains(rule) ? rule : Tickets;
