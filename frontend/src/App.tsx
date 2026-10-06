@@ -2,8 +2,8 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { Icon, type IconName } from './components/ui/Icon'
 import { IconTile } from './components/ui/Section'
 import { api, ApiError, adminClan } from './lib/api'
-import { askDmOnce, haptic, startMatchId, startParam, startToMatches } from './lib/telegram'
-import { ChallengeView } from './components/ChallengeView'
+import { askDmOnce, haptic, startChallengeCode, startMatchId, startParam, startToMatches } from './lib/telegram'
+import { ChallengeView, CreatorChallengeScreen } from './components/ChallengeView'
 import { DuelView } from './components/DuelView'
 import { afterPromo, OPEN_CHALLENGE } from './lib/promo'
 import { usePlusSheet } from './lib/plusSheet'
@@ -28,7 +28,6 @@ import { LinkPrompt } from './components/LinkPrompt'
 import { HallOfFame } from './components/HallOfFame'
 import { PlayerSearchView } from './components/PlayerSearchView'
 import { TournamentView } from './components/TournamentView'
-import { StudioView } from './components/StudioView'
 import { ClanlessView, type SoloReason } from './components/ClanlessView'
 import { GuestEntry } from './components/GuestEntry'
 import { GuestMyStats } from './components/GuestMyStats'
@@ -64,7 +63,7 @@ const TRANSIENT_TOLERANCE = 3
  * редкое собрано в «Ещё». Панель владельца — пятая и только у владельца: она невидима
  * для остальных, так что места в баре ни у кого не занимает.
  */
-type Tab = 'clan' | 'me' | 'hall' | 'tournament' | 'search' | 'more' | 'challenge' | 'duel' | 'owner' | 'studio'
+type Tab = 'clan' | 'me' | 'hall' | 'tournament' | 'search' | 'more' | 'challenge' | 'duel' | 'owner' | 'creatorChallenge'
 
 /** Набор вкладок, пока сервер не ответил. Совпадает с умолчанием на сервере. */
 const DEFAULT_TABS: AppTab[] = ['clan', 'me', 'hall', 'search', 'more']
@@ -123,9 +122,10 @@ function ClanSectionTabs({ value, onChange, t }: {
 
 /**
  * Куда вести по параметру запуска из бота: «Открыть разбор» — во вкладку «Я» на
- * разбор, «/meta» — в мировой топ, «/plus» — в окно Плюса. Без параметра — как раньше.
+ * разбор, «/meta» — в мировой топ, «/plus» — в окно Плюса, ch_<код> — в челлендж
+ * блогера (отдельный экран вне бара). Без параметра — как раньше.
  */
-const START_TAB: Tab = startParam === 'challenge' ? 'challenge' : startParam === 'duel' ? 'duel' : startParam === 'review' || startToMatches ? 'me' : startParam === 'meta' ? 'more' : 'clan'
+const START_TAB: Tab = startChallengeCode ? 'creatorChallenge' : startParam === 'challenge' ? 'challenge' : startParam === 'duel' ? 'duel' : startParam === 'review' || startToMatches ? 'me' : startParam === 'meta' ? 'more' : 'clan'
 
 /** «Разбор» из бота — разбор за 30 дней, трекер и «Все бои» — история. */
 const START_BATTLES_VIEW = startParam === 'review' ? 'review' : 'history'
@@ -324,15 +324,18 @@ export default function App() {
     case 'clanless':
       // Админ сервиса без своего клана — не тупик: панель и есть то, зачем он зашёл,
       // а заход в чужой клан из неё вернёт обычные экраны. Блогеру панель не нужна —
-      // он получает обычное приложение игрока с вкладкой «Студия».
-      return canUseOwnerPanel(me)
+      // он получает обычное приложение игрока со «Студией» в «Ещё». Ссылка на
+      // челлендж блогера важнее панели: по ней пришли смотреть таблицу, а не кланы.
+      return canUseOwnerPanel(me) && !startChallengeCode
         ? <OwnerPanel me={me} />
         : <ClanlessView reason={state.reason}
-            initialTab={startParam === 'meta' ? 'meta' : startParam === 'challenge' ? 'challenge' : startParam === 'duel' ? 'duel' : 'me'}
+            initialTab={startChallengeCode ? 'creatorChallenge' : startParam === 'meta' ? 'meta' : startParam === 'challenge' ? 'challenge' : startParam === 'duel' ? 'duel' : 'me'}
+            challengeCode={startChallengeCode}
             battlesView={START_BATTLES_VIEW} openMatchId={startMatchId}
             showChallenge={Boolean(config?.tabs.includes('challenge')) || startParam === 'challenge'}
             showDuel={Boolean(config?.tabs.includes('duel')) || startParam === 'duel'}
-            showStudio={canUseStudio(me)} />
+            showStudio={canUseStudio(me)}
+            config={config} onConfigChanged={loadConfig} />
     case 'notInTelegram':
       return (
         <div className="center">
@@ -362,12 +365,10 @@ export default function App() {
       const king = weekKing(data.players, data.warLog, data.periodType)
 
       // Панель владельца всегда последней и всегда вне настраиваемого набора:
-      // выключить её из панели значило бы потерять доступ к самой панели. Студия —
-      // так же по праву, а не по настройке: блогеру она нужна независимо от того,
-      // какие вкладки владелец включил остальным.
+      // выключить её из панели значило бы потерять доступ к самой панели. Студии в
+      // баре больше нет: шесть-семь пунктов не помещались, и она переехала в «Ещё».
       const tabs = [
         ...(config?.tabs ?? DEFAULT_TABS).map(id => ({ id: id as Tab, ...TAB_LOOKS(t)[id] })),
-        ...(canUseStudio(me) ? [{ id: 'studio' as Tab, icon: 'rocket' as IconName, label: t.tabs.studio }] : []),
         ...(canUseOwnerPanel(me) ? [{ id: 'owner' as Tab, icon: 'dashboard' as IconName, label: t.tabs.owner }] : []),
       ]
 
@@ -457,6 +458,9 @@ export default function App() {
                 isLeader={Boolean(data.isClanLeader)}
                 initialSection={startParam === 'meta' ? 'worldTop' : null}
                 onOpenNotifications={() => { haptic('light'); setSettingsOpen(true) }}
+                config={config}
+                onConfigChanged={loadConfig}
+                showStudio={canUseStudio(me)}
               />
             )}
             {tab === 'hall' && (
@@ -464,7 +468,9 @@ export default function App() {
             )}
             {tab === 'challenge' && <ChallengeView />}
             {tab === 'duel' && <DuelView />}
-            {tab === 'studio' && canUseStudio(me) && <StudioView />}
+            {tab === 'creatorChallenge' && startChallengeCode && (
+              <CreatorChallengeScreen code={startChallengeCode} onBack={() => setTab(tabs[0].id)} />
+            )}
             {tab === 'owner' && canUseOwnerPanel(me) && (
               <div className="fade-in">
                 <OwnerPanel me={me} />
@@ -567,7 +573,13 @@ export default function App() {
                 canManage={false}
                 isLeader={false}
                 onOpenNotifications={() => {}}
+                config={config}
+                onConfigChanged={loadConfig}
+                showStudio={canUseStudio(me)}
               />
+            )}
+            {tab === 'creatorChallenge' && startChallengeCode && (
+              <CreatorChallengeScreen code={startChallengeCode} onBack={() => setTab('clan')} />
             )}
           </main>
 

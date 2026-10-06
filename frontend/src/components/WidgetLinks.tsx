@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useT } from '../lib/i18n'
 import { copyText, haptic, hapticNotify, openExternalLink } from '../lib/telegram'
-import { overlayUrl, type WidgetSpec } from '../lib/overlayLinks'
+import { overlayUrl, type OverlayParam, type WidgetSpec } from '../lib/overlayLinks'
 import { Icon } from './ui/Icon'
 import { IconTile, type Tone } from './ui/Section'
 
@@ -15,27 +15,29 @@ const TONES: Record<WidgetSpec['id'], Tone> = {
  * Один и тот же блок стоит в Студии и в карточке турнира: блогер, открывший свой
  * турнир, не должен идти за ссылкой в другую вкладку посреди трансляции.
  */
-export function WidgetLinks({ widgets, overlayKey, compact = false }: {
+export function WidgetLinks({ widgets, overlayKey, compact = false, param = 'k' }: {
   widgets: WidgetSpec[]
   overlayKey: string
   /** Без описаний — в карточке турнира, где место дороже. */
   compact?: boolean
+  /** c — overlayKey на самом деле код челленджа блогера. */
+  param?: OverlayParam
 }) {
   return (
     <div className="st-widgets">
-      {widgets.map(w => <WidgetRow key={w.id} spec={w} overlayKey={overlayKey} compact={compact} />)}
+      {widgets.map(w => <WidgetRow key={w.id} spec={w} overlayKey={overlayKey} compact={compact} param={param} />)}
     </div>
   )
 }
 
-function WidgetRow({ spec, overlayKey, compact }: { spec: WidgetSpec; overlayKey: string; compact: boolean }) {
+function WidgetRow({ spec, overlayKey, compact, param }: { spec: WidgetSpec; overlayKey: string; compact: boolean; param: OverlayParam }) {
   const { t, lang } = useT()
   const [copied, setCopied] = useState<'ok' | 'fail' | null>(null)
   const timer = useRef<number | undefined>(undefined)
   useEffect(() => () => window.clearTimeout(timer.current), [])
 
   // Ссылка — на языке блогера: виджет смотрят его зрители, и язык у них общий.
-  const url = overlayUrl(spec.id, overlayKey, lang)
+  const url = overlayUrl(spec.id, overlayKey, lang, param)
 
   const copy = async () => {
     haptic('light')
