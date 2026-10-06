@@ -27,14 +27,14 @@ public class StudioController(StudioUseCase studio, ServiceAccess access) : Cont
         return Ok(await studio.GetAsync(UserId, ct));
     }
 
-    public record ChallengeRequest(string? Title, string? Prize, DateTime StartUtc, DateTime EndUtc);
+    public record ChallengeRequest(string? Title, string? Prize, DateTime StartUtc, DateTime EndUtc, string? Rule = null);
 
     /// <summary>POST /api/studio/challenges — новый челлендж для своих зрителей.</summary>
     [HttpPost("challenges")]
     public async Task<IActionResult> CreateChallenge([FromBody] ChallengeRequest req, CancellationToken ct)
     {
         if (await DenyAsync(ct) is { } deny) return deny;
-        return await Done(studio.CreateChallengeAsync(UserId, req.Title, req.Prize, req.StartUtc, req.EndUtc, ct), ct);
+        return await Done(studio.CreateChallengeAsync(UserId, req.Title, req.Prize, req.StartUtc, req.EndUtc, req.Rule, ct), ct);
     }
 
     /// <summary>PUT /api/studio/challenges/{code} — поправить название, приз или время.</summary>
@@ -42,7 +42,7 @@ public class StudioController(StudioUseCase studio, ServiceAccess access) : Cont
     public async Task<IActionResult> UpdateChallenge(string code, [FromBody] ChallengeRequest req, CancellationToken ct)
     {
         if (await DenyAsync(ct) is { } deny) return deny;
-        return await Done(studio.UpdateChallengeAsync(UserId, code, req.Title, req.Prize, req.StartUtc, req.EndUtc, ct), ct);
+        return await Done(studio.UpdateChallengeAsync(UserId, code, req.Title, req.Prize, req.StartUtc, req.EndUtc, req.Rule, ct), ct);
     }
 
     /// <summary>DELETE /api/studio/challenges/{code}.</summary>

@@ -41,7 +41,8 @@ public class ChallengeUseCase(
 
     /// <param name="Title">null - название по умолчанию из перевода.</param>
     /// <param name="GiftPlus">Всем участникам Плюс в подарок до конца челленджа.</param>
-    public record Event(string Id, string? Title, string? Prize, DateTime StartUtc, DateTime EndUtc, bool GiftPlus = false)
+    public record Event(string Id, string? Title, string? Prize, DateTime StartUtc, DateTime EndUtc, bool GiftPlus = false,
+        string? Rule = null)
     {
         public string Status(DateTime now) => now < StartUtc ? "upcoming" : now <= EndUtc ? "live" : "ended";
     }
@@ -74,7 +75,8 @@ public class ChallengeUseCase(
     }
 
     /// <summary>Событие челленджа блогера как обычное событие: подсчёт и таблица те же.</summary>
-    public static Event FromCreator(CreatorChallenge c) => new(c.EventId, c.Title, c.Prize, c.StartUtc, c.EndUtc);
+    public static Event FromCreator(CreatorChallenge c) => new(c.EventId, c.Title, c.Prize, c.StartUtc, c.EndUtc,
+        Rule: ChallengeRules.Normalize(c.Rule));
 
     /// <summary>Событие по коду блогера, без кода - общий челлендж. null - кода такого нет.</summary>
     private async Task<(Event? Event, CreatorChallenge? Creator)> EventAsync(string? code, CancellationToken ct)
@@ -94,20 +96,35 @@ public class ChallengeUseCase(
     /// и Путь легенд: в испытаниях и 2х2 победы стоят другого, а дружеские можно
     /// наиграть с другом. Поражение билет не отнимает, но обрывает серию.
     /// </summary>
-    public static Score Compute(IEnumerable<PlayerBattle> list)
+    /// <param name="rule">Формат челленджа (ChallengeRules); null - билеты.</param>
+    public static Score Compute(IEnumerable<PlayerBattle> list, string? rule = null)
     {
+        rule = ChallengeRules.Normalize(rule);
         int tickets = 0, wins = 0, losses = 0, streak = 0, best = 0;
         DateTime? last = null;
         foreach (var b in list)
         {
-            if (MatchReport.ModeKey(b.Type) is not ("ladder" or "pol")) continue;
+            var mode = MatchReport.ModeKey(b.Type);
+            if (mode is not ("ladder" or "pol")) continue;
+            if (rule == ChallengeRules.PathOfLegends && mode != "pol") continue;
             if (b.Result > 0)
             {
                 wins++;
                 streak++;
+                var before = best;
                 best = Math.Max(best, streak);
-                tickets += streak % StreakBonusEvery == 0 ? 2 : 1;
-                last = b.BattleTimeUtc;
+                var points = rule switch
+                {
+                    ChallengeRules.Tickets => streak % StreakBonusEvery == 0 ? 2 : 1,
+                    ChallengeRules.ThreeCrowns => b.CrownsFor >= 3 ? 1 : 0,
+                    // Соперник не взял ни одной короны - значит, ни одна башня не упала
+                    ChallengeRules.Flawless => b.CrownsAgainst == 0 ? 1 : 0,
+                    // Счёт - сама лучшая серия: растёт, только когда серия её побила
+                    ChallengeRules.Streak => best - before,
+                    _ => 1,
+                };
+                tickets += points;
+                if (points > 0) last = b.BattleTimeUtc;
             }
             else if (b.Result < 0)
             {
@@ -343,7 +360,7 @@ public class ChallengeUseCase(
 
         return new ChallengeDto(
             new ChallengeEventDto(e.Id, e.Title, e.Prize, e.StartUtc, e.EndUtc, status, e.GiftPlus,
-                Code: creator?.Code, Host: creator?.CreatorName),
+                Code: creator?.Code, Host: creator?.CreatorName, Rule: ChallengeRules.Normalize(e.Rule)),
             player is not null, mine is not null, me, leaders, rows.Count, board.BuiltUtc);
     }
 
@@ -361,7 +378,7 @@ public class ChallengeUseCase(
             {
                 var from = x.JoinedUtc > e.StartUtc ? x.JoinedUtc : e.StartUtc;
                 var mineBattles = byTag.GetValueOrDefault(x.PlayerTag) ?? [];
-                return (Entry: x, Score: Compute(mineBattles.Where(b => b.BattleTimeUtc >= from)));
+                return (Entry: x, Score: Compute(mineBattles.Where(b => b.BattleTimeUtc >= from), e.Rule));
             })
             // Больше билетов; поровну - больше побед; поровну - кто набрал раньше
             .OrderByDescending(s => s.Score.Tickets)
