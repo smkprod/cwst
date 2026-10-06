@@ -17,7 +17,9 @@ public record TournamentSummaryDto(
     string? ChampionName = null,
     DateTime? CompletedAtUtc = null,
     /// <summary>Режим дружеского боя (ключ DuelModes); null — любой.</summary>
-    string? GameMode = null);
+    string? GameMode = null,
+    /// <summary>Турнир провёл блогер (право «Студия») — в списке он выше и с пометкой.</summary>
+    bool Streamer = false);
 
 public record TournamentDto(
     int Id,

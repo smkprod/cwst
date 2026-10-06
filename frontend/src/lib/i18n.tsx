@@ -125,6 +125,10 @@ const ru = {
   },
 
   ch: {
+    creatorsTitle: 'Челленджи стримеров',
+    creatorsHint: 'Стримеры проводят свои челленджи для зрителей. Вступить может любой: таблица у каждого челленджа своя, а бои считает бот.',
+    joinedShort: 'Ты участвуешь',
+    backToMain: 'К челленджам',
     ruleNames: { tickets: 'Билеты', threecrowns: 'Три короны', flawless: 'Без потери башни', streak: 'Лучшая серия', heavy: 'Тяжёлая колода' } as Record<string, string>,
     ruleDescs: { tickets: 'Победа — 1 билет, каждая третья победа подряд — 2.', threecrowns: 'Очко только за победу с тремя коронами.', flawless: 'Очко только за победу, в которой ты не потерял ни одной башни.', streak: 'Счёт — твоя лучшая серия побед подряд за челлендж.', heavy: 'Очко за победу колодой со средним эликсиром больше 7.' } as Record<string, string>,
     points: 'очков',
@@ -1315,6 +1319,7 @@ const ru = {
   },
 
   tournament: {
+    streamerBadge: 'Турнир стримера',
     tabLabel: 'Турнир',
     chooseTypeTitle: 'Какой турнир создать?',
     typeClan: 'Клановый турнир',
@@ -1889,6 +1894,10 @@ const uk: Translations = {
   },
 
   ch: {
+    creatorsTitle: 'Челенджі стримерів',
+    creatorsHint: 'Стримери проводять свої челенджі для глядачів. Вступити може будь-хто: таблиця в кожного челенджу своя, а бої рахує бот.',
+    joinedShort: 'Ти береш участь',
+    backToMain: 'До челенджів',
     ruleNames: { tickets: 'Квитки', threecrowns: 'Три корони', flawless: 'Без втрати башти', streak: 'Найкраща серія', heavy: 'Важка колода' } as Record<string, string>,
     ruleDescs: { tickets: 'Перемога — 1 квиток, кожна третя перемога поспіль — 2.', threecrowns: 'Очко лише за перемогу з трьома коронами.', flawless: 'Очко лише за перемогу, в якій ти не втратив жодної башти.', streak: 'Рахунок — твоя найкраща серія перемог поспіль за челендж.', heavy: 'Очко за перемогу колодою з середнім еліксиром понад 7.' } as Record<string, string>,
     points: 'очок',
@@ -3077,6 +3086,7 @@ const uk: Translations = {
   },
 
   tournament: {
+    streamerBadge: 'Турнір стримера',
     tabLabel: 'Турнір',
     chooseTypeTitle: 'Який турнір створити?',
     typeClan: 'Клановий турнір',
@@ -3649,6 +3659,10 @@ const en: Translations = {
   },
 
   ch: {
+    creatorsTitle: 'Streamer challenges',
+    creatorsHint: 'Streamers run their own challenges for viewers. Anyone can join: each challenge has its own table, and the bot counts the battles.',
+    joinedShort: 'You’re in',
+    backToMain: 'Back to challenges',
     ruleNames: { tickets: 'Tickets', threecrowns: 'Three crowns', flawless: 'No tower lost', streak: 'Best streak', heavy: 'Heavy deck' } as Record<string, string>,
     ruleDescs: { tickets: 'A win is 1 ticket, every third win in a row is 2.', threecrowns: 'A point only for a three-crown win.', flawless: 'A point only for a win where you lost no tower.', streak: 'Your score is your best win streak during the challenge.', heavy: 'A point for a win with a deck averaging more than 7 elixir.' } as Record<string, string>,
     points: 'points',
@@ -4837,6 +4851,7 @@ const en: Translations = {
   },
 
   tournament: {
+    streamerBadge: 'Streamer tournament',
     tabLabel: 'Tournament',
     chooseTypeTitle: 'Which tournament to create?',
     typeClan: 'Clan tournament',

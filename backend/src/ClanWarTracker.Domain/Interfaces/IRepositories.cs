@@ -546,6 +546,9 @@ public interface ICreatorChallengeRepository
     Task<CreatorChallenge?> GetByCodeAsync(string code, CancellationToken ct = default);
     Task<List<CreatorChallenge>> GetByCreatorAsync(long creatorTelegramUserId, CancellationToken ct = default);
 
+    /// <summary>Для вкладки «Челлендж»: не закончились или закончились не раньше указанного момента.</summary>
+    Task<List<CreatorChallenge>> GetVisibleAsync(DateTime endedAfterUtc, int limit, CancellationToken ct = default);
+
     /// <summary>Идут сейчас (с запасом после конца - добрать последние бои).</summary>
     Task<List<CreatorChallenge>> GetRunningAsync(DateTime nowUtc, TimeSpan grace, CancellationToken ct = default);
 
