@@ -515,6 +515,15 @@ public sealed class BotText
     public required string ChBtnResults { get; init; }
     /// <summary>Кнопка.</summary>
     public required string ChBtnPromo { get; init; }
+    /// <summary>Итоги в формате очков (не билетов): {0} очков, {1} место, {2} всего.</summary>
+    public required string ChEndPlacePts { get; init; }
+    public required string ChEndNoPts { get; init; }
+    /// <summary>{0} - имя, {1} - очков.</summary>
+    public required string ChEndWinnerPts { get; init; }
+    /// <summary>Строка челленджа в карточке в формате очков: {0} очков, {1} место, {2} хвост.</summary>
+    public required string TrkChallengePts { get; init; }
+    /// <summary>{0} - место, {1} - очков.</summary>
+    public required string TrkChallengeGapPts { get; init; }
     /// <summary>Строка челленджа в карточке: {0} билетов, {1} место, {2} хвост.</summary>
     public required string TrkChallenge { get; init; }
     /// <summary>До места выше: {0} - место, {1} - билетов.</summary>
@@ -999,6 +1008,11 @@ public sealed class BotText
         TrkChallenge = "🎟 Челлендж: {0} 🎟 · #{1}{2}",
         TrkChallengeGap = "  · до #{0} — {1} 🎟",
         TrkChallengeLead = "  · ты лидер! 🔥",
+        ChEndPlacePts = "⭐ У тебя {0} очков · #{1} из {2}",
+        ChEndNoPts = "⭐ В этот раз без очков — следующий челлендж уже скоро",
+        ChEndWinnerPts = "🏆 Победитель: {0} — {1} ⭐",
+        TrkChallengePts = "⭐ Челлендж: {0} ⭐ · #{1}{2}",
+        TrkChallengeGapPts = "  · до #{0} — {1} ⭐",
         TrkMatchup = "📊 В топ-500 такой матчап: {0}% побед ({1} боёв)",
         TrkInGroup = "🎯 Трекер боёв работает в личке: там я после каждого боя тихо присылаю разбор. Нажми кнопку ниже — и включи в один тап.",
         TrkBtnDm = "🎯 Включить в личке",
@@ -1397,6 +1411,11 @@ public sealed class BotText
         TrkChallenge = "🎟 Челендж: {0} 🎟 · #{1}{2}",
         TrkChallengeGap = "  · до #{0} — {1} 🎟",
         TrkChallengeLead = "  · ти лідер! 🔥",
+        ChEndPlacePts = "⭐ У тебе {0} очок · #{1} з {2}",
+        ChEndNoPts = "⭐ Цього разу без очок — наступний челендж уже скоро",
+        ChEndWinnerPts = "🏆 Переможець: {0} — {1} ⭐",
+        TrkChallengePts = "⭐ Челендж: {0} ⭐ · #{1}{2}",
+        TrkChallengeGapPts = "  · до #{0} — {1} ⭐",
         TrkMatchup = "📊 У топ-500 такий матчап: {0}% перемог ({1} боїв)",
         TrkInGroup = "🎯 Трекер боїв працює в особистих: там я після кожного бою тихо надсилаю розбір. Натисни кнопку нижче — і увімкни в один тап.",
         TrkBtnDm = "🎯 Увімкнути в особистих",
@@ -1795,6 +1814,11 @@ public sealed class BotText
         TrkChallenge = "🎟 Challenge: {0} 🎟 · #{1}{2}",
         TrkChallengeGap = "  · {1} 🎟 to #{0}",
         TrkChallengeLead = "  · you're leading! 🔥",
+        ChEndPlacePts = "⭐ You have {0} points · #{1} of {2}",
+        ChEndNoPts = "⭐ No points this time — the next challenge is coming soon",
+        ChEndWinnerPts = "🏆 Winner: {0} — {1} ⭐",
+        TrkChallengePts = "⭐ Challenge: {0} ⭐ · #{1}{2}",
+        TrkChallengeGapPts = "  · {1} ⭐ to #{0}",
         TrkMatchup = "📊 In the top 500 this matchup wins {0}% ({1} battles)",
         TrkInGroup = "🎯 The battle tracker works in private chat: that's where I quietly send a breakdown after every battle. Tap the button below to turn it on.",
         TrkBtnDm = "🎯 Turn on in private chat",

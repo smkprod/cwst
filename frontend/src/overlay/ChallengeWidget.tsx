@@ -8,6 +8,8 @@ import { useFlip, useNow } from './data'
 export function ChallengeWidget({ data, t }: { data: Challenge; t: Translations }) {
   const now = useNow()
   const ev = data.event
+  // Не «билеты» — очки: значок звезды, чтобы на стриме не обещать билеты за три короны
+  const unit = (ev.rule ?? 'tickets') === 'tickets' ? 'ticket' : 'star'
   const rows = data.leaders.slice(0, 10)
   const ref = useRef<HTMLDivElement>(null)
   useFlip(ref, rows.map(r => `${r.tag}:${r.rank}`).join(','))
@@ -54,7 +56,7 @@ export function ChallengeWidget({ data, t }: { data: Challenge; t: Translations 
                   </span>
                 </span>
                 <span className="ov-brow-stat">
-                  <span key={r.tickets} className="ov-brow-big ov-brow-tickets ov-pop"><Icon name="ticket" size={17} /> {r.tickets}</span>
+                  <span key={r.tickets} className="ov-brow-big ov-brow-tickets ov-pop"><Icon name={unit} size={17} /> {r.tickets}</span>
                 </span>
               </div>
             ))}
