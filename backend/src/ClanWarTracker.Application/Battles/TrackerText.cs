@@ -73,9 +73,12 @@ public static class TrackerText
         change is int c ? TiltMessages.Signed(c) : "±0";
 
     /// <summary>«🎟 Челлендж: 13 🎟 · #2 · до #1 — 2 🎟».</summary>
-    public static string Challenge(BotText t, UseCases.ChallengeUseCase.Standing s) =>
-        string.Format(t.TrkChallenge, s.Tickets, s.Rank,
-            s.Rank == 1 ? t.TrkChallengeLead : string.Format(t.TrkChallengeGap, s.Rank - 1, s.GapUp));
+    public static string Challenge(BotText t, UseCases.ChallengeUseCase.Standing s)
+    {
+        var pts = s.Rule != UseCases.ChallengeRules.Tickets;
+        return string.Format(pts ? t.TrkChallengePts : t.TrkChallenge, s.Tickets, s.Rank,
+            s.Rank == 1 ? t.TrkChallengeLead : string.Format(pts ? t.TrkChallengeGapPts : t.TrkChallengeGap, s.Rank - 1, s.GapUp));
+    }
 
     /// <summary>«📊 В топ-500 такой матчап: 58% побед (224 боя)» - только при достаточной выборке.</summary>
     public static string? Matchup(BotText t, MatchupStats.Result? r) =>

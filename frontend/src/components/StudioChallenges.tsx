@@ -19,7 +19,7 @@ const DEFAULT_LENGTH_MS = 3 * 3600_000
 type FormState = { edit: StudioChallenge | null } | null
 
 /** Форматы челленджа (ChallengeRules на сервере) и их иконки. Порядок — как в выборе. */
-const RULES: { key: string; icon: IconName }[] = [
+export const CHALLENGE_RULES: { key: string; icon: IconName }[] = [
   { key: 'tickets', icon: 'ticket' },
   { key: 'threecrowns', icon: 'crown' },
   { key: 'flawless', icon: 'shieldCheck' },
@@ -134,7 +134,7 @@ function ChallengeItem({ item, editing, onEdit, onChanged, t }: {
         <span className="st-trow-chips">
           <Chip icon={look.icon} tone={look.tone}>{s.chStatus[item.status]}</Chip>
           <Chip icon="user" tone="gray">{s.chParticipants.replace('{n}', String(item.participants))}</Chip>
-          <Chip icon={RULES.find(r => r.key === item.rule)?.icon ?? 'ticket'} tone="violet">{t.ch.ruleNames[item.rule] ?? item.rule}</Chip>
+          <Chip icon={CHALLENGE_RULES.find(r => r.key === item.rule)?.icon ?? 'ticket'} tone="violet">{t.ch.ruleNames[item.rule] ?? item.rule}</Chip>
           {item.prize && <Chip icon="gift" tone="gold">{item.prize}</Chip>}
         </span>
         <span className="muted small stc-period"><Icon name="calendar" size={13} /> {fmtPeriod(item.startUtc, item.endUtc, t)}</span>
@@ -293,7 +293,7 @@ function ChallengeForm({ edit, onSaved, onCancel, t }: {
       <div className="form-field">
         <label className="muted small">{s.chRuleLabel}</label>
         <div className="stc-rules">
-          {RULES.map(r => (
+          {CHALLENGE_RULES.map(r => (
             <button key={r.key} type="button" disabled={ruleLocked}
               className={`stc-rule ${rule === r.key ? 'stc-rule-on' : ''}`}
               onClick={() => { haptic('light'); setRule(r.key) }}>

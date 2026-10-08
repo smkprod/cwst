@@ -211,7 +211,7 @@ public class ChallengeUseCase(
     }
 
     /// <param name="GapUp">Сколько билетов нужно, чтобы обойти того, кто выше. 0 - ты первый.</param>
-    public record Standing(int Tickets, int Rank, int Total, int GapUp);
+    public record Standing(int Tickets, int Rank, int Total, int GapUp, string Rule = ChallengeRules.Tickets);
 
     /// <summary>Место в таблице для карточки трекера. null - челлендж не идёт или человек не участвует.</summary>
     public async Task<Standing?> StandingAsync(long tg, CancellationToken ct = default)
@@ -226,7 +226,8 @@ public class ChallengeUseCase(
         var row = board.Rows.FirstOrDefault(r => r.Tag == mine.PlayerTag);
         if (row is null) return null;
         var gap = row.Rank > 1 ? board.Rows[row.Rank - 2].Tickets - row.Tickets + 1 : 0;
-        return new Standing(row.Tickets, row.Rank, board.Rows.Count, Math.Max(1, gap) * (row.Rank > 1 ? 1 : 0));
+        return new Standing(row.Tickets, row.Rank, board.Rows.Count, Math.Max(1, gap) * (row.Rank > 1 ? 1 : 0),
+            ChallengeRules.Normalize(e.Rule));
     }
 
     public const string PromoPrice7Key = "promo.price7";
@@ -273,11 +274,14 @@ public class ChallengeUseCase(
                 var row = board.Rows.FirstOrDefault(r => r.Tag == x.PlayerTag);
 
                 var lines = new List<string> { t.ChEndHead };
+                // Не в формате билетов - очки: «12 билетов» за три короны было бы неправдой
+                var pts = ChallengeRules.Normalize(e.Rule) != ChallengeRules.Tickets;
                 lines.Add(row is { Tickets: > 0 }
-                    ? string.Format(t.ChEndPlace, row.Tickets, row.Rank, board.Rows.Count)
-                    : t.ChEndNoTickets);
+                    ? string.Format(pts ? t.ChEndPlacePts : t.ChEndPlace, row.Tickets, row.Rank, board.Rows.Count)
+                    : pts ? t.ChEndNoPts : t.ChEndNoTickets);
                 if (winner is not null)
-                    lines.Add(winner.Tag == x.PlayerTag ? t.ChEndYouWon : string.Format(t.ChEndWinner, winner.Name, winner.Tickets));
+                    lines.Add(winner.Tag == x.PlayerTag ? t.ChEndYouWon
+                        : string.Format(pts ? t.ChEndWinnerPts : t.ChEndWinner, winner.Name, winner.Tickets));
 
                 // Что сделал Стоп-тильт за выходные - лучший довод продлить
                 var tilt = (await alerts.GetSinceAsync(tg, e.StartUtc, ct))
