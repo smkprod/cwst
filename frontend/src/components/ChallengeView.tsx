@@ -167,7 +167,7 @@ function ChallengeBoard({ code }: { code: string | null }) {
                   <li><span>{s.rule1}</span> <Icon name="ticket" size={15} /></li>
                   <li><span>{s.rule2}</span> <Icon name="ticket" size={15} /></li>
                 </> : <li><span>{s.ruleDescs[rule]}</span> <Icon name="star" size={15} /></li>}
-                <li><span>{s.rule3}</span> <Icon name="trophy" size={15} /></li>
+                <li><span>{rule === 'tickets' ? s.rule3 : s.rule3Pts}</span> <Icon name="trophy" size={15} /></li>
               </ul>
               <p className="muted small">{s.unofficial}</p>
             </InfoButton>
@@ -181,7 +181,7 @@ function ChallengeBoard({ code }: { code: string | null }) {
             <Countdown ms={target - now} t={t} />
           </>
         ) : winner ? (
-          <p className="ch-winner">{s.winner.replace('{name}', winner.name).replace('{t}', String(winner.tickets))}</p>
+          <p className="ch-winner">{(rule === 'tickets' ? s.winner : s.winnerPts).replace('{name}', winner.name).replace('{t}', String(winner.tickets))}</p>
         ) : null}
         <div className="ch-dates muted small">
           {fmtRange(ev.startUtc, ev.endUtc, t)}
@@ -223,7 +223,7 @@ function ChallengeBoard({ code }: { code: string | null }) {
         } />
         {data.leaders.length === 0
           ? <p className="muted small" style={{ margin: '8px 0 0' }}>{s.empty}</p>
-          : <Board rows={data.leaders} me={data.me} />}
+          : <Board rows={data.leaders} me={data.me} rule={rule} />}
       </section>
     </div>
   )
@@ -323,7 +323,8 @@ function MyCard({ me, leader, rule, t }: { me: ChallengeRow; leader: number; rul
  * Таблица, которая «живёт»: строки плавно переезжают на новые места (FLIP), а
  * у кого прибавились билеты — вспыхивает.
  */
-function Board({ rows, me }: { rows: ChallengeRow[]; me: ChallengeRow | null }) {
+function Board({ rows, me, rule }: { rows: ChallengeRow[]; me: ChallengeRow | null; rule: string }) {
+  const unit = rule === 'tickets' ? 'ticket' : 'star'
   const openPlayer = usePlayerSheet()
   const leader = Math.max(1, rows[0]?.tickets ?? 1)
   const refs = useRef(new Map<string, HTMLDivElement>())
@@ -372,7 +373,7 @@ function Board({ rows, me }: { rows: ChallengeRow[]; me: ChallengeRow | null }) 
             <span className="ch-bar"><span style={{ width: `${(r.tickets / leader) * 100}%` }} /></span>
           </span>
           <span className="ch-sub muted small">{r.wins}–{r.losses}{r.streak >= 2 && <> · <Icon name="flame" size={12} className="mx-flame" />{r.streak}</>}</span>
-          <span className="ch-tk">{r.tickets}<small><Icon name="ticket" size={13} /></small></span>
+          <span className="ch-tk">{r.tickets}<small><Icon name={unit} size={13} /></small></span>
         </div>
       ))}
       {showMeBelow && me && (
@@ -382,7 +383,7 @@ function Board({ rows, me }: { rows: ChallengeRow[]; me: ChallengeRow | null }) 
             <span className="ch-rank">{me.rank}</span>
             <span className="ch-name"><b>{me.name}</b></span>
             <span className="ch-sub muted small">{me.wins}–{me.losses}</span>
-            <span className="ch-tk">{me.tickets}<small><Icon name="ticket" size={13} /></small></span>
+            <span className="ch-tk">{me.tickets}<small><Icon name={unit} size={13} /></small></span>
           </div>
         </>
       )}

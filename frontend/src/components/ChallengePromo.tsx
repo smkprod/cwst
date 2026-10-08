@@ -51,6 +51,7 @@ export function ChallengePromo() {
   if (!data) return null
   const ev = data.event
   const prize = ev.prize ?? s.defaultPrize
+  const rule = ev.rule ?? 'tickets'
   const start = new Date(ev.startUtc).getTime()
   const end = new Date(ev.endUtc).getTime()
   const live = now >= start
@@ -66,10 +67,13 @@ export function ChallengePromo() {
       <div className="chp fade-up" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">
         <div className="chp-glow" />
         <button className="chp-x" aria-label="close" onClick={close}><Icon name="x" size={16} /></button>
-        <div className="chp-ticket mx-chp-ticket"><Icon name="ticket" size={44} /></div>
+        <div className="chp-ticket mx-chp-ticket"><Icon name={rule === 'tickets' ? 'ticket' : 'star'} size={44} /></div>
         <div className="chp-prize mx-chp-prize"><Icon name="trophy" size={15} /> {prize}</div>
         <h2 className="chp-title">{s.promoTitle.replace('{prize}', prize)}</h2>
-        <p className="chp-text">{s.promoText.replace('{prize}', prize)}</p>
+        {/* Формат не «билеты» — объясняем его правило, иначе анонс обещал бы чужие правила */}
+        <p className="chp-text">{rule === 'tickets'
+          ? s.promoText.replace('{prize}', prize)
+          : s.promoTextRule.replace('{rule}', s.ruleDescs[rule] ?? '').replace('{prize}', prize)}</p>
         <div className="chp-timer">
           <span>{live ? s.promoLive : s.promoStarts}</span>
           <b>{timer}</b>

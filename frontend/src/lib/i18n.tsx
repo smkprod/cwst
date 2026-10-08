@@ -125,6 +125,9 @@ const ru = {
   },
 
   ch: {
+    rule3Pts: 'Кто наберёт больше всех очков — забирает приз',
+    promoTextRule: '{rule} Кто наберёт больше всех очков — забирает {prize}.',
+    winnerPts: 'Победитель: {name} — {t} очков',
     creatorsTitle: 'Челленджи стримеров',
     creatorsHint: 'Стримеры проводят свои челленджи для зрителей. Вступить может любой: таблица у каждого челленджа своя, а бои считает бот.',
     joinedShort: 'Ты участвуешь',
@@ -1913,6 +1916,9 @@ const uk: Translations = {
   },
 
   ch: {
+    rule3Pts: 'Хто набере найбільше очок — забирає приз',
+    promoTextRule: '{rule} Хто набере найбільше очок — забирає {prize}.',
+    winnerPts: 'Переможець: {name} — {t} очок',
     creatorsTitle: 'Челенджі стримерів',
     creatorsHint: 'Стримери проводять свої челенджі для глядачів. Вступити може будь-хто: таблиця в кожного челенджу своя, а бої рахує бот.',
     joinedShort: 'Ти береш участь',
@@ -3697,6 +3703,9 @@ const en: Translations = {
   },
 
   ch: {
+    rule3Pts: 'Most points takes the prize',
+    promoTextRule: '{rule} Most points takes {prize}.',
+    winnerPts: 'Winner: {name} — {t} points',
     creatorsTitle: 'Streamer challenges',
     creatorsHint: 'Streamers run their own challenges for viewers. Anyone can join: each challenge has its own table, and the bot counts the battles.',
     joinedShort: 'You’re in',

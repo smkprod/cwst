@@ -1728,6 +1728,8 @@ export interface OwnerChallenge {
   status: 'upcoming' | 'live' | 'ended'
   participants?: number
   giftPlus?: boolean
+  /** Формат подсчёта, как у челленджей стримеров. */
+  rule?: string
   /** Участники других версий события — их можно вернуть. */
   others?: { id: string; participants: number; lastJoinedUtc: string }[]
 }

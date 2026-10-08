@@ -8,6 +8,7 @@ import { botStartLink, copyText, haptic, hapticNotify, openExternalLink, openTel
 import { useT, type Translations } from '../lib/i18n'
 import { SignupsChart } from './SignupsChart'
 import { StudioView } from './StudioView'
+import { CHALLENGE_RULES } from './StudioChallenges'
 import { Icon, type IconName } from './ui/Icon'
 import { IconTile, SectionHead, type Tone } from './ui/Section'
 
@@ -1051,6 +1052,7 @@ function ChallengeSettings({ t }: { t: Translations }) {
   const [cur, setCur] = useState<OwnerChallenge | null>(null)
   const [title, setTitle] = useState('')
   const [prize, setPrize] = useState('')
+  const [rule, setRule] = useState('tickets')
   const [start, setStart] = useState('')
   const [end, setEnd] = useState('')
   const [busy, setBusy] = useState(false)
@@ -1076,6 +1078,7 @@ function ChallengeSettings({ t }: { t: Translations }) {
       setCur(c)
       setTitle(c.title ?? '')
       setPrize(c.prize ?? '')
+      setRule(c.rule ?? 'tickets')
       setStart(toLocalInput(c.startUtc))
       setEnd(toLocalInput(c.endUtc))
     }).catch(() => setCur(null))
@@ -1091,6 +1094,7 @@ function ChallengeSettings({ t }: { t: Translations }) {
         startUtc: new Date(start).toISOString(),
         endUtc: new Date(end).toISOString(),
         newEvent: fresh,
+        rule,
       })
       setCur(prev => ({ ...c, participants: fresh ? 0 : prev?.participants, others: prev?.others }))
       setFresh(false)
@@ -1112,6 +1116,22 @@ function ChallengeSettings({ t }: { t: Translations }) {
       <input className="search-input" value={title} maxLength={60} onChange={e => { setTitle(e.target.value); setSaved(false) }} />
       <label className="muted small">{o.chPrize}</label>
       <input className="search-input" value={prize} maxLength={60} onChange={e => { setPrize(e.target.value); setSaved(false) }} />
+      <label className="muted small">{t.studio.chRuleLabel}</label>
+      {/* Посреди идущего челленджа формат не меняется (сервер оставит прежний) —
+          кроме случая «начать новый челлендж» */}
+      <div className="stc-rules">
+        {CHALLENGE_RULES.map(r => (
+          <button key={r.key} type="button" disabled={cur.status !== 'upcoming' && !fresh}
+            className={`stc-rule ${rule === r.key ? 'stc-rule-on' : ''}`}
+            onClick={() => { haptic('light'); setRule(r.key); setSaved(false) }}>
+            <Icon name={r.icon} size={16} />
+            <span>{t.ch.ruleNames[r.key]}</span>
+          </button>
+        ))}
+      </div>
+      <p className="muted small" style={{ margin: 0 }}>
+        {cur.status !== 'upcoming' && !fresh ? t.studio.chRuleLocked : t.ch.ruleDescs[rule]}
+      </p>
       <label className="muted small">{o.chStart}</label>
       <input className="search-input" type="datetime-local" value={start} onChange={e => { setStart(e.target.value); setSaved(false) }} />
       <label className="muted small">{o.chEnd}</label>

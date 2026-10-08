@@ -202,7 +202,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ eventId }),
     }),
-  ownerSetChallenge: (c: { title: string | null; prize: string | null; startUtc: string; endUtc: string; newEvent?: boolean }) =>
+  ownerSetChallenge: (c: { title: string | null; prize: string | null; startUtc: string; endUtc: string; newEvent?: boolean; rule?: string }) =>
     request<OwnerChallenge>('/api/owner/challenge', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
