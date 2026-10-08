@@ -47,7 +47,8 @@ public class OwnerController(
 {
     /// <param name="NewEvent">Начать новый челлендж с пустой таблицей. Без него правка времени
     /// оставляет тех же участников.</param>
-    public record ChallengeRequest(string? Title, string? Prize, DateTime StartUtc, DateTime EndUtc, bool NewEvent = false);
+    public record ChallengeRequest(string? Title, string? Prize, DateTime StartUtc, DateTime EndUtc, bool NewEvent = false,
+        string? Rule = null);
     public record ChallengeRestoreRequest(string EventId);
 
     /// <summary>GET /api/owner/challenge — текущий челлендж и сколько вступило.</summary>
@@ -63,7 +64,8 @@ public class OwnerController(
             .OrderByDescending(x => x.LastJoinedUtc)
             .Select(x => new { id = x.EventId, participants = x.Count, lastJoinedUtc = x.LastJoinedUtc })
             .Take(5).ToList();
-        return Ok(new { e.Id, e.Title, e.Prize, e.StartUtc, e.EndUtc, status = e.Status(DateTime.UtcNow), participants = count, others, e.GiftPlus });
+        return Ok(new { e.Id, e.Title, e.Prize, e.StartUtc, e.EndUtc, status = e.Status(DateTime.UtcNow), participants = count, others, e.GiftPlus,
+            rule = ChallengeRules.Normalize(e.Rule) });
     }
 
     /// <summary>
@@ -148,9 +150,13 @@ public class OwnerController(
         var prize = string.IsNullOrWhiteSpace(req.Prize) ? null : req.Prize.Trim()[..Math.Min(60, req.Prize.Trim().Length)];
         var current = await challenge.CurrentAsync(ct);
         var id = req.NewEvent ? $"ch-{DateTime.UtcNow:yyyyMMddHHmmss}" : current.Id;
-        var e = current with { Id = id, Title = title, Prize = prize, StartUtc = start, EndUtc = end, GiftPlus = !req.NewEvent && current.GiftPlus };
+        // Формат - как у челленджей стримеров. Посреди идущего события он не меняется:
+        // таблица пересчиталась бы по новым правилам. Новое событие - любой формат.
+        var started = current.Status(DateTime.UtcNow) != "upcoming";
+        var rule = req.NewEvent || !started ? ChallengeRules.Normalize(req.Rule) : ChallengeRules.Normalize(current.Rule);
+        var e = current with { Id = id, Title = title, Prize = prize, StartUtc = start, EndUtc = end, GiftPlus = !req.NewEvent && current.GiftPlus, Rule = rule };
         await challenge.SaveAsync(e, ct);
-        return Ok(new { e.Id, e.Title, e.Prize, e.StartUtc, e.EndUtc, status = e.Status(DateTime.UtcNow) });
+        return Ok(new { e.Id, e.Title, e.Prize, e.StartUtc, e.EndUtc, status = e.Status(DateTime.UtcNow), rule });
     }
 
     public record PlusSettingsRequest(bool Paywall, int Price7, int Price30);
