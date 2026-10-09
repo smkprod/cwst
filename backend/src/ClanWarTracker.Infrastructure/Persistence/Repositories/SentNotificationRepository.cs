@@ -39,6 +39,30 @@ public class SentNotificationRepository(AppDbContext db) : ISentNotificationRepo
         }
     }
 
+    public async Task<bool> TryClaimAsync(string kind, string key, CancellationToken ct = default)
+    {
+        var row = new SentNotification { Kind = kind, Key = key, SentAtUtc = DateTime.UtcNow };
+        db.SentNotifications.Add(row);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+            return true;
+        }
+        catch (DbUpdateException)
+        {
+            // Уже занята - кем-то раньше нас. Именно это и защищает от повторов.
+            db.Entry(row).State = EntityState.Detached;
+            return false;
+        }
+        finally
+        {
+            if (db.Entry(row).State != EntityState.Detached) db.Entry(row).State = EntityState.Detached;
+        }
+    }
+
+    public Task ReleaseAsync(string kind, string key, CancellationToken ct = default) =>
+        db.SentNotifications.Where(n => n.Kind == kind && n.Key == key).ExecuteDeleteAsync(ct);
+
     public async Task PurgeOlderThanAsync(DateTime cutoffUtc, CancellationToken ct = default) =>
         await db.SentNotifications
             // Отметки «это случилось впервые» живут вечно: их смысл ровно в том, чтобы

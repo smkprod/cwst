@@ -65,6 +65,16 @@ public interface ISentNotificationRepository
     /// <summary>Записывает отметку. Повторная запись того же ключа игнорируется.</summary>
     Task AddAsync(string kind, string key, CancellationToken ct = default);
 
+    /// <summary>
+    /// Занять отметку ДО отправки: true - она наша и сообщение можно слать; false -
+    /// её уже занял другой проход (вторая копия воркера, проход до перезапуска).
+    /// Уникальный индекс делает это атомарным даже между процессами.
+    /// </summary>
+    Task<bool> TryClaimAsync(string kind, string key, CancellationToken ct = default);
+
+    /// <summary>Вернуть занятую отметку, если отправить не вышло, - следующий проход попробует снова.</summary>
+    Task ReleaseAsync(string kind, string key, CancellationToken ct = default);
+
     /// <summary>Удаляет отметки старше указанной даты — таблица не должна расти вечно.</summary>
     Task PurgeOlderThanAsync(DateTime cutoffUtc, CancellationToken ct = default);
 }
