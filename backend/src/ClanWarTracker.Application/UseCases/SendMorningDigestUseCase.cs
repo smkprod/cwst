@@ -23,8 +23,12 @@ public class SendMorningDigestUseCase(
     IMetaRepository meta,
     CollectPlayerBattlesUseCase collect,
     IServiceSettingRepository settings,
-    INotificationSender sender)
+    INotificationSender sender,
+    ISentNotificationRepository sentLog)
 {
+    /// <summary>Вид отметки в общей таблице отправленного - тот же, что у воркера.</summary>
+    public const string SentKind = "morningdigest";
+
     /// <summary>Рубильник владельца: «off» - дайджест никому не уходит.</summary>
     public const string KillSwitchKey = "digest.dm";
 
@@ -131,7 +135,16 @@ public class SendMorningDigestUseCase(
                 var t = BotText.For(await TiltMessages.LangAsync(prefs, player, clans, ct));
                 var text = DigestText.Morning(t, day, history, Top, cat);
 
+                // Отметку занимаем до отправки: вторая копия воркера или перезапуск посреди
+                // прохода иначе прислали бы ту же сводку ещё раз
+                if (!await sentLog.TryClaimAsync(SentKind, key, ct)) { sentKeys.Add(key); continue; }
+
                 var result = await sender.SendDmAsync(tg, text, DigestText.MorningButtons(t), silent: false, ct);
+                if (!result.Delivered && !result.Blocked)
+                {
+                    // Временный сбой Telegram - отметку возвращаем, следующий проход попробует снова
+                    try { await sentLog.ReleaseAsync(SentKind, key, ct); } catch { /* не вышло - значит, без повтора */ }
+                }
                 if (result.Delivered)
                 {
                     sentKeys.Add(key);

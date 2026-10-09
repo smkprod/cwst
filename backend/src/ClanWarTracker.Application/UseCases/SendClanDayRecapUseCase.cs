@@ -21,8 +21,12 @@ public class SendClanDayRecapUseCase(
     IClashRoyaleApi crApi,
     CollectPlayerBattlesUseCase collect,
     IServiceSettingRepository settings,
-    INotificationSender sender)
+    INotificationSender sender,
+    ISentNotificationRepository sentLog)
 {
+    /// <summary>Вид отметки в общей таблице отправленного - тот же, что у воркера.</summary>
+    public const string SentKind = "dayrecap";
+
     /// <summary>Рубильник владельца: «off» - итоги не публикуются.</summary>
     public const string KillSwitchKey = "recap.chat";
 
@@ -102,14 +106,29 @@ public class SendClanDayRecapUseCase(
                     continue;
                 }
 
+                // Отметку занимаем в базе ДО отправки. Раньше она писалась после прохода по
+                // всем кланам: перезапуск воркера или вторая его копия посреди прохода её
+                // теряли - и чат получал те же итоги каждые пару минут весь вечер.
+                sentKeys.Add(key);
+                if (!await sentLog.TryClaimAsync(SentKind, key, ct)) continue;
+
                 var t = ns.Text;
                 var text = DigestText.ClanRecap(t, clan.Name, days);
-                if (await sender.SendToChatWithButtonsAsync(
-                        clan.TelegramChatId, text, DigestText.ClanRecapButtons(t), clan.TelegramMessageThreadId, ct))
+                bool ok;
+                try
                 {
-                    sentKeys.Add(key);
-                    posted++;
+                    ok = await sender.SendToChatWithButtonsAsync(
+                        clan.TelegramChatId, text, DigestText.ClanRecapButtons(t), clan.TelegramMessageThreadId, ct);
                 }
+                catch
+                {
+                    // Таймаут после отправки - сообщение могло и уйти. Повтор хуже пропуска:
+                    // отметку не возвращаем.
+                    continue;
+                }
+                if (ok) posted++;
+                // Telegram отказал (бота убрали из чата и т.п.) - второй попытки этим вечером не будет:
+                // лучше пропустить итоги, чем завалить чат повторами.
             }
             catch { /* сбой одного клана не должен лишать итогов остальные */ }
         }

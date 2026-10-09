@@ -141,7 +141,7 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
                         "Morning digest: due {Due}, sent {Sent}, skipped {Skipped}, blocked {Blocked}, failed {Failed}",
                         s.Due, s.Sent, s.Skipped, s.Blocked, s.Failed);
             }
-            catch (OperationCanceledException) { throw; }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { throw; }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Morning digest failed");
@@ -155,7 +155,7 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
                 await PersistKeysAsync(KindDayRecap, _dayRecapKeys, stoppingToken);
                 if (sent > 0) logger.LogInformation("Clan day recap posted to {Count} chats", sent);
             }
-            catch (OperationCanceledException) { throw; }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { throw; }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Clan day recap failed");
@@ -177,7 +177,7 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
                 var matches = await auto.ExecuteAsync(stoppingToken);
                 if (matches > 0) logger.LogInformation("Auto-resolved {Count} tournament matches", matches);
             }
-            catch (OperationCanceledException) { throw; }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { throw; }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Tournament auto-results failed");
@@ -191,7 +191,7 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
                 var closed = await duels.PollAsync(stoppingToken);
                 if (closed > 0) logger.LogInformation("Duels closed: {Count}", closed);
             }
-            catch (OperationCanceledException) { throw; }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { throw; }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Duel polling failed");
