@@ -12,3 +12,4 @@
 !.env.example
 *.md
 docker-compose*.yml
+design
