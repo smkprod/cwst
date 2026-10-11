@@ -8,6 +8,7 @@ import { botStartLink, copyText, haptic, hapticNotify, openExternalLink, openTel
 import { useT, type Translations } from '../lib/i18n'
 import { SignupsChart } from './SignupsChart'
 import { StudioView } from './StudioView'
+import { ChannelSection } from './ChannelSection'
 import { CHALLENGE_RULES } from './StudioChallenges'
 import { Icon, type IconName } from './ui/Icon'
 import { IconTile, SectionHead, type Tone } from './ui/Section'
@@ -32,7 +33,7 @@ function Stars({ n }: { n: number }) {
   return <span className="ow-stars">{n}<Icon name="star" size={12} /></span>
 }
 
-type Section = 'overview' | 'clans' | 'find' | 'broadcast' | 'moderators' | 'plus' | 'sponsors' | 'settings' | 'top' | 'campaigns' | 'studio'
+type Section = 'overview' | 'clans' | 'find' | 'broadcast' | 'channel' | 'moderators' | 'plus' | 'sponsors' | 'settings' | 'top' | 'campaigns' | 'studio'
 type ClanFilter = 'all' | 'silent'
 
 /** Сколько дней назад (для «активность» и «подключён»). null — даты нет. */
@@ -86,6 +87,7 @@ export function OwnerPanel({ me }: { me: ServiceIdentity }) {
     // Личные данные — только владельцу
     ...(me.role === 'owner' ? [{ key: 'find', icon: 'search', tone: 'blue', label: 'Найти игрока', hint: 'Telegram по тегу из игры' } as Item] : []),
     ...(can('Broadcast') ? [{ key: 'broadcast', icon: 'megaphone', tone: 'orange', label: 'Рассылка', hint: 'Текст и скрины всем' } as Item] : []),
+    ...(can('Broadcast') ? [{ key: 'channel', icon: 'send', tone: 'blue', label: 'Канал', hint: 'Автопосты, новости CR, черновики' } as Item] : []),
     ...(can('Sponsors') ? [{ key: 'plus', icon: 'gem', tone: 'violet', label: 'Плюс', hint: 'Цены, продажи, трекер' } as Item] : []),
     ...(can('Sponsors') ? [{ key: 'sponsors', icon: 'star', tone: 'gold', label: 'Спонсоры', hint: 'Выдача и оплаты' } as Item] : []),
     ...(can('AppSettings') ? [{ key: 'settings', icon: 'gear', tone: 'gray', label: 'Вкладки', hint: 'Меню и челлендж' } as Item] : []),
@@ -144,6 +146,7 @@ export function OwnerPanel({ me }: { me: ServiceIdentity }) {
       {current.key === 'broadcast' && can('Broadcast') && (
         <BroadcastBox dmCount={stats.usersReachableByDm} chatCount={stats.chatsWithBot} t={t} />
       )}
+      {current.key === 'channel' && can('Broadcast') && <ChannelSection />}
       {current.key === 'plus' && can('Sponsors') && <PlusSection t={t} />}
       {current.key === 'sponsors' && can('Sponsors') && <><SponsorSalesCard t={t} /><SponsorsSection t={t} /></>}
       {current.key === 'moderators' && can('ManageModerators') && <ModeratorsSection can={can} t={t} />}

@@ -40,6 +40,9 @@ services:
       DATABASE_URL: postgres://clanwar:${POSTGRES_PASSWORD}@db:5432/clanwar
       CLASH_ROYALE_API_TOKEN: ${CLASH_ROYALE_API_TOKEN}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      # Необязательно: пересказ новостей Clash Royale для канала по-русски (см. .env.example)
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-}
       DOTNET_gcServer: "0"
     depends_on:
       db:
@@ -61,6 +64,8 @@ services:
       # ВАЖНО: меняете домен в Caddyfile — поменяйте и здесь, иначе картинки будут
       # запрашиваться со старого адреса. Переопределяется через .env при необходимости.
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-https://165-245-222-154.sslip.io}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-}
       DOTNET_gcServer: "0"
     depends_on:
       db:
