@@ -14,12 +14,13 @@ import { TournamentView } from './TournamentView'
 import { HallOfFame } from './HallOfFame'
 import { PlayerSearchView } from './PlayerSearchView'
 import { StudioView } from './StudioView'
+import { DeckBuilderView } from './DeckBuilderView'
 import type { AppConfig } from '../types'
 import { usePlusSheet } from '../lib/plusSheet'
 import { Icon, type IconName } from './ui/Icon'
 import { IconTile, SectionHead, type Tone } from './ui/Section'
 
-export type MoreSection = 'recruit' | 'about' | 'worldTop' | 'challenge' | 'duel' | 'tournament' | 'hall' | 'search' | 'studio'
+export type MoreSection = 'recruit' | 'about' | 'worldTop' | 'challenge' | 'duel' | 'tournament' | 'hall' | 'search' | 'studio' | 'builder'
 type Section = MoreSection
 
 interface Props {
@@ -72,6 +73,7 @@ export function MoreView({ canManage, isLeader, onOpenNotifications, initialSect
         {section === 'hall' && onConfigChanged && <HallOfFame config={config} onConfigChanged={onConfigChanged} />}
         {section === 'search' && <PlayerSearchView />}
         {section === 'studio' && showStudio && <StudioView />}
+        {section === 'builder' && <DeckBuilderView />}
       </div>
     )
   }
@@ -85,6 +87,8 @@ export function MoreView({ canManage, isLeader, onOpenNotifications, initialSect
         {showStudio && (
           <MoreRow icon="rocket" tone="orange" title={t.more.studio} hint={t.more.studioHint} onClick={() => open('studio')} />
         )}
+
+        <MoreRow icon="cards" tone="violet" title={t.builder.title} hint={t.builder.hint} onClick={() => open('builder')} />
 
         <MoreRow icon="ticket" tone="green" title={t.more.challenge} hint={t.more.challengeHint} onClick={() => open('challenge')} />
 

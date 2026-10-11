@@ -1,0 +1,248 @@
+import { useEffect, useMemo, useState } from 'react'
+import { api, ApiError } from '../lib/api'
+import type { BuilderCard, BuilderDeck, BuilderDecks, BuilderQuery, BuilderWar } from '../types'
+import { useT, type Translations } from '../lib/i18n'
+import { haptic } from '../lib/telegram'
+import { Icon } from './ui/Icon'
+import { SectionHead } from './ui/Section'
+
+type Tab = 'meta' | 'war'
+type Mark = 'in' | 'out'
+
+const ELIXIR_STEPS: (number | null)[] = [null, 3.5, 4, 4.5]
+
+/**
+ * Билдер колод: мета-колоды из боёв топа за неделю, которые игрок соберёт из своих
+ * карт, и четыре колоды для КВ без общих карт. Колоды только настоящие - сервер берёт
+ * их из сыгранных в топе, со статистикой; «выбор аналитика» лишь отмечает лучшие.
+ */
+export function DeckBuilderView() {
+  const { t, lang } = useT()
+  const b = t.builder
+  const [tab, setTab] = useState<Tab>('meta')
+  const [onlyMine, setOnlyMine] = useState(true)
+  const [sort, setSort] = useState<BuilderQuery['sort']>('fit')
+  const [maxElixir, setMaxElixir] = useState<number | null>(null)
+  const [marks, setMarks] = useState<Record<number, Mark>>({})
+  const [picker, setPicker] = useState(false)
+  const [cards, setCards] = useState<BuilderCard[] | null>(null)
+
+  const [decks, setDecks] = useState<BuilderDecks | null>(null)
+  const [war, setWar] = useState<BuilderWar | null>(null)
+  const [state, setState] = useState<'loading' | 'ready' | 'nometa' | 'error'>('loading')
+
+  const query = useMemo<BuilderQuery>(() => ({
+    include: Object.entries(marks).filter(([, m]) => m === 'in').map(([id]) => Number(id)),
+    exclude: Object.entries(marks).filter(([, m]) => m === 'out').map(([id]) => Number(id)),
+    maxElixir, owned: onlyMine, sort,
+  }), [marks, maxElixir, onlyMine, sort])
+
+  useEffect(() => {
+    let alive = true
+    setState('loading')
+    const load = tab === 'meta'
+      ? api.builderDecks(query, lang).then(d => { if (alive) setDecks(d) })
+      : api.builderWar(query, lang).then(w => { if (alive) setWar(w) })
+    load
+      .then(() => { if (alive) setState('ready') })
+      .catch(e => { if (alive) setState(e instanceof ApiError && e.code === 'no_meta' ? 'nometa' : 'error') })
+    return () => { alive = false }
+  }, [tab, query, lang])
+
+  const openPicker = () => {
+    haptic('light')
+    setPicker(true)
+    if (!cards) api.builderCards().then(setCards).catch(() => setCards([]))
+  }
+
+  const linked = tab === 'meta' ? decks?.linked : war?.linked
+  const marked = Object.keys(marks).length
+
+  return (
+    <div className="fade-in bld">
+      <section className="card">
+        <SectionHead icon="cards" tone="violet" title={b.title} info={<p>{tab === 'war' ? b.warInfo : b.info}</p>} />
+        <div className="bld-tabs">
+          {(['meta', 'war'] as Tab[]).map(k => (
+            <button key={k} className={`bld-tab ${tab === k ? 'bld-tab-on' : ''}`}
+              onClick={() => { haptic('light'); setTab(k) }}>
+              <Icon name={k === 'meta' ? 'trendUp' : 'swords'} size={15} />{k === 'meta' ? b.tabMeta : b.tabWar}
+            </button>
+          ))}
+        </div>
+
+        <div className="bld-filters">
+          <button className={`bld-chip ${onlyMine ? 'bld-chip-on' : ''}`} onClick={() => { haptic('light'); setOnlyMine(v => !v) }}>
+            <Icon name={onlyMine ? 'checkCircle' : 'cards'} size={14} />{b.onlyMine}
+          </button>
+          <button className={`bld-chip ${marked ? 'bld-chip-on' : ''}`} onClick={openPicker}>
+            <Icon name="filter" size={14} />{b.cards}{marked ? ` · ${marked}` : ''}
+          </button>
+          {ELIXIR_STEPS.map(e => (
+            <button key={String(e)} className={`bld-chip ${maxElixir === e ? 'bld-chip-on' : ''}`}
+              onClick={() => { haptic('light'); setMaxElixir(e) }}>
+              {e === null ? b.elixirAny : <><Icon name="droplet" size={13} />{b.elixirMax.replace('{n}', String(e))}</>}
+            </button>
+          ))}
+        </div>
+
+        {tab === 'meta' && (
+          <div className="bld-sort">
+            {([['fit', b.sortFit], ['win', b.sortWin], ['popular', b.sortPopular]] as const).map(([k, label]) => (
+              <button key={k} className={`bld-sort-btn ${sort === k ? 'bld-sort-on' : ''}`}
+                onClick={() => { haptic('light'); setSort(k) }}>{label}</button>
+            ))}
+          </div>
+        )}
+
+        {marked > 0 && cards && (
+          <div className="bld-marked">
+            {Object.entries(marks).map(([id, m]) => {
+              const c = cards.find(x => x.cardId === Number(id))
+              return c && (
+                <button key={id} className={`bld-mark bld-mark-${m}`} onClick={() => setMarks(prev => {
+                  const next = { ...prev }; delete next[Number(id)]; return next
+                })}>
+                  <img src={c.iconUrl} alt="" loading="lazy" />
+                  <span>{m === 'in' ? b.with : b.without}</span>
+                </button>
+              )
+            })}
+            <button className="btn-mini" onClick={() => setMarks({})}>{b.clear}</button>
+          </div>
+        )}
+        {linked === false && <p className="muted small" style={{ margin: '10px 0 0' }}>{b.notLinked}</p>}
+      </section>
+
+      {state === 'loading' && <div className="center" style={{ marginTop: 16 }}><div className="spinner" /></div>}
+      {state === 'nometa' && <p className="center muted">{b.noMeta}</p>}
+      {state === 'error' && <p className="center muted">{b.loadError}</p>}
+
+      {state === 'ready' && tab === 'meta' && decks && <MetaList data={decks} t={t} />}
+      {state === 'ready' && tab === 'war' && war && <WarList data={war} t={t} />}
+
+      {picker && (
+        <CardPicker cards={cards} marks={marks} t={t}
+          onToggle={id => setMarks(prev => {
+            // По кругу: с картой → без карты → не важно
+            const next = { ...prev }
+            if (prev[id] === undefined) next[id] = 'in'
+            else if (prev[id] === 'in') next[id] = 'out'
+            else delete next[id]
+            return next
+          })}
+          onClose={() => setPicker(false)} />
+      )}
+    </div>
+  )
+}
+
+function MetaList({ data, t }: { data: BuilderDecks; t: Translations }) {
+  const b = t.builder
+  return (
+    <>
+      {data.analyst && (
+        <section className="card bld-analyst">
+          <SectionHead icon="sparkles" tone="gold" title={b.analystTitle} info={<p>{b.analystInfo}</p>} />
+          {data.analyst.summary && <p className="bld-analyst-text">{data.analyst.summary}</p>}
+        </section>
+      )}
+      {data.decks.length === 0
+        ? <p className="center muted">{b.empty}</p>
+        : data.decks.map(d => <DeckCard key={d.key} deck={d} linked={data.linked} t={t} />)}
+      <p className="muted small center">
+        {b.period.replace('{from}', data.fromDayUtc).replace('{to}', data.toDayUtc)}
+      </p>
+    </>
+  )
+}
+
+function WarList({ data, t }: { data: BuilderWar; t: Translations }) {
+  const b = t.builder
+  if (data.decks.length === 0) return <p className="center muted">{b.empty}</p>
+  return (
+    <>
+      <section className="card bld-war-head">
+        <b>{b.warTitle}</b>
+        <span className="muted small">{b.warAvg.replace('{n}', String(data.avgWinPercent))} · {data.uniqueCards}/32</span>
+        {!data.complete && <p className="small bld-warn">{b.warIncomplete.replace('{n}', String(data.decks.length))}</p>}
+      </section>
+      {data.decks.map((d, i) => (
+        <DeckCard key={d.key} deck={d} linked={data.linked} t={t} title={b.deckN.replace('{n}', String(i + 1))} />
+      ))}
+    </>
+  )
+}
+
+function DeckCard({ deck, linked, t, title }: { deck: BuilderDeck; linked: boolean; t: Translations; title?: string }) {
+  const b = t.builder
+  return (
+    <section className={`card bld-deck ${deck.pick ? 'bld-deck-pick' : ''}`}>
+      <div className="bld-deck-head">
+        {title && <b className="bld-deck-title">{title}</b>}
+        {deck.pick && <span className="bld-pick"><Icon name="sparkles" size={12} />{deck.pick.tag || b.analystTitle}</span>}
+        <span className="bld-win">{b.win.replace('{n}', String(deck.winPercent))}</span>
+        <span className="muted small">{b.games.replace('{n}', String(deck.games))}</span>
+      </div>
+      <div className="bld-cards">
+        {deck.cards.map(c => (
+          <span key={`${c.cardId}-${c.evo}`} className={`bld-card ${linked && !c.owned ? 'bld-card-missing' : ''} ${c.evo ? 'bld-card-evo' : ''}`}>
+            {c.iconUrl ? <img src={c.iconUrl} alt={c.name} loading="lazy" /> : <span className="bld-card-name">{c.name}</span>}
+            {linked && c.owned && (
+              <span className={`bld-level ${c.level >= c.maxLevel ? 'bld-level-max' : ''}`}>{c.level}</span>
+            )}
+          </span>
+        ))}
+      </div>
+      {deck.pick?.note && <p className="bld-note">{deck.pick.note}</p>}
+      <div className="bld-meta muted small">
+        <span><Icon name="droplet" size={12} /> {b.elixir.replace('{n}', String(deck.avgElixir))}</span>
+        {linked && <span>{b.owned.replace('{n}', String(deck.owned))}</span>}
+        {linked && deck.avgLevel > 0 && <span>{b.avgLevel.replace('{n}', String(deck.avgLevel))}</span>}
+      </div>
+      {deck.copyLink && (
+        <a className="btn btn-nudge bld-copy" href={deck.copyLink} target="_blank" rel="noreferrer" onClick={() => haptic('medium')}>
+          <Icon name="external" size={15} /> {b.copy}
+        </a>
+      )}
+    </section>
+  )
+}
+
+function CardPicker({ cards, marks, t, onToggle, onClose }: {
+  cards: BuilderCard[] | null
+  marks: Record<number, Mark>
+  t: Translations
+  onToggle: (id: number) => void
+  onClose: () => void
+}) {
+  const b = t.builder
+  const [q, setQ] = useState('')
+  const shown = (cards ?? []).filter(c => !q || c.name.toLowerCase().includes(q.trim().toLowerCase()))
+  return (
+    <div className="bld-picker-backdrop" onClick={onClose}>
+      <div className="bld-picker" onClick={e => e.stopPropagation()}>
+        <div className="bld-picker-head">
+          <b>{b.pickerTitle}</b>
+          <button className="btn-mini" onClick={onClose}>{b.done}</button>
+        </div>
+        <p className="muted small" style={{ margin: '0 0 8px' }}>{b.pickerHint}</p>
+        <input className="search-input bld-picker-search" placeholder={b.search} value={q} onChange={e => setQ(e.target.value)} />
+        {!cards ? <div className="center"><div className="spinner" /></div> : (
+          <div className="bld-picker-grid">
+            {shown.map(c => {
+              const m = marks[c.cardId]
+              return (
+                <button key={c.cardId} className={`bld-pick-card ${m ? `bld-pick-${m}` : ''}`}
+                  onClick={() => { haptic('light'); onToggle(c.cardId) }}>
+                  {c.iconUrl ? <img src={c.iconUrl} alt={c.name} loading="lazy" /> : <span>{c.name}</span>}
+                  {m && <span className="bld-pick-badge"><Icon name={m === 'in' ? 'check' : 'x'} size={12} /></span>}
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

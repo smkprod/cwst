@@ -1,5 +1,5 @@
 import { initData } from './telegram'
-import type { AppConfig, AppTab, BackgroundKey, ClanDesignKey, ClanPage, PlayerPage, HallOfFame, OwnerSponsor, Moderator, ServiceIdentity, ServicePermission, BroadcastTarget, TopStatus, SponsorSales, CampaignFunnel, ClanDiscipline, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, MetaDecks, BattleAnalysis, PlayerSheet, PlusStatus, OwnerPlus, TiltProfile, Challenge, OwnerChallenge, OwnerFoundPlayer, TrackerState, MatchHistory, MatchReport, TopPlayerRow, TopPlayerDetail, DuelLeague, Tournament, TournamentSummary, WarJournal, Studio, StudioChallengeRequest, CreatorChallengeCard, ChannelState, ChannelToggle } from '../types'
+import type { AppConfig, AppTab, BackgroundKey, ClanDesignKey, ClanPage, PlayerPage, HallOfFame, OwnerSponsor, Moderator, ServiceIdentity, ServicePermission, BroadcastTarget, TopStatus, SponsorSales, CampaignFunnel, ClanDiscipline, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, MetaDecks, BattleAnalysis, PlayerSheet, PlusStatus, OwnerPlus, TiltProfile, Challenge, OwnerChallenge, OwnerFoundPlayer, TrackerState, MatchHistory, MatchReport, TopPlayerRow, TopPlayerDetail, DuelLeague, Tournament, TournamentSummary, WarJournal, Studio, StudioChallengeRequest, CreatorChallengeCard, ChannelState, ChannelToggle, BuilderCard, BuilderDecks, BuilderWar, BuilderQuery } from '../types'
 
 // Адрес API вынесен в отдельный модуль: им же пользуются виджеты OBS, которым
 // нельзя тянуть сюда Telegram (см. apiBase.ts).
@@ -86,6 +86,14 @@ function postJson<T>(path: string, body: unknown): Promise<T> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   })
+}
+
+function builderParams(q: BuilderQuery, lang: string): string {
+  const p = new URLSearchParams({ owned: String(q.owned), lang })
+  if (q.include.length) p.set('include', q.include.join(','))
+  if (q.exclude.length) p.set('exclude', q.exclude.join(','))
+  if (q.maxElixir) p.set('maxElixir', String(q.maxElixir))
+  return p.toString()
 }
 
 export class ApiError extends Error {
@@ -300,6 +308,11 @@ export const api = {
   /** Личный разбор боёв. tz — смещение местного времени от UTC в минутах. */
   getMyBattles: (lang?: string) =>
     request<BattleAnalysis>(`/api/players/me/battles?tz=${-new Date().getTimezoneOffset()}${lang ? `&lang=${lang}` : ''}`),
+  builderDecks: (q: BuilderQuery, lang: string) =>
+    request<BuilderDecks>(`/api/builder/decks?${builderParams(q, lang)}&sort=${q.sort}`),
+  builderWar: (q: BuilderQuery, lang: string) =>
+    request<BuilderWar>(`/api/builder/war?${builderParams(q, lang)}`),
+  builderCards: () => request<BuilderCard[]>('/api/builder/cards'),
   getPlayerDecks: (tag: string) =>
     request<DeckSuggestions>(`/api/players/${encodeURIComponent(tag.replace('#', ''))}/decks`),
   getClanOverview: (tag: string) =>

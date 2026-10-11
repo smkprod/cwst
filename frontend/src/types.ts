@@ -1879,3 +1879,60 @@ export interface ChannelAiStatus {
   atUtc: string | null
 }
 
+/* ---------- Билдер колод ---------- */
+
+export interface BuilderCard {
+  cardId: number
+  name: string
+  iconUrl: string
+  evo: boolean
+  elixir: number
+  rarity: string
+  /** Уровень у игрока (как в игре); 0 - карты нет или тег не привязан */
+  level: number
+  maxLevel: number
+  owned: boolean
+  evoOwned: boolean
+}
+
+export interface BuilderDeck {
+  key: string
+  cards: BuilderCard[]
+  games: number
+  winPercent: number
+  usagePercent: number
+  avgElixir: number
+  cycleElixir: number
+  owned: number
+  avgLevel: number
+  /** «Подходит мне», % */
+  score: number
+  copyLink: string | null
+  pick: { tag: string; note: string } | null
+}
+
+export interface BuilderDecks {
+  fromDayUtc: string
+  toDayUtc: string
+  battles: number
+  linked: boolean
+  decks: BuilderDeck[]
+  analyst: { day: string; summary: string; picks: number } | null
+}
+
+export interface BuilderWar {
+  linked: boolean
+  complete: boolean
+  decks: BuilderDeck[]
+  avgWinPercent: number
+  uniqueCards: number
+}
+
+export interface BuilderQuery {
+  include: number[]
+  exclude: number[]
+  maxElixir: number | null
+  owned: boolean
+  sort: 'fit' | 'win' | 'popular'
+}
+

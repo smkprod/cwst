@@ -97,6 +97,19 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
             {
                 logger.LogError(ex, "Channel tick failed");
             }
+
+            // Разбор меты нейросетью для билдера колод - раз в сутки, утром по Киеву
+            try
+            {
+                using var scope = scopeFactory.CreateScope();
+                var analyst = scope.ServiceProvider.GetRequiredService<MetaAnalystUseCase>();
+                if (await analyst.TickAsync(stoppingToken)) logger.LogInformation("Meta analyst report updated");
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { throw; }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Meta analyst failed");
+            }
         }
         while (await timer.WaitForNextTickAsync(stoppingToken));
     }

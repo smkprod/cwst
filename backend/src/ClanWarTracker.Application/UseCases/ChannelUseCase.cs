@@ -79,7 +79,10 @@ public class ChannelUseCase(
 
     public record StateDto(long? Id, string? Title, string? Username, Dictionary<string, bool> Toggles, List<string> Feeds,
         List<FeedStatus> FeedStatus, bool Translator, List<PostDto> Drafts, List<PostDto> Recent,
-        int RedditMinScore, int RedditPerDay, AiStatus Ai);
+        int RedditMinScore, int RedditPerDay, AiStatus Ai, AnalystInfo? Analyst);
+
+    /// <summary>Разбор меты для билдера колод: за какой день и сколько колод отмечено.</summary>
+    public record AnalystInfo(string Day, int Picks, DateTime AtUtc);
 
     /// <param name="Provider">DeepSeek, Claude или пусто - ключа на сервере нет.</param>
     /// <param name="Ok">Последний запрос к нейросети прошёл; null - запросов ещё не было.</param>
@@ -97,6 +100,16 @@ public class ChannelUseCase(
         // Статус от прежнего ключа ничего не говорит о нынешнем: сменили провайдера - ждём новой проверки
         if (!translator.Enabled) return new AiStatus("", false, null, null, null);
         return new AiStatus(translator.Provider, true, last?.Ok, last?.Error, last?.AtUtc);
+    }
+
+    private async Task<AnalystInfo?> AnalystInfoAsync(CancellationToken ct)
+    {
+        try
+        {
+            var r = JsonSerializer.Deserialize<MetaAnalystUseCase.Report>(await settings.GetAsync(MetaAnalystUseCase.SettingKey, ct) ?? "null");
+            return r is null ? null : new AnalystInfo(r.Day, r.Picks.Count, r.AtUtc);
+        }
+        catch (JsonException) { return null; }
     }
 
     private Task SaveAiStatusAsync(bool ok, string? error, CancellationToken ct) =>
@@ -146,7 +159,7 @@ public class ChannelUseCase(
             toggles, await FeedsAsync(ct), status, translator.Enabled,
             drafts.Select(p => Dto(p, id, username)).ToList(),
             recent.OrderByDescending(p => p.PublishedUtc).Select(p => Dto(p, id, username)).ToList(),
-            reddit.MinScore, reddit.PerDay, await AiStatusAsync(ct));
+            reddit.MinScore, reddit.PerDay, await AiStatusAsync(ct), await AnalystInfoAsync(ct));
     }
 
     private static PostDto Dto(ChannelPost p, long? channelId, string? username)

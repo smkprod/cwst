@@ -11,7 +11,8 @@ namespace ClanWarTracker.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/owner/channel")]
-public class ChannelController(ChannelUseCase channel, ChannelAiUseCase channelAi, ServiceAccess access) : ControllerBase
+public class ChannelController(ChannelUseCase channel, ChannelAiUseCase channelAi, MetaAnalystUseCase analyst,
+    ServiceAccess access) : ControllerBase
 {
     public record AiRequest(string? Request, string? Text);
     public record ConnectRequest(string? Handle);
@@ -143,6 +144,16 @@ public class ChannelController(ChannelUseCase channel, ChannelAiUseCase channelA
             ChannelAiUseCase.Result.Failed => StatusCode(502, new { error = "ai_failed", message = r.Error ?? "Нейросеть не ответила" }),
             _ => Ok(await channel.GetAsync(ct)),
         };
+
+    /// <summary>POST /api/owner/channel/ai/meta — разобрать мету для билдера колод сейчас, не дожидаясь утра.</summary>
+    [HttpPost("ai/meta")]
+    public async Task<IActionResult> RunAnalyst(CancellationToken ct)
+    {
+        if (await DenyAsync(ct) is { } deny) return deny;
+        var error = await analyst.RunAsync(ct);
+        if (error is not null) return StatusCode(502, new { error = "ai_failed", message = error });
+        return Ok(await channel.GetAsync(ct));
+    }
 
     /// <summary>POST /api/owner/channel/ai/check — пробный запрос к нейросети: ключ, баланс, связь.</summary>
     [HttpPost("ai/check")]
