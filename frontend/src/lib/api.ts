@@ -1,5 +1,5 @@
 import { initData } from './telegram'
-import type { AppConfig, AppTab, BackgroundKey, ClanDesignKey, ClanPage, PlayerPage, HallOfFame, OwnerSponsor, Moderator, ServiceIdentity, ServicePermission, BroadcastTarget, TopStatus, SponsorSales, CampaignFunnel, ClanDiscipline, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, MetaDecks, BattleAnalysis, PlayerSheet, PlusStatus, OwnerPlus, TiltProfile, Challenge, OwnerChallenge, OwnerFoundPlayer, TrackerState, MatchHistory, MatchReport, TopPlayerRow, TopPlayerDetail, DuelLeague, Tournament, TournamentSummary, WarJournal, Studio, StudioChallengeRequest, CreatorChallengeCard } from '../types'
+import type { AppConfig, AppTab, BackgroundKey, ClanDesignKey, ClanPage, PlayerPage, HallOfFame, OwnerSponsor, Moderator, ServiceIdentity, ServicePermission, BroadcastTarget, TopStatus, SponsorSales, CampaignFunnel, ClanDiscipline, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, MetaDecks, BattleAnalysis, PlayerSheet, PlusStatus, OwnerPlus, TiltProfile, Challenge, OwnerChallenge, OwnerFoundPlayer, TrackerState, MatchHistory, MatchReport, TopPlayerRow, TopPlayerDetail, DuelLeague, Tournament, TournamentSummary, WarJournal, Studio, StudioChallengeRequest, CreatorChallengeCard, ChannelState, ChannelToggle } from '../types'
 
 // Адрес API вынесен в отдельный модуль: им же пользуются виджеты OBS, которым
 // нельзя тянуть сюда Telegram (см. apiBase.ts).
@@ -78,6 +78,14 @@ async function request<T>(path: string, init?: RequestInit, timeoutMs = REQUEST_
     throw new ApiError(res.status, body.error ?? 'unknown', body.message)
   }
   return res.json()
+}
+
+function postJson<T>(path: string, body: unknown): Promise<T> {
+  return request<T>(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
 }
 
 export class ApiError extends Error {
@@ -193,6 +201,20 @@ export const api = {
   joinChallenge: (code?: string | null) =>
     request<Challenge>(code ? `/api/challenge/join?code=${encodeURIComponent(code)}` : '/api/challenge/join', { method: 'POST' }),
   ownerGetChallenge: () => request<OwnerChallenge>('/api/owner/challenge'),
+  channelGet: () => request<ChannelState>('/api/owner/channel'),
+  channelConnect: (handle: string) => postJson<ChannelState>('/api/owner/channel/connect', { handle }),
+  channelDisconnect: () => postJson<ChannelState>('/api/owner/channel/disconnect', {}),
+  channelSettings: (toggles: Partial<Record<ChannelToggle, boolean>>, feeds?: string[]) =>
+    postJson<ChannelState>('/api/owner/channel/settings', { toggles, feeds }),
+  channelPost: (p: { text: string; photoUrl?: string; buttonText?: string; buttonUrl?: string }) =>
+    postJson<ChannelState>('/api/owner/channel/post', p),
+  channelPublishDraft: (id: number, text?: string, photoUrl?: string) =>
+    postJson<ChannelState>(`/api/owner/channel/drafts/${id}/publish`, { text, photoUrl }),
+  channelRejectDraft: (id: number) => postJson<ChannelState>(`/api/owner/channel/drafts/${id}/reject`, {}),
+  channelPreview: (kind: 'daily' | 'weekly') => postJson<ChannelState>('/api/owner/channel/preview', { kind }),
+  // Пересказ новостей идёт через внешний API - ждём дольше обычного
+  channelRefreshNews: () => request<{ published: number; drafts: number; state: ChannelState }>(
+    '/api/owner/channel/news/refresh', { method: 'POST' }, 120_000),
   ownerFindPlayer: (tag: string) =>
     request<OwnerFoundPlayer>(`/api/owner/find-player?tag=${encodeURIComponent(tag)}`),
   ownerGiftChallengePlus: () => request<{ granted: number }>('/api/owner/challenge/gift-plus', { method: 'POST' }),

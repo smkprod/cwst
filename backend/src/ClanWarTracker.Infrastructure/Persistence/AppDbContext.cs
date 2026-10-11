@@ -26,6 +26,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<DuelProfile> DuelProfiles => Set<DuelProfile>();
     public DbSet<CreatorChallenge> CreatorChallenges => Set<CreatorChallenge>();
     public DbSet<Duel> Duels => Set<Duel>();
+    public DbSet<ChannelPost> ChannelPosts => Set<ChannelPost>();
     public DbSet<PlayerBattle> PlayerBattles => Set<PlayerBattle>();
     public DbSet<Entitlement> Entitlements => Set<Entitlement>();
     public DbSet<PlayerAlertPrefs> PlayerAlertPrefs => Set<PlayerAlertPrefs>();
@@ -151,6 +152,21 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(x => x.Prize).HasMaxLength(60);
             e.Property(x => x.Rule).HasMaxLength(16);
             e.Ignore(x => x.EventId);
+        });
+
+        mb.Entity<ChannelPost>(e =>
+        {
+            // Одна новость из ленты - один черновик, сколько бы раз лента её ни отдала.
+            e.HasIndex(x => x.SourceKey).IsUnique();
+            e.HasIndex(x => new { x.State, x.CreatedUtc });
+            e.Property(x => x.Kind).HasMaxLength(16);
+            e.Property(x => x.SourceKey).HasMaxLength(300);
+            e.Property(x => x.Title).HasMaxLength(200);
+            e.Property(x => x.PhotoUrl).HasMaxLength(500);
+            e.Property(x => x.LinkUrl).HasMaxLength(500);
+            e.Property(x => x.ButtonText).HasMaxLength(40);
+            e.Property(x => x.ButtonUrl).HasMaxLength(300);
+            e.Property(x => x.Error).HasMaxLength(200);
         });
 
         mb.Entity<DuelProfile>(e =>

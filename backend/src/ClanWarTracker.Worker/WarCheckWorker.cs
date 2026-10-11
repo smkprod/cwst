@@ -71,7 +71,34 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
             RunFinalCallLoopAsync(stoppingToken),
             RunTournamentResultsLoopAsync(stoppingToken),
             RunTiltLoopAsync(stoppingToken),
-            RunDailyDigestLoopAsync(stoppingToken));
+            RunDailyDigestLoopAsync(stoppingToken),
+            RunChannelLoopAsync(stoppingToken));
+    }
+
+    /// <summary>
+    /// Канал бота: автопосты по расписанию, новые карты и новости из лент. Когда что
+    /// созрело, решает сам use case; без подключённого канала такт - один запрос к базе.
+    /// </summary>
+    private async Task RunChannelLoopAsync(CancellationToken stoppingToken)
+    {
+        using var timer = new PeriodicTimer(DailyDigestInterval);
+        do
+        {
+            try
+            {
+                using var scope = scopeFactory.CreateScope();
+                var channel = scope.ServiceProvider.GetRequiredService<ChannelUseCase>();
+                var r = await channel.TickAsync(stoppingToken);
+                if (r.Published > 0 || r.Drafts > 0)
+                    logger.LogInformation("Channel: published {Published}, new drafts {Drafts}", r.Published, r.Drafts);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { throw; }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Channel tick failed");
+            }
+        }
+        while (await timer.WaitForNextTickAsync(stoppingToken));
     }
 
     /// <summary>

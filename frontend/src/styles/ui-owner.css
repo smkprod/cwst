@@ -38,3 +38,36 @@
 
 /* Заголовки карточек сводки и графиков — общий отступ */
 .adm-block .ui-head, .ow-chart .ui-head { margin-bottom: 10px; }
+
+/* Канал бота */
+.ch-steps { margin: 0 0 12px; padding-left: 20px; color: var(--muted); display: grid; gap: 4px; }
+.ch-connected { display: flex; align-items: center; gap: 12px; }
+.ch-connected-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ch-connected-text b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ch-link { background: none; border: none; padding: 0; color: var(--ui-accent, #6ab3f3); font: inherit; text-align: left;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+.ch-toggles { display: grid; gap: 12px; margin-bottom: 12px; }
+.ch-toggle { align-items: center; }
+.ch-toggle-label { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.ch-toggle .notif-switch:disabled { opacity: 0.4; }
+.ch-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.ch-actions .btn { flex: 1; min-width: 0; }
+.ch-input { width: 100%; margin-top: 8px; }
+.ch-buttons { margin-top: 10px; }
+.ch-feeds { margin-top: 4px; font-size: 12.5px; }
+.ch-feed-status { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.ch-feed-status li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 6px; align-items: center; }
+.ch-feed-status li > .muted:last-child { grid-column: 2; font-size: 12px; }
+.ch-feed-url { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ch-ok { color: #6be38a; }
+.ch-bad { color: #ff7a7a; display: inline-flex; align-items: center; gap: 4px; }
+.ch-warn { color: #ffb44d; }
+.ch-drafts { display: grid; gap: 14px; }
+.ch-draft { display: grid; gap: 8px; padding: 12px; border-radius: 16px; background: var(--ui-surface-2); border: 1px solid var(--ui-line); }
+.ch-draft-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ch-draft-photo { width: 100%; max-height: 180px; object-fit: cover; border-radius: 12px; background: rgba(0, 0, 0, 0.2); }
+.ch-kind { font-size: 11px; font-weight: 800; letter-spacing: 0.3px; text-transform: uppercase; padding: 3px 8px;
+  border-radius: 999px; background: rgba(106, 179, 243, 0.14); color: #9ccdf7; white-space: nowrap; }
+.ch-recent { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.ch-recent li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 8px; }
+.ch-recent-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }

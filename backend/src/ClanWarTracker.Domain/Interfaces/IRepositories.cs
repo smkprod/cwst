@@ -572,3 +572,18 @@ public interface ICreatorChallengeRepository
     Task DeleteAsync(CreatorChallenge challenge, CancellationToken ct = default);
     Task SaveChangesAsync(CancellationToken ct = default);
 }
+
+public interface IChannelPostRepository
+{
+    Task<ChannelPost?> GetAsync(int id, CancellationToken ct = default);
+
+    /// <summary>Свежие первыми. states пустой - любые.</summary>
+    Task<List<ChannelPost>> ListAsync(IReadOnlyCollection<ChannelPostState> states, int limit, CancellationToken ct = default);
+
+    Task<bool> ExistsAsync(string sourceKey, CancellationToken ct = default);
+
+    /// <summary>false - пост с таким SourceKey уже есть (уникальный индекс): второй черновик той же новости не нужен.</summary>
+    Task<bool> TryAddAsync(ChannelPost post, CancellationToken ct = default);
+
+    Task SaveChangesAsync(CancellationToken ct = default);
+}

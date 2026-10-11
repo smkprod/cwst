@@ -63,6 +63,16 @@ public static class DependencyInjection
         services.AddSingleton<ITelegramBotClient>(new TelegramBotClient(botToken!));
 
         services.AddScoped<INotificationSender, TelegramNotificationSender>();
+        services.AddScoped<IChannelPublisher, TelegramChannelPublisher>();
+
+        // Новости для канала: чтение лент и (по ключу в .env) пересказ по-русски
+        services.AddHttpClient<INewsFeedReader, ClanWarTracker.Infrastructure.News.FeedReader>(http =>
+            http.Timeout = TimeSpan.FromSeconds(20));
+        var anthropicKey = CleanToken(config["ANTHROPIC_API_KEY"]);
+        var anthropicModel = config["ANTHROPIC_MODEL"]?.Trim();
+        services.AddHttpClient("anthropic", http => http.Timeout = TimeSpan.FromSeconds(60));
+        services.AddScoped<INewsTranslator>(sp => new ClanWarTracker.Infrastructure.News.AnthropicNewsTranslator(
+            sp.GetRequiredService<IHttpClientFactory>().CreateClient("anthropic"), anthropicKey, anthropicModel));
         services.AddSingleton<ClanWarTracker.Application.Notifications.ICardUrls>(
             new CardUrls(config["PUBLIC_BASE_URL"]?.Trim().TrimEnd('/')));
         services.AddScoped<IClanRepository, ClanRepository>();
@@ -79,6 +89,7 @@ public static class DependencyInjection
         services.AddScoped<IChallengeRepository, ChallengeRepository>();
         services.AddScoped<IDuelRepository, DuelRepository>();
         services.AddScoped<ICreatorChallengeRepository, CreatorChallengeRepository>();
+        services.AddScoped<IChannelPostRepository, ChannelPostRepository>();
         services.AddScoped<IPlayerBattleRepository, PlayerBattleRepository>();
         services.AddScoped<IEntitlementRepository, EntitlementRepository>();
         services.AddScoped<IPlayerAlertPrefsRepository, PlayerAlertPrefsRepository>();
@@ -633,6 +644,29 @@ CREATE TABLE IF NOT EXISTS ""ChallengeEntries"" (
 );");
         await db.Database.ExecuteSqlRawAsync(
             "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_ChallengeEntries_EventId_TelegramUserId\" ON \"ChallengeEntries\" (\"EventId\", \"TelegramUserId\");");
+
+        // Канал бота: опубликованные посты и черновики новостей
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""ChannelPosts"" (
+    ""Id"" serial PRIMARY KEY,
+    ""Kind"" varchar(16) NOT NULL,
+    ""State"" integer NOT NULL,
+    ""SourceKey"" varchar(300) NULL,
+    ""Title"" varchar(200) NULL,
+    ""Text"" text NOT NULL,
+    ""PhotoUrl"" varchar(500) NULL,
+    ""LinkUrl"" varchar(500) NULL,
+    ""ButtonText"" varchar(40) NULL,
+    ""ButtonUrl"" varchar(300) NULL,
+    ""CreatedUtc"" timestamptz NOT NULL,
+    ""PublishedUtc"" timestamptz NULL,
+    ""MessageId"" integer NULL,
+    ""Error"" varchar(200) NULL
+);");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_ChannelPosts_SourceKey\" ON \"ChannelPosts\" (\"SourceKey\");");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_ChannelPosts_State_CreatedUtc\" ON \"ChannelPosts\" (\"State\", \"CreatedUtc\");");
 
         // Челленджи блогеров для своих зрителей
         await db.Database.ExecuteSqlRawAsync(@"
