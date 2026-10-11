@@ -30,50 +30,8 @@ public class PlayerController(
     GetMatchHistoryUseCase matchHistory,
     GetMatchReportUseCase matchReport,
     TrackerActionsUseCase trackerActions,
-    IPlayerAlertPrefsRepository alertPrefs,
-    PlayerAiUseCase playerAi) : ControllerBase
+    IPlayerAlertPrefsRepository alertPrefs) : ControllerBase
 {
-    public record AiDeckRequest(string? Name, List<string>? Cards, string? Lang);
-
-    /// <summary>
-    /// POST /api/players/me/ai/analysis?lang=ru — ИИ-разбор последних поражений.
-    /// Лимит в день: бесплатно - попробовать, с Плюсом - больше.
-    /// </summary>
-    [HttpPost("me/ai/analysis")]
-    public async Task<IActionResult> AiAnalysis([FromQuery] string? lang, CancellationToken ct)
-    {
-        var userId = (long)HttpContext.Items["TelegramUserId"]!;
-        return AiResult(await playerAi.AnalyzeLossesAsync(userId, lang, ct));
-    }
-
-    /// <summary>POST /api/players/me/ai/deck — разбор колоды из подборки: подходит ли и как играть.</summary>
-    [HttpPost("me/ai/deck")]
-    public async Task<IActionResult> AiDeck([FromBody] AiDeckRequest req, CancellationToken ct)
-    {
-        var userId = (long)HttpContext.Items["TelegramUserId"]!;
-        var cards = (req.Cards ?? []).Where(c => !string.IsNullOrWhiteSpace(c)).Select(c => c.Trim())
-            .Select(c => c.Length > 40 ? c[..40] : c).Take(8).ToList();
-        if (cards.Count == 0) return BadRequest(new { error = "empty" });
-        var name = string.IsNullOrWhiteSpace(req.Name) ? "колода" : req.Name.Trim();
-        return AiResult(await playerAi.ExplainDeckAsync(userId, name.Length > 60 ? name[..60] : name, cards, req.Lang, ct));
-    }
-
-    /// <summary>
-    /// Ответ ИИ всегда 200 со статусом: «лимит» и «нет нейросети» - не ошибки, а состояния,
-    /// которые экран показывает по-своему (лимит - предложением Плюса).
-    /// </summary>
-    private IActionResult AiResult(PlayerAiUseCase.Answer a) => a.Status == PlayerAiUseCase.Status.NotLinked
-        ? NotFound(new { error = "player_not_linked" })
-        : Ok(new
-        {
-            status = a.Status.ToString().ToLowerInvariant(),
-            text = a.Text,
-            left = a.Left,
-            limit = a.Limit,
-            plus = a.Plus,
-            plusLimit = a.PlusLimit,
-        });
-
     /// <summary>
     /// POST /api/players/me/dm-allowed — человек разрешил боту писать в личку (окно
     /// Telegram в приложении). Снимаем отметку «не доходит»: после неё бот молчал бы

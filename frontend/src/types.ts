@@ -1879,13 +1879,3 @@ export interface ChannelAiStatus {
   atUtc: string | null
 }
 
-/** Ответ ИИ-помощника игрока. limit - лимит в день: ответа нет, но экран предлагает Плюс. */
-export interface AiAnswer {
-  status: 'ok' | 'noai' | 'limit' | 'failed' | 'empty'
-  text: string | null
-  left: number
-  limit: number
-  plus: boolean
-  plusLimit: number
-}
-

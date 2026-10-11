@@ -1772,24 +1772,7 @@ const ru = {
     } as Record<string, string>,
   },
 
-  ai: {
-    analysisTitle: 'ИИ-разбор поражений',
-    analysisHint: 'Нейросеть смотрит твои последние бои, причины поражений и неудобные карты соперников и даёт конкретные советы: что разыгрывать иначе и что качать.',
-    analysisBtn: 'Разобрать мои поражения',
-    deckBtn: 'Разбор колоды от ИИ',
-    deckTitle: 'Как играть этой колодой',
-    again: 'Ещё раз',
-    thinking: 'Думаю… до 30 секунд',
-    left: 'Сегодня осталось: {n} из {m}',
-    limitFree: 'Бесплатный разбор на сегодня использован. С Плюсом - до {m} в день.',
-    limitPlus: 'Лимит на сегодня исчерпан - приходи завтра.',
-    noAi: 'ИИ-тренер сейчас недоступен.',
-    failed: 'Не получилось - попробуй ещё раз, попытка не списана.',
-    getPlus: 'Открыть Плюс',
-    plusTitle: 'ИИ-тренер',
-    plusText: 'Разбор поражений и колод нейросетью и вопросы тренеру в личке бота - до 30 в день.',
-    coachHint: 'Есть вопрос по игре? Напиши его боту в личку - ИИ-тренер ответит с учётом твоих боёв.',
-  },
+
   overlay: {
     notFound: 'Виджет не найден — проверьте ссылку в Студии',
     waiting: 'Ожидаем следующий матч',
@@ -3579,24 +3562,7 @@ const uk: Translations = {
     } as Record<string, string>,
   },
 
-  ai: {
-    analysisTitle: 'ШІ-розбір поразок',
-    analysisHint: 'Нейромережа дивиться твої останні бої, причини поразок і незручні карти суперників і дає конкретні поради: що розігрувати інакше і що качати.',
-    analysisBtn: 'Розібрати мої поразки',
-    deckBtn: 'Розбір колоди від ШІ',
-    deckTitle: 'Як грати цією колодою',
-    again: 'Ще раз',
-    thinking: 'Думаю… до 30 секунд',
-    left: 'Сьогодні залишилось: {n} з {m}',
-    limitFree: 'Безкоштовний розбір на сьогодні використано. З Плюсом - до {m} на день.',
-    limitPlus: 'Ліміт на сьогодні вичерпано - приходь завтра.',
-    noAi: 'ШІ-тренер зараз недоступний.',
-    failed: 'Не вийшло - спробуй ще раз, спробу не списано.',
-    getPlus: 'Відкрити Плюс',
-    plusTitle: 'ШІ-тренер',
-    plusText: 'Розбір поразок і колод нейромережею та питання тренеру в особистих повідомленнях бота - до 30 на день.',
-    coachHint: 'Є питання по грі? Напиши його боту в особисті - ШІ-тренер відповість з урахуванням твоїх боїв.',
-  },
+
   overlay: {
     notFound: 'Віджет не знайдено — перевірте посилання в Студії',
     waiting: 'Чекаємо на наступний матч',
@@ -5384,24 +5350,7 @@ const en: Translations = {
     } as Record<string, string>,
   },
 
-  ai: {
-    analysisTitle: 'AI loss review',
-    analysisHint: 'The AI looks at your recent battles, loss reasons and the opponent cards that beat you, and gives concrete tips: what to play differently and what to upgrade.',
-    analysisBtn: 'Review my losses',
-    deckBtn: 'AI deck breakdown',
-    deckTitle: 'How to play this deck',
-    again: 'Again',
-    thinking: 'Thinking… up to 30 seconds',
-    left: 'Left today: {n} of {m}',
-    limitFree: 'Your free review for today is used. With Plus - up to {m} a day.',
-    limitPlus: 'Daily limit reached - come back tomorrow.',
-    noAi: 'The AI coach is unavailable right now.',
-    failed: 'Something went wrong - try again, the attempt was not used.',
-    getPlus: 'Open Plus',
-    plusTitle: 'AI coach',
-    plusText: 'AI reviews of your losses and decks, plus questions to the coach in the bot chat - up to 30 a day.',
-    coachHint: 'Got a question about the game? Message the bot - the AI coach answers based on your battles.',
-  },
+
   overlay: {
     notFound: 'Widget not found — check the link in the Studio',
     waiting: 'Waiting for the next match',

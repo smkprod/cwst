@@ -7,7 +7,6 @@ import { PLUS_CHANGED, usePlusSheet } from '../lib/plusSheet'
 import { CardIcon } from './MetaDecksView'
 import { Icon, type IconName } from './ui/Icon'
 import { SectionHead } from './ui/Section'
-import { AiAdvice } from './AiAdvice'
 
 /** Меньше боёв в срезе — процент ничего не значит, и сравнивать его не с чем. */
 const MIN_SLOT_GAMES = 5
@@ -91,14 +90,6 @@ export function BattleAnalysisView() {
             : <ul className="ba-insight-list">{insights.map((x, i) => (
               <li key={i} className="bt-insight"><Icon name={x.icon} size={16} className={`bt-insight-icon bt-insight-${x.icon}`} /><span>{x.text}</span></li>
             ))}</ul>}
-        </section>
-      )}
-
-      {data.losses > 0 && (
-        <section className="card">
-          <SectionHead icon="sparkles" tone="violet" title={t.ai.analysisTitle} info={<p>{t.ai.analysisHint}</p>} />
-          <AiAdvice label={t.ai.analysisBtn} run={() => api.aiAnalysis(lang)} />
-          <p className="muted small" style={{ margin: '10px 0 0' }}>{t.ai.coachHint}</p>
         </section>
       )}
 

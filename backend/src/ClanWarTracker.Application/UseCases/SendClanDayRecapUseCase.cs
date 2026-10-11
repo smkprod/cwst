@@ -26,8 +26,9 @@ public class SendClanDayRecapUseCase(
     INewsTranslator ai)
 {
     /// <summary>
-    /// Рубильник «живых» итогов: «off» - только шаблон. По умолчанию, если нейросеть
-    /// подключена, итоги пишет она: каждый вечер по-новому, и чат их не пролистывает.
+    /// Рубильник «живых» итогов: «on» - итоги пишет нейросеть по тем же цифрам, иначе
+    /// шаблон. По умолчанию выключено: текст, который видят все чаты кланов, владелец
+    /// включает сам, когда готов за него отвечать.
     /// </summary>
     public const string AiSwitchKey = "channel.auto.recapai";
 
@@ -121,7 +122,7 @@ public class SendClanDayRecapUseCase(
 
                 var t = ns.Text;
                 var text = DigestText.ClanRecap(t, clan.Name, days);
-                if (ai.Enabled && !string.Equals(await settings.GetAsync(AiSwitchKey, ct), "off", StringComparison.OrdinalIgnoreCase))
+                if (ai.Enabled && string.Equals(await settings.GetAsync(AiSwitchKey, ct), "on", StringComparison.OrdinalIgnoreCase))
                     text = await LiveRecapAsync(ns.Language, clan.Name, days, text, ct) ?? text;
                 bool ok;
                 try

@@ -80,19 +80,3 @@
 .pl-bullet .ui-icon { color: var(--green, #31b545); flex-shrink: 0; }
 .pl-stars { display: inline-flex; gap: 1px; color: var(--gold, #ffc83d); }
 .psheet-link .ui-icon { vertical-align: -2px; }
-
-/* ИИ-помощник: разбор поражений и колод */
-.ai-advice { display: grid; gap: 10px; }
-.ai-advice-compact { margin-top: 10px; }
-.ai-advice-text { display: grid; gap: 6px; font-size: 14.5px; line-height: 1.45; padding: 14px; border-radius: 14px;
-  background: linear-gradient(160deg, rgba(139, 92, 246, 0.12), rgba(139, 92, 246, 0.04)); border: 1px solid rgba(160, 120, 255, 0.25); }
-.ai-advice-main { width: 100%; }
-.ai-advice-btn { justify-self: start; display: inline-flex; align-items: center; gap: 6px; }
-.ai-advice-note { display: grid; gap: 8px; font-size: 13.5px; margin: 0; }
-.ai-advice-plus { width: 100%; }
-.ai-advice-left { margin: 0; }
-.ai-advice-text .ai-head { font-size: 15.5px; font-weight: 800; margin-top: 2px; }
-.ai-advice-text .ai-head b { font-weight: 800; }
-.ai-advice-text .ai-line { padding-left: 2px; }
-.ai-advice-text .ai-line b { font-weight: 700; }
-.ai-advice-text .ai-gap { height: 4px; }

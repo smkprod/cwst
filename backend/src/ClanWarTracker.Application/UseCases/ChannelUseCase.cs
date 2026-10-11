@@ -52,7 +52,7 @@ public class ChannelUseCase(
 
     /// <summary>Рубильники автопостов. newsauto - публиковать новости без проверки (только пересказанные).</summary>
     public static readonly string[] Toggles = ["daily", "weekly", "challenge", "cards", "news", "newsauto", "recapai"];
-    private static readonly HashSet<string> OffByDefault = ["newsauto"];
+    private static readonly HashSet<string> OffByDefault = ["newsauto", "recapai"];
 
     /// <summary>Посты - по Киеву, как и остальные расписания бота.</summary>
     private const int TzOffsetMinutes = 180;

@@ -41,7 +41,6 @@ builder.Services.AddScoped<ProcessPlusPaymentUseCase>();
 builder.Services.AddScoped<BattleTrackerUseCase>();
 builder.Services.AddScoped<ChallengeUseCase>();
 builder.Services.AddScoped<ChannelUseCase>();
-builder.Services.AddScoped<PlayerAiUseCase>();
 builder.Services.AddScoped<GetTopMetaUseCase>();
 builder.Services.AddScoped<DuelUseCase>();
 builder.Services.AddScoped<TiltWatchUseCase>();
