@@ -51,7 +51,7 @@ public class ChannelUseCase(
     public const string KeyFeedInit = "channel.feedinit";
 
     /// <summary>Рубильники автопостов. newsauto - публиковать новости без проверки (только пересказанные).</summary>
-    public static readonly string[] Toggles = ["daily", "weekly", "challenge", "cards", "news", "newsauto"];
+    public static readonly string[] Toggles = ["daily", "weekly", "challenge", "cards", "news", "newsauto", "recapai"];
     private static readonly HashSet<string> OffByDefault = ["newsauto"];
 
     /// <summary>Посты - по Киеву, как и остальные расписания бота.</summary>

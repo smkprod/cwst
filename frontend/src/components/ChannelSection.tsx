@@ -331,6 +331,12 @@ function NewsCard({ state, onState }: Props) {
           onToggle={() => flip('newsauto')} />
       </div>
       <AiStatusBlock state={state} onState={onState} />
+      <div className="ch-toggles">
+        <ToggleLine icon="message" tone="green" label="Живые итоги дня в чатах кланов" on={state.toggles.recapai}
+          disabled={!state.ai.enabled}
+          desc="«Итоги дня» в 21:00 пишет нейросеть - по тем же цифрам, но каждый вечер по-новому и на языке клана. Не ответила - уйдёт обычный шаблон. Плюс ИИ-тренер для игроков: разбор поражений и колод в приложении и ответы на вопросы в личке бота."
+          onToggle={() => flip('recapai')} />
+      </div>
       <label className="small muted">Ленты - по одной в строке</label>
       <div className="owner-bc-targets ch-suggest">
         {SUGGESTED_FEEDS.filter(f => !feeds.split('\n').some(x => sameFeed(x, f.url))).map(f => (

@@ -22,8 +22,15 @@ public class SendClanDayRecapUseCase(
     CollectPlayerBattlesUseCase collect,
     IServiceSettingRepository settings,
     INotificationSender sender,
-    ISentNotificationRepository sentLog)
+    ISentNotificationRepository sentLog,
+    INewsTranslator ai)
 {
+    /// <summary>
+    /// Рубильник «живых» итогов: «off» - только шаблон. По умолчанию, если нейросеть
+    /// подключена, итоги пишет она: каждый вечер по-новому, и чат их не пролистывает.
+    /// </summary>
+    public const string AiSwitchKey = "channel.auto.recapai";
+
     /// <summary>Вид отметки в общей таблице отправленного - тот же, что у воркера.</summary>
     public const string SentKind = "dayrecap";
 
@@ -114,6 +121,8 @@ public class SendClanDayRecapUseCase(
 
                 var t = ns.Text;
                 var text = DigestText.ClanRecap(t, clan.Name, days);
+                if (ai.Enabled && !string.Equals(await settings.GetAsync(AiSwitchKey, ct), "off", StringComparison.OrdinalIgnoreCase))
+                    text = await LiveRecapAsync(ns.Language, clan.Name, days, text, ct) ?? text;
                 bool ok;
                 try
                 {
@@ -133,5 +142,45 @@ public class SendClanDayRecapUseCase(
             catch { /* сбой одного клана не должен лишать итогов остальные */ }
         }
         return posted;
+    }
+
+    /// <summary>
+    /// Итоги дня живым текстом: те же цифры, что в шаблоне, но каждый вечер по-разному и с
+    /// характером. null - нейросеть не ответила или ответ подозрительный, тогда уходит шаблон.
+    /// </summary>
+    private async Task<string?> LiveRecapAsync(string? language, string clanName, IReadOnlyList<DigestText.PlayerDay> days,
+        string template, CancellationToken ct)
+    {
+        var lang = language switch { "uk" => "українською мовою", "en" => "in English", _ => "по-русски" };
+        var data = string.Join("\n", days
+            .OrderByDescending(d => d.Wins).ThenBy(d => d.Losses)
+            .Select(d => $"{d.Name}: боёв {d.Battles}, побед {d.Wins}, поражений {d.Losses}"
+                         + (d.Trophies is int tr ? $", кубки {(tr > 0 ? "+" : "")}{tr}" : "")
+                         + $", лучшая серия побед {d.BestStreak}, побед с тремя коронами {d.ThreeCrowns}"));
+        var prompt = $"""
+            Напиши «Итоги дня» для Telegram-чата клана Clash Royale «{clanName}». Пиши {lang}.
+            Это вечерний пост бота: живо, с лёгким юмором и уважением к игрокам, каждый раз по-новому.
+            Правила:
+            - первая строка - заголовок с одним эмодзи и названием клана;
+            - отметь бойца дня (больше всех побед), лучшую серию, три короны и кто больше всех поднял кубков - только если это есть в данных;
+            - упомяни не больше 5 игроков; никого не высмеивай за поражения;
+            - в конце одна строка с общим итогом: сколько игроков, боёв и процент побед;
+            - до 700 символов, без markdown (без звёздочек и решёток), без хештегов;
+            - ники пиши точно как в данных, цифры - только из данных, ничего не выдумывай.
+
+            Данные за сегодня (ладдер и Путь легенд):
+            {data}
+
+            Тот же итог шаблоном - для сверки фактов:
+            {template}
+            """;
+        string? text;
+        try { text = await ai.ChatAsync(prompt, 700, ct); }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch { return null; }
+        if (string.IsNullOrWhiteSpace(text)) return null;
+        text = text.Replace("**", "").Replace("__", "").Replace("### ", "").Replace("## ", "").Trim();
+        // Слишком короткий или слишком длинный ответ - что-то пошло не так, шаблон надёжнее
+        return text.Length is < 80 or > 1500 ? null : text;
     }
 }
