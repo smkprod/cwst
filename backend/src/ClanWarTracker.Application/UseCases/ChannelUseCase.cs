@@ -78,7 +78,8 @@ public class ChannelUseCase(
         string? ButtonText, string? ButtonUrl, DateTime CreatedUtc, DateTime? PublishedUtc, string? PostUrl, string? Error);
 
     public record StateDto(long? Id, string? Title, string? Username, Dictionary<string, bool> Toggles, List<string> Feeds,
-        List<FeedStatus> FeedStatus, bool Translator, List<PostDto> Drafts, List<PostDto> Recent);
+        List<FeedStatus> FeedStatus, bool Translator, List<PostDto> Drafts, List<PostDto> Recent,
+        int RedditMinScore, int RedditPerDay);
 
     public async Task<long?> ChannelIdAsync(CancellationToken ct) =>
         long.TryParse(await settings.GetAsync(KeyId, ct), out var id) && id != 0 ? id : null;
@@ -108,10 +109,12 @@ public class ChannelUseCase(
 
         var drafts = await posts.ListAsync([ChannelPostState.Draft, ChannelPostState.Failed], 40, ct);
         var recent = await posts.ListAsync([ChannelPostState.Published], 20, ct);
+        var reddit = await RedditLimitsAsync(ct);
         return new StateDto(id, await settings.GetAsync(KeyTitle, ct), string.IsNullOrEmpty(username) ? null : username,
             toggles, await FeedsAsync(ct), status, translator.Enabled,
             drafts.Select(p => Dto(p, id, username)).ToList(),
-            recent.OrderByDescending(p => p.PublishedUtc).Select(p => Dto(p, id, username)).ToList());
+            recent.OrderByDescending(p => p.PublishedUtc).Select(p => Dto(p, id, username)).ToList(),
+            reddit.MinScore, reddit.PerDay);
     }
 
     private static PostDto Dto(ChannelPost p, long? channelId, string? username)
@@ -147,8 +150,10 @@ public class ChannelUseCase(
     }
 
     public async Task SaveSettingsAsync(IReadOnlyDictionary<string, bool>? toggles, IReadOnlyList<string>? feedList,
-        CancellationToken ct = default)
+        int? redditMinScore = null, int? redditPerDay = null, CancellationToken ct = default)
     {
+        if (redditMinScore is int min) await settings.SetAsync(KeyRedditMinScore, Math.Clamp(min, 0, 100_000).ToString(), ct);
+        if (redditPerDay is int per) await settings.SetAsync(KeyRedditPerDay, Math.Clamp(per, 0, 20).ToString(), ct);
         foreach (var (k, v) in toggles ?? new Dictionary<string, bool>())
             if (Toggles.Contains(k)) await settings.SetAsync(TogglePrefix + k, v ? "on" : "off", ct);
         if (feedList is not null)
@@ -659,6 +664,10 @@ public class ChannelUseCase(
         var status = new List<FeedStatus>();
         var initialized = ((await settings.GetAsync(KeyFeedInit, ct)) ?? "")
             .Split('\n', StringSplitOptions.RemoveEmptyEntries).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var reddit = await RedditLimitsAsync(ct);
+        var today = now.AddMinutes(TzOffsetMinutes).ToString("yyyy-MM-dd");
+        var redditRaw = await settings.GetAsync(KeyRedditDay, ct) ?? "";
+        var redditToday = redditRaw.StartsWith(today + ":") && int.TryParse(redditRaw[(today.Length + 1)..], out var redditN) ? redditN : 0;
 
         foreach (var feed in await FeedsAsync(ct))
         {
@@ -687,10 +696,18 @@ public class ChannelUseCase(
                 await settings.SetAsync(KeyFeedInit, string.Join('\n', initialized), ct);
             }
 
+            var candidates = items.Where(i => i.PublishedUtc is not DateTime d || now - d <= NewsWindow);
+            // Reddit: сперва бесплатный отсев по апвоутам - до модели доходит только то, что
+            // сообщество уже подняло в топ, самое заметное первым. Пост, не добравший апвоутов,
+            // не запоминаем: к вечеру он может их набрать.
+            if (items.Any(i => i.IsReddit))
+                candidates = candidates.Where(i => i.Score >= reddit.MinScore).OrderByDescending(i => i.Score);
+
             var taken = 0;
-            foreach (var item in items.Where(i => i.PublishedUtc is not DateTime d || now - d <= NewsWindow))
+            foreach (var item in candidates)
             {
                 if (taken >= NewsPerFeedPerRun) break;
+                if (item.IsReddit && redditToday >= reddit.PerDay) break;
                 var key = NewsKey(item);
                 if (await posts.ExistsAsync(key, ct)) continue;
                 taken++;
@@ -702,7 +719,8 @@ public class ChannelUseCase(
 
                 var isVideo = item.VideoId is not null;
                 var summary = item.Summary is { Length: > 0 } ? item.Summary : article?.Description;
-                var retold = await translator.RetellAsync(new NewsSource(item.Title, summary, article?.Text, isVideo), ct);
+                var retold = await translator.RetellAsync(
+                    new NewsSource(item.Title, summary, article?.Text, isVideo, item.IsReddit ? item.Score : null), ct);
                 if (retold is { Title.Length: 0 })
                 {
                     // Модель сочла запись не новостью об игре - запоминаем, чтобы не спрашивать снова
@@ -714,7 +732,9 @@ public class ChannelUseCase(
                     continue;
                 }
 
-                var link = isVideo ? $"[▶️ Смотреть видео]({item.Link})" : $"[Читать полностью]({item.Link})";
+                var link = isVideo ? $"[▶️ Смотреть видео]({item.Link})"
+                    : item.IsReddit ? $"[Обсуждение на Reddit]({item.Link})"
+                    : $"[Читать полностью]({item.Link})";
                 var title = retold?.Title ?? item.Title;
                 var text = retold is { } r
                     ? ChannelText.Join([r.Text, "", link])
@@ -735,6 +755,11 @@ public class ChannelUseCase(
                     CreatedUtc = now,
                 };
                 if (!await posts.TryAddAsync(post, ct)) continue;
+                if (item.IsReddit)
+                {
+                    redditToday++;
+                    await settings.SetAsync(KeyRedditDay, $"{today}:{redditToday}", ct);
+                }
                 if (auto && retold is not null)
                 {
                     if (await PublishAsync(post, channelId!.Value, ct)) published++;
@@ -747,6 +772,20 @@ public class ChannelUseCase(
         return new TickResult(published, drafts);
     }
 
+    public const string KeyRedditMinScore = "channel.reddit.minscore";
+    public const string KeyRedditPerDay = "channel.reddit.perday";
+    private const string KeyRedditDay = "channel.reddit.day";
+
+    /// <summary>
+    /// Порог апвоутов и потолок постов с Reddit в день. Тысяча на r/ClashRoyale - это
+    /// заметный пост дня, а не чей-то вопрос; три в день - чтобы Reddit не забил канал.
+    /// </summary>
+    public record RedditLimits(int MinScore, int PerDay);
+
+    public async Task<RedditLimits> RedditLimitsAsync(CancellationToken ct) => new(
+        int.TryParse(await settings.GetAsync(KeyRedditMinScore, ct), out var min) && min >= 0 ? min : 1000,
+        int.TryParse(await settings.GetAsync(KeyRedditPerDay, ct), out var per) && per >= 0 ? per : 3);
+
     private static string NewsKey(NewsItem item) => "news:" + Cut(item.Key, 290);
 
     private static string Cut(string s, int max) => s.Length <= max ? s : s[..max];
@@ -758,6 +797,9 @@ public class ChannelUseCase(
     private static string FallbackNews(NewsItem item, NewsArticle? article, string? summary, string link)
     {
         var title = ChannelText.Plain(item.Title);
+        if (item.IsReddit)
+            return ChannelText.Join([$"🔥 **{title}**", "", ChannelText.Plain(Shorten(summary, 500)), "",
+                $"⬆️ {ChannelText.Num(item.Score ?? 0)} на Reddit · {link}"]);
         if (item.VideoId is not null)
             return ChannelText.Join([$"🎬 **{title}**", "", ChannelText.Plain(Sentences(summary, 2)), "", link]);
 

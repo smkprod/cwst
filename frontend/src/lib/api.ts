@@ -204,8 +204,9 @@ export const api = {
   channelGet: () => request<ChannelState>('/api/owner/channel'),
   channelConnect: (handle: string) => postJson<ChannelState>('/api/owner/channel/connect', { handle }),
   channelDisconnect: () => postJson<ChannelState>('/api/owner/channel/disconnect', {}),
-  channelSettings: (toggles: Partial<Record<ChannelToggle, boolean>>, feeds?: string[]) =>
-    postJson<ChannelState>('/api/owner/channel/settings', { toggles, feeds }),
+  channelSettings: (toggles: Partial<Record<ChannelToggle, boolean>>, feeds?: string[],
+    reddit?: { redditMinScore: number; redditPerDay: number }) =>
+    postJson<ChannelState>('/api/owner/channel/settings', { toggles, feeds, ...reddit }),
   channelPost: (p: { text: string; photoUrl?: string; buttonText?: string; buttonUrl?: string }) =>
     postJson<ChannelState>('/api/owner/channel/post', p),
   channelPublishDraft: (id: number, text?: string, photoUrl?: string) =>

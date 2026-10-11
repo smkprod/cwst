@@ -35,7 +35,7 @@ const BUTTONS: { key: string; label: string; url: string }[] = [
 const SUGGESTED_FEEDS: { label: string; url: string }[] = [
   { label: 'Блог Supercell', url: 'https://supercell.com/en/games/clashroyale/blog/' },
   { label: 'YouTube Clash Royale', url: 'https://www.youtube.com/feeds/videos.xml?channel_id=UC_F8DoJf9MZogEOU51TpTbQ' },
-  { label: 'Reddit r/ClashRoyale', url: 'https://www.reddit.com/r/ClashRoyale/.rss' },
+  { label: 'Reddit r/ClashRoyale', url: 'https://www.reddit.com/r/ClashRoyale/' },
 ]
 
 const KIND_LABEL: Record<string, string> = {
@@ -301,6 +301,7 @@ function NewsCard({ state, onState }: Props) {
   }
 
   const statusOf = (url: string) => state.feedStatus.find(f => f.url === url)
+  const hasReddit = feeds.includes('reddit.com/r/')
 
   return (
     <div className="card">
@@ -350,6 +351,7 @@ function NewsCard({ state, onState }: Props) {
           })}
         </ul>
       )}
+      {hasReddit && <RedditLimits state={state} onState={onState} />}
       <div className="ch-actions">
         {dirty && <button className="btn-mini" disabled={busy} onClick={saveFeeds}><Icon name="check" size={14} />Сохранить ленты</button>}
         <button className="btn-mini" disabled={busy || dirty} onClick={refresh}>
@@ -357,6 +359,56 @@ function NewsCard({ state, onState }: Props) {
         </button>
       </div>
       {note && <p className="muted small">{note}</p>}
+    </div>
+  )
+}
+
+/**
+ * Отбор с Reddit: из топа дня берутся только посты с заметным числом апвоутов, и не
+ * больше N в день; дальше нейросеть решает, интересен ли пост.
+ */
+function RedditLimits({ state, onState }: Props) {
+  const [min, setMin] = useState(String(state.redditMinScore))
+  const [perDay, setPerDay] = useState(String(state.redditPerDay))
+  const [busy, setBusy] = useState(false)
+  const dirty = min !== String(state.redditMinScore) || perDay !== String(state.redditPerDay)
+
+  const save = async () => {
+    haptic('light')
+    setBusy(true)
+    try {
+      const s = await api.channelSettings({}, undefined, {
+        redditMinScore: Math.max(0, parseInt(min, 10) || 0),
+        redditPerDay: Math.max(0, parseInt(perDay, 10) || 0),
+      })
+      onState(s)
+      setMin(String(s.redditMinScore))
+      setPerDay(String(s.redditPerDay))
+      hapticNotify('success')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="ch-reddit">
+      <div className="ch-reddit-head">
+        <b className="small">Отбор с Reddit</b>
+        <InfoButton title="Отбор с Reddit">
+          <p>Бот смотрит топ сабреддита за сутки и берёт только посты, набравшие не меньше указанных апвоутов, - самые заметные первыми.</p>
+          <p>Дальше нейросеть оставляет только интересное: находки, стратегии, баги, лики, смешные мемы с картинкой. Вопросы, жалобы и шум отсеиваются.</p>
+        </InfoButton>
+      </div>
+      <div className="ch-reddit-row">
+        <label className="small muted">Мин. апвоутов
+          <input className="search-input" inputMode="numeric" value={min} onChange={e => setMin(e.target.value.replace(/\D/g, ''))} />
+        </label>
+        <label className="small muted">Постов в день
+          <input className="search-input" inputMode="numeric" value={perDay} onChange={e => setPerDay(e.target.value.replace(/\D/g, ''))} />
+        </label>
+      </div>
+      {!state.translator && <p className="small ch-warn">Без нейросети отбор только по апвоутам - мемы и вопросы тоже могут пройти.</p>}
+      {dirty && <button className="btn-mini" disabled={busy} onClick={save}><Icon name="check" size={14} />Сохранить отбор</button>}
     </div>
   )
 }
