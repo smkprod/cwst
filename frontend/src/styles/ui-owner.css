@@ -76,3 +76,8 @@
 .ch-actions-row .btn { flex: 1 1 0; min-width: 0; padding-left: 8px; padding-right: 8px; font-size: 14px; }
 .ch-recent-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
 .ch-suggest { margin: 6px 0 2px; }
+.ch-reddit { display: grid; gap: 8px; margin-top: 12px; padding: 12px; border-radius: 14px; background: var(--ui-surface-2); border: 1px solid var(--ui-line); }
+.ch-reddit-head { display: flex; align-items: center; gap: 6px; }
+.ch-reddit-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ch-reddit-row label { display: grid; gap: 4px; }
+.ch-reddit-row .search-input { width: 100%; }

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Net;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
@@ -35,6 +36,10 @@ public partial class FeedReader(HttpClient http) : INewsFeedReader
     {
         if (!Uri.TryCreate(feedUrl, UriKind.Absolute, out var uri) || (uri.Scheme != "https" && uri.Scheme != "http"))
             throw new ArgumentException("bad feed url");
+
+        // Reddit - не лента, а топ дня с апвоутами: по ним отсеивается неинтересное
+        if (RedditRegex().Match(uri.Host + uri.AbsolutePath) is { Success: true } reddit)
+            return await ReadRedditAsync(reddit.Groups[1].Value, ct);
 
         var text = await DownloadAsync(uri, ct);
         var head = text.Length > 2000 ? text[..2000] : text;
@@ -160,6 +165,66 @@ public partial class FeedReader(HttpClient http) : INewsFeedReader
     [GeneratedRegex(@"^\d{1,2}:\d{2}")]
     private static partial Regex TimecodeRegex();
 
+    /* ---------------- Reddit ---------------- */
+
+    [GeneratedRegex(@"^(?:www\.|old\.)?reddit\.com/r/([A-Za-z0-9_]{2,40})", RegexOptions.IgnoreCase)]
+    private static partial Regex RedditRegex();
+
+    /// <summary>
+    /// Топ сабреддита за сутки из его JSON (та же публичная страница, что и в браузере):
+    /// в RSS нет апвоутов, а без них интересное от шума не отличить. Закреплённые посты
+    /// модераторов и 18+ не берём.
+    /// </summary>
+    private async Task<List<NewsItem>> ReadRedditAsync(string sub, CancellationToken ct)
+    {
+        var json = await DownloadAsync(new Uri($"https://www.reddit.com/r/{sub}/top.json?t=day&limit=25&raw_json=1"), ct);
+        using var doc = JsonDocument.Parse(json);
+        var list = new List<NewsItem>();
+        if (!doc.RootElement.TryGetProperty("data", out var data) || !data.TryGetProperty("children", out var children))
+            return list;
+        foreach (var child in children.EnumerateArray())
+        {
+            if (!child.TryGetProperty("data", out var d)) continue;
+            if (Bool(d, "stickied") || Bool(d, "over_18")) continue;
+            var id = Str(d, "id");
+            var title = Clean(Str(d, "title"), 300);
+            var permalink = Str(d, "permalink");
+            if (id is null || title.Length == 0 || permalink is null) continue;
+
+            var hint = Str(d, "post_hint");
+            var url = Str(d, "url_overridden_by_dest") ?? Str(d, "url");
+            string? image = hint == "image" ? url : null;
+            if (image is null && d.TryGetProperty("preview", out var preview)
+                && preview.TryGetProperty("images", out var images) && images.GetArrayLength() > 0
+                && images[0].TryGetProperty("source", out var source))
+                image = Str(source, "url");
+
+            // Текст поста; у поста-ссылки - куда он ведёт
+            var body = Str(d, "selftext") is { Length: > 0 } self ? self
+                : hint == "link" && url is not null ? "Ссылка: " + url : null;
+            var flair = Str(d, "link_flair_text");
+            var summary = string.Join("\n", new[] { flair is null ? null : "Рубрика: " + flair, body }.Where(x => x is not null));
+
+            list.Add(new NewsItem(
+                Key: "reddit:" + id,
+                Title: title,
+                Summary: summary.Length <= 2500 ? summary : summary[..2500] + "…",
+                Link: "https://www.reddit.com" + permalink,
+                ImageUrl: image,
+                PublishedUtc: d.TryGetProperty("created_utc", out var created) && created.TryGetDouble(out var sec)
+                    ? DateTimeOffset.FromUnixTimeSeconds((long)sec).UtcDateTime
+                    : null,
+                Score: d.TryGetProperty("score", out var score) && score.TryGetInt32(out var sc) ? sc : 0));
+        }
+        return list;
+    }
+
+    private static string? Str(JsonElement e, string name) =>
+        e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String && v.GetString() is { Length: > 0 } s ? s : null;
+
+    private static bool Bool(JsonElement e, string name) =>
+        e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.True;
+
     /* ---------------- Страница блога без ленты ---------------- */
 
     /// <summary>
@@ -210,6 +275,8 @@ public partial class FeedReader(HttpClient http) : INewsFeedReader
             var hd = $"https://i.ytimg.com/vi/{videoId}/maxresdefault.jpg";
             return new NewsArticle(null, null, null, await ExistsAsync(hd, ct) ? hd : item.ImageUrl);
         }
+        // У поста Reddit текст уже есть, а страница обсуждения - это комментарии и меню
+        if (item.IsReddit) return null;
         if (!Uri.TryCreate(item.Link, UriKind.Absolute, out var uri) || (uri.Scheme != "https" && uri.Scheme != "http"))
             return null;
 

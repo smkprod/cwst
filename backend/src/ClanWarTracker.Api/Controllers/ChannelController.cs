@@ -14,7 +14,8 @@ namespace ClanWarTracker.Api.Controllers;
 public class ChannelController(ChannelUseCase channel, ServiceAccess access) : ControllerBase
 {
     public record ConnectRequest(string? Handle);
-    public record SettingsRequest(Dictionary<string, bool>? Toggles, List<string>? Feeds);
+    public record SettingsRequest(Dictionary<string, bool>? Toggles, List<string>? Feeds, int? RedditMinScore = null,
+        int? RedditPerDay = null);
     public record ComposeRequest(string? Text, string? PhotoUrl, string? ButtonText, string? ButtonUrl);
     public record PublishRequest(string? Text, string? PhotoUrl);
     public record PreviewRequest(string? Kind);
@@ -55,7 +56,7 @@ public class ChannelController(ChannelUseCase channel, ServiceAccess access) : C
     public async Task<IActionResult> Settings([FromBody] SettingsRequest req, CancellationToken ct)
     {
         if (await DenyAsync(ct) is { } deny) return deny;
-        await channel.SaveSettingsAsync(req.Toggles, req.Feeds, ct);
+        await channel.SaveSettingsAsync(req.Toggles, req.Feeds, req.RedditMinScore, req.RedditPerDay, ct);
         return Ok(await channel.GetAsync(ct));
     }
 
