@@ -31,6 +31,13 @@ const BUTTONS: { key: string; label: string; url: string }[] = [
   { key: 'none', label: 'Без кнопки', url: '' },
 ]
 
+/** Проверенные источники: их можно добавить в ленты одной кнопкой. */
+const SUGGESTED_FEEDS: { label: string; url: string }[] = [
+  { label: 'Блог Supercell', url: 'https://supercell.com/en/games/clashroyale/blog/' },
+  { label: 'YouTube Clash Royale', url: 'https://www.youtube.com/feeds/videos.xml?channel_id=UC_F8DoJf9MZogEOU51TpTbQ' },
+  { label: 'Reddit r/ClashRoyale', url: 'https://www.reddit.com/r/ClashRoyale/.rss' },
+]
+
 const KIND_LABEL: Record<string, string> = {
   manual: 'Свой пост', news: 'Новость', daily: 'Топ дня', weekly: 'Неделя лиги',
   chstart: 'Старт челленджа', chend: 'Итоги челленджа', card: 'Новая карта',
@@ -275,7 +282,8 @@ function NewsCard({ state, onState }: Props) {
     <div className="card">
       <SectionHead icon="globe" tone="orange" title="Новости Clash Royale"
         info={<>
-          <p>Бот раз в 30 минут читает ленты и кладёт новое в черновики - публикуете вы.</p>
+          <p>Бот раз в 30 минут проверяет источники, открывает каждую новую статью целиком и собирает из неё пост: заголовок, суть, список изменений. Пост ждёт вас в черновиках.</p>
+          <p>Можно добавить и обычную страницу блога без RSS - бот будет следить за новыми статьями на ней.</p>
           <p>Подходит любая RSS или Atom-лента: сайт, YouTube-канал (youtube.com/feeds/videos.xml?channel_id=…), Reddit (reddit.com/r/ClashRoyale/.rss).</p>
           <p>Твиттер напрямую бесплатно читать нельзя - API X платный. Можно вставить сюда RSS-ленту аккаунта из сервисов вроде rss.app.</p>
         </>} />
@@ -294,6 +302,13 @@ function NewsCard({ state, onState }: Props) {
           : 'Пересказ по-русски выключен: новости придут на английском. Включается ключом ANTHROPIC_API_KEY и ANTHROPIC_MODEL в .env сервера'}
       </p>
       <label className="small muted">Ленты - по одной в строке</label>
+      <div className="owner-bc-targets ch-suggest">
+        {SUGGESTED_FEEDS.filter(f => !feeds.split('\n').map(x => x.trim()).includes(f.url)).map(f => (
+          <button key={f.url} className="btn-mini" onClick={() => { haptic('light'); setFeeds(v => (v.trim() ? v.trim() + '\n' : '') + f.url) }}>
+            <Icon name="plus" size={13} />{f.label}
+          </button>
+        ))}
+      </div>
       <textarea className="owner-bc-text ch-feeds" rows={3} value={feeds} onChange={e => setFeeds(e.target.value)}
         placeholder="https://www.youtube.com/feeds/videos.xml?channel_id=…" />
       {state.feeds.length > 0 && (
