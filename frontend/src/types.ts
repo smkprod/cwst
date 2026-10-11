@@ -1864,5 +1864,7 @@ export interface ChannelState {
   translator: boolean
   drafts: ChannelPost[]
   recent: ChannelPost[]
+  redditMinScore: number
+  redditPerDay: number
 }
 
