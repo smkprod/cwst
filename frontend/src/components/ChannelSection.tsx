@@ -323,7 +323,7 @@ function NewsCard({ state, onState }: Props) {
         <Icon name={state.translator ? 'checkCircle' : 'language'} size={13} />{' '}
         {state.translator
           ? 'Пересказ по-русски включён'
-          : 'Пересказ по-русски выключен: новости придут на английском. Включается ключом ANTHROPIC_API_KEY и ANTHROPIC_MODEL в .env сервера'}
+          : 'Пересказ по-русски выключен: новости придут на английском. Включается строкой DEEPSEEK_API_KEY в .env сервера (или ANTHROPIC_API_KEY и ANTHROPIC_MODEL для Claude)'}
       </p>
       <label className="small muted">Ленты - по одной в строке</label>
       <div className="owner-bc-targets ch-suggest">
