@@ -1825,3 +1825,44 @@ export interface CreatorChallengeCard {
   participants: number
   joined: boolean
 }
+
+/* ---------- Канал бота ---------- */
+
+export type ChannelToggle = 'daily' | 'weekly' | 'challenge' | 'cards' | 'news' | 'newsauto'
+
+export interface ChannelPost {
+  id: number
+  kind: string
+  state: 'draft' | 'published' | 'rejected' | 'failed'
+  title: string | null
+  text: string
+  photoUrl: string | null
+  linkUrl: string | null
+  buttonText: string | null
+  buttonUrl: string | null
+  createdUtc: string
+  publishedUtc: string | null
+  postUrl: string | null
+  error: string | null
+}
+
+export interface ChannelFeedStatus {
+  url: string
+  ok: boolean
+  items: number
+  error: string | null
+  atUtc: string
+}
+
+export interface ChannelState {
+  id: number | null
+  title: string | null
+  username: string | null
+  toggles: Record<ChannelToggle, boolean>
+  feeds: string[]
+  feedStatus: ChannelFeedStatus[]
+  translator: boolean
+  drafts: ChannelPost[]
+  recent: ChannelPost[]
+}
+

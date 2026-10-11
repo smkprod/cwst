@@ -324,6 +324,17 @@ public class ChallengeUseCase(
         return sent;
     }
 
+    /// <summary>Свежая итоговая таблица события - для поста с итогами в канал.</summary>
+    public async Task<List<ChallengeRowDto>> ResultsAsync(Event e, CancellationToken ct = default)
+    {
+        BoardCache.TryRemove(e.Id, out _);
+        return (await BoardAsync(e, ct)).Rows;
+    }
+
+    /// <summary>Сколько человек вступило в событие.</summary>
+    public async Task<int> ParticipantsAsync(Event e, CancellationToken ct = default) =>
+        (await entries.GetEntriesAsync(e.Id, ct)).DistinctBy(x => x.TelegramUserId).Count();
+
     private async Task<int> IntSettingAsync(string key, int fallback, CancellationToken ct) =>
         int.TryParse(await settings.GetAsync(key, ct), out var v) && v > 0 ? v : fallback;
 
