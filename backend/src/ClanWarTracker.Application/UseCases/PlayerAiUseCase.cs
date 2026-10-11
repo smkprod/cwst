@@ -210,7 +210,7 @@ public class PlayerAiUseCase(
             var decks = counted.Where(b => !string.IsNullOrEmpty(b.DeckKey))
                 .GroupBy(b => b.DeckKey).OrderByDescending(g => g.Count()).Take(3);
             foreach (var g in decks)
-                sb.AppendLine($"Колода ({g.Count()} боёв, {100 * g.Count(b => b.Result > 0) / g.Count()}% побед): {Deck(g.Key, names)}");
+                sb.AppendLine($"Колода ({g.Count()} боёв, {100 * g.Count(b => b.Result > 0) / g.Count()}% побед): {DeckNames(g.Key, names)}");
 
             // Неудобные карты соперников: где проигрывает чаще, чем обычно
             var vs = new Dictionary<int, (int Games, int Losses)>();
@@ -239,7 +239,7 @@ public class PlayerAiUseCase(
                     var reason = LossReasons.Classify(b, history, null);
                     var why = reason is null ? "" : $"; причина: {ReasonText.GetValueOrDefault(reason.Main, reason.Main)}";
                     var gap = b.LevelGap is double lg ? $"; разница уровней {lg:+0.0;-0.0;0}" : "";
-                    sb.AppendLine($"- {b.CrownsFor}:{b.CrownsAgainst} против {(string.IsNullOrEmpty(b.OppDeckKey) ? "?" : Deck(b.OppDeckKey!, names))}{gap}{why}");
+                    sb.AppendLine($"- {b.CrownsFor}:{b.CrownsAgainst} против {(string.IsNullOrEmpty(b.OppDeckKey) ? "?" : DeckNames(b.OppDeckKey!, names))}{gap}{why}");
                 }
             }
             var reasons = counted.Where(b => b.Result < 0)
@@ -293,6 +293,6 @@ public class PlayerAiUseCase(
     private static string CardName(int key, Dictionary<int, string> names) =>
         (names.GetValueOrDefault(Math.Abs(key)) ?? $"#{Math.Abs(key)}") + (key < 0 ? " (эво)" : "");
 
-    private static string Deck(string deckKey, Dictionary<int, string> names) =>
+    private static string DeckNames(string deckKey, Dictionary<int, string> names) =>
         string.Join(", ", MetaCard.ParseDeckKey(deckKey).Select(k => CardName(k, names)));
 }
