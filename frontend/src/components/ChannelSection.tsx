@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, ApiError } from '../lib/api'
 import type { ChannelPost, ChannelState, ChannelToggle } from '../types'
-import { haptic, hapticNotify, openTelegramLink, openExternalLink } from '../lib/telegram'
+import { copyText, haptic, hapticNotify, openTelegramLink, openExternalLink } from '../lib/telegram'
 import { Icon, type IconName } from './ui/Icon'
 import { IconTile, SectionHead, type Tone } from './ui/Section'
 import { InfoButton } from './ui/Info'
@@ -53,6 +53,7 @@ function errorText(e: unknown): string {
     case 'too_long': return 'Слишком длинно - до 4000 символов'
     case 'telegram_failed': return 'Telegram не принял пост: проверьте права бота в канале'
     case 'no_data': return 'Пока нет данных для такого поста'
+    case 'caption_too_long': return 'У поста с картинкой текст не длиннее 1024 символов - сократите'
     default: return 'Не получилось, попробуйте ещё раз'
   }
 }
@@ -61,6 +62,29 @@ function when(iso: string | null): string {
   if (!iso) return ''
   const d = new Date(iso)
   return d.toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+}
+
+/** Текст для копирования: без звёздочек разметки, ссылки - адресом в скобках. */
+function toPlain(text: string): string {
+  return text
+    .replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g, '$1 ($2)')
+    .replace(/\*\*([^*\n]+)\*\*/g, '$1')
+}
+
+function CopyButton({ text }: { text: string }) {
+  const [done, setDone] = useState(false)
+  return (
+    <button className="btn btn-ghost" onClick={async () => {
+      haptic('light')
+      if (await copyText(toPlain(text))) {
+        hapticNotify('success')
+        setDone(true)
+        setTimeout(() => setDone(false), 1800)
+      }
+    }}>
+      <Icon name={done ? 'check' : 'copy'} size={16} />{done ? 'Скопировано' : 'Копировать'}
+    </button>
+  )
 }
 
 export function ChannelSection() {
@@ -84,7 +108,7 @@ export function ChannelSection() {
           <DraftsCard state={state} onState={setState} />
           <AutoCard state={state} onState={setState} />
           <NewsCard state={state} onState={setState} />
-          <RecentCard posts={state.recent} />
+          <RecentCard posts={state.recent} onState={setState} />
         </>
       )}
     </>
@@ -352,18 +376,21 @@ function DraftsCard({ state, onState }: Props) {
 
 function DraftItem({ post, onState }: { post: ChannelPost; onState: (s: ChannelState) => void }) {
   const [text, setText] = useState(post.text)
+  const [photo, setPhoto] = useState(post.photoUrl ?? '')
+  const [photoOpen, setPhotoOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [confirm, setConfirm] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [saved, setSaved] = useState(false)
+  const dirty = text !== post.text || photo.trim() !== (post.photoUrl ?? '')
 
-  const publish = async () => {
-    haptic('medium')
-    if (!confirm) { setConfirm(true); return }
+  const run = async (action: () => Promise<ChannelState>, ok?: () => void) => {
     setBusy(true)
     setError(null)
     try {
-      onState(await api.channelPublishDraft(post.id, text !== post.text ? text : undefined))
+      onState(await action())
       hapticNotify('success')
+      ok?.()
     } catch (e) {
       hapticNotify('error')
       setError(errorText(e))
@@ -373,11 +400,18 @@ function DraftItem({ post, onState }: { post: ChannelPost; onState: (s: ChannelS
     }
   }
 
-  const reject = async () => {
-    haptic('light')
-    setBusy(true)
-    try { onState(await api.channelRejectDraft(post.id)) } catch (e) { setError(errorText(e)) } finally { setBusy(false) }
+  const publish = () => {
+    haptic('medium')
+    if (!confirm) { setConfirm(true); return }
+    run(() => api.channelPublishDraft(post.id,
+      text !== post.text ? text : undefined,
+      photo.trim() !== (post.photoUrl ?? '') ? photo.trim() : undefined))
   }
+  const save = () => {
+    haptic('light')
+    run(() => api.channelSaveDraft(post.id, text, photo.trim()), () => { setSaved(true); setTimeout(() => setSaved(false), 1800) })
+  }
+  const reject = () => { haptic('light'); run(() => api.channelRejectDraft(post.id)) }
 
   return (
     <div className="ch-draft">
@@ -386,9 +420,15 @@ function DraftItem({ post, onState }: { post: ChannelPost; onState: (s: ChannelS
         <span className="muted small">{when(post.createdUtc)}</span>
         {post.state === 'failed' && <span className="ch-bad small"><Icon name="alert" size={12} /> не опубликован</span>}
       </div>
-      {post.photoUrl && <img className="ch-draft-photo" src={post.photoUrl} alt="" loading="lazy" />}
-      <textarea className="owner-bc-text" rows={Math.min(10, Math.max(4, text.split('\n').length + 1))} value={text}
+      {photo.trim() && <img className="ch-draft-photo" src={photo.trim()} alt="" loading="lazy" />}
+      <textarea className="owner-bc-text" rows={Math.min(14, Math.max(4, text.split('\n').length + 1))} value={text}
         maxLength={4000} onChange={e => { setText(e.target.value); setConfirm(false) }} />
+      {photoOpen
+        ? <input className="search-input ch-input" placeholder="Ссылка на картинку (пусто - без картинки)" value={photo}
+            onChange={e => { setPhoto(e.target.value); setConfirm(false) }} />
+        : <button className="ch-link small" onClick={() => setPhotoOpen(true)}>
+            <Icon name="image" size={12} /> {photo.trim() ? 'Заменить картинку' : 'Добавить картинку'}
+          </button>}
       {post.linkUrl && (
         <button className="ch-link small" onClick={() => openExternalLink(post.linkUrl!)}>
           <Icon name="external" size={12} /> Первоисточник
@@ -399,6 +439,14 @@ function DraftItem({ post, onState }: { post: ChannelPost; onState: (s: ChannelS
         <button className="btn btn-nudge" disabled={busy || !text.trim()} onClick={publish} onBlur={() => setConfirm(false)}>
           <Icon name={confirm ? 'alert' : 'send'} size={16} />{busy ? '…' : confirm ? 'Точно опубликовать?' : 'Опубликовать'}
         </button>
+      </div>
+      <div className="ch-actions ch-actions-row">
+        {dirty || saved
+          ? <button className="btn btn-ghost" disabled={busy || !text.trim() || saved} onClick={save}>
+              <Icon name="check" size={16} />{saved ? 'Сохранено' : 'Сохранить'}
+            </button>
+          : null}
+        <CopyButton text={text} />
         <button className="btn btn-ghost" disabled={busy} onClick={reject}><Icon name="trash" size={16} />Убрать</button>
       </div>
     </div>
@@ -480,25 +528,71 @@ function ComposeCard({ onState }: { onState: (s: ChannelState) => void }) {
   )
 }
 
-function RecentCard({ posts }: { posts: ChannelPost[] }) {
+function RecentCard({ posts, onState }: { posts: ChannelPost[]; onState: (s: ChannelState) => void }) {
+  const [open, setOpen] = useState<number | null>(null)
   if (posts.length === 0) return null
   return (
     <div className="card">
-      <SectionHead icon="history" tone="gray" title="Опубликовано" />
+      <SectionHead icon="history" tone="gray" title="Опубликовано"
+        info={<p>Нажмите на пост, чтобы скопировать текст или исправить его прямо в канале. Картинку и кнопку у опубликованного поста Telegram менять не даёт.</p>} />
       <ul className="ch-recent">
         {posts.map(p => (
-          <li key={p.id}>
-            <span className="ch-kind">{KIND_LABEL[p.kind] ?? p.kind}</span>
-            <span className="ch-recent-title">{p.title ?? p.text.slice(0, 60)}</span>
-            <span className="muted small">{when(p.publishedUtc)}</span>
-            {p.postUrl && (
-              <button className="btn-mini" aria-label="Открыть пост" onClick={() => openTelegramLink(p.postUrl!)}>
-                <Icon name="external" size={13} />
-              </button>
-            )}
+          <li key={p.id} className={open === p.id ? 'ch-recent-open' : ''}>
+            <button className="ch-recent-row" onClick={() => { haptic('light'); setOpen(o => o === p.id ? null : p.id) }}>
+              <span className="ch-kind">{KIND_LABEL[p.kind] ?? p.kind}</span>
+              <span className="ch-recent-title">{p.title ?? p.text.slice(0, 60)}</span>
+              <span className="muted small">{when(p.publishedUtc)}</span>
+              <Icon name={open === p.id ? 'chevronUp' : 'chevronDown'} size={14} />
+            </button>
+            {open === p.id && <PublishedEditor post={p} onState={onState} />}
           </li>
         ))}
       </ul>
+    </div>
+  )
+}
+
+function PublishedEditor({ post, onState }: { post: ChannelPost; onState: (s: ChannelState) => void }) {
+  const [text, setText] = useState(post.text)
+  const [busy, setBusy] = useState(false)
+  const [note, setNote] = useState<string | null>(null)
+  const dirty = text.trim() !== post.text.trim()
+
+  const save = async () => {
+    haptic('medium')
+    setBusy(true)
+    setNote(null)
+    try {
+      onState(await api.channelEditPost(post.id, text))
+      hapticNotify('success')
+      setNote('Исправлено в канале')
+    } catch (e) {
+      hapticNotify('error')
+      setNote(errorText(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="ch-draft ch-published">
+      {post.photoUrl && <img className="ch-draft-photo" src={post.photoUrl} alt="" loading="lazy" />}
+      <textarea className="owner-bc-text" rows={Math.min(14, Math.max(4, text.split('\n').length + 1))} value={text}
+        maxLength={4000} onChange={e => { setText(e.target.value); setNote(null) }} />
+      {note && <p className="muted small">{note}</p>}
+      <div className="ch-actions ch-actions-row">
+        {dirty && (
+          <button className="btn btn-nudge" disabled={busy || !text.trim()} onClick={save}>
+            <Icon name="edit" size={16} />{busy ? '…' : 'Сохранить в канале'}
+          </button>
+        )}
+        <CopyButton text={text} />
+        {post.postUrl && (
+          <button className="btn btn-ghost" onClick={() => openTelegramLink(post.postUrl!)}>
+            <Icon name="external" size={16} />Открыть
+          </button>
+        )}
+      </div>
     </div>
   )
 }

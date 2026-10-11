@@ -19,7 +19,17 @@ public interface IChannelPublisher
     /// </summary>
     Task<int?> PublishAsync(long channelId, string html, string? photoUrl,
         IReadOnlyList<IReadOnlyList<BotButton>> rows, CancellationToken ct = default);
+
+    /// <summary>
+    /// Меняет текст уже опубликованного поста. Картинка остаётся: пост-фото правится как
+    /// подпись, длинный пост с большим превью - как текст с тем же превью. Кнопки
+    /// передаются заново, иначе Telegram мог бы снять клавиатуру.
+    /// </summary>
+    Task<ChannelEditResult> EditAsync(long channelId, int messageId, string html, string? photoUrl,
+        IReadOnlyList<IReadOnlyList<BotButton>> rows, CancellationToken ct = default);
 }
+
+public enum ChannelEditResult { Ok, TooLongForCaption, Failed }
 
 /// <summary>
 /// Запись из ленты: новость сайта, видео YouTube, пост Reddit или статья со страницы блога.
