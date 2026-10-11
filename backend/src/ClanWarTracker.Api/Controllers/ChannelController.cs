@@ -114,6 +114,14 @@ public class ChannelController(ChannelUseCase channel, ServiceAccess access) : C
         return Ok(await channel.GetAsync(ct));
     }
 
+    /// <summary>POST /api/owner/channel/ai/check — пробный запрос к нейросети: ключ, баланс, связь.</summary>
+    [HttpPost("ai/check")]
+    public async Task<IActionResult> CheckAi(CancellationToken ct)
+    {
+        if (await DenyAsync(ct) is { } deny) return deny;
+        return Ok(await channel.CheckAiAsync(ct));
+    }
+
     /// <summary>POST /api/owner/channel/news/refresh — проверить ленты сейчас, не дожидаясь таймера.</summary>
     [HttpPost("news/refresh")]
     public async Task<IActionResult> RefreshNews(CancellationToken ct)

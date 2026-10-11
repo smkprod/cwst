@@ -1866,5 +1866,16 @@ export interface ChannelState {
   recent: ChannelPost[]
   redditMinScore: number
   redditPerDay: number
+  ai: ChannelAiStatus
+}
+
+export interface ChannelAiStatus {
+  /** DeepSeek, Claude или пусто - ключа на сервере нет */
+  provider: string
+  enabled: boolean
+  /** Последний запрос прошёл; null - запросов ещё не было */
+  ok: boolean | null
+  error: string | null
+  atUtc: string | null
 }
 

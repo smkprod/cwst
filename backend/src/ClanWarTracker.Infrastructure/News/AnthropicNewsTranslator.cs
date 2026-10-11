@@ -15,10 +15,25 @@ namespace ClanWarTracker.Infrastructure.News;
 public class AnthropicNewsTranslator(HttpClient http, string? apiKey, string? model) : INewsTranslator
 {
     public bool Enabled => !string.IsNullOrWhiteSpace(apiKey) && !string.IsNullOrWhiteSpace(model);
+    public string Provider => Enabled ? "Claude" : "";
+    public string? LastError { get; private set; }
+
+    public async Task<string?> CheckAsync(CancellationToken ct = default)
+    {
+        if (!Enabled) return "Ключ не задан";
+        var answer = await AskAsync(NewsPrompts.PingPrompt, 30, ct);
+        return answer is null ? LastError ?? "Нет ответа" : null;
+    }
 
     public async Task<(string Title, string Text)?> RetellAsync(NewsSource news, CancellationToken ct = default)
     {
         if (!Enabled) return null;
+        return NewsPrompts.Parse(await AskAsync(NewsPrompts.Build(news), 1200, ct));
+    }
+
+    /// <summary>Один запрос к Messages API. null - не вышло, причина в LastError.</summary>
+    private async Task<string?> AskAsync(string prompt, int maxTokens, CancellationToken ct)
+    {
         try
         {
             using var req = new HttpRequestMessage(HttpMethod.Post, "https://api.anthropic.com/v1/messages");
@@ -27,16 +42,23 @@ public class AnthropicNewsTranslator(HttpClient http, string? apiKey, string? mo
             req.Content = JsonContent.Create(new
             {
                 model,
-                max_tokens = 1200,
-                messages = new[] { new { role = "user", content = NewsPrompts.Build(news) } },
+                max_tokens = maxTokens,
+                messages = new[] { new { role = "user", content = prompt } },
             });
             using var resp = await http.SendAsync(req, ct);
-            if (!resp.IsSuccessStatusCode) return null;
+            if (!resp.IsSuccessStatusCode)
+            {
+                LastError = NewsPrompts.Describe(resp.StatusCode);
+                return null;
+            }
             var body = await resp.Content.ReadFromJsonAsync<Response>(cancellationToken: ct);
-            return NewsPrompts.Parse(body?.Content?.FirstOrDefault(c => c.Type == "text")?.Text);
+            var text = body?.Content?.FirstOrDefault(c => c.Type == "text")?.Text;
+            LastError = string.IsNullOrWhiteSpace(text) ? "Нейросеть вернула пустой ответ" : null;
+            return text;
         }
         catch (Exception ex) when (ex is HttpRequestException or JsonException or TaskCanceledException && !ct.IsCancellationRequested)
         {
+            LastError = ex is JsonException ? "Непонятный ответ нейросети" : NewsPrompts.NetworkError;
             return null;
         }
     }

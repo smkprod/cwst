@@ -216,6 +216,7 @@ export const api = {
   channelEditPost: (id: number, text: string) =>
     postJson<ChannelState>(`/api/owner/channel/posts/${id}/edit`, { text }),
   channelRejectDraft: (id: number) => postJson<ChannelState>(`/api/owner/channel/drafts/${id}/reject`, {}),
+  channelCheckAi: () => request<ChannelState>('/api/owner/channel/ai/check', { method: 'POST' }, 60_000),
   channelPreview: (kind: 'daily' | 'weekly') => postJson<ChannelState>('/api/owner/channel/preview', { kind }),
   // Пересказ новостей идёт через внешний API - ждём дольше обычного
   channelRefreshNews: () => request<{ published: number; drafts: number; state: ChannelState }>(
