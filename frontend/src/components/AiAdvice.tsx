@@ -43,7 +43,7 @@ export function AiAdvice({ run, label, compact = false }: {
   const status = answer?.status
   return (
     <div className={`ai-advice ${compact ? 'ai-advice-compact' : ''}`}>
-      {answer?.text && <div className="ai-advice-text">{answer.text}</div>}
+      {answer?.text && <AiText text={answer.text} />}
       {status === 'limit' && (
         <div className="ai-advice-note">
           <span>{answer!.plus ? a.limitPlus : a.limitFree.replace('{m}', String(answer!.plusLimit))}</span>
@@ -56,7 +56,12 @@ export function AiAdvice({ run, label, compact = false }: {
       )}
       {status === 'noai' && <p className="muted small ai-advice-note">{a.noAi}</p>}
       {(status === 'failed' || failed) && <p className="muted small ai-advice-note">{a.failed}</p>}
-      {status !== 'limit' && (
+      {status === 'ok' && answer!.left === 0 && !answer!.plus && (
+        <button className="btn plus-cta ai-advice-plus" onClick={() => openPlus()}>
+          <Icon name="gem" size={15} /> {a.getPlus}
+        </button>
+      )}
+      {status !== 'limit' && !(status === 'ok' && answer!.left === 0) && (
         <button className={compact ? 'btn-mini ai-advice-btn' : 'btn ai-advice-main'} disabled={busy} onClick={ask}>
           <Icon name="sparkles" size={compact ? 14 : 16} />
           {busy ? a.thinking : answer?.text ? a.again : label}
@@ -70,3 +75,28 @@ export function AiAdvice({ run, label, compact = false }: {
     </div>
   )
 }
+
+/**
+ * Ответ нейросети в её простой разметке: строки и **жирный**. Каждая строка - отдельный
+ * блок, пустая строка - отступ между блоками, строка целиком жирная - заголовок блока.
+ * Без innerHTML: текст модели в разметку страницы не попадает.
+ */
+function AiText({ text }: { text: string }) {
+  const lines = text.split('\n')
+  return (
+    <div className="ai-advice-text">
+      {lines.map((line, i) => {
+        const l = line.trim()
+        if (!l) return <div key={i} className="ai-gap" />
+        const heading = /^\*\*[^*]+\*\*$/.test(l)
+        return (
+          <div key={i} className={heading ? 'ai-head' : 'ai-line'}>
+            {l.split(/(\*\*[^*]+\*\*)/g).map((part, k) =>
+              /^\*\*[^*]+\*\*$/.test(part) ? <b key={k}>{part.slice(2, -2)}</b> : <span key={k}>{part}</span>)}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+

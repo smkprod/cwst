@@ -1951,11 +1951,34 @@ public class BotUpdateHandler(
             case PlayerAiUseCase.Status.Ok:
                 var reply = answer.Text!;
                 // Последний бесплатный вопрос - честно говорим, сколько осталось
-                if (!answer.Plus && answer.Left <= 1)
+                if (!answer.Plus && answer.Left <= 1 && answer.Topic != "other")
                     reply += "\n\n" + string.Format(answer.Left == 0 ? c.LastFree : c.OneLeft, answer.PlusLimit);
-                await bot.SendMessage(msg.Chat.Id, reply, replyParameters: msg.MessageId,
-                    replyMarkup: answer.Plus || answer.Left > 1 ? AppButton(c.OpenApp, "review") : AppButton(c.GetPlus, "plus"),
-                    cancellationToken: ct);
+                var html = ChannelText.ToHtml(reply);
+                var markup = answer.Plus || answer.Left > 1 || answer.Topic == "other"
+                    ? AppButton(c.OpenApp, "review")
+                    : AppButton(c.GetPlus, "plus");
+
+                // Вопрос про колоду и бои - ответ подписью к картинке его колоды: так совет
+                // читается рядом с картами, о которых он, а не сплошным текстом.
+                var deckUrl = answer.Topic == "deck" && answer.PlayerTag is { } tag
+                    ? sp.GetRequiredService<ICardUrls>().Card("deck", tag)
+                    : null;
+                if (deckUrl is not null && System.Net.WebUtility.HtmlDecode(
+                        System.Text.RegularExpressions.Regex.Replace(html, "<[^>]+>", "")).Length <= 1024)
+                {
+                    try
+                    {
+                        await bot.SendPhoto(msg.Chat.Id, InputFile.FromUri(deckUrl), caption: html, parseMode: ParseMode.Html,
+                            replyParameters: msg.MessageId, replyMarkup: markup, cancellationToken: ct);
+                        return true;
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        // Картинка не собралась - ответ всё равно нужен, текстом
+                    }
+                }
+                await bot.SendMessage(msg.Chat.Id, html, parseMode: ParseMode.Html, replyParameters: msg.MessageId,
+                    replyMarkup: markup, linkPreviewOptions: new LinkPreviewOptions { IsDisabled = true }, cancellationToken: ct);
                 return true;
             case PlayerAiUseCase.Status.Limit:
                 await bot.SendMessage(msg.Chat.Id,

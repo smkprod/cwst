@@ -45,6 +45,13 @@ public class OpenAiCompatibleNewsTranslator(HttpClient http, string provider, st
         return string.IsNullOrWhiteSpace(text) ? null : text.Trim();
     }
 
+    public async Task<string?> ChatJsonAsync(string prompt, int maxTokens, CancellationToken ct = default)
+    {
+        if (!Enabled) return null;
+        var text = await AskAsync(prompt, maxTokens, ct, json: true);
+        return string.IsNullOrWhiteSpace(text) ? null : text.Trim();
+    }
+
     private async Task<(string Title, string Text)?> WriteAsync(string prompt, CancellationToken ct)
     {
         if (!Enabled) return null;
