@@ -39,7 +39,7 @@ const KIND_LABEL: Record<string, string> = {
 function errorText(e: unknown): string {
   if (!(e instanceof ApiError)) return 'Не получилось, попробуйте ещё раз'
   switch (e.code) {
-    case 'not_found': return 'Канал не найден. Проверьте @имя; приватный канал - сначала добавьте бота админом и вставьте ссылку на канал'
+    case 'not_found': return 'Канал не найден. Проверьте @имя и что бот добавлен в канал. Для приватного канала нужен его числовой id (-100…), ссылка-приглашение не подойдёт'
     case 'not_admin': return 'Бот не админ канала или у него нет права «Публикация сообщений»'
     case 'no_channel': return 'Сначала подключите канал'
     case 'empty': return 'Пустой текст'
