@@ -1102,4 +1102,11 @@ internal sealed class CardUrls(string? baseUrl) : ClanWarTracker.Application.Not
         var bucket = DateTime.UtcNow.Ticks / TimeSpan.TicksPerMinute / 10;
         return $"{baseUrl}/api/img/{kind}/{playerTag.TrimStart('#')}.jpg?v={bucket}";
     }
+
+    public string? Deck(string? playerTag, IReadOnlyList<int> cardIds)
+    {
+        if (string.IsNullOrEmpty(baseUrl) || cardIds.Count == 0) return null;
+        var tag = string.IsNullOrEmpty(playerTag) ? "-" : playerTag.TrimStart('#');
+        return $"{baseUrl}/api/img/build/{tag}.jpg?c={string.Join(',', cardIds)}";
+    }
 }
