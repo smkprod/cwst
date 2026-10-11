@@ -96,6 +96,12 @@ public interface INewsTranslator
     /// </summary>
     Task<(string Title, string Text)?> ComposeAsync(string request, string data, CancellationToken ct = default);
 
+    /// <summary>
+    /// Свободный запрос: ответ модели обычным текстом (совет игроку, итоги дня клана).
+    /// null - не вышло, причина в LastError.
+    /// </summary>
+    Task<string?> ChatAsync(string prompt, int maxTokens, CancellationToken ct = default);
+
     /// <summary>Переписать готовый пост по указанию владельца («короче», «смешнее»).</summary>
     Task<(string Title, string Text)?> RewriteAsync(string instruction, string post, string data,
         CancellationToken ct = default);

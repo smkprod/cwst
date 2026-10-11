@@ -100,6 +100,7 @@ public static class DependencyInjection
         services.AddScoped<IDuelRepository, DuelRepository>();
         services.AddScoped<ICreatorChallengeRepository, CreatorChallengeRepository>();
         services.AddScoped<IChannelPostRepository, ChannelPostRepository>();
+        services.AddScoped<IAiUsageRepository, AiUsageRepository>();
         services.AddScoped<IPlayerBattleRepository, PlayerBattleRepository>();
         services.AddScoped<IEntitlementRepository, EntitlementRepository>();
         services.AddScoped<IPlayerAlertPrefsRepository, PlayerAlertPrefsRepository>();
@@ -654,6 +655,18 @@ CREATE TABLE IF NOT EXISTS ""ChallengeEntries"" (
 );");
         await db.Database.ExecuteSqlRawAsync(
             "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_ChallengeEntries_EventId_TelegramUserId\" ON \"ChallengeEntries\" (\"EventId\", \"TelegramUserId\");");
+
+        // Сколько раз игрок спросил нейросеть за день - для лимитов
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""AiUsages"" (
+    ""Id"" serial PRIMARY KEY,
+    ""TelegramUserId"" bigint NOT NULL,
+    ""Feature"" varchar(16) NOT NULL,
+    ""Day"" varchar(10) NOT NULL,
+    ""Count"" integer NOT NULL DEFAULT 0
+);");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_AiUsages_TelegramUserId_Feature_Day\" ON \"AiUsages\" (\"TelegramUserId\", \"Feature\", \"Day\");");
 
         // Канал бота: опубликованные посты и черновики новостей
         await db.Database.ExecuteSqlRawAsync(@"
