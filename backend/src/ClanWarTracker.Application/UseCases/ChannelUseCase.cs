@@ -37,8 +37,18 @@ public class ChannelUseCase(
     public const string KeyKnownCards = "channel.cards.known";
     private const string TogglePrefix = "channel.auto.";
 
-    /// <summary>Официальный YouTube Clash Royale: трейлеры обнов, баланс, события.</summary>
-    public const string DefaultFeed = "https://www.youtube.com/feeds/videos.xml?channel_id=UC_F8DoJf9MZogEOU51TpTbQ";
+    /// <summary>
+    /// Ленты по умолчанию: официальный блог Supercell (полные статьи - баланс, события,
+    /// патчноуты; ленты у него нет, читаем страницу) и YouTube Clash Royale (трейлеры обнов).
+    /// </summary>
+    public static readonly string[] DefaultFeeds =
+    [
+        "https://supercell.com/en/games/clashroyale/blog/",
+        "https://www.youtube.com/feeds/videos.xml?channel_id=UC_F8DoJf9MZogEOU51TpTbQ",
+    ];
+
+    /// <summary>Ленты, архив которых уже отмечен просмотренным (см. FetchNewsAsync).</summary>
+    public const string KeyFeedInit = "channel.feedinit";
 
     /// <summary>Рубильники автопостов. newsauto - публиковать новости без проверки (только пересказанные).</summary>
     public static readonly string[] Toggles = ["daily", "weekly", "challenge", "cards", "news", "newsauto"];
@@ -82,7 +92,7 @@ public class ChannelUseCase(
     public async Task<List<string>> FeedsAsync(CancellationToken ct)
     {
         var raw = await settings.GetAsync(KeyFeeds, ct);
-        if (raw is null) return [DefaultFeed];
+        if (raw is null) return [.. DefaultFeeds];
         return raw.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
     }
 
@@ -592,6 +602,9 @@ public class ChannelUseCase(
     /// <summary>
     /// Читает ленты: новое - в черновики (или сразу в канал, если владелец так решил и
     /// новость удалось пересказать). Вызывается и по таймеру, и кнопкой «Проверить сейчас».
+    ///
+    /// По каждой новой записи бот открывает саму статью: из ленты приходят только
+    /// заголовок и пара строк анонса, а пост нужен по содержанию - что поменяли и как.
     /// </summary>
     public async Task<TickResult> FetchNewsAsync(long? channelId = null, CancellationToken ct = default)
     {
@@ -600,6 +613,8 @@ public class ChannelUseCase(
         var now = DateTime.UtcNow;
         int published = 0, drafts = 0;
         var status = new List<FeedStatus>();
+        var initialized = ((await settings.GetAsync(KeyFeedInit, ct)) ?? "")
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         foreach (var feed in await FeedsAsync(ct))
         {
@@ -613,45 +628,63 @@ public class ChannelUseCase(
             }
             status.Add(new FeedStatus(feed, true, items.Count, null, now));
 
+            // Страница блога без дат: при первом чтении всё, что на ней уже есть, - архив.
+            // Запоминаем его как просмотренное, иначе в черновики разом упали бы тридцать
+            // старых статей.
+            if (!initialized.Contains(feed))
+            {
+                foreach (var old in items.Where(i => i.PublishedUtc is null))
+                    await posts.TryAddAsync(new ChannelPost
+                    {
+                        Kind = "news", State = ChannelPostState.Rejected, SourceKey = NewsKey(old), Title = Cut(old.Title, 200),
+                        Text = old.Title, LinkUrl = Cut(old.Link, 500), CreatedUtc = now,
+                    }, ct);
+                initialized.Add(feed);
+                await settings.SetAsync(KeyFeedInit, string.Join('\n', initialized), ct);
+            }
+
             var taken = 0;
-            foreach (var item in items.Where(i => i.PublishedUtc is DateTime d && now - d <= NewsWindow))
+            foreach (var item in items.Where(i => i.PublishedUtc is not DateTime d || now - d <= NewsWindow))
             {
                 if (taken >= NewsPerFeedPerRun) break;
-                var key = "news:" + (item.Key.Length > 290 ? item.Key[..290] : item.Key);
+                var key = NewsKey(item);
                 if (await posts.ExistsAsync(key, ct)) continue;
                 taken++;
 
-                string title = item.Title, text;
-                var retold = await translator.RetellAsync(item.Title, item.Summary, ct);
-                if (retold is { } r)
+                NewsArticle? article = null;
+                try { article = await feeds.ReadArticleAsync(item, ct); }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+                catch { /* без статьи - по анонсу из ленты */ }
+
+                var isVideo = item.VideoId is not null;
+                var summary = item.Summary is { Length: > 0 } ? item.Summary : article?.Description;
+                var retold = await translator.RetellAsync(new NewsSource(item.Title, summary, article?.Text, isVideo), ct);
+                if (retold is { Title.Length: 0 })
                 {
                     // Модель сочла запись не новостью об игре - запоминаем, чтобы не спрашивать снова
-                    if (r.Title.Length == 0)
+                    await posts.TryAddAsync(new ChannelPost
                     {
-                        await posts.TryAddAsync(new ChannelPost
-                        {
-                            Kind = "news", State = ChannelPostState.Rejected, SourceKey = key, Title = item.Title,
-                            Text = item.Title, LinkUrl = item.Link, CreatedUtc = now,
-                        }, ct);
-                        continue;
-                    }
-                    title = r.Title;
-                    text = ChannelText.Join([$"**{ChannelText.Plain(r.Title)}**", "", r.Text, "", $"[Источник]({item.Link})"]);
+                        Kind = "news", State = ChannelPostState.Rejected, SourceKey = key, Title = Cut(item.Title, 200),
+                        Text = item.Title, LinkUrl = Cut(item.Link, 500), CreatedUtc = now,
+                    }, ct);
+                    continue;
                 }
-                else
-                {
-                    var summary = item.Summary is { Length: > 600 } s ? s[..600].TrimEnd() + "…" : item.Summary;
-                    text = ChannelText.Join([$"**{ChannelText.Plain(item.Title)}**", "", ChannelText.Plain(summary), "", $"[Источник]({item.Link})"]);
-                }
+
+                var link = isVideo ? $"[▶️ Смотреть видео]({item.Link})" : $"[Читать полностью]({item.Link})";
+                var title = retold?.Title ?? item.Title;
+                var text = retold is { } r
+                    ? ChannelText.Join([r.Text, "", link])
+                    : FallbackNews(item, article, summary, link);
+                var image = article?.ImageUrl ?? item.ImageUrl;
 
                 var post = new ChannelPost
                 {
                     Kind = "news",
                     State = ChannelPostState.Draft,
                     SourceKey = key,
-                    Title = title.Length > 200 ? title[..200] : title,
+                    Title = Cut(title, 200),
                     Text = text,
-                    PhotoUrl = item.ImageUrl is { Length: <= 500 } img && img.StartsWith("http") ? img : null,
+                    PhotoUrl = image is { Length: <= 500 } && image.StartsWith("http") ? image : null,
                     LinkUrl = item.Link.Length <= 500 ? item.Link : null,
                     ButtonText = DefaultButton,
                     ButtonUrl = "startapp:",
@@ -668,5 +701,48 @@ public class ChannelUseCase(
 
         await settings.SetAsync(KeyFeedStatus, JsonSerializer.Serialize(status), ct);
         return new TickResult(published, drafts);
+    }
+
+    private static string NewsKey(NewsItem item) => "news:" + Cut(item.Key, 290);
+
+    private static string Cut(string s, int max) => s.Length <= max ? s : s[..max];
+
+    /// <summary>
+    /// Пост без пересказа: заголовок, пара первых абзацев статьи (а не анонс из ленты)
+    /// и ссылка. Владелец всё равно увидит его черновиком и поправит.
+    /// </summary>
+    private static string FallbackNews(NewsItem item, NewsArticle? article, string? summary, string link)
+    {
+        var title = ChannelText.Plain(item.Title);
+        if (item.VideoId is not null)
+            return ChannelText.Join([$"🎬 **{title}**", "", ChannelText.Plain(Sentences(summary, 2)), "", link]);
+
+        var lead = article?.Text is { Length: > 0 } body
+            ? string.Join("\n", body.Split('\n').Where(l => !l.StartsWith("## ")).Take(4))
+            : summary;
+        return ChannelText.Join([$"📢 **{title}**", "", ChannelText.Plain(Shorten(lead, 700)), "", link]);
+    }
+
+    private static string Sentences(string? text, int count)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return "";
+        var flat = text.Replace('\n', ' ');
+        var end = 0;
+        for (var i = 0; i < count; i++)
+        {
+            var next = flat.IndexOfAny(['.', '!', '?'], end);
+            if (next < 0) return Shorten(flat, 300);
+            end = next + 1;
+        }
+        return flat[..end].Trim();
+    }
+
+    private static string Shorten(string? text, int max)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return "";
+        if (text.Length <= max) return text.Trim();
+        var cut = text[..max];
+        var dot = cut.LastIndexOfAny(['.', '!', '?']);
+        return (dot > max / 2 ? cut[..(dot + 1)] : cut.TrimEnd() + "…").Trim();
     }
 }
