@@ -99,3 +99,6 @@
 .ch-ai-bad .ch-ai-text > .small:not(.muted) { color: #ff9b9b; }
 .ch-ai-wait .ch-ai-dot { background: #ffb44d; }
 .ch-ai-off .ch-ai-dot { background: #8a8f98; }
+.ch-ai-rewrite { display: grid; gap: 6px; padding: 10px; border-radius: 12px; background: rgba(139, 92, 246, 0.08);
+  border: 1px solid rgba(160, 120, 255, 0.25); }
+.ch-ai-rewrite .search-input { width: 100%; }

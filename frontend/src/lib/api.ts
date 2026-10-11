@@ -216,6 +216,15 @@ export const api = {
   channelEditPost: (id: number, text: string) =>
     postJson<ChannelState>(`/api/owner/channel/posts/${id}/edit`, { text }),
   channelRejectDraft: (id: number) => postJson<ChannelState>(`/api/owner/channel/drafts/${id}/reject`, {}),
+  // Нейросеть пишет 10-40 секунд - ждём дольше обычного
+  channelAiGenerate: (prompt: string) =>
+    request<ChannelState>('/api/owner/channel/ai/generate', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ request: prompt }),
+    }, 120_000),
+  channelAiRewrite: (id: number, instruction: string, text: string) =>
+    request<ChannelState>(`/api/owner/channel/drafts/${id}/rewrite`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ request: instruction, text }),
+    }, 120_000),
   channelCheckAi: () => request<ChannelState>('/api/owner/channel/ai/check', { method: 'POST' }, 60_000),
   channelPreview: (kind: 'daily' | 'weekly') => postJson<ChannelState>('/api/owner/channel/preview', { kind }),
   // Пересказ новостей идёт через внешний API - ждём дольше обычного
