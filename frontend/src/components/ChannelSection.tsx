@@ -100,7 +100,7 @@ export function ChannelSection() {
   if (!state) return <div className="center"><div className="spinner" /></div>
 
   return (
-    <>
+    <div className="ch-root">
       <ConnectCard state={state} onState={setState} />
       {state.id !== null && (
         <>
@@ -111,7 +111,7 @@ export function ChannelSection() {
           <RecentCard posts={state.recent} onState={setState} />
         </>
       )}
-    </>
+    </div>
   )
 }
 
@@ -320,12 +320,7 @@ function NewsCard({ state, onState }: Props) {
           desc="Только для новостей, которые бот пересказал по-русски. Без проверки в канал может попасть лишнее - включайте, когда убедитесь, что черновики выходят хорошими."
           onToggle={() => flip('newsauto')} />
       </div>
-      <p className={`small ${state.translator ? 'muted' : 'ch-warn'}`}>
-        <Icon name={state.translator ? 'checkCircle' : 'language'} size={13} />{' '}
-        {state.translator
-          ? 'Пересказ по-русски включён'
-          : 'Пересказ по-русски выключен: новости придут на английском. Включается строкой DEEPSEEK_API_KEY в .env сервера (или ANTHROPIC_API_KEY и ANTHROPIC_MODEL для Claude)'}
-      </p>
+      <AiStatusBlock state={state} onState={onState} />
       <label className="small muted">Ленты - по одной в строке</label>
       <div className="owner-bc-targets ch-suggest">
         {SUGGESTED_FEEDS.filter(f => !feeds.split('\n').map(x => x.trim()).includes(f.url)).map(f => (
@@ -409,6 +404,54 @@ function RedditLimits({ state, onState }: Props) {
       </div>
       {!state.translator && <p className="small ch-warn">Без нейросети отбор только по апвоутам - мемы и вопросы тоже могут пройти.</p>}
       {dirty && <button className="btn-mini" disabled={busy} onClick={save}><Icon name="check" size={14} />Сохранить отбор</button>}
+    </div>
+  )
+}
+
+/** Нейросеть для пересказа: какая подключена, работает ли, и кнопка проверки. */
+function AiStatusBlock({ state, onState }: Props) {
+  const [busy, setBusy] = useState(false)
+  const ai = state.ai
+
+  const check = async () => {
+    haptic('light')
+    setBusy(true)
+    try {
+      const s = await api.channelCheckAi()
+      onState(s)
+      hapticNotify(s.ai.ok ? 'success' : 'error')
+    } catch {
+      hapticNotify('error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (!ai.enabled) {
+    return (
+      <div className="ch-ai ch-ai-off">
+        <span className="ch-ai-dot" />
+        <div className="ch-ai-text">
+          <b>Нейросеть не подключена</b>
+          <span className="small muted">Новости придут на английском. Добавьте строку DEEPSEEK_API_KEY в .env сервера и задеплойте.</span>
+        </div>
+      </div>
+    )
+  }
+
+  const tone = ai.ok === true ? 'ch-ai-ok' : ai.ok === false ? 'ch-ai-bad' : 'ch-ai-wait'
+  const label = ai.ok === true ? 'Работает' : ai.ok === false ? 'Ошибка' : 'Ещё не проверялась'
+  return (
+    <div className={`ch-ai ${tone}`}>
+      <span className="ch-ai-dot" />
+      <div className="ch-ai-text">
+        <b>{ai.provider} · {label}</b>
+        {ai.ok === false && ai.error && <span className="small">{ai.error}</span>}
+        {ai.atUtc && <span className="small muted">{ai.ok ? 'Последний ответ' : 'Проверено'}: {when(ai.atUtc)}</span>}
+      </div>
+      <button className="btn-mini" disabled={busy} onClick={check}>
+        <Icon name="refresh" size={14} />{busy ? '…' : 'Проверить'}
+      </button>
     </div>
   )
 }

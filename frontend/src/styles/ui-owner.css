@@ -54,6 +54,12 @@
 .ch-actions .btn { flex: 1; min-width: 0; }
 .ch-input { width: 100%; margin-top: 8px; }
 .ch-buttons { margin-top: 10px; }
+/* Кнопок больше трёх - переносим, иначе ряд распирает экран вбок */
+.ch-buttons, .ch-suggest { flex-wrap: wrap; }
+.ch-buttons .btn-mini, .ch-suggest .btn-mini { flex: 1 1 auto; white-space: nowrap; }
+.ch-root { min-width: 0; max-width: 100%; }
+.ch-root .card { min-width: 0; overflow-wrap: anywhere; }
+.ch-root .search-input, .ch-root textarea { min-width: 0; max-width: 100%; box-sizing: border-box; }
 .ch-feeds { margin-top: 4px; font-size: 12.5px; }
 .ch-feed-status { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
 .ch-feed-status li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 6px; align-items: center; }
@@ -78,6 +84,18 @@
 .ch-suggest { margin: 6px 0 2px; }
 .ch-reddit { display: grid; gap: 8px; margin-top: 12px; padding: 12px; border-radius: 14px; background: var(--ui-surface-2); border: 1px solid var(--ui-line); }
 .ch-reddit-head { display: flex; align-items: center; gap: 6px; }
-.ch-reddit-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ch-reddit-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
 .ch-reddit-row label { display: grid; gap: 4px; }
 .ch-reddit-row .search-input { width: 100%; }
+/* Статус нейросети */
+.ch-ai { display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 12px; border-radius: 14px;
+  background: var(--ui-surface-2); border: 1px solid var(--ui-line); }
+.ch-ai-text { flex: 1; min-width: 0; display: grid; gap: 2px; font-size: 14px; }
+.ch-ai-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; background: #8a8f98; }
+.ch-ai-ok .ch-ai-dot { background: #4ade80; box-shadow: 0 0 10px rgba(74, 222, 128, 0.7); }
+.ch-ai-ok { border-color: rgba(74, 222, 128, 0.3); }
+.ch-ai-bad .ch-ai-dot { background: #ff6b6b; box-shadow: 0 0 10px rgba(255, 107, 107, 0.7); }
+.ch-ai-bad { border-color: rgba(255, 107, 107, 0.35); }
+.ch-ai-bad .ch-ai-text > .small:not(.muted) { color: #ff9b9b; }
+.ch-ai-wait .ch-ai-dot { background: #ffb44d; }
+.ch-ai-off .ch-ai-dot { background: #8a8f98; }

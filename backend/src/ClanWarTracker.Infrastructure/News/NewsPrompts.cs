@@ -101,5 +101,20 @@ public static class NewsPrompts
         catch (JsonException) { return null; }
     }
 
+    /// <summary>Задание для проверки ключа: ответ из пары токенов.</summary>
+    public const string PingPrompt = "Ответь строго JSON без пояснений: {\"title\": \"ok\", \"text\": \"ok\"}";
+
+    /// <summary>Код ответа API → понятная причина для панели.</summary>
+    public static string Describe(System.Net.HttpStatusCode code) => (int)code switch
+    {
+        401 or 403 => "Неверный ключ API - проверьте строку в .env",
+        402 => "На балансе закончились деньги - пополните счёт",
+        429 => "Слишком много запросов или исчерпан лимит - попробуйте позже",
+        >= 500 => $"Сервис нейросети недоступен ({(int)code}) - попробуйте позже",
+        _ => $"Нейросеть ответила ошибкой {(int)code}",
+    };
+
+    public const string NetworkError = "Сервер не достучался до нейросети - проверьте интернет на сервере";
+
     private record Post([property: JsonPropertyName("title")] string? Title, [property: JsonPropertyName("text")] string? Text);
 }

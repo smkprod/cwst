@@ -72,6 +72,15 @@ public interface INewsTranslator
 {
     bool Enabled { get; }
 
+    /// <summary>Кто пишет посты: «DeepSeek», «Claude» или пусто, если ключа нет.</summary>
+    string Provider { get; }
+
+    /// <summary>Почему не вышел последний запрос (неверный ключ, кончился баланс…). null - вышел.</summary>
+    string? LastError { get; }
+
+    /// <summary>Пробный короткий запрос: null - нейросеть отвечает, иначе причина по-русски.</summary>
+    Task<string?> CheckAsync(CancellationToken ct = default);
+
     /// <returns>
     /// Заголовок для панели и готовый текст поста в простой разметке. Пустой заголовок -
     /// это не новость об игре (мем, вопрос, оффтоп). null - пересказать не вышло.

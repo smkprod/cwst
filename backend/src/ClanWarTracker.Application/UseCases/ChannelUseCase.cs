@@ -79,7 +79,39 @@ public class ChannelUseCase(
 
     public record StateDto(long? Id, string? Title, string? Username, Dictionary<string, bool> Toggles, List<string> Feeds,
         List<FeedStatus> FeedStatus, bool Translator, List<PostDto> Drafts, List<PostDto> Recent,
-        int RedditMinScore, int RedditPerDay);
+        int RedditMinScore, int RedditPerDay, AiStatus Ai);
+
+    /// <param name="Provider">DeepSeek, Claude или пусто - ключа на сервере нет.</param>
+    /// <param name="Ok">Последний запрос к нейросети прошёл; null - запросов ещё не было.</param>
+    public record AiStatus(string Provider, bool Enabled, bool? Ok, string? Error, DateTime? AtUtc);
+
+    private record AiState(bool Ok, string? Error, DateTime AtUtc);
+    public const string KeyAiStatus = "channel.ai.status";
+
+    /// <summary>Статус нейросети: какая подключена и чем кончился последний запрос к ней.</summary>
+    private async Task<AiStatus> AiStatusAsync(CancellationToken ct)
+    {
+        AiState? last = null;
+        try { last = JsonSerializer.Deserialize<AiState>(await settings.GetAsync(KeyAiStatus, ct) ?? "null"); }
+        catch (JsonException) { }
+        // Статус от прежнего ключа ничего не говорит о нынешнем: сменили провайдера - ждём новой проверки
+        if (!translator.Enabled) return new AiStatus("", false, null, null, null);
+        return new AiStatus(translator.Provider, true, last?.Ok, last?.Error, last?.AtUtc);
+    }
+
+    private Task SaveAiStatusAsync(bool ok, string? error, CancellationToken ct) =>
+        settings.SetAsync(KeyAiStatus, JsonSerializer.Serialize(new AiState(ok, error, DateTime.UtcNow)), ct);
+
+    /// <summary>Пробный запрос к нейросети по кнопке «Проверить» в панели.</summary>
+    public async Task<StateDto> CheckAiAsync(CancellationToken ct = default)
+    {
+        if (translator.Enabled)
+        {
+            var error = await translator.CheckAsync(ct);
+            await SaveAiStatusAsync(error is null, error, ct);
+        }
+        return await GetAsync(ct);
+    }
 
     public async Task<long?> ChannelIdAsync(CancellationToken ct) =>
         long.TryParse(await settings.GetAsync(KeyId, ct), out var id) && id != 0 ? id : null;
@@ -114,7 +146,7 @@ public class ChannelUseCase(
             toggles, await FeedsAsync(ct), status, translator.Enabled,
             drafts.Select(p => Dto(p, id, username)).ToList(),
             recent.OrderByDescending(p => p.PublishedUtc).Select(p => Dto(p, id, username)).ToList(),
-            reddit.MinScore, reddit.PerDay);
+            reddit.MinScore, reddit.PerDay, await AiStatusAsync(ct));
     }
 
     private static PostDto Dto(ChannelPost p, long? channelId, string? username)
@@ -721,6 +753,12 @@ public class ChannelUseCase(
                 var summary = item.Summary is { Length: > 0 } ? item.Summary : article?.Description;
                 var retold = await translator.RetellAsync(
                     new NewsSource(item.Title, summary, article?.Text, isVideo, item.IsReddit ? item.Score : null), ct);
+                if (translator.Enabled)
+                {
+                    // Итог запроса - в статус панели: «работает» или почему нет (ключ, баланс)
+                    if (retold is not null) await SaveAiStatusAsync(true, null, ct);
+                    else if (translator.LastError is { } aiError) await SaveAiStatusAsync(false, aiError, ct);
+                }
                 if (retold is { Title.Length: 0 })
                 {
                     // Модель сочла запись не новостью об игре - запоминаем, чтобы не спрашивать снова

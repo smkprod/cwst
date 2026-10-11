@@ -80,7 +80,7 @@ public static class DependencyInjection
             var http = sp.GetRequiredService<IHttpClientFactory>().CreateClient("newsai");
             return !string.IsNullOrEmpty(deepseekKey)
                 ? new ClanWarTracker.Infrastructure.News.OpenAiCompatibleNewsTranslator(
-                    http, "https://api.deepseek.com", deepseekKey, deepseekModel)
+                    http, "DeepSeek", "https://api.deepseek.com", deepseekKey, deepseekModel)
                 : new ClanWarTracker.Infrastructure.News.AnthropicNewsTranslator(http, anthropicKey, anthropicModel);
         });
         services.AddSingleton<ClanWarTracker.Application.Notifications.ICardUrls>(
