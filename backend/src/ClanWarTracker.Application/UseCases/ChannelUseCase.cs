@@ -733,7 +733,7 @@ public class ChannelUseCase(
             // сообщество уже подняло в топ, самое заметное первым. Пост, не добравший апвоутов,
             // не запоминаем: к вечеру он может их набрать.
             if (items.Any(i => i.IsReddit))
-                candidates = candidates.Where(i => i.Score >= reddit.MinScore).OrderByDescending(i => i.Score);
+                candidates = candidates.Where(i => i.Score is null || i.Score >= reddit.MinScore).OrderByDescending(i => i.Score ?? 0);
 
             var taken = 0;
             foreach (var item in candidates)
@@ -752,7 +752,7 @@ public class ChannelUseCase(
                 var isVideo = item.VideoId is not null;
                 var summary = item.Summary is { Length: > 0 } ? item.Summary : article?.Description;
                 var retold = await translator.RetellAsync(
-                    new NewsSource(item.Title, summary, article?.Text, isVideo, item.IsReddit ? item.Score : null), ct);
+                    new NewsSource(item.Title, summary, article?.Text, isVideo, item.IsReddit, item.Score), ct);
                 if (translator.Enabled)
                 {
                     // Итог запроса - в статус панели: «работает» или почему нет (ключ, баланс)
@@ -837,7 +837,7 @@ public class ChannelUseCase(
         var title = ChannelText.Plain(item.Title);
         if (item.IsReddit)
             return ChannelText.Join([$"🔥 **{title}**", "", ChannelText.Plain(Shorten(summary, 500)), "",
-                $"⬆️ {ChannelText.Num(item.Score ?? 0)} на Reddit · {link}"]);
+                item.Score is int up ? $"⬆️ {ChannelText.Num(up)} на Reddit · {link}" : link]);
         if (item.VideoId is not null)
             return ChannelText.Join([$"🎬 **{title}**", "", ChannelText.Plain(Sentences(summary, 2)), "", link]);
 

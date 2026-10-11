@@ -34,12 +34,14 @@ public enum ChannelEditResult { Ok, TooLongForCaption, Failed }
 /// <summary>
 /// Запись из ленты: новость сайта, видео YouTube, пост Reddit или статья со страницы блога.
 /// VideoId - у видео YouTube: такой пост оформляется анонсом «смотреть», а не пересказом.
-/// Score - апвоуты поста Reddit: по ним бот сперва отсеивает неинтересное, бесплатно.
+/// Reddit - пост из топа дня сабреддита. Score - его апвоуты: по ним бот сперва отсеивает
+/// неинтересное, бесплатно. null - апвоуты неизвестны (Reddit отдал только RSS), тогда
+/// порядок в топе дня уже и есть отбор.
 /// </summary>
 public record NewsItem(string Key, string Title, string? Summary, string Link, string? ImageUrl, DateTime? PublishedUtc,
-    string? VideoId = null, int? Score = null)
+    string? VideoId = null, int? Score = null, bool Reddit = false)
 {
-    public bool IsReddit => Score is not null;
+    public bool IsReddit => Reddit;
 }
 
 /// <summary>Что удалось достать со страницы самой новости: полный текст и нормальная картинка.</summary>
@@ -61,8 +63,9 @@ public interface INewsFeedReader
 }
 
 /// <summary>Новость целиком - то, из чего пишется пост.</summary>
-/// <param name="RedditScore">Пост с Reddit и его апвоуты: модель решает, интересен ли он, строже, чем новость.</param>
-public record NewsSource(string Title, string? Summary, string? Body, bool IsVideo, int? RedditScore = null);
+/// <param name="IsReddit">Пост с Reddit: модель решает, интересен ли он, строже, чем новость.</param>
+/// <param name="RedditScore">Его апвоуты, если известны.</param>
+public record NewsSource(string Title, string? Summary, string? Body, bool IsVideo, bool IsReddit = false, int? RedditScore = null);
 
 /// <summary>
 /// Пост из новости по-русски для канала. Работает, только если на сервере задан ключ
