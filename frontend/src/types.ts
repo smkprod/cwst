@@ -1867,6 +1867,8 @@ export interface ChannelState {
   redditMinScore: number
   redditPerDay: number
   ai: ChannelAiStatus
+  /** Разбор меты для билдера колод: за какой день и сколько колод отмечено */
+  analyst: { day: string; picks: number; atUtc: string } | null
 }
 
 export interface ChannelAiStatus {
