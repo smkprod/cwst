@@ -73,8 +73,8 @@ public static class NewsPrompts
         """;
 
     /// <summary>Задание целиком: инструкция и сама новость.</summary>
-    public static string Build(NewsSource news) => news.RedditScore is int score
-        ? $"{RedditPrompt}\n\nАпвоутов: {score}\n\nЗаголовок: {news.Title}\n\n{news.Summary}"
+    public static string Build(NewsSource news) => news.IsReddit
+        ? $"{RedditPrompt}\n\nАпвоутов: {(news.RedditScore is int score ? score.ToString() : "в топе дня")}\n\nЗаголовок: {news.Title}\n\n{news.Summary}"
         : news.IsVideo
         ? $"{VideoPrompt}\n\nНазвание видео: {news.Title}\n\nОписание: {news.Summary}"
         : $"{ArticlePrompt}\n\nЗаголовок: {news.Title}\n\nАнонс: {news.Summary}\n\nТекст статьи:\n{news.Body ?? "(нет, есть только анонс)"}";

@@ -31,6 +31,13 @@ const BUTTONS: { key: string; label: string; url: string }[] = [
   { key: 'none', label: 'Без кнопки', url: '' },
 ]
 
+/** Один и тот же источник, записанный по-разному: с www, .rss или слешем на конце. */
+function sameFeed(a: string, b: string): boolean {
+  const norm = (u: string) => u.trim().toLowerCase()
+    .replace(/^https?:\/\/(www\.|old\.)?/, '').replace(/\.rss$/, '').replace(/\/+$/, '')
+  return norm(a) === norm(b)
+}
+
 /** Проверенные источники: их можно добавить в ленты одной кнопкой. */
 const SUGGESTED_FEEDS: { label: string; url: string }[] = [
   { label: 'Блог Supercell', url: 'https://supercell.com/en/games/clashroyale/blog/' },
@@ -323,7 +330,7 @@ function NewsCard({ state, onState }: Props) {
       <AiStatusBlock state={state} onState={onState} />
       <label className="small muted">Ленты - по одной в строке</label>
       <div className="owner-bc-targets ch-suggest">
-        {SUGGESTED_FEEDS.filter(f => !feeds.split('\n').map(x => x.trim()).includes(f.url)).map(f => (
+        {SUGGESTED_FEEDS.filter(f => !feeds.split('\n').some(x => sameFeed(x, f.url))).map(f => (
           <button key={f.url} className="btn-mini" onClick={() => { haptic('light'); setFeeds(v => (v.trim() ? v.trim() + '\n' : '') + f.url) }}>
             <Icon name="plus" size={13} />{f.label}
           </button>

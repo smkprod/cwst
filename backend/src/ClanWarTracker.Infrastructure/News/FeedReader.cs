@@ -104,8 +104,9 @@ public partial class FeedReader(HttpClient http) : INewsFeedReader
             var image = isVideo
                 ? $"https://i.ytimg.com/vi/{videoId}/hqdefault.jpg"
                 : (string?)group?.Element(Media + "thumbnail")?.Attribute("url")
-                  ?? (string?)e.Element(Media + "thumbnail")?.Attribute("url")
-                  ?? FirstImage(summary);
+                  ?? FullImage(summary)
+                  ?? FirstImage(summary)
+                  ?? (string?)e.Element(Media + "thumbnail")?.Attribute("url");
             yield return new NewsItem(
                 Key: (string?)e.Element(Atom + "id") ?? href,
                 Title: Clean((string?)e.Element(Atom + "title"), 300),
@@ -177,8 +178,19 @@ public partial class FeedReader(HttpClient http) : INewsFeedReader
     /// </summary>
     private async Task<List<NewsItem>> ReadRedditAsync(string sub, CancellationToken ct)
     {
-        var json = await DownloadAsync(new Uri($"https://www.reddit.com/r/{sub}/top.json?t=day&limit=25&raw_json=1"), ct);
-        using var doc = JsonDocument.Parse(json);
+        string json;
+        try { json = await DownloadAsync(new Uri($"https://www.reddit.com/r/{sub}/top.json?t=day&limit=25&raw_json=1"), ct); }
+        catch (HttpRequestException)
+        {
+            // JSON с серверов Reddit часто режет (403 Blocked), а RSS пускает. В RSS нет
+            // апвоутов, но топ дня и так отсортирован по ним - берём его верхушку.
+            return await ReadRedditRssAsync(sub, ct);
+        }
+        JsonDocument parsed;
+        // Вместо JSON может прийти страница-заглушка с кодом 200 - тогда тоже RSS
+        try { parsed = JsonDocument.Parse(json); }
+        catch (JsonException) { return await ReadRedditRssAsync(sub, ct); }
+        using var doc = parsed;
         var list = new List<NewsItem>();
         if (!doc.RootElement.TryGetProperty("data", out var data) || !data.TryGetProperty("children", out var children))
             return list;
@@ -214,10 +226,34 @@ public partial class FeedReader(HttpClient http) : INewsFeedReader
                 PublishedUtc: d.TryGetProperty("created_utc", out var created) && created.TryGetDouble(out var sec)
                     ? DateTimeOffset.FromUnixTimeSeconds((long)sec).UtcDateTime
                     : null,
-                Score: d.TryGetProperty("score", out var score) && score.TryGetInt32(out var sc) ? sc : 0));
+                Score: d.TryGetProperty("score", out var score) && score.TryGetInt32(out var sc) ? sc : 0,
+                Reddit: true));
         }
         return list;
     }
+
+    /// <summary>Сколько верхних постов топа дня берём из RSS, где апвоутов не видно.</summary>
+    private const int RedditRssTop = 10;
+
+    private async Task<List<NewsItem>> ReadRedditRssAsync(string sub, CancellationToken ct)
+    {
+        var text = await DownloadAsync(new Uri($"https://www.reddit.com/r/{sub}/top/.rss?t=day&limit=25"), ct);
+        return ParseFeed(text)
+            .Take(RedditRssTop)
+            .Select(i => i with
+            {
+                // Ключ тот же, что из JSON (t3_abc → reddit:abc): пост не станет вторым черновиком
+                Key = "reddit:" + (i.Key.StartsWith("t3_") ? i.Key[3..] : i.Key),
+                Summary = RedditTailRegex().Replace(i.Summary ?? "", "").Trim(),
+                Score = null,
+                Reddit = true,
+            })
+            .ToList();
+    }
+
+    /// <summary>Хвост, который Reddit дописывает к каждому посту в RSS.</summary>
+    [GeneratedRegex(@"\s*submitted by\s+/u/\S+.*$", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+    private static partial Regex RedditTailRegex();
 
     private static string? Str(JsonElement e, string name) =>
         e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String && v.GetString() is { Length: > 0 } s ? s : null;
@@ -392,6 +428,20 @@ public partial class FeedReader(HttpClient http) : INewsFeedReader
         text = SpaceRegex().Replace(text, " ").Trim();
         return text.Length <= max ? text : text[..max].TrimEnd() + "…";
     }
+
+    /// <summary>
+    /// Картинка в полном размере, если пост на неё ссылается (i.redd.it): в &lt;img&gt; у Reddit
+    /// превью в webp, а миниатюра в media:thumbnail - сто сорок пикселей.
+    /// </summary>
+    private static string? FullImage(string? html)
+    {
+        if (string.IsNullOrEmpty(html)) return null;
+        var m = FullImageRegex().Match(WebUtility.HtmlDecode(html));
+        return m.Success ? m.Value : null;
+    }
+
+    [GeneratedRegex(@"https://i\.redd\.it/[^""'\s<>]+\.(?:jpe?g|png)", RegexOptions.IgnoreCase)]
+    private static partial Regex FullImageRegex();
 
     private static string? FirstImage(string? html)
     {
