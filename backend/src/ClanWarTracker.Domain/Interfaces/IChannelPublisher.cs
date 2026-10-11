@@ -102,6 +102,9 @@ public interface INewsTranslator
     /// </summary>
     Task<string?> ChatAsync(string prompt, int maxTokens, CancellationToken ct = default);
 
+    /// <summary>То же, но ответ строго JSON-объектом (где его поддерживает модель) - для разбора по полям.</summary>
+    Task<string?> ChatJsonAsync(string prompt, int maxTokens, CancellationToken ct = default);
+
     /// <summary>Переписать готовый пост по указанию владельца («короче», «смешнее»).</summary>
     Task<(string Title, string Text)?> RewriteAsync(string instruction, string post, string data,
         CancellationToken ct = default);

@@ -45,11 +45,27 @@ public class PlayerAiUseCase(
 
     public enum Status { Ok, NoAi, NotLinked, Limit, Failed, Empty }
 
+    /// <param name="Text">Ответ в простой разметке: строки, **жирный**. Бот переводит её в HTML Telegram, приложение - в свою вёрстку.</param>
     /// <param name="Left">Сколько ещё осталось сегодня.</param>
     /// <param name="Plus">У человека Плюс - для подсказки «с Плюсом больше».</param>
-    public record Answer(Status Status, string? Text, int Left, int Limit, bool Plus, int PlusLimit);
+    /// <param name="Topic">О чём вопрос тренеру: deck - про колоду и бои игрока (к ответу - картинка колоды), game, other.</param>
+    public record Answer(Status Status, string? Text, int Left, int Limit, bool Plus, int PlusLimit, string Topic = "game",
+        string? PlayerTag = null);
 
     public static string Today(DateTime nowUtc) => nowUtc.AddMinutes(TzOffsetMinutes).ToString("yyyy-MM-dd");
+
+    /// <summary>
+    /// Общие правила вида ответа. Сплошной абзац с телефона не читают: короткий заголовок,
+    /// пункты по строке с эмодзи, жирным - только заголовок и названия карт, в конце -
+    /// одно действие. Это и делает совет полезным, а не «умным».
+    /// </summary>
+    private const string Style = """
+        Оформление (строго):
+        - короткие строки, никаких сплошных абзацев; каждый пункт - отдельная строка, начинается с эмодзи;
+        - **жирным** выделяй только заголовки и названия карт; больше никакой разметки (без решёток, без списков «-»);
+        - пустая строка между блоками;
+        - на «ты», дружелюбно, без воды и вступлений вроде «Отличный вопрос».
+        """;
 
     /* ---------------- Функции ---------------- */
 
@@ -60,12 +76,20 @@ public class PlayerAiUseCase(
             var data = await PlayerDataAsync(player!, ct);
             return Prompt(l, """
                 Ты опытный тренер по Clash Royale. Ниже данные игрока: профиль, колода, последние бои и причины поражений.
-                Разбери его поражения: найди 2-3 самые частые и исправимые причины и дай по каждой конкретный совет -
-                с названиями карт, как разыгрывать и что держать против каких карт соперника. Если причина - уровни карт,
-                скажи, какие 1-2 карты качать первыми. Если тильт - честно скажи и предложи правило остановки.
-                Пиши дружелюбно и по делу, на «ты», без воды: 600-1000 символов. Пункты начинай с «• ».
-                Без markdown (без звёздочек и решёток). Только факты из данных, ничего не выдумывай.
-                """, data);
+                Найди 2-3 самые частые и исправимые причины поражений и дай по каждой конкретный совет с картами.
+                Если причина - уровни карт, скажи, какую карту качать первой. Если тильт - предложи правило остановки.
+
+                Формат ответа:
+                **🔍 Что мешает побеждать**
+                <эмодзи> **Причина** - коротко, с цифрой из данных (2-3 строки)
+
+                **✅ Что делать**
+                <эмодзи> **Карта или приём** - конкретный совет в одну фразу (2-3 строки)
+
+                👉 **Главное:** одно действие на следующий бой.
+
+                Весь ответ до 700 символов. Только факты из данных, ничего не выдумывай.
+                """ + "\n" + Style, data);
         }, ct);
 
     /// <summary>Свободный вопрос тренеру из лички бота. Без привязанного тега - отвечает по мете.</summary>
@@ -77,16 +101,29 @@ public class PlayerAiUseCase(
                 ? "Игрок не привязал тег - личных данных нет, отвечай по мете и общим принципам.\n" + await MetaDataAsync(ct)
                 : await PlayerDataAsync(player, ct);
             var q = question.Length > 800 ? question[..800] : question;
-            return Prompt(l, $"""
-                Ты тренер по Clash Royale в личке Telegram-бота Clanify. Игрок пишет тебе сообщение.
-                Ответь коротко и по делу (до 800 символов), на «ты», опираясь на данные игрока и мету ниже,
-                с конкретными картами и розыгрышами. Если вопрос не про Clash Royale - вежливо скажи, что ты тренер по игре,
-                и предложи спросить про колоду, контру или его бои. Без markdown (без звёздочек и решёток).
-                Ничего не выдумывай: нет данных - так и скажи.
+            return Prompt(l, $$"""
+                Ты тренер по Clash Royale в личке Telegram-бота Clanify. Игрок прислал сообщение.
+                Сначала определи тему: "deck" - про его колоду, карты, контры или бои; "game" - другой вопрос про Clash Royale;
+                "other" - не про игру (погода, жизнь, шутки).
 
-                Сообщение игрока: {q}
-                """, data);
-        }, ct, telegramLang);
+                Если "other": text - ОДНА короткая дружелюбная фраза, что ты тренер по Clash Royale, и пример вопроса.
+                Никакого разбора колоды и советов.
+
+                Иначе text строго в формате:
+                **<эмодзи> Заголовок до 6 слов**
+
+                <эмодзи> **Карта или тема** - одна короткая фраза до 15 слов
+                (2-4 таких строки)
+
+                👉 одно главное действие на следующий бой
+
+                Весь text до 500 символов. Опирайся на данные игрока и мету, ничего не выдумывай.
+
+                Ответ строго JSON без пояснений: {"topic": "deck|game|other", "text": "..."}
+
+                Сообщение игрока: {{q}}
+                """ + "\n" + Style, data);
+        }, ct, telegramLang, json: true);
 
     /// <summary>Разбор колоды из подборки: почему она подходит и как ей играть.</summary>
     public Task<Answer> ExplainDeckAsync(long tg, string deckName, IReadOnlyList<string> cards, string? lang,
@@ -97,17 +134,30 @@ public class PlayerAiUseCase(
             var list = string.Join(", ", cards.Take(8));
             return Prompt(l, $"""
                 Ты тренер по Clash Royale. Игрок смотрит колоду «{deckName}»: {list}.
-                По данным игрока ниже объясни: 1) подходит ли она ему по уровням его карт и стилю (какими колодами он
-                уже побеждает); 2) план игры - как давить и как защищаться; 3) 2-3 ключевых розыгрыша с картами;
-                4) против каких карт меты быть осторожнее; 5) какую карту прокачать первой, если есть отстающие.
-                На «ты», 700-1100 символов, пункты с «• », без markdown (без звёздочек и решёток). Ничего не выдумывай.
-                """, data);
+                По данным игрока (уровни его карт, какими колодами он уже побеждает, мета) разбери её.
+
+                Формат ответа:
+                **🃏 Подходит ли тебе**
+                одна-две строки: да/нет и почему - по уровням и стилю
+
+                **⚔️ План игры**
+                🗡 атака - одна фраза
+                🛡 защита - одна фраза
+
+                **🎯 Ключевые розыгрыши**
+                <эмодзи> **Карта + Карта** - зачем (2 строки)
+
+                ⚠️ Осторожно с: **карта**, **карта**
+                ⬆️ Качать первой: **карта** (если есть отстающие)
+
+                Весь ответ до 800 символов. Ничего не выдумывай.
+                """ + "\n" + Style, data);
         }, ct);
 
     /* ---------------- Общий ход ---------------- */
 
     private async Task<Answer> RunAsync(long tg, string feature, string? lang, bool needPlayer,
-        Func<Player?, string, Task<string>> buildPrompt, CancellationToken ct, string? fallbackLang = null)
+        Func<Player?, string, Task<string>> buildPrompt, CancellationToken ct, string? fallbackLang = null, bool json = false)
     {
         var limits = Limits[feature];
         var status = await plus.GetAsync(tg, ct);
@@ -123,11 +173,16 @@ public class PlayerAiUseCase(
             return new Answer(Status.Limit, null, 0, limit, isPlus, limits.Plus);
 
         var l = await LangAsync(tg, player, lang, fallbackLang, ct);
-        string? text;
-        try { text = await ai.ChatAsync(await buildPrompt(player, l), 1200, ct); }
+        string? raw;
+        try
+        {
+            var prompt = await buildPrompt(player, l);
+            raw = json ? await ai.ChatJsonAsync(prompt, 900, ct) : await ai.ChatAsync(prompt, 1200, ct);
+        }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
-        catch { text = null; }
+        catch { raw = null; }
 
+        var (topic, text) = json ? ParseTopic(raw) : ("game", raw);
         var used = await usage.CountAsync(tg, feature, day, ct);
         if (string.IsNullOrWhiteSpace(text))
         {
@@ -135,12 +190,40 @@ public class PlayerAiUseCase(
             await usage.RefundAsync(tg, feature, day, ct);
             return new Answer(Status.Failed, null, Math.Max(0, limit - used + 1), limit, isPlus, limits.Plus);
         }
-        return new Answer(Status.Ok, Clean(text), Math.Max(0, limit - used), limit, isPlus, limits.Plus);
+        // Вопрос не про игру - не повод списывать попытку
+        if (topic == "other")
+        {
+            await usage.RefundAsync(tg, feature, day, ct);
+            used = Math.Max(0, used - 1);
+        }
+        return new Answer(Status.Ok, Clean(text), Math.Max(0, limit - used), limit, isPlus, limits.Plus, topic,
+            player?.PlayerTag);
     }
 
-    /// <summary>Модель нет-нет да вставит markdown - в Telegram и в приложении он виден звёздочками.</summary>
+    /// <summary>{"topic": "...", "text": "..."} → (тема, текст). Не JSON - весь ответ считаем текстом про игру.</summary>
+    private static (string Topic, string? Text) ParseTopic(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return ("game", null);
+        var start = raw.IndexOf('{');
+        var end = raw.LastIndexOf('}');
+        if (start >= 0 && end > start)
+        {
+            try
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(raw[start..(end + 1)]);
+                var root = doc.RootElement;
+                var topic = root.TryGetProperty("topic", out var t) ? t.GetString() : null;
+                var text = root.TryGetProperty("text", out var x) ? x.GetString() : null;
+                return (topic is "deck" or "game" or "other" ? topic : "game", text);
+            }
+            catch (System.Text.Json.JsonException) { }
+        }
+        return ("game", raw);
+    }
+
+    /// <summary>Жирный оставляем - его покажут и бот, и приложение; заголовки «#» модель вставляет зря.</summary>
     private static string Clean(string text) =>
-        text.Replace("**", "").Replace("__", "").Replace("### ", "").Replace("## ", "").Replace("# ", "").Trim();
+        text.Replace("### ", "").Replace("## ", "").Replace("__", "").Trim();
 
     private static string Prompt(string lang, string task, string data)
     {
