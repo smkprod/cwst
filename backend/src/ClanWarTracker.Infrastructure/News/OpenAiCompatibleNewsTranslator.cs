@@ -38,6 +38,13 @@ public class OpenAiCompatibleNewsTranslator(HttpClient http, string provider, st
         CancellationToken ct = default) =>
         WriteAsync(NewsPrompts.Rewrite(instruction, post, data), ct);
 
+    public async Task<string?> ChatAsync(string prompt, int maxTokens, CancellationToken ct = default)
+    {
+        if (!Enabled) return null;
+        var text = await AskAsync(prompt, maxTokens, ct, json: false);
+        return string.IsNullOrWhiteSpace(text) ? null : text.Trim();
+    }
+
     private async Task<(string Title, string Text)?> WriteAsync(string prompt, CancellationToken ct)
     {
         if (!Enabled) return null;
@@ -51,21 +58,19 @@ public class OpenAiCompatibleNewsTranslator(HttpClient http, string provider, st
     }
 
     /// <summary>Один запрос к /chat/completions. null - не вышло, причина в LastError.</summary>
-    private async Task<string?> AskAsync(string prompt, int maxTokens, CancellationToken ct)
+    private async Task<string?> AskAsync(string prompt, int maxTokens, CancellationToken ct, bool json = true)
     {
         try
         {
             using var req = new HttpRequestMessage(HttpMethod.Post, baseUrl.TrimEnd('/') + "/chat/completions");
             req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
-            req.Content = JsonContent.Create(new
-            {
-                model,
-                max_tokens = maxTokens,
-                temperature = 0.7,
-                // Ответ строго JSON-объектом: в задании об этом сказано, а режим это гарантирует
-                response_format = new { type = "json_object" },
-                messages = new[] { new { role = "user", content = prompt } },
-            });
+            var messages = new[] { new { role = "user", content = prompt } };
+            // Ответ строго JSON-объектом там, где его разбирают: в задании об этом сказано,
+            // а режим это гарантирует. Совету игроку JSON не нужен - там обычный текст.
+            req.Content = json
+                ? JsonContent.Create(new { model, max_tokens = maxTokens, temperature = 0.7,
+                    response_format = new { type = "json_object" }, messages })
+                : JsonContent.Create(new { model, max_tokens = maxTokens, temperature = 0.7, messages });
             using var resp = await http.SendAsync(req, ct);
             if (!resp.IsSuccessStatusCode)
             {

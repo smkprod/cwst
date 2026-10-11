@@ -1828,7 +1828,7 @@ export interface CreatorChallengeCard {
 
 /* ---------- Канал бота ---------- */
 
-export type ChannelToggle = 'daily' | 'weekly' | 'challenge' | 'cards' | 'news' | 'newsauto'
+export type ChannelToggle = 'daily' | 'weekly' | 'challenge' | 'cards' | 'news' | 'newsauto' | 'recapai'
 
 export interface ChannelPost {
   id: number
@@ -1877,5 +1877,15 @@ export interface ChannelAiStatus {
   ok: boolean | null
   error: string | null
   atUtc: string | null
+}
+
+/** Ответ ИИ-помощника игрока. limit - лимит в день: ответа нет, но экран предлагает Плюс. */
+export interface AiAnswer {
+  status: 'ok' | 'noai' | 'limit' | 'failed' | 'empty'
+  text: string | null
+  left: number
+  limit: number
+  plus: boolean
+  plusLimit: number
 }
 

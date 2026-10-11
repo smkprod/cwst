@@ -1147,9 +1147,12 @@ public class BotUpdateHandler(
                     break;
 
                 default:
-                    // В личке непонятое сообщение - повод показать, что бот умеет. В группе
+                    // В личке обычное сообщение - вопрос ИИ-тренеру. Нет нейросети или это
+                    // явно не вопрос - как раньше, справка о том, что бот умеет. В группе
                     // молчим: там пишут друг другу, а не боту.
-                    if (msg.Chat.Type == ChatType.Private) await Reply(msg, t.HelpText, ct);
+                    if (msg.Chat.Type == ChatType.Private
+                        && !(text.Length >= 4 && !text.StartsWith('/') && await TryCoachAsync(msg, text, sp, ct)))
+                        await Reply(msg, t.HelpText, ct);
                     break;
             }
         }
@@ -1927,6 +1930,76 @@ public class BotUpdateHandler(
     private Task Reply(Message msg, string text, CancellationToken ct) =>
         bot.SendMessage(msg.Chat.Id, text, replyParameters: msg.MessageId,
             replyMarkup: AppButton("🎮 Открыть приложение"), cancellationToken: ct);
+
+    /* ---------------- ИИ-тренер ---------------- */
+
+    /// <summary>
+    /// Вопрос тренеру из лички. false - нейросеть не подключена, тогда отвечаем справкой.
+    /// Лимит в день: бесплатно три вопроса, с Плюсом - тридцать.
+    /// </summary>
+    private async Task<bool> TryCoachAsync(Message msg, string text, IServiceProvider sp, CancellationToken ct)
+    {
+        if (msg.From is null || !sp.GetRequiredService<INewsTranslator>().Enabled) return false;
+        try { await bot.SendChatAction(msg.Chat.Id, ChatAction.Typing, cancellationToken: ct); }
+        catch { /* «печатает…» - украшение, не повод не ответить */ }
+
+        var answer = await sp.GetRequiredService<PlayerAiUseCase>()
+            .AskCoachAsync(msg.From.Id, text, msg.From.LanguageCode, ct);
+        var c = CoachText.For(msg.From.LanguageCode);
+        switch (answer.Status)
+        {
+            case PlayerAiUseCase.Status.Ok:
+                var reply = answer.Text!;
+                // Последний бесплатный вопрос - честно говорим, сколько осталось
+                if (!answer.Plus && answer.Left <= 1)
+                    reply += "\n\n" + string.Format(answer.Left == 0 ? c.LastFree : c.OneLeft, answer.PlusLimit);
+                await bot.SendMessage(msg.Chat.Id, reply, replyParameters: msg.MessageId,
+                    replyMarkup: answer.Plus || answer.Left > 1 ? AppButton(c.OpenApp, "review") : AppButton(c.GetPlus, "plus"),
+                    cancellationToken: ct);
+                return true;
+            case PlayerAiUseCase.Status.Limit:
+                await bot.SendMessage(msg.Chat.Id,
+                    answer.Plus ? c.LimitPlus : string.Format(c.LimitFree, answer.PlusLimit),
+                    replyParameters: msg.MessageId,
+                    replyMarkup: answer.Plus ? null : AppButton(c.GetPlus, "plus"), cancellationToken: ct);
+                return true;
+            case PlayerAiUseCase.Status.Failed:
+                await bot.SendMessage(msg.Chat.Id, c.Failed, replyParameters: msg.MessageId, cancellationToken: ct);
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    /// <summary>Короткие ответы тренера вокруг ответа нейросети - на языке Telegram человека.</summary>
+    private sealed record CoachText(string OneLeft, string LastFree, string LimitFree, string LimitPlus, string Failed,
+        string GetPlus, string OpenApp)
+    {
+        public static CoachText For(string? languageCode) => BotText.ParseLang(languageCode) switch
+        {
+            BotLang.Uk => new(
+                "Залишилось одне безкоштовне питання на сьогодні. З Плюсом - до {0} на день.",
+                "Це було останнє безкоштовне питання на сьогодні. З Плюсом - до {0} на день.",
+                "Безкоштовні питання тренеру на сьогодні закінчились. З Плюсом - до {0} на день, а ще розбір поразок і колод.",
+                "Ліміт питань на сьогодні вичерпано - пиши завтра.",
+                "Не вийшло відповісти - спробуй ще раз, питання не списано.",
+                "💎 Плюс", "🎮 Відкрити застосунок"),
+            BotLang.En => new(
+                "One free question left today. With Plus - up to {0} a day.",
+                "That was your last free question today. With Plus - up to {0} a day.",
+                "Free coach questions for today are used up. With Plus - up to {0} a day, plus loss and deck reviews.",
+                "Daily question limit reached - write again tomorrow.",
+                "Couldn't answer - try again, the question wasn't counted.",
+                "💎 Plus", "🎮 Open app"),
+            _ => new(
+                "Осталось одно бесплатное сообщение тренеру на сегодня. С Плюсом - до {0} в день.",
+                "Это был последний бесплатный вопрос на сегодня. С Плюсом - до {0} в день.",
+                "Бесплатные вопросы тренеру на сегодня закончились. С Плюсом - до {0} в день, плюс разбор поражений и колод.",
+                "Лимит вопросов на сегодня исчерпан - пиши завтра.",
+                "Не получилось ответить - попробуй ещё раз, вопрос не списан.",
+                "💎 Плюс", "🎮 Открыть приложение"),
+        };
+    }
 
     /* ---------------- Лига дуэлей ---------------- */
 

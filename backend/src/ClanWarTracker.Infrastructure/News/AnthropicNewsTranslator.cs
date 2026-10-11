@@ -38,6 +38,13 @@ public class AnthropicNewsTranslator(HttpClient http, string? apiKey, string? mo
         CancellationToken ct = default) =>
         WriteAsync(NewsPrompts.Rewrite(instruction, post, data), ct);
 
+    public async Task<string?> ChatAsync(string prompt, int maxTokens, CancellationToken ct = default)
+    {
+        if (!Enabled) return null;
+        var text = await AskAsync(prompt, maxTokens, ct, json: false);
+        return string.IsNullOrWhiteSpace(text) ? null : text.Trim();
+    }
+
     private async Task<(string Title, string Text)?> WriteAsync(string prompt, CancellationToken ct)
     {
         if (!Enabled) return null;
@@ -51,7 +58,7 @@ public class AnthropicNewsTranslator(HttpClient http, string? apiKey, string? mo
     }
 
     /// <summary>Один запрос к Messages API. null - не вышло, причина в LastError.</summary>
-    private async Task<string?> AskAsync(string prompt, int maxTokens, CancellationToken ct)
+    private async Task<string?> AskAsync(string prompt, int maxTokens, CancellationToken ct, bool json = true)
     {
         try
         {

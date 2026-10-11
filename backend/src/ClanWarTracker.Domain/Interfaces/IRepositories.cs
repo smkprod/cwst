@@ -587,3 +587,19 @@ public interface IChannelPostRepository
 
     Task SaveChangesAsync(CancellationToken ct = default);
 }
+
+public interface IAiUsageRepository
+{
+    /// <summary>Сколько раз за день уже спросили.</summary>
+    Task<int> CountAsync(long telegramUserId, string feature, string day, CancellationToken ct = default);
+
+    /// <summary>
+    /// Занять одну попытку, если лимит не исчерпан. true - можно спрашивать. Атомарно:
+    /// два запроса разом не проскочат лимит.
+    /// </summary>
+    Task<bool> TryUseAsync(long telegramUserId, string feature, string day, int limit, CancellationToken ct = default);
+
+    /// <summary>Вернуть попытку, если нейросеть не ответила, - игрок не должен за это платить.</summary>
+    Task RefundAsync(long telegramUserId, string feature, string day, CancellationToken ct = default);
+}
+
