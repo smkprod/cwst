@@ -71,3 +71,4 @@
 .ch-recent { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .ch-recent li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 8px; }
 .ch-recent-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.ch-suggest { margin: 6px 0 2px; }

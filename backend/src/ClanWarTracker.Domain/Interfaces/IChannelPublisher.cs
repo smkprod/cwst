@@ -21,23 +21,45 @@ public interface IChannelPublisher
         IReadOnlyList<IReadOnlyList<BotButton>> rows, CancellationToken ct = default);
 }
 
-/// <summary>Запись из RSS/Atom-ленты: новость сайта, видео YouTube, пост Reddit.</summary>
-public record NewsItem(string Key, string Title, string? Summary, string Link, string? ImageUrl, DateTime? PublishedUtc);
+/// <summary>
+/// Запись из ленты: новость сайта, видео YouTube, пост Reddit или статья со страницы блога.
+/// VideoId - у видео YouTube: такой пост оформляется анонсом «смотреть», а не пересказом.
+/// </summary>
+public record NewsItem(string Key, string Title, string? Summary, string Link, string? ImageUrl, DateTime? PublishedUtc,
+    string? VideoId = null);
+
+/// <summary>Что удалось достать со страницы самой новости: полный текст и нормальная картинка.</summary>
+public record NewsArticle(string? Title, string? Description, string? Text, string? ImageUrl);
 
 public interface INewsFeedReader
 {
-    /// <summary>Записи ленты, свежие первыми. Бросает исключение, если ленту не прочитать.</summary>
+    /// <summary>
+    /// Записи ленты, свежие первыми. Понимает RSS/Atom, а обычную страницу блога читает как
+    /// список статей по ссылкам на ней. Бросает исключение, если адрес не прочитать.
+    /// </summary>
     Task<List<NewsItem>> ReadAsync(string feedUrl, CancellationToken ct = default);
+
+    /// <summary>
+    /// Полный текст и картинка новости с её страницы; у видео - обложка в лучшем качестве.
+    /// null - страница не открылась или текста на ней нет.
+    /// </summary>
+    Task<NewsArticle?> ReadArticleAsync(NewsItem item, CancellationToken ct = default);
 }
 
+/// <summary>Новость целиком - то, из чего пишется пост.</summary>
+public record NewsSource(string Title, string? Summary, string? Body, bool IsVideo);
+
 /// <summary>
-/// Пересказ англоязычной новости по-русски для канала. Работает, только если на
-/// сервере задан ключ API; без него новости приходят черновиком на языке оригинала.
+/// Пост из новости по-русски для канала. Работает, только если на сервере задан ключ
+/// API; без него новость оформляется без пересказа, на языке оригинала.
 /// </summary>
 public interface INewsTranslator
 {
     bool Enabled { get; }
 
-    /// <returns>Заголовок и текст поста в простой разметке (**жирный**). null - не вышло.</returns>
-    Task<(string Title, string Text)?> RetellAsync(string title, string? summary, CancellationToken ct = default);
+    /// <returns>
+    /// Заголовок для панели и готовый текст поста в простой разметке. Пустой заголовок -
+    /// это не новость об игре (мем, вопрос, оффтоп). null - пересказать не вышло.
+    /// </returns>
+    Task<(string Title, string Text)?> RetellAsync(NewsSource news, CancellationToken ct = default);
 }
