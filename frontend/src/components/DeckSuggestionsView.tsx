@@ -7,7 +7,6 @@ import { Icon } from './ui/Icon'
 import { InfoButton } from './ui/Info'
 import { SectionHead } from './ui/Section'
 import { noEmoji } from '../lib/text'
-import { AiAdvice } from './AiAdvice'
 
 /**
  * Колоды, подобранные под коллекцию игрока. Разделены честно: «можно играть сейчас» —
@@ -110,7 +109,6 @@ function TopDeckRow({ top, t }: { top: TopDeck; t: Translations }) {
 }
 
 function DeckRow({ deck, t }: { deck: DeckSuggestion; t: Translations }) {
-  const { lang } = useT()
   const [open, setOpen] = useState(false)
   const complete = deck.missing.length === 0
 
@@ -193,7 +191,6 @@ function DeckRow({ deck, t }: { deck: DeckSuggestion; t: Translations }) {
         {open ? t.decks.hideNote : t.decks.showNote}
       </button>
       {open && <p className="muted small deck-note">{noEmoji(deck.note)}</p>}
-      <AiAdvice compact label={t.ai.deckBtn} run={() => api.aiDeck(deck.name, deck.cards.map(c => c.name), lang)} />
     </section>
   )
 }

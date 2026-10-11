@@ -102,3 +102,5 @@
 .ch-ai-rewrite { display: grid; gap: 6px; padding: 10px; border-radius: 12px; background: rgba(139, 92, 246, 0.08);
   border: 1px solid rgba(160, 120, 255, 0.25); }
 .ch-ai-rewrite .search-input { width: 100%; }
+.ch-analyst { display: grid; gap: 6px; margin: -4px 0 12px; }
+.ch-analyst .btn-mini { justify-self: start; }
