@@ -104,6 +104,43 @@ public class ImageController(
         });
 
     /// <summary>
+    /// GET /api/img/build/{tag}.jpg?c=26000000,… — колода, которую собрал ИИ-тренер: те же
+    /// настоящие карты, что и у «моей колоды», с уровнями из коллекции игрока. tag «-» -
+    /// без уровней. Публичные данные: id карт и открытый профиль игрока.
+    /// </summary>
+    [HttpGet("build/{tag}.jpg")]
+    public Task<IActionResult> BuildCard(string tag, [FromQuery] string? c, CancellationToken ct)
+    {
+        var ids = (c ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(x => int.TryParse(x, out var id) ? id : 0).Where(id => id > 0).Distinct().Take(8).ToList();
+        return Serve($"build:{tag}:{string.Join(',', ids)}", SlowTtl, async () =>
+        {
+            if (ids.Count < 8) return null;
+            var catalog = (await Try(() => crApi.GetAllCardsAsync(ct)))?.Values
+                .GroupBy(x => x.Id).ToDictionary(g => g.Key, g => g.First());
+            if (catalog is null) return null;
+            var info = tag == "-" ? null : await Try(() => crApi.GetPlayerInfoAsync(Normalize(tag), ct));
+            var mine = info?.Cards.ToDictionary(x => x.Name, x => x, StringComparer.OrdinalIgnoreCase)
+                       ?? new Dictionary<string, ClanWarTracker.Domain.Entities.CrCard>();
+
+            var cards = new List<DeckCardEntry>();
+            foreach (var id in ids)
+            {
+                if (!catalog.TryGetValue(id, out var card)) return null;
+                var own = mine.GetValueOrDefault(card.Name);
+                cards.Add(new DeckCardEntry(card.Name,
+                    own is { EvolutionLevel: > 0, EvoIconUrl: not null } ? own.EvoIconUrl : card.IconUrl,
+                    own?.Level ?? 0, own is not null && own.Level >= own.MaxLevel));
+            }
+            var owned = cards.Where(x => x.Level > 0).ToList();
+            return renderer.RenderDeck(new DeckCardModel(
+                "Колода от ИИ-тренера", info is null ? "Clanify" : $"для {info.Name}", cards,
+                owned.Count == 0 ? 0 : Math.Round(owned.Average(x => (double)x.Level), 1),
+                await BotNameAsync(ct)));
+        });
+    }
+
+    /// <summary>
     /// GET /api/img/perfect/{tag}.jpg — поздравление с идеальным днём для чата.
     ///
     /// Число всегда 900: это и есть определение идеального дня, а не показатель,

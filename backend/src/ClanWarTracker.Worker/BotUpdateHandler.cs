@@ -1958,18 +1958,22 @@ public class BotUpdateHandler(
                     ? AppButton(c.OpenApp, "review")
                     : AppButton(c.GetPlus, "plus");
 
-                // Вопрос про колоду и бои - ответ подписью к картинке его колоды: так совет
-                // читается рядом с картами, о которых он, а не сплошным текстом.
-                var deckUrl = answer.Topic == "deck" && answer.PlayerTag is { } tag
-                    ? sp.GetRequiredService<ICardUrls>().Card("deck", tag)
+                // Тренер собрал колоду - ответ подписью к её картинке (карты с уровнями игрока)
+                // и кнопкой, которая открывает колоду прямо в игре. Без колоды - просто текст:
+                // одна и та же картинка под каждым ответом только мешает читать.
+                var deckUrl = answer.DeckIds is { Count: 8 } ids
+                    ? sp.GetRequiredService<ICardUrls>().Deck(answer.PlayerTag, ids)
                     : null;
                 if (deckUrl is not null && System.Net.WebUtility.HtmlDecode(
                         System.Text.RegularExpressions.Regex.Replace(html, "<[^>]+>", "")).Length <= 1024)
                 {
+                    var rows = new List<InlineKeyboardButton[]>();
+                    if (answer.CopyLink is { } copy) rows.Add([InlineKeyboardButton.WithUrl(c.CopyDeck, copy)]);
+                    if (markup is not null) rows.AddRange(markup.InlineKeyboard.Select(r => r.ToArray()));
                     try
                     {
                         await bot.SendPhoto(msg.Chat.Id, InputFile.FromUri(deckUrl), caption: html, parseMode: ParseMode.Html,
-                            replyParameters: msg.MessageId, replyMarkup: markup, cancellationToken: ct);
+                            replyParameters: msg.MessageId, replyMarkup: new InlineKeyboardMarkup(rows), cancellationToken: ct);
                         return true;
                     }
                     catch (Exception ex) when (ex is not OperationCanceledException)
@@ -1996,7 +2000,7 @@ public class BotUpdateHandler(
 
     /// <summary>Короткие ответы тренера вокруг ответа нейросети - на языке Telegram человека.</summary>
     private sealed record CoachText(string OneLeft, string LastFree, string LimitFree, string LimitPlus, string Failed,
-        string GetPlus, string OpenApp)
+        string GetPlus, string OpenApp, string CopyDeck)
     {
         public static CoachText For(string? languageCode) => BotText.ParseLang(languageCode) switch
         {
@@ -2006,21 +2010,21 @@ public class BotUpdateHandler(
                 "Безкоштовні питання тренеру на сьогодні закінчились. З Плюсом - до {0} на день, а ще розбір поразок і колод.",
                 "Ліміт питань на сьогодні вичерпано - пиши завтра.",
                 "Не вийшло відповісти - спробуй ще раз, питання не списано.",
-                "💎 Плюс", "🎮 Відкрити застосунок"),
+                "💎 Плюс", "🎮 Відкрити застосунок", "📋 Скопіювати колоду в гру"),
             BotLang.En => new(
                 "One free question left today. With Plus - up to {0} a day.",
                 "That was your last free question today. With Plus - up to {0} a day.",
                 "Free coach questions for today are used up. With Plus - up to {0} a day, plus loss and deck reviews.",
                 "Daily question limit reached - write again tomorrow.",
                 "Couldn't answer - try again, the question wasn't counted.",
-                "💎 Plus", "🎮 Open app"),
+                "💎 Plus", "🎮 Open app", "📋 Copy deck to the game"),
             _ => new(
                 "Осталось одно бесплатное сообщение тренеру на сегодня. С Плюсом - до {0} в день.",
                 "Это был последний бесплатный вопрос на сегодня. С Плюсом - до {0} в день.",
                 "Бесплатные вопросы тренеру на сегодня закончились. С Плюсом - до {0} в день, плюс разбор поражений и колод.",
                 "Лимит вопросов на сегодня исчерпан - пиши завтра.",
                 "Не получилось ответить - попробуй ещё раз, вопрос не списан.",
-                "💎 Плюс", "🎮 Открыть приложение"),
+                "💎 Плюс", "🎮 Открыть приложение", "📋 Скопировать колоду в игру"),
         };
     }
 
