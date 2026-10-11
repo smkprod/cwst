@@ -77,6 +77,24 @@ public class ChannelController(ChannelUseCase channel, ServiceAccess access) : C
         return await Done(channel.PublishDraftAsync(id, req.Text, req.PhotoUrl, ct), ct);
     }
 
+    /// <summary>POST /api/owner/channel/drafts/{id}/save — сохранить правки черновика без публикации.</summary>
+    [HttpPost("drafts/{id:int}/save")]
+    public async Task<IActionResult> SaveDraft(int id, [FromBody] PublishRequest req, CancellationToken ct)
+    {
+        if (await DenyAsync(ct) is { } deny) return deny;
+        if (req.Text is { Length: > 4000 }) return BadRequest(new { error = "too_long" });
+        return await Done(channel.SaveDraftAsync(id, req.Text, req.PhotoUrl, ct), ct);
+    }
+
+    /// <summary>POST /api/owner/channel/posts/{id}/edit — исправить опубликованный пост в канале.</summary>
+    [HttpPost("posts/{id:int}/edit")]
+    public async Task<IActionResult> EditPost(int id, [FromBody] PublishRequest req, CancellationToken ct)
+    {
+        if (await DenyAsync(ct) is { } deny) return deny;
+        if (req.Text is { Length: > 4000 }) return BadRequest(new { error = "too_long" });
+        return await Done(channel.EditPublishedAsync(id, req.Text, ct), ct);
+    }
+
     /// <summary>POST /api/owner/channel/drafts/{id}/reject — убрать черновик.</summary>
     [HttpPost("drafts/{id:int}/reject")]
     public async Task<IActionResult> Reject(int id, CancellationToken ct)
@@ -112,6 +130,7 @@ public class ChannelController(ChannelUseCase channel, ServiceAccess access) : C
             ChannelUseCase.PostResult.Empty => BadRequest(new { error = "empty" }),
             ChannelUseCase.PostResult.NotFound => NotFound(new { error = "not_found" }),
             ChannelUseCase.PostResult.Failed => StatusCode(502, new { error = "telegram_failed" }),
+            ChannelUseCase.PostResult.TooLongForCaption => BadRequest(new { error = "caption_too_long" }),
             _ => Ok(await channel.GetAsync(ct)),
         };
 

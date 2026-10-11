@@ -210,6 +210,10 @@ export const api = {
     postJson<ChannelState>('/api/owner/channel/post', p),
   channelPublishDraft: (id: number, text?: string, photoUrl?: string) =>
     postJson<ChannelState>(`/api/owner/channel/drafts/${id}/publish`, { text, photoUrl }),
+  channelSaveDraft: (id: number, text?: string, photoUrl?: string) =>
+    postJson<ChannelState>(`/api/owner/channel/drafts/${id}/save`, { text, photoUrl }),
+  channelEditPost: (id: number, text: string) =>
+    postJson<ChannelState>(`/api/owner/channel/posts/${id}/edit`, { text }),
   channelRejectDraft: (id: number) => postJson<ChannelState>(`/api/owner/channel/drafts/${id}/reject`, {}),
   channelPreview: (kind: 'daily' | 'weekly') => postJson<ChannelState>('/api/owner/channel/preview', { kind }),
   // Пересказ новостей идёт через внешний API - ждём дольше обычного
