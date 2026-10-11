@@ -74,6 +74,52 @@ public partial class TelegramChannelPublisher(ITelegramBotClient bot) : IChannel
         catch (HttpRequestException) { return null; }
     }
 
+    public async Task<ChannelEditResult> EditAsync(long channelId, int messageId, string html, string? photoUrl,
+        IReadOnlyList<IReadOnlyList<BotButton>> rows, CancellationToken ct = default)
+    {
+        var hasPhoto = !string.IsNullOrWhiteSpace(photoUrl);
+        try
+        {
+            var keyboard = await KeyboardAsync(rows, ct);
+            // Пост с картинкой ушёл либо фото с подписью, либо текстом с большим превью -
+            // какой из двух, видно только по ответу Telegram, поэтому пробуем по очереди.
+            if (hasPhoto && VisibleLength(html) <= CaptionLimit)
+            {
+                try
+                {
+                    await bot.EditMessageCaption(channelId, messageId, html, parseMode: ParseMode.Html,
+                        replyMarkup: keyboard, cancellationToken: ct);
+                    return ChannelEditResult.Ok;
+                }
+                catch (ApiRequestException ex) when (ex.Message.Contains("caption", StringComparison.OrdinalIgnoreCase)
+                                                     && !ex.Message.Contains("not modified", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Подписи нет - значит, это текстовое сообщение: правим ниже как текст
+                }
+            }
+            var preview = hasPhoto
+                ? new LinkPreviewOptions { Url = photoUrl, PreferLargeMedia = true, ShowAboveText = true }
+                : new LinkPreviewOptions { IsDisabled = true };
+            try
+            {
+                await bot.EditMessageText(channelId, messageId, html, parseMode: ParseMode.Html,
+                    linkPreviewOptions: preview, replyMarkup: keyboard, cancellationToken: ct);
+                return ChannelEditResult.Ok;
+            }
+            catch (ApiRequestException ex) when (hasPhoto && ex.Message.Contains("no text", StringComparison.OrdinalIgnoreCase))
+            {
+                // Это фото с подписью, а новый текст в подпись (1024 символа) не влезает
+                return ChannelEditResult.TooLongForCaption;
+            }
+        }
+        catch (ApiRequestException ex) when (ex.Message.Contains("message is not modified", StringComparison.OrdinalIgnoreCase))
+        {
+            return ChannelEditResult.Ok;
+        }
+        catch (ApiRequestException) { return ChannelEditResult.Failed; }
+        catch (HttpRequestException) { return ChannelEditResult.Failed; }
+    }
+
     /// <summary>Длина текста, как её считает Telegram: без тегов и с раскрытыми сущностями.</summary>
     private static int VisibleLength(string html) => WebUtility.HtmlDecode(TagRegex().Replace(html, "")).Length;
 

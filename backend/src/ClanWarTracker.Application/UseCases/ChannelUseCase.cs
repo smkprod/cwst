@@ -168,15 +168,15 @@ public class ChannelUseCase(
     /// <summary>Публикует уже записанный пост и отмечает итог в нём же.</summary>
     private async Task<bool> PublishAsync(ChannelPost post, long channelId, CancellationToken ct)
     {
-        var rows = new List<IReadOnlyList<BotButton>>();
-        if (!string.IsNullOrWhiteSpace(post.ButtonText) && !string.IsNullOrWhiteSpace(post.ButtonUrl))
-            rows.Add(new[] { new BotButton(post.ButtonText.Trim(), Url: post.ButtonUrl.Trim()) });
-
+        var rows = Rows(post);
         var id = await publisher.PublishAsync(channelId, ChannelText.ToHtml(post.Text), post.PhotoUrl, rows, ct);
         if (id is null && post.PhotoUrl is not null)
         {
             // Telegram не смог скачать картинку - пост без неё лучше, чем никакого
             id = await publisher.PublishAsync(channelId, ChannelText.ToHtml(post.Text), null, rows, ct);
+            // Картинка в канал не ушла - и в записи её быть не должно, иначе правка поста
+            // потом искала бы у него подпись к фото
+            if (id is not null) post.PhotoUrl = null;
         }
         post.MessageId = id;
         post.State = id is null ? ChannelPostState.Failed : ChannelPostState.Published;
@@ -186,7 +186,51 @@ public class ChannelUseCase(
         return id is not null;
     }
 
-    public enum PostResult { Ok, NoChannel, Empty, NotFound, Failed }
+    private static List<IReadOnlyList<BotButton>> Rows(ChannelPost post)
+    {
+        var rows = new List<IReadOnlyList<BotButton>>();
+        if (!string.IsNullOrWhiteSpace(post.ButtonText) && !string.IsNullOrWhiteSpace(post.ButtonUrl))
+            rows.Add(new[] { new BotButton(post.ButtonText.Trim(), Url: post.ButtonUrl.Trim()) });
+        return rows;
+    }
+
+    public enum PostResult { Ok, NoChannel, Empty, NotFound, Failed, TooLongForCaption }
+
+    /// <summary>Сохранить правки черновика, не публикуя: доделать потом или скопировать.</summary>
+    public async Task<PostResult> SaveDraftAsync(int id, string? text, string? photoUrl, CancellationToken ct = default)
+    {
+        var post = await posts.GetAsync(id, ct);
+        if (post is null || post.State == ChannelPostState.Published) return PostResult.NotFound;
+        if (text is not null)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return PostResult.Empty;
+            post.Text = text.Trim();
+        }
+        if (photoUrl is not null) post.PhotoUrl = CleanUrl(photoUrl);
+        await posts.SaveChangesAsync(ct);
+        return PostResult.Ok;
+    }
+
+    /// <summary>
+    /// Исправить уже опубликованный пост прямо в канале. Картинку и кнопку не трогаем:
+    /// Telegram не даёт превратить текстовый пост в фото и обратно.
+    /// </summary>
+    public async Task<PostResult> EditPublishedAsync(int id, string? text, CancellationToken ct = default)
+    {
+        var channelId = await ChannelIdAsync(ct);
+        if (channelId is null) return PostResult.NoChannel;
+        var post = await posts.GetAsync(id, ct);
+        if (post is not { State: ChannelPostState.Published, MessageId: int messageId }) return PostResult.NotFound;
+        if (string.IsNullOrWhiteSpace(text)) return PostResult.Empty;
+
+        var r = await publisher.EditAsync(channelId.Value, messageId, ChannelText.ToHtml(text.Trim()), post.PhotoUrl, Rows(post), ct);
+        if (r == ChannelEditResult.TooLongForCaption) return PostResult.TooLongForCaption;
+        if (r != ChannelEditResult.Ok) return PostResult.Failed;
+        post.Text = text.Trim();
+        post.Title = post.Kind == "manual" ? FirstLine(post.Text) : post.Title;
+        await posts.SaveChangesAsync(ct);
+        return PostResult.Ok;
+    }
 
     /// <summary>Ручной пост владельца - сразу в канал.</summary>
     public async Task<PostResult> ComposeAsync(string? text, string? photoUrl, string? buttonText, string? buttonUrl,
