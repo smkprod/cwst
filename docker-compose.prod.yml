@@ -43,6 +43,8 @@ services:
       # Необязательно: пересказ новостей Clash Royale для канала по-русски (см. .env.example)
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-}
       DOTNET_gcServer: "0"
     depends_on:
       db:
@@ -66,6 +68,8 @@ services:
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-https://165-245-222-154.sslip.io}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-}
       DOTNET_gcServer: "0"
     depends_on:
       db:

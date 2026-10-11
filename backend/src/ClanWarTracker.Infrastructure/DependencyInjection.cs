@@ -68,11 +68,21 @@ public static class DependencyInjection
         // Новости для канала: чтение лент и (по ключу в .env) пересказ по-русски
         services.AddHttpClient<INewsFeedReader, ClanWarTracker.Infrastructure.News.FeedReader>(http =>
             http.Timeout = TimeSpan.FromSeconds(20));
+        // Кто пишет посты из новостей: DeepSeek, если задан его ключ, иначе Claude. Оба
+        // необязательны - без ключей новость оформляется без пересказа.
+        var deepseekKey = CleanToken(config["DEEPSEEK_API_KEY"]);
+        var deepseekModel = config["DEEPSEEK_MODEL"]?.Trim() is { Length: > 0 } dm ? dm : "deepseek-chat";
         var anthropicKey = CleanToken(config["ANTHROPIC_API_KEY"]);
         var anthropicModel = config["ANTHROPIC_MODEL"]?.Trim();
-        services.AddHttpClient("anthropic", http => http.Timeout = TimeSpan.FromSeconds(60));
-        services.AddScoped<INewsTranslator>(sp => new ClanWarTracker.Infrastructure.News.AnthropicNewsTranslator(
-            sp.GetRequiredService<IHttpClientFactory>().CreateClient("anthropic"), anthropicKey, anthropicModel));
+        services.AddHttpClient("newsai", http => http.Timeout = TimeSpan.FromSeconds(90));
+        services.AddScoped<INewsTranslator>(sp =>
+        {
+            var http = sp.GetRequiredService<IHttpClientFactory>().CreateClient("newsai");
+            return !string.IsNullOrEmpty(deepseekKey)
+                ? new ClanWarTracker.Infrastructure.News.OpenAiCompatibleNewsTranslator(
+                    http, "https://api.deepseek.com", deepseekKey, deepseekModel)
+                : new ClanWarTracker.Infrastructure.News.AnthropicNewsTranslator(http, anthropicKey, anthropicModel);
+        });
         services.AddSingleton<ClanWarTracker.Application.Notifications.ICardUrls>(
             new CardUrls(config["PUBLIC_BASE_URL"]?.Trim().TrimEnd('/')));
         services.AddScoped<IClanRepository, ClanRepository>();
