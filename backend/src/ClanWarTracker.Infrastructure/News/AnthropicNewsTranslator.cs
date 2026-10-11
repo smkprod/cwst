@@ -31,6 +31,25 @@ public class AnthropicNewsTranslator(HttpClient http, string? apiKey, string? mo
         return NewsPrompts.Parse(await AskAsync(NewsPrompts.Build(news), 1200, ct));
     }
 
+    public Task<(string Title, string Text)?> ComposeAsync(string request, string data, CancellationToken ct = default) =>
+        WriteAsync(NewsPrompts.Compose(request, data), ct);
+
+    public Task<(string Title, string Text)?> RewriteAsync(string instruction, string post, string data,
+        CancellationToken ct = default) =>
+        WriteAsync(NewsPrompts.Rewrite(instruction, post, data), ct);
+
+    private async Task<(string Title, string Text)?> WriteAsync(string prompt, CancellationToken ct)
+    {
+        if (!Enabled) return null;
+        var post = NewsPrompts.Parse(await AskAsync(prompt, 1800, ct));
+        if (post is { Text.Length: 0 })
+        {
+            LastError = "Нейросеть вернула пустой пост";
+            return null;
+        }
+        return post;
+    }
+
     /// <summary>Один запрос к Messages API. null - не вышло, причина в LastError.</summary>
     private async Task<string?> AskAsync(string prompt, int maxTokens, CancellationToken ct)
     {

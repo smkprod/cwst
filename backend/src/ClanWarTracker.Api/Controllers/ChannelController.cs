@@ -11,8 +11,9 @@ namespace ClanWarTracker.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/owner/channel")]
-public class ChannelController(ChannelUseCase channel, ServiceAccess access) : ControllerBase
+public class ChannelController(ChannelUseCase channel, ChannelAiUseCase channelAi, ServiceAccess access) : ControllerBase
 {
+    public record AiRequest(string? Request, string? Text);
     public record ConnectRequest(string? Handle);
     public record SettingsRequest(Dictionary<string, bool>? Toggles, List<string>? Feeds, int? RedditMinScore = null,
         int? RedditPerDay = null);
@@ -113,6 +114,35 @@ public class ChannelController(ChannelUseCase channel, ServiceAccess access) : C
         if (!await channel.PreviewAsync(req.Kind ?? "", ct)) return StatusCode(409, new { error = "no_data" });
         return Ok(await channel.GetAsync(ct));
     }
+
+    /// <summary>
+    /// POST /api/owner/channel/ai/generate — нейро-пост по просьбе владельца на данных бота.
+    /// Ложится черновиком; в канал - только по кнопке «Опубликовать».
+    /// </summary>
+    [HttpPost("ai/generate")]
+    public async Task<IActionResult> Generate([FromBody] AiRequest req, CancellationToken ct)
+    {
+        if (await DenyAsync(ct) is { } deny) return deny;
+        return await AiDone(await channelAi.GenerateAsync(req.Request, ct), ct);
+    }
+
+    /// <summary>POST /api/owner/channel/drafts/{id}/rewrite — переписать черновик с ИИ по указанию.</summary>
+    [HttpPost("drafts/{id:int}/rewrite")]
+    public async Task<IActionResult> Rewrite(int id, [FromBody] AiRequest req, CancellationToken ct)
+    {
+        if (await DenyAsync(ct) is { } deny) return deny;
+        return await AiDone(await channelAi.RewriteAsync(id, req.Request, req.Text, ct), ct);
+    }
+
+    private async Task<IActionResult> AiDone((ChannelAiUseCase.Result Result, string? Error) r, CancellationToken ct) =>
+        r.Result switch
+        {
+            ChannelAiUseCase.Result.NoAi => StatusCode(409, new { error = "no_ai" }),
+            ChannelAiUseCase.Result.Empty => BadRequest(new { error = "empty" }),
+            ChannelAiUseCase.Result.NotFound => NotFound(new { error = "not_found" }),
+            ChannelAiUseCase.Result.Failed => StatusCode(502, new { error = "ai_failed", message = r.Error ?? "Нейросеть не ответила" }),
+            _ => Ok(await channel.GetAsync(ct)),
+        };
 
     /// <summary>POST /api/owner/channel/ai/check — пробный запрос к нейросети: ключ, баланс, связь.</summary>
     [HttpPost("ai/check")]

@@ -46,7 +46,7 @@ const SUGGESTED_FEEDS: { label: string; url: string }[] = [
 ]
 
 const KIND_LABEL: Record<string, string> = {
-  manual: 'Свой пост', news: 'Новость', daily: 'Топ дня', weekly: 'Неделя лиги',
+  manual: 'Свой пост', ai: 'Нейро-пост', news: 'Новость', daily: 'Топ дня', weekly: 'Неделя лиги',
   chstart: 'Старт челленджа', chend: 'Итоги челленджа', card: 'Новая карта',
 }
 
@@ -60,6 +60,8 @@ function errorText(e: unknown): string {
     case 'too_long': return 'Слишком длинно - до 4000 символов'
     case 'telegram_failed': return 'Telegram не принял пост: проверьте права бота в канале'
     case 'no_data': return 'Пока нет данных для такого поста'
+    case 'no_ai': return 'Нейросеть не подключена: добавьте DEEPSEEK_API_KEY в .env сервера'
+    case 'ai_failed': return e.message && e.message !== 'ai_failed' ? e.message : 'Нейросеть не ответила, попробуйте ещё раз'
     case 'caption_too_long': return 'У поста с картинкой текст не длиннее 1024 символов - сократите'
     default: return 'Не получилось, попробуйте ещё раз'
   }
@@ -111,6 +113,7 @@ export function ChannelSection() {
       <ConnectCard state={state} onState={setState} />
       {state.id !== null && (
         <>
+          <AiComposeCard state={state} onState={setState} />
           <ComposeCard onState={setState} />
           <DraftsCard state={state} onState={setState} />
           <AutoCard state={state} onState={setState} />
@@ -470,13 +473,15 @@ function DraftsCard({ state, onState }: Props) {
       <SectionHead icon="edit" tone="gold" title={`Черновики · ${state.drafts.length}`}
         info={<p>Разметка: **жирный** и [текст](https://ссылка). Правьте прямо здесь и публикуйте.</p>} />
       <div className="ch-drafts">
-        {state.drafts.map(p => <DraftItem key={p.id} post={p} onState={onState} />)}
+        {state.drafts.map(p => <DraftItem key={p.id} post={p} aiEnabled={state.ai.enabled} onState={onState} />)}
       </div>
     </div>
   )
 }
 
-function DraftItem({ post, onState }: { post: ChannelPost; onState: (s: ChannelState) => void }) {
+function DraftItem({ post, aiEnabled, onState }: { post: ChannelPost; aiEnabled: boolean; onState: (s: ChannelState) => void }) {
+  const [aiOpen, setAiOpen] = useState(false)
+  const [instruction, setInstruction] = useState('')
   const [text, setText] = useState(post.text)
   const [photo, setPhoto] = useState(post.photoUrl ?? '')
   const [photoOpen, setPhotoOpen] = useState(false)
@@ -485,6 +490,15 @@ function DraftItem({ post, onState }: { post: ChannelPost; onState: (s: ChannelS
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
   const dirty = text !== post.text || photo.trim() !== (post.photoUrl ?? '')
+
+  // Текст черновика переписала нейросеть - показываем новый, а не старый из поля
+  useEffect(() => { setText(post.text) }, [post.text])
+
+  const rewrite = () => {
+    if (!instruction.trim()) return
+    haptic('medium')
+    run(() => api.channelAiRewrite(post.id, instruction.trim(), text), () => { setInstruction(''); setAiOpen(false) })
+  }
 
   const run = async (action: () => Promise<ChannelState>, ok?: () => void) => {
     setBusy(true)
@@ -536,6 +550,24 @@ function DraftItem({ post, onState }: { post: ChannelPost; onState: (s: ChannelS
           <Icon name="external" size={12} /> Первоисточник
         </button>
       )}
+      {aiEnabled && (aiOpen ? (
+        <div className="ch-ai-rewrite">
+          <input className="search-input" placeholder="Как переписать? Например: короче и смешнее" value={instruction}
+            maxLength={500} onChange={e => setInstruction(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') rewrite() }} />
+          <div className="owner-bc-targets ch-suggest">
+            {['Короче', 'Смешнее', 'Серьёзнее', 'Добавь призыв зайти в бота', 'Больше эмодзи'].map(h => (
+              <button key={h} className="btn-mini" onClick={() => setInstruction(h)}>{h}</button>
+            ))}
+          </div>
+          <button className="btn btn-ghost" disabled={busy || !instruction.trim()} onClick={rewrite}>
+            <Icon name="sparkles" size={16} />{busy ? 'Переписываю… до 40 сек' : 'Переписать'}
+          </button>
+        </div>
+      ) : (
+        <button className="ch-link small" onClick={() => setAiOpen(true)}>
+          <Icon name="sparkles" size={12} /> Переписать с ИИ
+        </button>
+      ))}
       {(error || post.error) && <p className="form-error small">{error ?? post.error}</p>}
       <div className="ch-actions">
         <button className="btn btn-nudge" disabled={busy || !text.trim()} onClick={publish} onBlur={() => setConfirm(false)}>
@@ -551,6 +583,64 @@ function DraftItem({ post, onState }: { post: ChannelPost; onState: (s: ChannelS
         <CopyButton text={text} />
         <button className="btn btn-ghost" disabled={busy} onClick={reject}><Icon name="trash" size={16} />Убрать</button>
       </div>
+    </div>
+  )
+}
+
+/** Быстрые просьбы: нажал - текст в поле, можно дописать своё. */
+const AI_PRESETS: { label: string; text: string }[] = [
+  { label: 'Итоги дня', text: 'Пост с итогами дня: что в мировом топе, кто взлетел, что происходит в лиге 1×1.' },
+  { label: 'Лига 1×1', text: 'Пост про лигу дуэлей 1×1: кто в топе и с каким рангом, кто рванул за неделю. В конце позови всех бросать вызовы друзьям.' },
+  { label: 'Мета', text: 'Разбор меты топ-1000: какие карты на подъёме, какие падают, и что это значит для обычного игрока.' },
+  { label: 'Челлендж', text: 'Пост про текущий челлендж: правила, приз, кто лидирует. Призыв вступить.' },
+  { label: 'Реклама бота', text: 'Пост, который продаёт бота новым игрокам: что он умеет и зачем добавить его в свой клан. Опирайся на цифры бота.' },
+  { label: 'Вопрос подписчикам', text: 'Короткий вовлекающий пост-вопрос к подписчикам про текущую мету, чтобы хотелось ответить в комментариях.' },
+]
+
+function AiComposeCard({ state, onState }: Props) {
+  const [request, setRequest] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [note, setNote] = useState<string | null>(null)
+
+  const generate = async () => {
+    if (!request.trim()) return
+    haptic('medium')
+    setBusy(true)
+    setNote(null)
+    try {
+      onState(await api.channelAiGenerate(request.trim()))
+      hapticNotify('success')
+      setNote('Готово - пост в черновиках ниже: поправьте и опубликуйте')
+      setRequest('')
+    } catch (e) {
+      hapticNotify('error')
+      setNote(errorText(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="card">
+      <SectionHead icon="sparkles" tone="violet" title="Нейро-пост"
+        info={<>
+          <p>Напишите, какой пост нужен. Бот соберёт свежие данные - мировой топ и мету, лигу 1×1, челлендж, статистику бота, последние новости игры - и нейросеть напишет пост только по ним, без выдумок.</p>
+          <p>Пост ляжет в черновики: в канал он уйдёт, только когда вы нажмёте «Опубликовать».</p>
+        </>} />
+      {!state.ai.enabled && <p className="small ch-warn">Нейросеть не подключена: добавьте DEEPSEEK_API_KEY в .env сервера и задеплойте.</p>}
+      <div className="owner-bc-targets ch-suggest">
+        {AI_PRESETS.map(p => (
+          <button key={p.label} className="btn-mini" disabled={!state.ai.enabled}
+            onClick={() => { haptic('light'); setRequest(p.text) }}>{p.label}</button>
+        ))}
+      </div>
+      <textarea className="owner-bc-text" rows={3} maxLength={1500} value={request} disabled={!state.ai.enabled}
+        placeholder="Например: итоги недели в лиге 1×1 с юмором, упомяни тех, кто вырос сильнее всех"
+        onChange={e => setRequest(e.target.value)} />
+      <button className="btn btn-nudge" disabled={busy || !request.trim() || !state.ai.enabled} onClick={generate}>
+        <Icon name="sparkles" size={16} />{busy ? 'Пишу пост… до 40 сек' : 'Сгенерировать'}
+      </button>
+      {note && <p className="muted small owner-bc-result">{note}</p>}
     </div>
   )
 }

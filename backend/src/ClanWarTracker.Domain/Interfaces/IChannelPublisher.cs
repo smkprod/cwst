@@ -89,4 +89,14 @@ public interface INewsTranslator
     /// это не новость об игре (мем, вопрос, оффтоп). null - пересказать не вышло.
     /// </returns>
     Task<(string Title, string Text)?> RetellAsync(NewsSource news, CancellationToken ct = default);
+
+    /// <summary>
+    /// Пост по просьбе владельца на данных бота (снимок топа, лига, челлендж…). Ответ тот
+    /// же - заголовок и текст в простой разметке. null - не вышло, причина в LastError.
+    /// </summary>
+    Task<(string Title, string Text)?> ComposeAsync(string request, string data, CancellationToken ct = default);
+
+    /// <summary>Переписать готовый пост по указанию владельца («короче», «смешнее»).</summary>
+    Task<(string Title, string Text)?> RewriteAsync(string instruction, string post, string data,
+        CancellationToken ct = default);
 }
