@@ -49,8 +49,13 @@ public class PlayerAiUseCase(
     /// <param name="Left">Сколько ещё осталось сегодня.</param>
     /// <param name="Plus">У человека Плюс - для подсказки «с Плюсом больше».</param>
     /// <param name="Topic">О чём вопрос тренеру: deck - про колоду и бои игрока (к ответу - картинка колоды), game, other.</param>
+    /// <param name="DeckIds">Колода, которую собрал тренер (8 id карт), - к ответу её картинка и ссылка в игру.</param>
     public record Answer(Status Status, string? Text, int Left, int Limit, bool Plus, int PlusLimit, string Topic = "game",
-        string? PlayerTag = null);
+        string? PlayerTag = null, IReadOnlyList<int>? DeckIds = null)
+    {
+        /// <summary>Ссылка «открыть колоду в Clash Royale».</summary>
+        public string? CopyLink => DeckIds is { Count: 8 } ids ? GetMetaDecksUseCase.CopyLink(ids.ToArray()) : null;
+    }
 
     public static string Today(DateTime nowUtc) => nowUtc.AddMinutes(TzOffsetMinutes).ToString("yyyy-MM-dd");
 
@@ -109,6 +114,12 @@ public class PlayerAiUseCase(
                 Если "other": text - ОДНА короткая дружелюбная фраза, что ты тренер по Clash Royale, и пример вопроса.
                 Никакого разбора колоды и советов.
 
+                Если игрок просит колоду (собрать колоду, «кинь колоду с X», чем играть против Y) - составь РОВНО 8 карт
+                в поле "deck": из его коллекции, предпочитая самые прокачанные карты; с балансом - одна-две победные карты,
+                заклинания, защита, средний эликсир 3-4.3. Названия - точно как в игре по-английски, как в коллекции.
+                Тогда text - заголовок, 2-3 строки как ей играть (НЕ перечисляй все 8 карт - их покажет картинка) и 👉 действие.
+                Иначе "deck": [].
+
                 Иначе text строго в формате:
                 **<эмодзи> Заголовок до 6 слов**
 
@@ -119,7 +130,7 @@ public class PlayerAiUseCase(
 
                 Весь text до 500 символов. Опирайся на данные игрока и мету, ничего не выдумывай.
 
-                Ответ строго JSON без пояснений: {"topic": "deck|game|other", "text": "..."}
+                Ответ строго JSON без пояснений: {"topic": "deck|game|other", "text": "...", "deck": []}
 
                 Сообщение игрока: {{q}}
                 """ + "\n" + Style, data);
@@ -182,7 +193,7 @@ public class PlayerAiUseCase(
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
         catch { raw = null; }
 
-        var (topic, text) = json ? ParseTopic(raw) : ("game", raw);
+        var (topic, text, deckNames) = json ? ParseTopic(raw) : ("game", raw, Array.Empty<string>());
         var used = await usage.CountAsync(tg, feature, day, ct);
         if (string.IsNullOrWhiteSpace(text))
         {
@@ -197,13 +208,27 @@ public class PlayerAiUseCase(
             used = Math.Max(0, used - 1);
         }
         return new Answer(Status.Ok, Clean(text), Math.Max(0, limit - used), limit, isPlus, limits.Plus, topic,
-            player?.PlayerTag);
+            player?.PlayerTag, await ResolveDeckAsync(deckNames, ct));
     }
 
-    /// <summary>{"topic": "...", "text": "..."} → (тема, текст). Не JSON - весь ответ считаем текстом про игру.</summary>
-    private static (string Topic, string? Text) ParseTopic(string? raw)
+    /// <summary>Имена карт от модели → 8 id из справочника игры. Не все нашлись - колоды нет, картинку не рисуем.</summary>
+    private async Task<IReadOnlyList<int>?> ResolveDeckAsync(IReadOnlyList<string> names, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(raw)) return ("game", null);
+        if (names.Count != 8) return null;
+        try
+        {
+            var catalog = await crApi.GetAllCardsAsync(ct);
+            var ids = names.Select(n => catalog.TryGetValue(n.Trim(), out var c) ? c.Id : 0).Where(id => id > 0).Distinct().ToList();
+            return ids.Count == 8 ? ids : null;
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch { return null; }
+    }
+
+    /// <summary>{"topic", "text", "deck"} → (тема, текст, карты колоды). Не JSON - весь ответ считаем текстом про игру.</summary>
+    private static (string Topic, string? Text, IReadOnlyList<string> Deck) ParseTopic(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return ("game", null, []);
         var start = raw.IndexOf('{');
         var end = raw.LastIndexOf('}');
         if (start >= 0 && end > start)
@@ -214,11 +239,15 @@ public class PlayerAiUseCase(
                 var root = doc.RootElement;
                 var topic = root.TryGetProperty("topic", out var t) ? t.GetString() : null;
                 var text = root.TryGetProperty("text", out var x) ? x.GetString() : null;
-                return (topic is "deck" or "game" or "other" ? topic : "game", text);
+                var deck = root.TryGetProperty("deck", out var d) && d.ValueKind == System.Text.Json.JsonValueKind.Array
+                    ? d.EnumerateArray().Where(e => e.ValueKind == System.Text.Json.JsonValueKind.String)
+                        .Select(e => e.GetString()!).ToList()
+                    : [];
+                return (topic is "deck" or "game" or "other" ? topic : "game", text, deck);
             }
             catch (System.Text.Json.JsonException) { }
         }
-        return ("game", raw);
+        return ("game", raw, []);
     }
 
     /// <summary>Жирный оставляем - его покажут и бот, и приложение; заголовки «#» модель вставляет зря.</summary>
@@ -272,9 +301,10 @@ public class PlayerAiUseCase(
             if (info.CurrentDeck.Count > 0)
                 sb.AppendLine("Текущая колода: " + string.Join(", ",
                     info.CurrentDeck.Select(c => $"{c.Name} ур.{c.Level}/{c.MaxLevel}{(c.EvolutionLevel > 0 ? " (эво)" : "")}")));
-            var top = info.Cards.OrderByDescending(c => c.Level).Take(12)
-                .Select(c => $"{c.Name} {c.Level}");
-            sb.AppendLine("Самые прокачанные карты: " + string.Join(", ", top) + ".");
+            // Вся коллекция с уровнями - из неё тренер собирает колоду, если её просят
+            var all = info.Cards.OrderByDescending(c => c.Level).ThenBy(c => c.Name)
+                .Select(c => $"{c.Name} {c.Level}{(c.EvolutionLevel > 0 ? " эво" : "")}");
+            sb.AppendLine("Коллекция (карта и уровень, сильные первыми): " + string.Join(", ", all) + ".");
         });
 
         await Part(sb, async () =>
