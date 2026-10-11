@@ -1867,6 +1867,8 @@ export interface ChannelState {
   redditMinScore: number
   redditPerDay: number
   ai: ChannelAiStatus
+  /** Разбор меты для билдера колод: за какой день и сколько колод отмечено */
+  analyst: { day: string; picks: number; atUtc: string } | null
 }
 
 export interface ChannelAiStatus {
@@ -1879,13 +1881,60 @@ export interface ChannelAiStatus {
   atUtc: string | null
 }
 
-/** Ответ ИИ-помощника игрока. limit - лимит в день: ответа нет, но экран предлагает Плюс. */
-export interface AiAnswer {
-  status: 'ok' | 'noai' | 'limit' | 'failed' | 'empty'
-  text: string | null
-  left: number
-  limit: number
-  plus: boolean
-  plusLimit: number
+/* ---------- Билдер колод ---------- */
+
+export interface BuilderCard {
+  cardId: number
+  name: string
+  iconUrl: string
+  evo: boolean
+  elixir: number
+  rarity: string
+  /** Уровень у игрока (как в игре); 0 - карты нет или тег не привязан */
+  level: number
+  maxLevel: number
+  owned: boolean
+  evoOwned: boolean
+}
+
+export interface BuilderDeck {
+  key: string
+  cards: BuilderCard[]
+  games: number
+  winPercent: number
+  usagePercent: number
+  avgElixir: number
+  cycleElixir: number
+  owned: number
+  avgLevel: number
+  /** «Подходит мне», % */
+  score: number
+  copyLink: string | null
+  pick: { tag: string; note: string } | null
+}
+
+export interface BuilderDecks {
+  fromDayUtc: string
+  toDayUtc: string
+  battles: number
+  linked: boolean
+  decks: BuilderDeck[]
+  analyst: { day: string; summary: string; picks: number } | null
+}
+
+export interface BuilderWar {
+  linked: boolean
+  complete: boolean
+  decks: BuilderDeck[]
+  avgWinPercent: number
+  uniqueCards: number
+}
+
+export interface BuilderQuery {
+  include: number[]
+  exclude: number[]
+  maxElixir: number | null
+  owned: boolean
+  sort: 'fit' | 'win' | 'popular'
 }
 

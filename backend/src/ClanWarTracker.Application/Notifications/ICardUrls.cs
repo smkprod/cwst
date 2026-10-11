@@ -13,10 +13,4 @@ public interface ICardUrls
     /// null — публичный адрес не настроен, картинку слать некуда.
     /// </summary>
     string? Card(string kind, string playerTag);
-
-    /// <summary>
-    /// Картинка произвольной колоды (по id карт) - с уровнями карт этого игрока. playerTag
-    /// null - без уровней. null - публичный адрес не настроен.
-    /// </summary>
-    string? Deck(string? playerTag, IReadOnlyList<int> cardIds);
 }

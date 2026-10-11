@@ -185,7 +185,6 @@ function PlusCard({ status, pay, onBuy, t }: {
       <SectionHead icon="gem" tone="violet" title={p.plusCardTitle} aside={p.plusCardSub} />
       <ul className="plus-features">
         <Feature icon="snowflake" title={p.f1Title} text={p.f1} />
-        <Feature icon="sparkles" title={t.ai.plusTitle} text={t.ai.plusText} />
         <Feature icon="target" title={t.trk.title} text={t.trk.plusRow} />
         <Feature icon="sliders" title={p.f2Title} text={p.f2} />
         <Feature icon="pause" title={p.f3Title} text={p.f3} />

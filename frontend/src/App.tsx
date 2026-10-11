@@ -125,7 +125,7 @@ function ClanSectionTabs({ value, onChange, t }: {
  * разбор, «/meta» — в мировой топ, «/plus» — в окно Плюса, ch_<код> — в челлендж
  * блогера (отдельный экран вне бара). Без параметра — как раньше.
  */
-const START_TAB: Tab = startChallengeCode ? 'creatorChallenge' : startParam === 'challenge' ? 'challenge' : startParam === 'duel' ? 'duel' : startParam === 'review' || startToMatches ? 'me' : startParam === 'meta' ? 'more' : 'clan'
+const START_TAB: Tab = startChallengeCode ? 'creatorChallenge' : startParam === 'challenge' ? 'challenge' : startParam === 'duel' ? 'duel' : startParam === 'review' || startToMatches ? 'me' : startParam === 'meta' || startParam === 'builder' ? 'more' : 'clan'
 
 /** «Разбор» из бота — разбор за 30 дней, трекер и «Все бои» — история. */
 const START_BATTLES_VIEW = startParam === 'review' ? 'review' : 'history'
@@ -456,7 +456,7 @@ export default function App() {
               <MoreView
                 canManage={canManage}
                 isLeader={Boolean(data.isClanLeader)}
-                initialSection={startParam === 'meta' ? 'worldTop' : null}
+                initialSection={startParam === 'meta' ? 'worldTop' : startParam === 'builder' ? 'builder' : null}
                 onOpenNotifications={() => { haptic('light'); setSettingsOpen(true) }}
                 config={config}
                 onConfigChanged={loadConfig}

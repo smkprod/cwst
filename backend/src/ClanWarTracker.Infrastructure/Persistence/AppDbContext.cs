@@ -27,7 +27,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<CreatorChallenge> CreatorChallenges => Set<CreatorChallenge>();
     public DbSet<Duel> Duels => Set<Duel>();
     public DbSet<ChannelPost> ChannelPosts => Set<ChannelPost>();
-    public DbSet<AiUsage> AiUsages => Set<AiUsage>();
     public DbSet<PlayerBattle> PlayerBattles => Set<PlayerBattle>();
     public DbSet<Entitlement> Entitlements => Set<Entitlement>();
     public DbSet<PlayerAlertPrefs> PlayerAlertPrefs => Set<PlayerAlertPrefs>();
@@ -153,13 +152,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(x => x.Prize).HasMaxLength(60);
             e.Property(x => x.Rule).HasMaxLength(16);
             e.Ignore(x => x.EventId);
-        });
-
-        mb.Entity<AiUsage>(e =>
-        {
-            e.HasIndex(x => new { x.TelegramUserId, x.Feature, x.Day }).IsUnique();
-            e.Property(x => x.Feature).HasMaxLength(16);
-            e.Property(x => x.Day).HasMaxLength(10);
         });
 
         mb.Entity<ChannelPost>(e =>

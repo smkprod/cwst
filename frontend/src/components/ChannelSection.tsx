@@ -334,7 +334,7 @@ function NewsCard({ state, onState }: Props) {
       <div className="ch-toggles">
         <ToggleLine icon="message" tone="green" label="Живые итоги дня в чатах кланов" on={state.toggles.recapai}
           disabled={!state.ai.enabled}
-          desc="«Итоги дня» в 21:00 пишет нейросеть - по тем же цифрам, но каждый вечер по-новому и на языке клана. Не ответила - уйдёт обычный шаблон. Плюс ИИ-тренер для игроков: разбор поражений и колод в приложении и ответы на вопросы в личке бота."
+          desc="«Итоги дня» в 21:00 пишет нейросеть - по тем же цифрам, но каждый вечер по-новому и на языке клана. Не ответила - уйдёт обычный шаблон. По умолчанию выключено."
           onToggle={() => flip('recapai')} />
       </div>
       <label className="small muted">Ленты - по одной в строке</label>
@@ -427,6 +427,7 @@ function RedditLimits({ state, onState }: Props) {
 /** Нейросеть для пересказа: какая подключена, работает ли, и кнопка проверки. */
 function AiStatusBlock({ state, onState }: Props) {
   const [busy, setBusy] = useState(false)
+  const [note, setNote] = useState<string | null>(null)
   const ai = state.ai
 
   const check = async () => {
@@ -455,9 +456,26 @@ function AiStatusBlock({ state, onState }: Props) {
     )
   }
 
+  const runAnalyst = async () => {
+    haptic('medium')
+    setBusy(true)
+    setNote(null)
+    try {
+      onState(await api.channelRunAnalyst())
+      hapticNotify('success')
+      setNote('Мета разобрана - смотри «Выбор аналитика» в билдере колод')
+    } catch (e) {
+      hapticNotify('error')
+      setNote(errorText(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const tone = ai.ok === true ? 'ch-ai-ok' : ai.ok === false ? 'ch-ai-bad' : 'ch-ai-wait'
   const label = ai.ok === true ? 'Работает' : ai.ok === false ? 'Ошибка' : 'Ещё не проверялась'
   return (
+    <>
     <div className={`ch-ai ${tone}`}>
       <span className="ch-ai-dot" />
       <div className="ch-ai-text">
@@ -469,6 +487,16 @@ function AiStatusBlock({ state, onState }: Props) {
         <Icon name="refresh" size={14} />{busy ? '…' : 'Проверить'}
       </button>
     </div>
+    <div className="ch-analyst small">
+      <span className="muted">
+        Разбор меты для билдера колод: {state.analyst ? `${state.analyst.day}, отмечено колод: ${state.analyst.picks}` : 'ещё не было'} (сам - каждое утро)
+      </span>
+      <button className="btn-mini" disabled={busy} onClick={runAnalyst}>
+        <Icon name="sparkles" size={14} />{busy ? '…' : 'Разобрать сейчас'}
+      </button>
+      {note && <span className="muted">{note}</span>}
+    </div>
+    </>
   )
 }
 
