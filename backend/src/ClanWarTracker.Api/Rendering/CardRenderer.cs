@@ -18,6 +18,11 @@ public record ClanCardModel(
 /// <summary>Карта колоды для отрисовки: иконку скачиваем, уровень подписываем.</summary>
 public record DeckCardEntry(string Name, string IconUrl, int Level, bool Maxed);
 
+/// <summary>Инфографика «связи карт»: карта, доля колод с ней и главные напарники.</summary>
+public record LinkCardRow(string Name, string IconUrl, double SharePercent, List<(string Name, string IconUrl, double Percent)> Partners);
+
+public record LinksCardModel(string Title, string Subtitle, List<LinkCardRow> Rows, string BotName);
+
 public record DeckCardModel(
     string Title, string Subtitle, List<DeckCardEntry> Cards, double AvgLevel, string BotName);
 
@@ -246,6 +251,84 @@ public class CardRenderer(IWebHostEnvironment env, IHttpClientFactory http, IMem
             canvas.DrawText($"средний уровень {m.AvgLevel}", Pad, DeckHeight - 26,
                 new SKFont(_regular, 19), p);
         });
+    }
+
+    /// <summary>
+    /// Большая инфографика для канала: самые популярные карты меты, у каждой - три
+    /// главных напарника и как часто их ставят вместе. Две колонки, строки сверху вниз
+    /// по популярности - читается как таблица, но остаётся картинкой.
+    /// </summary>
+    public byte[] RenderLinks(LinksCardModel m)
+    {
+        Warm(m.Rows.SelectMany(r => r.Partners.Select(p => p.IconUrl).Append(r.IconUrl)));
+
+        const int cols = 2;
+        const float top = 150, rowH = 150, gapX = 22;
+        var rows = (m.Rows.Count + cols - 1) / cols;
+        var height = (int)(top + rows * rowH + 50);
+        var cellW = (Width - 2 * Pad - gapX) / cols;
+
+        return Draw(null, height, canvas =>
+        {
+            Header(canvas, m.Title, m.Subtitle, m.BotName, height);
+            using var p = new SKPaint { IsAntialias = true };
+            var nameFont = new SKFont(_medium, 15);
+            var pctFont = new SKFont(_display, 17);
+            var shareFont = new SKFont(_regular, 13);
+
+            for (var i = 0; i < m.Rows.Count; i++)
+            {
+                var r = m.Rows[i];
+                var x = Pad + i % cols * (cellW + gapX);
+                var y = top + i / cols * rowH;
+
+                // Подложка ячейки
+                p.Style = SKPaintStyle.Fill;
+                p.Color = Ink.WithAlpha(14);
+                canvas.DrawRoundRect(new SKRect(x, y, x + cellW, y + rowH - 14), 16, 16, p);
+
+                // Главная карта
+                const float mw = 72, mh = 86;
+                DrawCard(canvas, p, r.IconUrl, x + 10, y + 12, mw, mh);
+                p.Color = Ink;
+                canvas.DrawText(Fit(Clean(r.Name), nameFont, mw + 10), x + 10 + mw / 2, y + mh + 30,
+                    SKTextAlign.Center, nameFont, p);
+                p.Color = Muted;
+                canvas.DrawText($"{r.SharePercent}%", x + 10 + mw / 2, y + mh + 45, SKTextAlign.Center, shareFont, p);
+
+                // Стрелка «играют с»
+                p.Color = Gold;
+                canvas.DrawText("+", x + mw + 26, y + 58, SKTextAlign.Center, new SKFont(_display, 26), p);
+
+                // Напарники
+                const float pw = 54, ph = 65;
+                for (var j = 0; j < r.Partners.Count; j++)
+                {
+                    var (_, icon, pct) = r.Partners[j];
+                    var px = x + mw + 44 + j * (pw + 10);
+                    DrawCard(canvas, p, icon, px, y + 18, pw, ph);
+                    p.Color = pct >= 50 ? Gold : Ink;
+                    canvas.DrawText($"{pct:0}%", px + pw / 2, y + 18 + ph + 24, SKTextAlign.Center, pctFont, p);
+                }
+            }
+
+            p.Color = Muted;
+            canvas.DrawText("% под картой - в скольких колодах топа она есть; под напарником - как часто с ней",
+                Pad, height - 22, new SKFont(_regular, 13), p);
+        });
+    }
+
+    private void DrawCard(SKCanvas canvas, SKPaint p, string? url, float x, float y, float w, float h)
+    {
+        var img = Icon(url);
+        if (img is not null)
+        {
+            canvas.DrawImage(img, new SKRect(x, y, x + w, y + h));
+            return;
+        }
+        p.Style = SKPaintStyle.Fill;
+        p.Color = Ink.WithAlpha(18);
+        canvas.DrawRoundRect(new SKRect(x, y, x + w, y + h), 10, 10, p);
     }
 
     /// <summary>Одна карта колоды: арт и плашка с уровнем поверх нижнего края.</summary>

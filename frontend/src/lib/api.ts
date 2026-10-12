@@ -235,7 +235,7 @@ export const api = {
     }, 120_000),
   channelRunAnalyst: () => request<ChannelState>('/api/owner/channel/ai/meta', { method: 'POST' }, 120_000),
   channelCheckAi: () => request<ChannelState>('/api/owner/channel/ai/check', { method: 'POST' }, 60_000),
-  channelPreview: (kind: 'daily' | 'weekly') => postJson<ChannelState>('/api/owner/channel/preview', { kind }),
+  channelPreview: (kind: 'daily' | 'weekly' | 'links') => postJson<ChannelState>('/api/owner/channel/preview', { kind }),
   // Пересказ новостей идёт через внешний API - ждём дольше обычного
   channelRefreshNews: () => request<{ published: number; drafts: number; state: ChannelState }>(
     '/api/owner/channel/news/refresh', { method: 'POST' }, 120_000),
