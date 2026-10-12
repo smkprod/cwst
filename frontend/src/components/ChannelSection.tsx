@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, ApiError } from '../lib/api'
-import type { ChannelPost, ChannelState, ChannelToggle } from '../types'
+import type { ChannelFeedStatus, ChannelPost, ChannelState, ChannelToggle } from '../types'
 import { copyText, haptic, hapticNotify, openTelegramLink, openExternalLink } from '../lib/telegram'
 import { Icon, type IconName } from './ui/Icon'
 import { IconTile, SectionHead, type Tone } from './ui/Section'
@@ -356,7 +356,8 @@ function NewsCard({ state, onState }: Props) {
                 <Icon name={!st ? 'clock' : st.ok ? 'checkCircle' : 'xCircle'} size={13}
                   className={!st ? 'muted' : st.ok ? 'ch-ok' : 'ch-bad'} />
                 <span className="ch-feed-url">{f.replace(/^https?:\/\/(www\.)?/, '')}</span>
-                <span className="muted">{!st ? 'ещё не проверялась' : st.ok ? `${st.items} записей` : st.error}</span>
+                <span className="muted">{!st ? 'ещё не проверялась' : st.ok ? feedLine(st) : st.error}</span>
+                {st?.ok && st.note && <span className="muted ch-feed-note">{st.note}</span>}
               </li>
             )
           })}
@@ -498,6 +499,15 @@ function AiStatusBlock({ state, onState }: Props) {
     </div>
     </>
   )
+}
+
+/** «10 записей · новых 2 · отсеяно нейросетью 5» - видно, где теряются записи. */
+function feedLine(st: ChannelFeedStatus): string {
+  const parts = [`${st.items} записей`]
+  if (st.new !== undefined) parts.push(`новых ${st.new}`)
+  if (st.rejected) parts.push(`отсеяно нейросетью ${st.rejected}`)
+  if (st.skipped) parts.push(`мало апвоутов ${st.skipped}`)
+  return parts.join(' · ')
 }
 
 function DraftsCard({ state, onState }: Props) {

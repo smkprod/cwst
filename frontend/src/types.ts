@@ -1852,6 +1852,13 @@ export interface ChannelFeedStatus {
   items: number
   error: string | null
   atUtc: string
+  /** Сколько стало черновиками или постами за проверку */
+  new?: number
+  /** Сколько нейросеть отсеяла */
+  rejected?: number
+  /** Сколько не прошло по апвоутам (Reddit) */
+  skipped?: number
+  note?: string | null
 }
 
 export interface ChannelState {
