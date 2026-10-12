@@ -43,6 +43,7 @@ builder.Services.AddScoped<ChallengeUseCase>();
 builder.Services.AddScoped<ChannelUseCase>();
 builder.Services.AddScoped<GetTopMetaUseCase>();
 builder.Services.AddScoped<MetaAnalystUseCase>();
+builder.Services.AddScoped<CardKnowledgeUseCase>();
 builder.Services.AddScoped<DuelUseCase>();
 builder.Services.AddScoped<TiltWatchUseCase>();
 builder.Services.AddScoped<TiltActionsUseCase>();

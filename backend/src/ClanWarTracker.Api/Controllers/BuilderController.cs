@@ -32,6 +32,19 @@ public class BuilderController(DeckBuilderUseCase builder) : ControllerBase
         return r is null ? NotFound(new { error = "no_meta" }) : Ok(r);
     }
 
+    public record AnalyzeRequest(List<int>? Cards, string? Lang);
+
+    /// <summary>
+    /// POST /api/builder/analyze — конструктор: шкалы, роли, связи карт, чего не хватает,
+    /// подсказки и похожие колоды из меты для набора до восьми карт.
+    /// </summary>
+    [HttpPost("analyze")]
+    public async Task<IActionResult> Analyze([FromBody] AnalyzeRequest req, CancellationToken ct)
+    {
+        var r = await builder.AnalyzeAsync(UserId, (req.Cards ?? []).Take(8).ToList(), req.Lang, ct);
+        return r is null ? NotFound(new { error = "no_meta" }) : Ok(r);
+    }
+
     /// <summary>GET /api/builder/cards — все карты игры с уровнями игрока, для фильтра.</summary>
     [HttpGet("cards")]
     public async Task<IActionResult> Cards(CancellationToken ct) => Ok(await builder.CardsAsync(UserId, ct));

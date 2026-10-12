@@ -14,12 +14,15 @@ namespace ClanWarTracker.Application.UseCases;
 /// (нижняя граница Уилсона, чтобы колода с пятью играми не обгоняла колоду с пятьюстами)
 /// минус штраф за недокачанные и отсутствующие карты.
 /// </summary>
-public class DeckBuilderUseCase(
+public partial class DeckBuilderUseCase(
     IClashRoyaleApi crApi,
     IMetaRepository meta,
     IPlayerRepository players,
     IServiceSettingRepository settings)
 {
+    /// <summary>Настройки - для второй половины класса (конструктор), куда параметры конструктора не видны.</summary>
+    private IServiceSettingRepository Settings => settings;
+
     /// <summary>Меньше игр за неделю - процент побед ничего не значит.</summary>
     public const int MinGames = 10;
 

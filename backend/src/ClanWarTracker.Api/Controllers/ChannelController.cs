@@ -12,7 +12,7 @@ namespace ClanWarTracker.Api.Controllers;
 [ApiController]
 [Route("api/owner/channel")]
 public class ChannelController(ChannelUseCase channel, ChannelAiUseCase channelAi, MetaAnalystUseCase analyst,
-    ServiceAccess access) : ControllerBase
+    CardKnowledgeUseCase knowledge, ServiceAccess access) : ControllerBase
 {
     public record AiRequest(string? Request, string? Text);
     public record ConnectRequest(string? Handle);
@@ -151,6 +151,9 @@ public class ChannelController(ChannelUseCase channel, ChannelAiUseCase channelA
     {
         if (await DenyAsync(ct) is { } deny) return deny;
         var error = await analyst.RunAsync(ct);
+        // Связи карт для конструктора - тем же нажатием: владелец проверяет всё разом
+        var knowledgeError = await knowledge.RunAsync(ct);
+        error ??= knowledgeError;
         if (error is not null) return StatusCode(502, new { error = "ai_failed", message = error });
         return Ok(await channel.GetAsync(ct));
     }
