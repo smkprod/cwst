@@ -357,14 +357,16 @@ public partial class ChannelUseCase(
     /// Собрать автопост прямо сейчас черновиком - посмотреть, как он выглядит, не
     /// дожидаясь расписания. В канал не уходит, пока владелец не нажмёт «Опубликовать».
     /// </summary>
-    public async Task<bool> PreviewAsync(string kind, CancellationToken ct = default)
+    /// <param name="publicBase">Адрес, по которому открыли панель (https://домен), - запасной
+    /// для картинок поста, если PUBLIC_BASE_URL на сервере не задан.</param>
+    public async Task<bool> PreviewAsync(string kind, CancellationToken ct = default, string? publicBase = null)
     {
         var now = DateTime.UtcNow;
         var post = kind switch
         {
             "daily" => await BuildDailyAsync(now, ct),
             "weekly" => await BuildWeeklyAsync(now, ct),
-            "links" => await BuildLinksAsync(now, ct),
+            "links" => await BuildLinksAsync(now, ct, publicBase),
             _ => null,
         };
         if (post is null) return false;
@@ -573,7 +575,7 @@ public partial class ChannelUseCase(
     /// всего стоят в одной колоде самые популярные карты топа. Цифры - из колод топа за
     /// неделю, тот же расчёт, что в конструкторе колод.
     /// </summary>
-    public async Task<ChannelPost?> BuildLinksAsync(DateTime nowUtc, CancellationToken ct)
+    public async Task<ChannelPost?> BuildLinksAsync(DateTime nowUtc, CancellationToken ct, string? publicBase = null)
     {
         var window = await MetaWindow.LoadAsync(meta, ct);
         if (window is null) return null;
@@ -602,7 +604,11 @@ public partial class ChannelUseCase(
             Kind = "links",
             Title = $"Связи карт недели · {from}-{to}",
             Text = ChannelText.Join(lines),
-            PhotoUrl = cardUrls.Card("links", nowUtc.AddMinutes(TzOffsetMinutes).ToString("yyyyMMdd")),
+            // Картинка рисуется на нашем же сервере (/api/img/links): Telegram скачает её по адресу.
+            // Адрес - из настроек, а если их нет - тот, по которому открыли панель.
+            PhotoUrl = cardUrls.Card("links", nowUtc.AddMinutes(TzOffsetMinutes).ToString("yyyyMMdd"))
+                       ?? (publicBase is null ? null
+                           : $"{publicBase.TrimEnd('/')}/api/img/links/{nowUtc.AddMinutes(TzOffsetMinutes):yyyyMMddHHmm}.jpg"),
             ButtonText = "Конструктор колод",
             ButtonUrl = "startapp:builder",
             CreatedUtc = nowUtc,
