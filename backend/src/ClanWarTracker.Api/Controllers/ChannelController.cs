@@ -112,7 +112,9 @@ public class ChannelController(ChannelUseCase channel, ChannelAiUseCase channelA
     public async Task<IActionResult> Preview([FromBody] PreviewRequest req, CancellationToken ct)
     {
         if (await DenyAsync(ct) is { } deny) return deny;
-        if (!await channel.PreviewAsync(req.Kind ?? "", ct)) return StatusCode(409, new { error = "no_data" });
+        // Панель открыта по публичному https-адресу бота (через Caddy) - он же годится Telegram для картинок
+        var publicBase = $"https://{Request.Host}";
+        if (!await channel.PreviewAsync(req.Kind ?? "", ct, publicBase)) return StatusCode(409, new { error = "no_data" });
         return Ok(await channel.GetAsync(ct));
     }
 
