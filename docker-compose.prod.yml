@@ -40,6 +40,9 @@ services:
       DATABASE_URL: postgres://clanwar:${POSTGRES_PASSWORD}@db:5432/clanwar
       CLASH_ROYALE_API_TOKEN: ${CLASH_ROYALE_API_TOKEN}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      # Адрес картинок бота (/api/img/…) - тот же, что у воркера: по нему Telegram скачивает
+      # картинки постов канала, которые собирает панель (например, «Связи карт недели»).
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-https://165-245-222-154.sslip.io}
       # Необязательно: пересказ новостей Clash Royale для канала по-русски (см. .env.example)
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-}
