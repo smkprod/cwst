@@ -1887,6 +1887,8 @@ export interface BuilderCard {
   cardId: number
   name: string
   iconUrl: string
+  /** Обычный арт - запасной, если арт эволюции не открылся */
+  baseIconUrl: string
   evo: boolean
   elixir: number
   rarity: string

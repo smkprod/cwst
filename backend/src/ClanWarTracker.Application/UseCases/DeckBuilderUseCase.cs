@@ -34,7 +34,8 @@ public class DeckBuilderUseCase(
     /// <summary>Карты нет вовсе - считаем как пять уровней недокачки: колоду придётся собирать.</summary>
     private const int MissingCardLevels = 5;
 
-    public record CardDto(int CardId, string Name, string IconUrl, bool Evo, int Elixir, string Rarity,
+    /// <param name="BaseIconUrl">Обычный арт карты - запасной, если арт эволюции не открылся.</param>
+    public record CardDto(int CardId, string Name, string IconUrl, string BaseIconUrl, bool Evo, int Elixir, string Rarity,
         int Level, int MaxLevel, bool Owned, bool EvoOwned);
 
     /// <param name="Key">Ключ колоды в мете - по нему же отмечен выбор аналитика.</param>
@@ -225,6 +226,7 @@ public class DeckBuilderUseCase(
         var own = mine?.GetValueOrDefault(name);
         return new CardDto(id, name,
             (evo ? c?.EvoIconUrl : null) ?? c?.IconUrl ?? "",
+            c?.IconUrl ?? "",
             evo, c?.ElixirCost ?? 0, c?.Rarity ?? "",
             own?.Level ?? 0, own?.MaxLevel ?? 0, own is not null, own is { EvolutionLevel: > 0 });
     }
