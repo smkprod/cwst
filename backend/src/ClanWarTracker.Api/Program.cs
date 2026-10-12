@@ -39,6 +39,7 @@ builder.Services.AddScoped<ChannelUseCase>();
 builder.Services.AddScoped<ChannelAiUseCase>();
 builder.Services.AddScoped<DeckBuilderUseCase>();
 builder.Services.AddScoped<MetaAnalystUseCase>();
+builder.Services.AddScoped<CardKnowledgeUseCase>();
 builder.Services.AddScoped<DuelUseCase>();
 builder.Services.AddScoped<StudioUseCase>();
 builder.Services.AddScoped<GetMatchHistoryUseCase>();
