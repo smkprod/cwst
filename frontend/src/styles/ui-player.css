@@ -184,3 +184,14 @@
 .bld-deck-actions { display: grid; gap: 8px; margin-top: 10px; }
 .bld-deck-actions .bld-copy { margin-top: 0; }
 .bld-to-lab { width: 100%; }
+/* В кнопке iOS WebView теряет высоту по aspect-ratio - задаём её явно, через запас под карту */
+.lab-suggest-card { display: flex; flex-direction: column; align-items: stretch; gap: 10px; min-width: 0; }
+.lab-suggest-card .bld-card { display: block; width: 100%; height: 0; padding-top: 120%; aspect-ratio: auto; flex: none; }
+.lab-suggest-card .bld-card > img, .lab-suggest-card .bld-card > .bld-card-name { position: absolute; inset: 0; width: 100%; height: 100%; }
+.lab-suggest-card .lab-syn { line-height: 1.2; }
+.lab-group + .lab-group { margin-top: 18px; }
+.lab-slot { display: block; width: 100%; height: 0; padding-top: 120%; aspect-ratio: auto; }
+.lab-slot > img, .lab-slot > .bld-card-name { position: absolute; inset: 0; width: 100%; height: 100%; }
+.lab-slot-empty { display: block; }
+.lab-slot-empty > svg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+.lab-slot-empty { position: relative; }
