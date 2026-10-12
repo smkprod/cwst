@@ -18,7 +18,7 @@ namespace ClanWarTracker.Application.UseCases;
 /// отметка «уже сделано», поэтому ни рестарт воркера, ни вторая его копия не
 /// публикуют одно и то же дважды.
 /// </summary>
-public class ChannelUseCase(
+public partial class ChannelUseCase(
     IServiceSettingRepository settings,
     IChannelPostRepository posts,
     IChannelPublisher publisher,
@@ -144,8 +144,24 @@ public class ChannelUseCase(
     {
         var raw = await settings.GetAsync(KeyFeeds, ct);
         if (raw is null) return [.. DefaultFeeds];
-        return raw.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+        return raw.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(NormalizeFeed).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
     }
+
+    /// <summary>
+    /// Адрес Reddit - всегда в виде https://www.reddit.com/r/Сабреддит: бот сам решает,
+    /// как его читать (топ дня, JSON или RSS), а хвосты «/.rss», «/top», «?…» только путают.
+    /// Остальные адреса - как есть.
+    /// </summary>
+    public static string NormalizeFeed(string url)
+    {
+        var m = RedditFeedRegex().Match(url.Trim());
+        return m.Success ? $"https://www.reddit.com/r/{m.Groups[1].Value}" : url.Trim();
+    }
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"^(?:https?://)?(?:www\.|old\.|m\.)?reddit\.com/r/([A-Za-z0-9_]{2,40})",
+        System.Text.RegularExpressions.RegexOptions.IgnoreCase)]
+    private static partial System.Text.RegularExpressions.Regex RedditFeedRegex();
 
     public async Task<StateDto> GetAsync(CancellationToken ct = default)
     {
@@ -209,7 +225,7 @@ public class ChannelUseCase(
         if (feedList is not null)
         {
             var clean = feedList
-                .Select(f => f.Trim())
+                .Select(NormalizeFeed)
                 .Where(f => Uri.TryCreate(f, UriKind.Absolute, out var u) && (u.Scheme == "https" || u.Scheme == "http"))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .Take(10)
