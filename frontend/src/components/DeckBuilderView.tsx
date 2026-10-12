@@ -5,8 +5,12 @@ import { useT, type Translations } from '../lib/i18n'
 import { haptic } from '../lib/telegram'
 import { Icon } from './ui/Icon'
 import { SectionHead } from './ui/Section'
+import { DeckLab } from './DeckLab'
 
-type Tab = 'meta' | 'war'
+type Tab = 'lab' | 'meta' | 'war'
+
+const LAB_KEY = 'cwst_lab_deck'
+const TAB_KEY = 'cwst_bld_tab'
 type Mark = 'in' | 'out'
 
 const ELIXIR_STEPS: (number | null)[] = [null, 3.5, 4, 4.5]
@@ -19,7 +23,27 @@ const ELIXIR_STEPS: (number | null)[] = [null, 3.5, 4, 4.5]
 export function DeckBuilderView() {
   const { t, lang } = useT()
   const b = t.builder
-  const [tab, setTab] = useState<Tab>('meta')
+  const [tab, setTabState] = useState<Tab>(() => {
+    try { return (localStorage.getItem(TAB_KEY) as Tab | null) ?? 'lab' } catch { return 'lab' }
+  })
+  const setTab = (k: Tab) => {
+    setTabState(k)
+    try { localStorage.setItem(TAB_KEY, k) } catch { /* без памяти - не страшно */ }
+  }
+  // Колода конструктора переживает закрытие приложения: собирать её начинают и бросают
+  const [labIds, setLabIdsState] = useState<number[]>(() => {
+    try { return JSON.parse(localStorage.getItem(LAB_KEY) ?? '[]') as number[] } catch { return [] }
+  })
+  const setLabIds = (ids: number[]) => {
+    setLabIdsState(ids)
+    try { localStorage.setItem(LAB_KEY, JSON.stringify(ids)) } catch { /* без памяти - не страшно */ }
+  }
+  const toLab = (deck: BuilderDeck) => {
+    haptic('medium')
+    setLabIds(deck.cards.map(c => c.cardId))
+    setTab('lab')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
   const [onlyMine, setOnlyMine] = useState(true)
   const [sort, setSort] = useState<BuilderQuery['sort']>('fit')
   const [maxElixir, setMaxElixir] = useState<number | null>(null)
@@ -38,6 +62,7 @@ export function DeckBuilderView() {
   }), [marks, maxElixir, onlyMine, sort])
 
   useEffect(() => {
+    if (tab === 'lab') return
     let alive = true
     setState('loading')
     const load = tab === 'meta'
@@ -49,10 +74,11 @@ export function DeckBuilderView() {
     return () => { alive = false }
   }, [tab, query, lang])
 
+  const loadCards = () => { if (!cards) api.builderCards().then(setCards).catch(() => setCards([])) }
   const openPicker = () => {
     haptic('light')
     setPicker(true)
-    if (!cards) api.builderCards().then(setCards).catch(() => setCards([]))
+    loadCards()
   }
 
   const linked = tab === 'meta' ? decks?.linked : war?.linked
@@ -61,15 +87,18 @@ export function DeckBuilderView() {
   return (
     <div className="fade-in bld">
       <section className="card">
-        <SectionHead icon="cards" tone="violet" title={b.title} info={<p>{tab === 'war' ? b.warInfo : b.info}</p>} />
+        <SectionHead icon="cards" tone="violet" title={b.title} info={<p>{tab === 'war' ? b.warInfo : tab === 'lab' ? b.labInfo : b.info}</p>} />
         <div className="bld-tabs">
-          {(['meta', 'war'] as Tab[]).map(k => (
+          {(['lab', 'meta', 'war'] as Tab[]).map(k => (
             <button key={k} className={`bld-tab ${tab === k ? 'bld-tab-on' : ''}`}
               onClick={() => { haptic('light'); setTab(k) }}>
-              <Icon name={k === 'meta' ? 'trendUp' : 'swords'} size={15} />{k === 'meta' ? b.tabMeta : b.tabWar}
+              <Icon name={k === 'lab' ? 'edit' : k === 'meta' ? 'trendUp' : 'swords'} size={15} />
+              {k === 'lab' ? b.tabLab : k === 'meta' ? b.tabMeta : b.tabWar}
             </button>
           ))}
         </div>
+
+        {tab !== 'lab' && <>
 
         <div className="bld-filters">
           <button className={`bld-chip ${onlyMine ? 'bld-chip-on' : ''}`} onClick={() => { haptic('light'); setOnlyMine(v => !v) }}>
@@ -112,14 +141,17 @@ export function DeckBuilderView() {
           </div>
         )}
         {linked === false && <p className="muted small" style={{ margin: '10px 0 0' }}>{b.notLinked}</p>}
+        </>}
       </section>
 
-      {state === 'loading' && <div className="center" style={{ marginTop: 16 }}><div className="spinner" /></div>}
-      {state === 'nometa' && <p className="center muted">{b.noMeta}</p>}
-      {state === 'error' && <p className="center muted">{b.loadError}</p>}
+      {tab === 'lab' && <DeckLab ids={labIds} onChange={setLabIds} cards={cards} loadCards={loadCards} />}
 
-      {state === 'ready' && tab === 'meta' && decks && <MetaList data={decks} t={t} />}
-      {state === 'ready' && tab === 'war' && war && <WarList data={war} t={t} />}
+      {tab !== 'lab' && state === 'loading' && <div className="center" style={{ marginTop: 16 }}><div className="spinner" /></div>}
+      {tab !== 'lab' && state === 'nometa' && <p className="center muted">{b.noMeta}</p>}
+      {tab !== 'lab' && state === 'error' && <p className="center muted">{b.loadError}</p>}
+
+      {state === 'ready' && tab === 'meta' && decks && <MetaList data={decks} t={t} onToLab={toLab} />}
+      {state === 'ready' && tab === 'war' && war && <WarList data={war} t={t} onToLab={toLab} />}
 
       {picker && (
         <CardPicker cards={cards} marks={marks} t={t}
@@ -137,7 +169,7 @@ export function DeckBuilderView() {
   )
 }
 
-function MetaList({ data, t }: { data: BuilderDecks; t: Translations }) {
+function MetaList({ data, t, onToLab }: { data: BuilderDecks; t: Translations; onToLab: (d: BuilderDeck) => void }) {
   const b = t.builder
   return (
     <>
@@ -149,7 +181,7 @@ function MetaList({ data, t }: { data: BuilderDecks; t: Translations }) {
       )}
       {data.decks.length === 0
         ? <p className="center muted">{b.empty}</p>
-        : data.decks.map(d => <DeckCard key={d.key} deck={d} linked={data.linked} t={t} />)}
+        : data.decks.map(d => <DeckCard key={d.key} deck={d} linked={data.linked} t={t} onToLab={onToLab} />)}
       <p className="muted small center">
         {b.period.replace('{from}', data.fromDayUtc).replace('{to}', data.toDayUtc)}
       </p>
@@ -157,7 +189,7 @@ function MetaList({ data, t }: { data: BuilderDecks; t: Translations }) {
   )
 }
 
-function WarList({ data, t }: { data: BuilderWar; t: Translations }) {
+function WarList({ data, t, onToLab }: { data: BuilderWar; t: Translations; onToLab: (d: BuilderDeck) => void }) {
   const b = t.builder
   if (data.decks.length === 0) return <p className="center muted">{b.empty}</p>
   return (
@@ -168,13 +200,15 @@ function WarList({ data, t }: { data: BuilderWar; t: Translations }) {
         {!data.complete && <p className="small bld-warn">{b.warIncomplete.replace('{n}', String(data.decks.length))}</p>}
       </section>
       {data.decks.map((d, i) => (
-        <DeckCard key={d.key} deck={d} linked={data.linked} t={t} title={b.deckN.replace('{n}', String(i + 1))} />
+        <DeckCard key={d.key} deck={d} linked={data.linked} t={t} title={b.deckN.replace('{n}', String(i + 1))} onToLab={onToLab} />
       ))}
     </>
   )
 }
 
-function DeckCard({ deck, linked, t, title }: { deck: BuilderDeck; linked: boolean; t: Translations; title?: string }) {
+export function DeckCard({ deck, linked, t, title, onToLab }: {
+  deck: BuilderDeck; linked: boolean; t: Translations; title?: string; onToLab?: (d: BuilderDeck) => void
+}) {
   const b = t.builder
   return (
     <section className={`card bld-deck ${deck.pick ? 'bld-deck-pick' : ''}`}>
@@ -200,11 +234,18 @@ function DeckCard({ deck, linked, t, title }: { deck: BuilderDeck; linked: boole
         {linked && <span>{b.owned.replace('{n}', String(deck.owned))}</span>}
         {linked && deck.avgLevel > 0 && <span>{b.avgLevel.replace('{n}', String(deck.avgLevel))}</span>}
       </div>
-      {deck.copyLink && (
-        <a className="btn btn-nudge bld-copy" href={deck.copyLink} target="_blank" rel="noreferrer" onClick={() => haptic('medium')}>
-          <Icon name="external" size={15} /> {b.copy}
-        </a>
-      )}
+      <div className="bld-deck-actions">
+        {deck.copyLink && (
+          <a className="btn btn-nudge bld-copy" href={deck.copyLink} target="_blank" rel="noreferrer" onClick={() => haptic('medium')}>
+            <Icon name="external" size={15} /> {b.copy}
+          </a>
+        )}
+        {onToLab && (
+          <button className="btn btn-ghost bld-to-lab" onClick={() => onToLab(deck)}>
+            <Icon name="edit" size={15} /> {b.toLab}
+          </button>
+        )}
+      </div>
     </section>
   )
 }
@@ -214,7 +255,7 @@ function DeckCard({ deck, linked, t, title }: { deck: BuilderDeck; linked: boole
  * показываем обычный арт, а если не открылся и он - плашку с названием, а не значок
  * сломанной картинки.
  */
-function CardArt({ card }: { card: BuilderCard }) {
+export function CardArt({ card }: { card: BuilderCard }) {
   const sources = [card.iconUrl, card.baseIconUrl].filter((u, i, all) => u && all.indexOf(u) === i)
   const [step, setStep] = useState(0)
   if (step >= sources.length) {
@@ -223,8 +264,10 @@ function CardArt({ card }: { card: BuilderCard }) {
   return <img src={sources[step]} alt={card.name} loading="lazy" onError={() => setStep(s => s + 1)} />
 }
 
-function CardPicker({ cards, marks, t, onToggle, onClose }: {
+export function CardPicker({ cards, marks, t, onToggle, onClose, title, hint }: {
   cards: BuilderCard[] | null
+  title?: string
+  hint?: string
   marks: Record<number, Mark>
   t: Translations
   onToggle: (id: number) => void
@@ -237,10 +280,10 @@ function CardPicker({ cards, marks, t, onToggle, onClose }: {
     <div className="bld-picker-backdrop" onClick={onClose}>
       <div className="bld-picker" onClick={e => e.stopPropagation()}>
         <div className="bld-picker-head">
-          <b>{b.pickerTitle}</b>
+          <b>{title ?? b.pickerTitle}</b>
           <button className="btn-mini" onClick={onClose}>{b.done}</button>
         </div>
-        <p className="muted small" style={{ margin: '0 0 8px' }}>{b.pickerHint}</p>
+        <p className="muted small" style={{ margin: '0 0 8px' }}>{hint ?? b.pickerHint}</p>
         <input className="search-input bld-picker-search" placeholder={b.search} value={q} onChange={e => setQ(e.target.value)} />
         {!cards ? <div className="center"><div className="spinner" /></div> : (
           <div className="bld-picker-grid">

@@ -82,9 +82,9 @@
 .psheet-link .ui-icon { vertical-align: -2px; }
 
 /* Билдер колод */
-.bld-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 4px; border-radius: 14px; background: var(--ui-surface-2, rgba(255,255,255,0.06)); margin-bottom: 12px; }
-.bld-tab { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 8px; border: none; border-radius: 11px;
-  background: none; color: var(--muted); font: inherit; font-weight: 800; font-size: 14px; cursor: pointer; }
+.bld-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 14px; background: var(--ui-surface-2, rgba(255,255,255,0.06)); margin-bottom: 12px; }
+.bld-tab { display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 9px 4px; white-space: nowrap; min-width: 0; border: none; border-radius: 11px;
+  background: none; color: var(--muted); font: inherit; font-weight: 800; font-size: 13px; cursor: pointer; }
 .bld-tab-on { background: var(--ui-grad, #7c5cff); color: #fff; box-shadow: 0 6px 16px rgba(124, 92, 255, 0.35); }
 .bld-filters, .bld-sort, .bld-marked { display: flex; flex-wrap: wrap; gap: 6px; }
 .bld-sort { margin-top: 8px; }
@@ -138,3 +138,49 @@
 .bld-pick-badge { position: absolute; top: -5px; right: -5px; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; color: #fff; }
 .bld-pick-in .bld-pick-badge { background: #16a34a; }
 .bld-pick-out .bld-pick-badge { background: #dc2626; }
+
+/* Конструктор колоды */
+.lab-slots { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.lab-slot { position: relative; aspect-ratio: 5 / 6; padding: 0; border: none; border-radius: 10px; cursor: pointer; font: inherit; color: inherit; }
+.lab-slot-empty { display: grid; place-items: center; background: rgba(255, 255, 255, 0.04); border: 2px dashed rgba(160, 130, 255, 0.45); color: #c4b5fd; }
+.lab-slot-x { position: absolute; top: -5px; right: -5px; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center;
+  background: rgba(0, 0, 0, 0.65); color: #fff; }
+.lab-summary { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 12px; font-weight: 700; }
+.lab-summary span { display: inline-flex; align-items: center; gap: 4px; }
+.lab-full { color: #4ade80; }
+.lab-clear { margin-left: auto; }
+.lab-bars { display: grid; gap: 10px; margin-top: 14px; }
+.lab-bar-head { display: flex; justify-content: space-between; font-size: 13.5px; font-weight: 700; margin-bottom: 4px; }
+.lab-bar-track { height: 10px; border-radius: 999px; background: rgba(0, 0, 0, 0.3); overflow: hidden; }
+.lab-bar-track i { display: block; height: 100%; border-radius: 999px; transition: width 0.35s ease; }
+.lab-good { background: linear-gradient(90deg, #22c55e, #4ade80); }
+.lab-mid { background: linear-gradient(90deg, #eab308, #facc15); }
+.lab-bad { background: linear-gradient(90deg, #dc2626, #f87171); }
+.lab-checks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.lab-check { display: inline-flex; align-items: center; gap: 4px; padding: 4px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+.lab-check-ok { background: rgba(34, 197, 94, 0.14); color: #86efac; }
+.lab-check-no { background: rgba(245, 158, 11, 0.16); color: #fcd34d; }
+.lab-links { display: grid; gap: 10px; }
+.lab-link { display: flex; gap: 10px; align-items: center; }
+.lab-link-cards { display: flex; gap: 4px; flex-shrink: 0; }
+.lab-mini { width: 38px; height: 46px; display: grid; place-items: center; border-radius: 7px; overflow: hidden; background: rgba(0,0,0,0.18); }
+.lab-mini img { width: 100%; height: 100%; object-fit: contain; }
+.lab-mini .bld-card-name { font-size: 8px; padding: 2px; }
+.lab-link-text { display: grid; gap: 2px; min-width: 0; font-size: 14px; }
+.lab-group + .lab-group { margin-top: 12px; }
+.lab-group-title { display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 800; margin-bottom: 8px; }
+.lab-group-need { color: #fcd34d; }
+.lab-suggest { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.lab-suggest-card { display: grid; gap: 6px; padding: 0; border: none; background: none; color: inherit; font: inherit; cursor: pointer; }
+.lab-suggest-card:disabled { opacity: 0.5; }
+.lab-weak .bld-card img { filter: grayscale(0.7) opacity(0.5); }
+.lab-weak .lab-syn { color: #f87171; }
+.lab-syn { font-size: 11.5px; font-weight: 800; text-align: center; color: #86efac; }
+.lab-roles { display: grid; gap: 10px; }
+.lab-role { display: grid; grid-template-columns: 110px minmax(0, 1fr); align-items: center; gap: 8px; }
+.lab-role-name { font-size: 13px; font-weight: 800; }
+.lab-role-cards { display: flex; flex-wrap: wrap; gap: 4px; }
+.lab-similar-head { display: flex; align-items: center; gap: 6px; margin: 16px 4px 8px; font-size: 15px; }
+.bld-deck-actions { display: grid; gap: 8px; margin-top: 10px; }
+.bld-deck-actions .bld-copy { margin-top: 0; }
+.bld-to-lab { width: 100%; }

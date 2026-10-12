@@ -1947,3 +1947,22 @@ export interface BuilderQuery {
   sort: 'fit' | 'win' | 'popular'
 }
 
+/** Конструктор колоды: что получилось из выбранных карт. */
+export interface DeckLab {
+  linked: boolean
+  cards: BuilderCard[]
+  avgElixir: number
+  cycleElixir: number
+  /** Шкалы 0..100 */
+  attack: number
+  defense: number
+  synergy: number
+  balance: number
+  checks: { key: 'win' | 'antiair' | 'splash' | 'smallspell' | 'bigspell' | 'elixir'; ok: boolean }[]
+  roles: { role: string; cards: number[] }[]
+  links: { a: number; b: number; coPlayPercent: number; winPercent: number; games: number; note: string | null }[]
+  suggestions: { reason: string; cards: { card: BuilderCard; synergy: number; weak: boolean }[] }[]
+  similar: BuilderDeck[]
+  copyLink: string | null
+}
+

@@ -104,6 +104,9 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
                 using var scope = scopeFactory.CreateScope();
                 var analyst = scope.ServiceProvider.GetRequiredService<MetaAnalystUseCase>();
                 if (await analyst.TickAsync(stoppingToken)) logger.LogInformation("Meta analyst report updated");
+                // Связи карт и роли новых карт для конструктора колод - тоже раз в сутки
+                var knowledge = scope.ServiceProvider.GetRequiredService<CardKnowledgeUseCase>();
+                if (await knowledge.TickAsync(stoppingToken)) logger.LogInformation("Card knowledge updated");
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { throw; }
             catch (Exception ex)
