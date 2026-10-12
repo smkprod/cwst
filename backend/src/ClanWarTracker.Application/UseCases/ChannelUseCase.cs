@@ -1,4 +1,5 @@
 using System.Text.Json;
+using ClanWarTracker.Application.Meta;
 using ClanWarTracker.Application.Notifications;
 using ClanWarTracker.Domain.Entities;
 using ClanWarTracker.Domain.Interfaces;
@@ -27,7 +28,9 @@ public partial class ChannelUseCase(
     ChallengeUseCase challenge,
     IClashRoyaleApi crApi,
     INewsFeedReader feeds,
-    INewsTranslator translator)
+    INewsTranslator translator,
+    IMetaRepository meta,
+    ICardUrls cardUrls)
 {
     public const string KeyId = "channel.id";
     public const string KeyTitle = "channel.title";
@@ -361,6 +364,7 @@ public partial class ChannelUseCase(
         {
             "daily" => await BuildDailyAsync(now, ct),
             "weekly" => await BuildWeeklyAsync(now, ct),
+            "links" => await BuildLinksAsync(now, ct),
             _ => null,
         };
         if (post is null) return false;
@@ -560,6 +564,49 @@ public partial class ChannelUseCase(
 
         void Add(long id, string name, int delta) =>
             gains[id] = (name, (gains.TryGetValue(id, out var g) ? g.Gain : 0) + delta);
+    }
+
+    /* ---------------- Связи карт ---------------- */
+
+    /// <summary>
+    /// «Связи карт недели»: большая инфографика (/api/img/links) и подпись - с кем чаще
+    /// всего стоят в одной колоде самые популярные карты топа. Цифры - из колод топа за
+    /// неделю, тот же расчёт, что в конструкторе колод.
+    /// </summary>
+    public async Task<ChannelPost?> BuildLinksAsync(DateTime nowUtc, CancellationToken ct)
+    {
+        var window = await MetaWindow.LoadAsync(meta, ct);
+        if (window is null) return null;
+        var syn = MetaSynergy.For(window);
+        var top = MetaSynergy.Top(syn, 6, 3);
+        if (top.Count == 0) return null;
+        var catalog = await GetMetaDecksUseCase.SafeCatalogAsync(crApi, ct);
+        string Name(int id) => ChannelText.Plain(catalog.GetValueOrDefault(id)?.Name ?? $"#{id}");
+
+        var from = DateOnly.Parse(window.FromDayUtc).ToString("dd.MM");
+        var to = DateOnly.Parse(window.ToDayUtc).ToString("dd.MM");
+        var lines = new List<string?>
+        {
+            "🔗 **Связи карт недели**",
+            "",
+            $"С кем чаще всего стоят в одной колоде самые популярные карты топа (бои {from}-{to}):",
+            "",
+        };
+        foreach (var c in top)
+            lines.Add($"• **{Name(c.Id)}** - " + string.Join(", ", c.Partners.Select(p => $"{Name(p.Id)} {p.Percent:0}%")));
+        lines.Add("");
+        lines.Add("Собери колоду с этими связками в конструкторе Clanify 👇");
+
+        return new ChannelPost
+        {
+            Kind = "links",
+            Title = $"Связи карт недели · {from}-{to}",
+            Text = ChannelText.Join(lines),
+            PhotoUrl = cardUrls.Card("links", nowUtc.AddMinutes(TzOffsetMinutes).ToString("yyyyMMdd")),
+            ButtonText = "Конструктор колод",
+            ButtonUrl = "startapp:builder",
+            CreatedUtc = nowUtc,
+        };
     }
 
     /* ---------------- Неделя лиги 1×1 ---------------- */

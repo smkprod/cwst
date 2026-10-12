@@ -47,7 +47,7 @@ const SUGGESTED_FEEDS: { label: string; url: string }[] = [
 
 const KIND_LABEL: Record<string, string> = {
   manual: 'Свой пост', ai: 'Нейро-пост', news: 'Новость', daily: 'Топ дня', weekly: 'Неделя лиги',
-  chstart: 'Старт челленджа', chend: 'Итоги челленджа', card: 'Новая карта',
+  chstart: 'Старт челленджа', chend: 'Итоги челленджа', card: 'Новая карта', links: 'Связи карт',
 }
 
 function errorText(e: unknown): string {
@@ -230,7 +230,7 @@ function AutoCard({ state, onState }: Props) {
     try { onState(await api.channelSettings({ [key]: next })) } catch { onState(state) }
   }
 
-  const preview = async (kind: 'daily' | 'weekly') => {
+  const preview = async (kind: 'daily' | 'weekly' | 'links') => {
     haptic('light')
     setBusy(kind)
     setNote(null)
@@ -259,6 +259,9 @@ function AutoCard({ state, onState }: Props) {
         </button>
         <button className="btn-mini" disabled={busy !== null} onClick={() => preview('weekly')}>
           <Icon name="eye" size={14} />{busy === 'weekly' ? '…' : 'Пример: неделя лиги'}
+        </button>
+        <button className="btn-mini" disabled={busy !== null} onClick={() => preview('links')}>
+          <Icon name="link" size={14} />{busy === 'links' ? '…' : 'Пост: связи карт (картинка)'}
         </button>
       </div>
       {note && <p className="muted small">{note}</p>}

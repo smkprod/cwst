@@ -26,6 +26,7 @@ public class ImageController(
     CardRenderer renderer,
     ITelegramBotClient bot,
     ITournamentRepository tournaments,
+    IMetaRepository meta,
     IMemoryCache cache) : ControllerBase
 {
     /// <summary>Столько живёт нарисованная карточка. Война меняется медленнее.</summary>
@@ -101,6 +102,34 @@ public class ImageController(
                 $"Колода {info.Name}", info.ClanName ?? "без клана", cards,
                 Math.Round(info.CurrentDeck.Average(c => (double)c.Level), 1),
                 await BotNameAsync(ct)));
+        });
+
+    /// <summary>
+    /// GET /api/img/links/{any}.jpg — инфографика «связи карт недели» для канала: 12 самых
+    /// популярных карт топа и с кем они чаще всего стоят в одной колоде. Только данные
+    /// меты - публичные; часть пути после links/ - просто ключ кэша в Telegram.
+    /// </summary>
+    [HttpGet("links/{key}.jpg")]
+    public Task<IActionResult> LinksCard(string key, CancellationToken ct) =>
+        Serve("links", SlowTtl, async () =>
+        {
+            var window = await ClanWarTracker.Application.Meta.MetaWindow.LoadAsync(meta, ct);
+            if (window is null) return null;
+            var catalog = await GetMetaDecksUseCase.SafeCatalogAsync(crApi, ct);
+            var syn = ClanWarTracker.Application.Meta.MetaSynergy.For(window);
+            var top = ClanWarTracker.Application.Meta.MetaSynergy.Top(syn, 12, 3);
+            if (top.Count == 0) return null;
+
+            string Name(int id) => catalog.GetValueOrDefault(id)?.Name ?? $"#{id}";
+            string IconOf(int id) => catalog.GetValueOrDefault(id)?.IconUrl ?? "";
+            var rows = top.Select(c => new LinkCardRow(Name(c.Id), IconOf(c.Id), c.SharePercent,
+                c.Partners.Select(pp => (Name(pp.Id), IconOf(pp.Id), pp.Percent)).ToList())).ToList();
+
+            var from = DateOnly.Parse(window.FromDayUtc).ToString("dd.MM");
+            var to = DateOnly.Parse(window.ToDayUtc).ToString("dd.MM");
+            return renderer.RenderLinks(new LinksCardModel(
+                "Связи карт недели", $"Колоды топа · {from}-{to} · {window.Battles:N0} боёв".Replace(',', ' '),
+                rows, await BotNameAsync(ct)));
         });
 
     /// <summary>
