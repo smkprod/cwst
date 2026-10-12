@@ -72,7 +72,12 @@ public class ChannelUseCase(
 
     /* ---------------- Настройки ---------------- */
 
-    public record FeedStatus(string Url, bool Ok, int Items, string? Error, DateTime AtUtc);
+    /// <param name="New">Сколько записей стало черновиками или постами за эту проверку.</param>
+    /// <param name="Rejected">Сколько нейросеть отсеяла как не новость об игре.</param>
+    /// <param name="Skipped">Сколько не прошло по апвоутам (Reddit).</param>
+    /// <param name="Note">Пояснение: как читается источник, упёрлись ли в дневной лимит.</param>
+    public record FeedStatus(string Url, bool Ok, int Items, string? Error, DateTime AtUtc,
+        int New = 0, int Rejected = 0, int Skipped = 0, string? Note = null);
 
     public record PostDto(int Id, string Kind, string State, string? Title, string Text, string? PhotoUrl, string? LinkUrl,
         string? ButtonText, string? ButtonUrl, DateTime CreatedUtc, DateTime? PublishedUtc, string? PostUrl, string? Error);
@@ -724,8 +729,6 @@ public class ChannelUseCase(
                 status.Add(new FeedStatus(feed, false, 0, ex.Message.Length > 120 ? ex.Message[..120] : ex.Message, now));
                 continue;
             }
-            status.Add(new FeedStatus(feed, true, items.Count, null, now));
-
             // Страница блога без дат: при первом чтении всё, что на ней уже есть, - архив.
             // Запоминаем его как просмотренное, иначе в черновики разом упали бы тридцать
             // старых статей.
@@ -742,17 +745,31 @@ public class ChannelUseCase(
             }
 
             var candidates = items.Where(i => i.PublishedUtc is not DateTime d || now - d <= NewsWindow);
+            int added = 0, rejected = 0, skipped = 0;
+            var notes = new List<string>();
+            var isReddit = items.Any(i => i.IsReddit);
             // Reddit: сперва бесплатный отсев по апвоутам - до модели доходит только то, что
             // сообщество уже подняло в топ, самое заметное первым. Пост, не добравший апвоутов,
             // не запоминаем: к вечеру он может их набрать.
-            if (items.Any(i => i.IsReddit))
-                candidates = candidates.Where(i => i.Score is null || i.Score >= reddit.MinScore).OrderByDescending(i => i.Score ?? 0);
+            if (isReddit)
+            {
+                var all = candidates.ToList();
+                candidates = all.Where(i => i.Score is null || i.Score >= reddit.MinScore).OrderByDescending(i => i.Score ?? 0).ToList();
+                skipped = all.Count - candidates.Count();
+                notes.Add(items.All(i => i.Score is null)
+                    ? "Reddit отдал только RSS - апвоуты не видны, берём верх топа дня"
+                    : $"топ дня с апвоутами, порог {reddit.MinScore}");
+            }
 
             var taken = 0;
             foreach (var item in candidates)
             {
                 if (taken >= NewsPerFeedPerRun) break;
-                if (item.IsReddit && redditToday >= reddit.PerDay) break;
+                if (item.IsReddit && redditToday >= reddit.PerDay)
+                {
+                    notes.Add($"дневной лимит {reddit.PerDay} поста с Reddit исчерпан");
+                    break;
+                }
                 var key = NewsKey(item);
                 if (await posts.ExistsAsync(key, ct)) continue;
                 taken++;
@@ -780,6 +797,7 @@ public class ChannelUseCase(
                         Kind = "news", State = ChannelPostState.Rejected, SourceKey = key, Title = Cut(item.Title, 200),
                         Text = item.Title, LinkUrl = Cut(item.Link, 500), CreatedUtc = now,
                     }, ct);
+                    rejected++;
                     continue;
                 }
 
@@ -806,6 +824,7 @@ public class ChannelUseCase(
                     CreatedUtc = now,
                 };
                 if (!await posts.TryAddAsync(post, ct)) continue;
+                added++;
                 if (item.IsReddit)
                 {
                     redditToday++;
@@ -817,6 +836,8 @@ public class ChannelUseCase(
                 }
                 else drafts++;
             }
+            status.Add(new FeedStatus(feed, true, items.Count, null, now, added, rejected, skipped,
+                notes.Count == 0 ? null : string.Join("; ", notes)));
         }
 
         await settings.SetAsync(KeyFeedStatus, JsonSerializer.Serialize(status), ct);

@@ -104,3 +104,4 @@
 .ch-ai-rewrite .search-input { width: 100%; }
 .ch-analyst { display: grid; gap: 6px; margin: -4px 0 12px; }
 .ch-analyst .btn-mini { justify-self: start; }
+.ch-feed-status li > .ch-feed-note { grid-column: 2; font-size: 11.5px; }
