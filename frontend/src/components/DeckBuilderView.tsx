@@ -187,7 +187,7 @@ function DeckCard({ deck, linked, t, title }: { deck: BuilderDeck; linked: boole
       <div className="bld-cards">
         {deck.cards.map(c => (
           <span key={`${c.cardId}-${c.evo}`} className={`bld-card ${linked && !c.owned ? 'bld-card-missing' : ''} ${c.evo ? 'bld-card-evo' : ''}`}>
-            {c.iconUrl ? <img src={c.iconUrl} alt={c.name} loading="lazy" /> : <span className="bld-card-name">{c.name}</span>}
+            <CardArt card={c} />
             {linked && c.owned && (
               <span className={`bld-level ${c.level >= c.maxLevel ? 'bld-level-max' : ''}`}>{c.level}</span>
             )}
@@ -207,6 +207,20 @@ function DeckCard({ deck, linked, t, title }: { deck: BuilderDeck; linked: boole
       )}
     </section>
   )
+}
+
+/**
+ * Арт карты с запасом: у части эволюций ссылка на арт в справочнике игры битая. Тогда
+ * показываем обычный арт, а если не открылся и он - плашку с названием, а не значок
+ * сломанной картинки.
+ */
+function CardArt({ card }: { card: BuilderCard }) {
+  const sources = [card.iconUrl, card.baseIconUrl].filter((u, i, all) => u && all.indexOf(u) === i)
+  const [step, setStep] = useState(0)
+  if (step >= sources.length) {
+    return <span className="bld-card-name">{card.name}<small>{card.elixir}</small></span>
+  }
+  return <img src={sources[step]} alt={card.name} loading="lazy" onError={() => setStep(s => s + 1)} />
 }
 
 function CardPicker({ cards, marks, t, onToggle, onClose }: {
@@ -235,7 +249,7 @@ function CardPicker({ cards, marks, t, onToggle, onClose }: {
               return (
                 <button key={c.cardId} className={`bld-pick-card ${m ? `bld-pick-${m}` : ''}`}
                   onClick={() => { haptic('light'); onToggle(c.cardId) }}>
-                  {c.iconUrl ? <img src={c.iconUrl} alt={c.name} loading="lazy" /> : <span>{c.name}</span>}
+                  <CardArt card={c} />
                   {m && <span className="bld-pick-badge"><Icon name={m === 'in' ? 'check' : 'x'} size={12} /></span>}
                 </button>
               )
