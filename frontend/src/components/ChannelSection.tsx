@@ -42,7 +42,7 @@ function sameFeed(a: string, b: string): boolean {
 const SUGGESTED_FEEDS: { label: string; url: string }[] = [
   { label: 'Блог Supercell', url: 'https://supercell.com/en/games/clashroyale/blog/' },
   { label: 'YouTube Clash Royale', url: 'https://www.youtube.com/feeds/videos.xml?channel_id=UC_F8DoJf9MZogEOU51TpTbQ' },
-  { label: 'Reddit r/ClashRoyale', url: 'https://www.reddit.com/r/ClashRoyale/' },
+  { label: 'Reddit r/ClashRoyale', url: 'https://www.reddit.com/r/ClashRoyale' },
 ]
 
 const KIND_LABEL: Record<string, string> = {
@@ -319,7 +319,7 @@ function NewsCard({ state, onState }: Props) {
         info={<>
           <p>Бот раз в 30 минут проверяет источники, открывает каждую новую статью целиком и собирает из неё пост: заголовок, суть, список изменений. Пост ждёт вас в черновиках.</p>
           <p>Можно добавить и обычную страницу блога без RSS - бот будет следить за новыми статьями на ней.</p>
-          <p>Подходит любая RSS или Atom-лента: сайт, YouTube-канал (youtube.com/feeds/videos.xml?channel_id=…), Reddit (reddit.com/r/ClashRoyale/.rss).</p>
+          <p>Подходит любая RSS или Atom-лента: сайт, YouTube-канал (youtube.com/feeds/videos.xml?channel_id=…), Reddit (просто reddit.com/r/ClashRoyale - бот сам возьмёт топ дня).</p>
           <p>Твиттер напрямую бесплатно читать нельзя - API X платный. Можно вставить сюда RSS-ленту аккаунта из сервисов вроде rss.app.</p>
         </>} />
       <div className="ch-toggles">
