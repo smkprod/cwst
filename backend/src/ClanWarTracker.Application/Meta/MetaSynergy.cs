@@ -11,10 +11,12 @@ namespace ClanWarTracker.Application.Meta;
 /// </summary>
 public static class MetaSynergy
 {
+    /// <param name="TotalGames">Сколько игр сыграно всеми учтёнными колодами - база для «в X% колод».</param>
     public sealed record Data(
         string WindowDay,
         Dictionary<int, (int Games, int Wins)> Cards,
-        Dictionary<(int A, int B), (int Games, int Wins)> Pairs)
+        Dictionary<(int A, int B), (int Games, int Wins)> Pairs,
+        long TotalGames)
     {
         /// <summary>
         /// Как часто b играет вместе с a: доля игр колод с a, где есть и b (0..1).
@@ -31,6 +33,31 @@ public static class MetaSynergy
 
     public static (int, int) Key(int a, int b) => a < b ? (a, b) : (b, a);
 
+    /// <param name="SharePercent">В скольких процентах колод топа есть эта карта.</param>
+    public record Partner(int Id, double Percent);
+    public record CardLinks(int Id, double SharePercent, List<Partner> Partners);
+
+    /// <summary>
+    /// Самые популярные карты меты и с кем они играют чаще всего - для инфографики и
+    /// поста «связи карт недели». Процент напарника - доля колод с картой, где есть и он.
+    /// </summary>
+    public static List<CardLinks> Top(Data data, int cards, int partners)
+    {
+        var total = Math.Max(1, data.TotalGames);
+        return data.Cards
+            .OrderByDescending(c => c.Value.Games)
+            .Take(cards)
+            .Select(c => new CardLinks(c.Key, Math.Round(100.0 * c.Value.Games / total, 1),
+                data.Cards.Keys
+                    .Where(o => o != c.Key)
+                    .Select(o => new Partner(o, Math.Round(data.CoPlay(c.Key, o) * 100)))
+                    .Where(p => p.Percent > 0)
+                    .OrderByDescending(p => p.Percent)
+                    .Take(partners)
+                    .ToList()))
+            .ToList();
+    }
+
     private static Data? _cached;
     private static readonly object Gate = new();
 
@@ -45,11 +72,13 @@ public static class MetaSynergy
 
             var cards = new Dictionary<int, (int Games, int Wins)>();
             var pairs = new Dictionary<(int, int), (int Games, int Wins)>();
+            long total = 0;
             foreach (var d in window.Decks)
             {
                 // Эволюция и обычная версия - одна карта: связь «Рыцарь + Golem» одна и та же
                 var ids = MetaCard.ParseDeckKey(d.Key).Select(Math.Abs).Distinct().OrderBy(x => x).ToArray();
                 if (ids.Length != 8) continue;
+                total += d.Games;
                 foreach (var id in ids)
                 {
                     var c = cards.GetValueOrDefault(id);
@@ -62,7 +91,7 @@ public static class MetaSynergy
                         pairs[(ids[i], ids[j])] = (p.Games + d.Games, p.Wins + d.Wins);
                     }
             }
-            _cached = new Data(window.ToDayUtc + window.Decks.Count, cards, pairs);
+            _cached = new Data(window.ToDayUtc + window.Decks.Count, cards, pairs, total);
             return _cached;
         }
     }
