@@ -79,8 +79,8 @@ public class TiltWatchUseCase(
 
         // Платные: Плюс, купленный или подаренный, и спонсоры - им Плюс входит в спонсорство.
         var paid = new HashSet<long>(await entitlements.ActiveUsersAsync(Entitlement.Skus.Plus, now, ct));
-        foreach (var p in await players.GetAllLinkedAsync(ct))
-            if (p.TelegramUserId is long tg && p.IsSponsor(now)) paid.Add(tg);
+        // Только id спонсоров: раньше ради них каждую минуту грузились все привязанные игроки с кланами
+        paid.UnionWith(await players.SponsorTelegramIdsAsync(now, ct));
         // Платное выключено владельцем - всё открыто: пишем всем, кто включил сам.
         if (!offer.Paywall) paid.UnionWith(await alertPrefs.OptedInAsync(ct));
 
@@ -92,6 +92,9 @@ public class TiltWatchUseCase(
         // Трекер боёв - тот же опрос: без Плюса тоже, это не платная функция.
         var beta = await BattleTrackerUseCase.BetaAsync(settings, ct);
         watch.UnionWith((await alertPrefs.TrackerUsersAsync(ct)).Where(tg => BattleTrackerUseCase.Allowed(beta, tg)));
+
+        // Кого больше не опрашиваем - забываем: словарь живёт весь срок процесса
+        foreach (var gone in LastSync.Keys.Where(k => !watch.Contains(k)).ToList()) LastSync.TryRemove(gone, out _);
 
         var c = new Counters { Paywall = offer.Paywall };
         foreach (var tg in watch)
@@ -150,6 +153,9 @@ public class TiltWatchUseCase(
         if (prefs?.PauseUntilUtc is { } pauseUntil && pauseUntil <= now)
         {
             prefs.PauseUntilUtc = null;
+            // Сначала записать, потом слать: иначе сбой записи ниже повторял «можно»
+            // каждую минуту.
+            await alertPrefs.SaveChangesAsync(ct);
             var text = await ResumeTextAsync(t, await MonthAsync(), ct);
             await sender.SendToUserWithButtonsAsync(tg, text, [], ct);
             foreach (var a in open.Where(a => a.Choice == "pause" && a.ResumeSentUtc is null))

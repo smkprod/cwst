@@ -149,17 +149,31 @@ public class WarSnapshotRepository(AppDbContext db) : IWarSnapshotRepository
 
         if (weekKeys.Count == 0) return [];
 
-        var minSeason = weekKeys.Min(k => k.SeasonId);
+        // N самых свежих недель - это ровно недели не старше N-й по порядку (сезон, секция).
+        // Раньше фильтр был только по сезону, и weeks: 1 тянул весь текущий сезон с игроками.
+        var oldest = weekKeys[^1];
         var snapshots = await db.WarSnapshots.AsNoTracking()
             .Include(s => s.Players)
-            .Where(s => s.ClanId == clanId && s.SeasonId >= minSeason)
+            .Where(s => s.ClanId == clanId
+                        && (s.SeasonId > oldest.SeasonId
+                            || (s.SeasonId == oldest.SeasonId && s.SectionIndex >= oldest.SectionIndex)))
             .OrderByDescending(s => s.SeasonId)
             .ThenByDescending(s => s.SectionIndex)
             .ThenBy(s => s.PeriodIndex)
             .ToListAsync(ct);
 
-        // Фильтруем по точному набору недель (minSeason мог захватить лишнее)
+        // Фильтруем по точному набору недель (страховка: условие выше уже точное)
         var keySet = weekKeys.Select(k => (k.SeasonId, k.SectionIndex)).ToHashSet();
         return snapshots.Where(s => keySet.Contains((s.SeasonId, s.SectionIndex))).ToList();
+    }
+
+    public async Task<List<(int SeasonId, int SectionIndex)>> GetVerifiedWeeksAsync(int clanId, CancellationToken ct = default)
+    {
+        var rows = await db.WarSnapshots.AsNoTracking()
+            .Where(s => s.ClanId == clanId && s.Source == "log" && s.TotalFame > 0)
+            .Select(s => new { s.SeasonId, s.SectionIndex })
+            .Distinct()
+            .ToListAsync(ct);
+        return rows.Select(r => (r.SeasonId, r.SectionIndex)).ToList();
     }
 }

@@ -59,6 +59,13 @@ public class PlayerRepository(AppDbContext db) : IPlayerRepository
             .Where(p => p.TelegramUserId != null || p.TelegramUsername != null)
             .ToListAsync(ct);
 
+    public async Task<List<long>> SponsorTelegramIdsAsync(DateTime utcNow, CancellationToken ct = default) =>
+        await db.Players.AsNoTracking()
+            .Where(p => p.TelegramUserId != null && p.SponsorUntilUtc != null && p.SponsorUntilUtc > utcNow)
+            .Select(p => p.TelegramUserId!.Value)
+            .Distinct()
+            .ToListAsync(ct);
+
     public Task<Player?> GetByTagAsync(string playerTag, CancellationToken ct = default) =>
         db.Players
             .Include(p => p.Clan)

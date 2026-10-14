@@ -34,6 +34,9 @@ public interface IPlayerRepository
     /// </summary>
     Task<List<Player>> GetAllLinkedAsync(CancellationToken ct = default);
 
+    /// <summary>Telegram-id игроков, у которых сейчас идёт спонсорство. Только id, без строк игроков.</summary>
+    Task<List<long>> SponsorTelegramIdsAsync(DateTime utcNow, CancellationToken ct = default);
+
     /// <summary>
     /// Игрок по тегу — отслеживаемый, то есть пригодный к изменению.
     ///
@@ -86,6 +89,9 @@ public interface IWarSnapshotRepository
 
     /// <summary>Снимки клана за последние N недель (с игроками), новые — первыми.</summary>
     Task<List<WarSnapshot>> GetByClanAsync(int clanId, int weeks, CancellationToken ct = default);
+
+    /// <summary>Недели клана, уже подтверждённые журналом войн (Source = "log", медали есть). Без игроков.</summary>
+    Task<List<(int SeasonId, int SectionIndex)>> GetVerifiedWeeksAsync(int clanId, CancellationToken ct = default);
 
     /// <summary>Все снимки клана за конкретный сезон (с игроками).</summary>
     Task<List<WarSnapshot>> GetBySeasonAsync(int clanId, int seasonId, CancellationToken ct = default);
@@ -185,6 +191,9 @@ public interface ITopPlayerRepository
 
     /// <summary>Строка игрока в снимке за день. null — в тот день его в топе не было.</summary>
     Task<TopPlayer?> FindAsync(string dayUtc, string playerTag, CancellationToken ct = default);
+
+    /// <summary>Удаляет снимки старше дня: по тысяче строк в сутки таблица иначе растёт вечно.</summary>
+    Task<int> PurgeBeforeAsync(string dayUtc, CancellationToken ct = default);
 }
 
 public interface IPlayerBattleRepository

@@ -435,7 +435,8 @@ public partial class ChannelUseCase(
                 await Auto($"chend:{e.Id}", () => BuildChallengeEndAsync(e, ct));
         }
 
-        if (now - _lastCardsUtc >= CardsInterval && await OnAsync("cards", ct))
+        if (now - _lastCardsUtc >= CardsInterval && await OnAsync("cards", ct)
+            && await DueAsync("channel.cards.last", CardsInterval, now, ct))
         {
             _lastCardsUtc = now;
             foreach (var post in await NewCardsAsync(ct))
@@ -446,7 +447,8 @@ public partial class ChannelUseCase(
             }
         }
 
-        if (now - _lastNewsUtc >= NewsInterval && await OnAsync("news", ct))
+        if (now - _lastNewsUtc >= NewsInterval && await OnAsync("news", ct)
+            && await DueAsync("channel.news.last", NewsInterval, now, ct))
         {
             _lastNewsUtc = now;
             var r = await FetchNewsAsync(channelId.Value, ct);
@@ -455,6 +457,19 @@ public partial class ChannelUseCase(
         }
 
         return new TickResult(published, drafts);
+    }
+
+    /// <summary>
+    /// Пора ли проход - по отметке в базе. Только в памяти время терялось при рестарте
+    /// воркера, и каждый запуск заново читал все ленты, Reddit и статьи.
+    /// </summary>
+    private async Task<bool> DueAsync(string key, TimeSpan every, DateTime now, CancellationToken ct)
+    {
+        if (DateTime.TryParse(await settings.GetAsync(key, ct), null,
+                System.Globalization.DateTimeStyles.RoundtripKind, out var last) && now - last < every)
+            return false;
+        await settings.SetAsync(key, now.ToString("O"), ct);
+        return true;
     }
 
     /* ---------------- Мировой топ дня ---------------- */

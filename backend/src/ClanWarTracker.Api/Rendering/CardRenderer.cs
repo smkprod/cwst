@@ -821,7 +821,8 @@ public class CardRenderer(IWebHostEnvironment env, IHttpClientFactory http, IMem
 
         cache.Set(IconKey(url), img, new MemoryCacheEntryOptions
         {
-            Size = 1,
+            // ~КБ сжатой иконки: кэш ограничен суммой размеров
+            Size = img is null ? 1 : 40,
             AbsoluteExpirationRelativeToNow = img is null ? TimeSpan.FromMinutes(5) : TimeSpan.FromHours(24),
         });
     }

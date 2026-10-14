@@ -63,6 +63,28 @@ public class PlayerBattleRepository(AppDbContext db) : IPlayerBattleRepository
         db.PlayerBattles.AsNoTracking()
             .Where(b => playerTags.Contains(b.PlayerTag) && b.BattleTimeUtc >= fromUtc && b.BattleTimeUtc <= toUtc)
             .OrderBy(b => b.BattleTimeUtc)
+            // Без DetailJson: таблицам челленджа и итогам дня разбор боя не нужен, а он
+            // самая тяжёлая колонка - по всем участникам за весь челлендж это десятки МБ.
+            .Select(b => new PlayerBattle
+            {
+                Id = b.Id,
+                PlayerTag = b.PlayerTag,
+                BattleTimeUtc = b.BattleTimeUtc,
+                Type = b.Type,
+                Result = b.Result,
+                CrownsFor = b.CrownsFor,
+                CrownsAgainst = b.CrownsAgainst,
+                DeckKey = b.DeckKey,
+                OppDeckKey = b.OppDeckKey,
+                ElixirLeaked = b.ElixirLeaked,
+                TrophyChange = b.TrophyChange,
+                OppTag = b.OppTag,
+                OppName = b.OppName,
+                GameModeId = b.GameModeId,
+                DeckSelection = b.DeckSelection,
+                OppArchetype = b.OppArchetype,
+                LevelGap = b.LevelGap,
+            })
             .ToListAsync(ct);
 
     public Task<PlayerBattle?> GetAsync(int id, CancellationToken ct = default) =>

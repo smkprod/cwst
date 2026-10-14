@@ -59,6 +59,9 @@ public class HarvestTopPlayersUseCase(
     /// <summary>Сколько дней меты храним. Витрина считает окно в неделю.</summary>
     public const int MetaKeepDays = 7;
 
+    /// <summary>Сколько дней снимков топа храним (витрина «Топ-мета» смотрит на 40 назад).</summary>
+    public const int TopKeepDays = 60;
+
     /// <summary>
     /// Колоду, сыгранную за день один раз, не храним: она ничего не скажет ни о
     /// проценте побед, ни о популярности, а таких колод большинство.
@@ -93,10 +96,29 @@ public class HarvestTopPlayersUseCase(
     {
         var day = DateTime.UtcNow.ToString("yyyy-MM-dd");
         if (!force && await top.HasDayAsync(day, ct)) return HarvestResult.Done;
-        if (!force && !await StartAttemptAsync(day, ct))
+        if (!force && !await DailyAttempts.TryStartAsync(settings, AttemptsKey, day, MaxAttemptsPerDay, ct))
             return new HarvestResult(0, $"сбор за {day} начинался {MaxAttemptsPerDay} раза и не дошёл до конца - " +
                                         "сам до завтра больше не пробуем, повтор - кнопкой в панели");
 
+        // Сбор из панели (API) и сбор воркера - разные процессы: без общей отметки в базе
+        // они шли бы одновременно, вдвое нагружая ключ API и споря за запись дня.
+        var running = await settings.GetAsync(RunningKey, ct);
+        if (DateTime.TryParse(running, null, System.Globalization.DateTimeStyles.RoundtripKind, out var startedAt)
+            && DateTime.UtcNow - startedAt < RunningLease)
+            return new HarvestResult(0, $"сбор уже идёт (начат в {startedAt:HH:mm} UTC)");
+        await settings.SetAsync(RunningKey, DateTime.UtcNow.ToString("O"), ct);
+        try { return await CollectDayAsync(day, ct); }
+        finally
+        {
+            try { await settings.SetAsync(RunningKey, "", CancellationToken.None); } catch { /* отметка истечёт сама */ }
+        }
+    }
+
+    private const string RunningKey = "top.harvest.running";
+    private static readonly TimeSpan RunningLease = TimeSpan.FromMinutes(20);
+
+    private async Task<HarvestResult> CollectDayAsync(string day, CancellationToken ct)
+    {
         var response = await crApi.GetGlobalRankingAsync(TopSize, ct);
         var all = response.Players;
         if (all.Count == 0)
@@ -181,6 +203,9 @@ public class HarvestTopPlayersUseCase(
         }));
 
         await top.ReplaceDayAsync(day, rows, ct);
+        // Витрине топа хватает сорока дней назад; старше - только место на диске
+        try { await top.PurgeBeforeAsync(DateOnly.Parse(day).AddDays(-TopKeepDays).ToString("yyyy-MM-dd"), ct); }
+        catch { /* не почистили сегодня - почистим завтра */ }
         var metaNote = await SaveMetaAsync(day, logs, logFailures, ct);
         if (!string.IsNullOrEmpty(response.Source)) metaNote = $"источник: {response.Source}\n{metaNote}";
         return await RememberAsync(new HarvestResult(rows.Length, null, Meta: metaNote), ct);
@@ -269,21 +294,10 @@ public class HarvestTopPlayersUseCase(
     private static readonly JsonSerializerOptions RecordJson = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 
     /// <summary>
-    /// Отметка о начале попытки в базе. Сбор, уронивший воркер, не успевает записать ни
-    /// снимок, ни причину, а после рестарта начинался заново - и так по кругу сутками:
-    /// процессор и сеть заняты, бот перезапускается каждые полторы минуты. Поэтому сам
-    /// воркер пробует не больше MaxAttemptsPerDay раз в сутки.
+    /// Сбор, уронивший воркер, не успевает записать ни снимок, ни причину, а после
+    /// рестарта начинался заново - и так по кругу сутками. Поэтому сам воркер пробует
+    /// не больше MaxAttemptsPerDay раз в сутки.
     /// </summary>
-    private async Task<bool> StartAttemptAsync(string day, CancellationToken ct)
-    {
-        var raw = await settings.GetAsync(AttemptsKey, ct);
-        var parts = raw?.Split('|');
-        var tries = parts is [var d, var n] && d == day && int.TryParse(n, out var v) ? v : 0;
-        if (tries >= MaxAttemptsPerDay) return false;
-        await settings.SetAsync(AttemptsKey, $"{day}|{tries + 1}", ct);
-        return true;
-    }
-
     private const string AttemptsKey = "top.harvest.attempts";
     private const int MaxAttemptsPerDay = 3;
 
@@ -297,9 +311,13 @@ public class HarvestTopPlayersUseCase(
         CrownsAgainst = b.CrownsAgainst,
         TeamTags = b.TeamTags,
         OpponentTags = b.OpponentTags,
-        MyDeck = b.MyDeck,
-        OpponentDeck = b.OpponentDeck,
+        // Мете от карты нужны только id и эволюция: имена и ссылки на иконки у каждой
+        // карты каждого боя - лишние десятки мегабайт до конца сбора.
+        MyDeck = b.MyDeck.Select(SlimCard).ToList(),
+        OpponentDeck = b.OpponentDeck.Select(SlimCard).ToList(),
     };
+
+    private static CrDeckCard SlimCard(CrDeckCard c) => new() { Id = c.Id, Name = "", EvolutionLevel = c.EvolutionLevel };
 
     private static string? Cut(string? s, int max) => s is null || s.Length <= max ? s : s[..max] + "…";
 

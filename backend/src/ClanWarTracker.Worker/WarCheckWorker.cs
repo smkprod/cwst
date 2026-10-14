@@ -331,8 +331,7 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
     /// </summary>
     private async Task PersistKeysAsync(string kind, HashSet<string> set, CancellationToken ct)
     {
-        if (!_persisted.TryGetValue(kind, out var known))
-            _persisted[kind] = known = [];
+        var known = _persisted.GetOrAdd(kind, _ => []);
 
         var fresh = set.Where(k => !known.Contains(k)).ToList();
         if (fresh.Count == 0) return;
@@ -341,9 +340,11 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
         {
             using var scope = scopeFactory.CreateScope();
             var log = scope.ServiceProvider.GetRequiredService<ISentNotificationRepository>();
+            // Без токена остановки: при деплое он уже отменён, и отметки последнего прохода
+            // терялись - после рестарта те же сообщения уходили второй раз.
             foreach (var key in fresh)
             {
-                await log.AddAsync(kind, key, ct);
+                await log.AddAsync(kind, key, CancellationToken.None);
                 known.Add(key);
             }
         }
@@ -353,8 +354,12 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
         }
     }
 
-    /// <summary>Что уже лежит в БД — чтобы не переписывать одно и то же каждый тик.</summary>
-    private readonly Dictionary<string, HashSet<string>> _persisted = [];
+    /// <summary>
+    /// Что уже лежит в БД — чтобы не переписывать одно и то же каждый тик. Concurrent:
+    /// пишут сюда сразу несколько циклов, а обычный Dictionary от параллельной записи
+    /// может сломаться и зациклиться.
+    /// </summary>
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, HashSet<string>> _persisted = new();
 
     private async Task RunPeriodicChecksAsync(CancellationToken stoppingToken)
     {
@@ -508,9 +513,21 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
                 logger.LogError(ex, "Top players harvest failed");
             }
 
-            if (DateTime.UtcNow - _lastBattleSyncUtc >= BattleSyncInterval)
+            if (await BattleSyncDueAsync(stoppingToken))
             {
-                _lastBattleSyncUtc = DateTime.UtcNow;
+                try
+                {
+                    // Отметки «уже отправлено» старше двух недель. При старте их тоже чистим,
+                    // но воркер может жить неделями без рестарта.
+                    using var scope = scopeFactory.CreateScope();
+                    var log = scope.ServiceProvider.GetRequiredService<ISentNotificationRepository>();
+                    await log.PurgeOlderThanAsync(DateTime.UtcNow - KeyHistory, stoppingToken);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Sent-notification purge failed");
+                }
+
                 try
                 {
                     // Бои привязанных игроков для личного разбора
@@ -547,6 +564,38 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
 
         }
         while (await timer.WaitForNextTickAsync(stoppingToken));
+    }
+
+    private const string BattleSyncKey = "worker.battlesync.last";
+
+    /// <summary>
+    /// Пора ли трёхчасовой проход. Время прохода - и в памяти, и в базе: только в памяти
+    /// оно терялось при каждом рестарте, и каждый запуск воркера заново читал журналы
+    /// всех привязанных игроков.
+    /// </summary>
+    private async Task<bool> BattleSyncDueAsync(CancellationToken ct)
+    {
+        var now = DateTime.UtcNow;
+        if (now - _lastBattleSyncUtc < BattleSyncInterval) return false;
+        try
+        {
+            using var scope = scopeFactory.CreateScope();
+            var settings = scope.ServiceProvider.GetRequiredService<IServiceSettingRepository>();
+            if (_lastBattleSyncUtc == DateTime.MinValue
+                && DateTime.TryParse(await settings.GetAsync(BattleSyncKey, ct), null,
+                    System.Globalization.DateTimeStyles.RoundtripKind, out var stored))
+            {
+                _lastBattleSyncUtc = stored;
+                if (now - stored < BattleSyncInterval) return false;
+            }
+            await settings.SetAsync(BattleSyncKey, now.ToString("O"), ct);
+        }
+        catch (Exception ex) when (!ct.IsCancellationRequested)
+        {
+            logger.LogWarning(ex, "Battle sync time not persisted");
+        }
+        _lastBattleSyncUtc = now;
+        return true;
     }
 
     /// <summary>

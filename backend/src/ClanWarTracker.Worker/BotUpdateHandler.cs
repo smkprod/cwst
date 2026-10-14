@@ -45,6 +45,13 @@ public class BotUpdateHandler(
     /// </summary>
     private readonly SemaphoreSlim _handling = new(6);
 
+    /// <summary>
+    /// Inline-запросы идут мимо общей очереди, но не без предела: каждая буква в поле
+    /// ввода - новый запрос с походами в API игры. Лишние сверх предела просто бросаем:
+    /// следующая буква всё равно придёт новым запросом.
+    /// </summary>
+    private readonly SemaphoreSlim _inline = new(8);
+
     /// <summary>Кто админ в чате: живой вызов Bot API, а команда проверяет это каждый раз.</summary>
     private readonly ConcurrentDictionary<(long Chat, long User), (bool IsAdmin, DateTime Until)> _adminCache = new();
 
@@ -62,7 +69,14 @@ public class BotUpdateHandler(
 
         bot.StartReceiving(
             HandleUpdateAsync,
-            (_, ex, _) => { logger.LogError(ex, "Bot polling error"); return Task.CompletedTask; },
+            // Пауза после ошибки опроса: при 409 (второй экземпляр бота, перекрытие при деплое)
+            // или без сети опрос иначе крутился без передышки и заваливал логи.
+            async (_, ex, token) =>
+            {
+                logger.LogError(ex, "Bot polling error");
+                try { await Task.Delay(TimeSpan.FromSeconds(5), token); }
+                catch (OperationCanceledException) { /* воркер останавливается */ }
+            },
             // MyChatMember обязателен: без него бот не узнаёт, что его добавили в группу,
             // и молчит. Человек добавил бота, ничего не произошло — и он уходит, так и
             // не поняв, что дальше. Приветствие срабатывало только на ручной /start,
@@ -102,11 +116,13 @@ public class BotUpdateHandler(
         // и вставать за медленной командой из чужого чата ему нельзя.
         if (update.InlineQuery is { } inline)
         {
+            if (!_inline.Wait(0)) return Task.CompletedTask;
             _ = Task.Run(async () =>
             {
                 try { await ProcessInlineQueryAsync(inline, ct); }
                 catch (OperationCanceledException) { /* воркер останавливается */ }
                 catch (Exception ex) { logger.LogError(ex, "Inline query failed"); }
+                finally { _inline.Release(); }
             });
             return Task.CompletedTask;
         }
@@ -1768,6 +1784,10 @@ public class BotUpdateHandler(
         var key = (msg.Chat.Id, msg.From!.Id);
         if (_adminCache.TryGetValue(key, out var hit) && hit.Until > DateTime.UtcNow)
             return hit.IsAdmin;
+        // Истёкшие записи сами не уходят, а ключ - каждая пара «чат, человек»: подметаем
+        if (_adminCache.Count > 5000)
+            foreach (var kv in _adminCache)
+                if (kv.Value.Until <= DateTime.UtcNow) _adminCache.TryRemove(kv.Key, out _);
 
         // То же право можно выдать и модератору — отдельной галочкой, не «за компанию»
         // с доступом к панели. Проверяем после кэша: это поход в базу, а команды в

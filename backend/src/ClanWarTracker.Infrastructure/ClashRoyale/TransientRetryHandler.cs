@@ -26,11 +26,16 @@ public class TransientRetryHandler : DelegatingHandler
 
         for (var attempt = 0; ; attempt++)
         {
+            var delay = Delays[Math.Min(attempt, Delays.Length - 1)];
             try
             {
                 response?.Dispose();
                 response = await base.SendAsync(request, ct);
                 if (!IsTransient(response.StatusCode) || attempt >= Delays.Length) return response;
+                // 429 - ключ упёрся в лимит. Повтор через 200 мс только добавлял запросов
+                // ровно тогда, когда их и так слишком много: ждём, сколько просит API.
+                if (response.StatusCode == HttpStatusCode.TooManyRequests)
+                    delay = Clamp(response.Headers.RetryAfter?.Delta ?? TimeSpan.FromSeconds(attempt + 1));
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
             {
@@ -38,9 +43,12 @@ public class TransientRetryHandler : DelegatingHandler
                 if (ct.IsCancellationRequested || attempt >= Delays.Length) throw;
             }
 
-            await Task.Delay(Delays[attempt], ct);
+            await Task.Delay(delay, ct);
         }
     }
+
+    private static TimeSpan Clamp(TimeSpan t) =>
+        t < TimeSpan.FromSeconds(1) ? TimeSpan.FromSeconds(1) : t > TimeSpan.FromSeconds(5) ? TimeSpan.FromSeconds(5) : t;
 
     private static bool IsTransient(HttpStatusCode code) =>
         code is HttpStatusCode.RequestTimeout

@@ -31,7 +31,7 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
             // и выручает, когда CR API уходит на обслуживание.
             cache.Set(staleKey, fresh, new MemoryCacheEntryOptions
             {
-                Size = 1,
+                Size = 50,
                 AbsoluteExpirationRelativeToNow = StaleTtl,
             });
             return fresh;
@@ -50,10 +50,10 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
     {
         return await cache.GetOrCreateAsync($"war:{clanTag}", async entry =>
         {
-            entry.Size = 1;
+            entry.Size = 50; // ~КБ: кэш ограничен суммой размеров
             entry.AbsoluteExpirationRelativeToNow = CacheTtl;
 
-            var resp = await http.GetAsync($"clans/{Encode(clanTag)}/currentriverrace", ct);
+            using var resp = await http.GetAsync($"clans/{Encode(clanTag)}/currentriverrace", ct);
             if (resp.StatusCode == HttpStatusCode.NotFound) return null;
             if (resp.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.Unauthorized)
                 throw new InvalidOperationException(
@@ -201,7 +201,7 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
             entry.Size = 1;
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30);
 
-            var resp = await http.GetAsync($"players/{Encode(playerTag)}", ct);
+            using var resp = await http.GetAsync($"players/{Encode(playerTag)}", ct);
 
             // 403 — это про ключ, а не про игрока: пробрасываем, чтобы админ увидел
             // сообщение, и ничего не кэшируем (исключение из GetOrCreateAsync выходит наружу).
@@ -225,7 +225,7 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
 
     public async Task<string?> GetClanNameAsync(string clanTag, CancellationToken ct = default)
     {
-        var resp = await http.GetAsync($"clans/{Encode(clanTag)}", ct);
+        using var resp = await http.GetAsync($"clans/{Encode(clanTag)}", ct);
         if (resp.StatusCode == HttpStatusCode.NotFound) return null;
         if (resp.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.Unauthorized)
             throw new InvalidOperationException(
@@ -243,7 +243,7 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         {
             entry.Size = 1;
             entry.AbsoluteExpirationRelativeToNow = CacheTtl;
-            var resp = await http.GetAsync($"players/{Encode(playerTag)}", ct);
+            using var resp = await http.GetAsync($"players/{Encode(playerTag)}", ct);
             if (resp.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.Unauthorized)
                 throw new InvalidOperationException(
                     "CR API отклонил ключ (403). Ключ привязан к IP — создай новый на developer.clashroyale.com " +
@@ -399,10 +399,10 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
     {
         return await cache.GetOrCreateAsync($"claninfo:{clanTag}", async entry =>
         {
-            entry.Size = 1;
+            entry.Size = 20; // ~КБ: кэш ограничен суммой размеров
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
 
-            var resp = await http.GetAsync($"clans/{Encode(clanTag)}", ct);
+            using var resp = await http.GetAsync($"clans/{Encode(clanTag)}", ct);
             if (resp.StatusCode == HttpStatusCode.NotFound) return null;
             if (resp.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.Unauthorized)
                 throw new InvalidOperationException(
@@ -457,7 +457,7 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
             entry.Size = 1;
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(24);
 
-            var resp = await http.GetAsync("cards", ct);
+            using var resp = await http.GetAsync("cards", ct);
             if (!resp.IsSuccessStatusCode)
             {
                 // Ошибку надолго не кэшируем, иначе сутки без колод из-за одной икоты
@@ -510,7 +510,7 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         {
             entry.Size = 1;
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
-            var resp = await http.GetAsync($"clans/{Encode(clanTag)}", ct);
+            using var resp = await http.GetAsync($"clans/{Encode(clanTag)}", ct);
             if (!resp.IsSuccessStatusCode) return (int?)null;
             var clan = await resp.Content.ReadFromJsonAsync<ClanProfile>(cancellationToken: ct);
             return clan?.ClanWarTrophies;
@@ -522,10 +522,10 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         // Журнал меняется только по итогам недели (понедельник ~10:00 UTC) — кэш 6 часов
         var result = await cache.GetOrCreateAsync($"racelog:{clanTag}", async entry =>
         {
-            entry.Size = 1;
+            entry.Size = 300; // ~КБ: кэш ограничен суммой размеров
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(6);
 
-            var resp = await http.GetAsync($"clans/{Encode(clanTag)}/riverracelog?limit=10", ct);
+            using var resp = await http.GetAsync($"clans/{Encode(clanTag)}/riverracelog?limit=10", ct);
             if (!resp.IsSuccessStatusCode)
             {
                 // Ошибку не кэшируем надолго — попробуем снова через 5 минут
@@ -584,9 +584,9 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
     {
         return await cache.GetOrCreateAsync($"clanrole:{clanTag}", async entry =>
         {
-            entry.Size = 1;
+            entry.Size = 20; // ~КБ: кэш ограничен суммой размеров
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
-            var resp = await http.GetAsync($"clans/{Encode(clanTag)}/members", ct);
+            using var resp = await http.GetAsync($"clans/{Encode(clanTag)}/members", ct);
             if (!resp.IsSuccessStatusCode) return null;
             return await resp.Content.ReadFromJsonAsync<ClanMembersResponse>(cancellationToken: ct);
         });
@@ -616,7 +616,7 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
     {
         return await cache.GetOrCreateAsync($"playerinfo:{playerTag}", async entry =>
         {
-            entry.Size = 1;
+            entry.Size = 50; // ~КБ: кэш ограничен суммой размеров
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
             return await LoadPlayerInfoAsync(playerTag, ct);
         });
@@ -630,7 +630,7 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
 
     private async Task<CrPlayerInfo?> LoadPlayerInfoAsync(string playerTag, CancellationToken ct)
     {
-        var resp = await http.GetAsync($"players/{Encode(playerTag)}", ct);
+        using var resp = await http.GetAsync($"players/{Encode(playerTag)}", ct);
         if (resp.StatusCode == HttpStatusCode.NotFound) return null;
         if (resp.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.Unauthorized)
             throw new InvalidOperationException(
@@ -770,9 +770,9 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         // Таблица турнира меняется во время игры — кэш короткий (2 минуты).
         return await cache.GetOrCreateAsync($"tournament:{tournamentTag}", async entry =>
         {
-            entry.Size = 1;
+            entry.Size = 20; // ~КБ: кэш ограничен суммой размеров
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(2);
-            var resp = await http.GetAsync($"tournaments/{Encode(tournamentTag)}", ct);
+            using var resp = await http.GetAsync($"tournaments/{Encode(tournamentTag)}", ct);
             if (resp.StatusCode == HttpStatusCode.NotFound) return null;
             if (resp.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.Unauthorized)
                 throw new InvalidOperationException(
@@ -854,7 +854,7 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
             entry.Size = 1;
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
 
-            var resp = await http.GetAsync($"clans/{Encode(clanTag)}", ct);
+            using var resp = await http.GetAsync($"clans/{Encode(clanTag)}", ct);
             if (!resp.IsSuccessStatusCode) return null;
             var profile = await resp.Content.ReadFromJsonAsync<ClanProfileFull>(cancellationToken: ct);
             if (profile is null) return null;
@@ -977,7 +977,7 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
 
             // Запасной путь - прежний рейтинг: вдруг его вернут, а новый сломается.
             var legacyPath = $"locations/global/rankings/players?limit={capped}";
-            var resp = await http.GetAsync(legacyPath, ct);
+            using var resp = await http.GetAsync(legacyPath, ct);
             if (resp.IsSuccessStatusCode)
             {
                 var data = await resp.Content.ReadFromJsonAsync<PlayerRankingsResponse>(cancellationToken: ct);
@@ -1013,7 +1013,7 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
     /// <returns>Игроки и строка-отчёт: откуда взяли или почему не вышло.</returns>
     private async Task<(List<CrRankedPlayer> Players, string Report)> FetchLeaderboardAsync(int limit, CancellationToken ct)
     {
-        var listResp = await http.GetAsync("leaderboards", ct);
+        using var listResp = await http.GetAsync("leaderboards", ct);
         var listBody = await ReadBodyAsync(listResp, ct);
         if (!listResp.IsSuccessStatusCode)
             return (new List<CrRankedPlayer>(), $"GET leaderboards → HTTP {(int)listResp.StatusCode} {Cut(listBody)}");
@@ -1046,7 +1046,7 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         {
             var url = $"leaderboard/{Uri.EscapeDataString(board.Id)}?limit={limit - players.Count}"
                     + (after is null ? "" : $"&after={Uri.EscapeDataString(after)}");
-            var resp = await http.GetAsync(url, ct);
+            using var resp = await http.GetAsync(url, ct);
             var body = await ReadBodyAsync(resp, ct);
             if (!resp.IsSuccessStatusCode)
             {
@@ -1088,7 +1088,7 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
     private async Task<(List<CrRankedPlayer> Players, string Report)> FetchPathOfLegendAsync(int limit, CancellationToken ct)
     {
         var path = $"locations/global/pathoflegend/players?limit={limit}";
-        var resp = await http.GetAsync(path, ct);
+        using var resp = await http.GetAsync(path, ct);
         var body = await ReadBodyAsync(resp, ct);
         if (!resp.IsSuccessStatusCode)
             return (new List<CrRankedPlayer>(), $"GET {path} → HTTP {(int)resp.StatusCode}");
@@ -1197,9 +1197,9 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
     {
         return await cache.GetOrCreateAsync($"warrankings:{locationId}", async entry =>
         {
-            entry.Size = 1;
+            entry.Size = 100; // ~КБ: кэш ограничен суммой размеров
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(6);
-            var resp = await http.GetAsync($"locations/{locationId}/rankings/clanwars?limit=1000", ct);
+            using var resp = await http.GetAsync($"locations/{locationId}/rankings/clanwars?limit=1000", ct);
             if (!resp.IsSuccessStatusCode)
             {
                 entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10); // ошибку не кэшируем надолго
@@ -1235,7 +1235,7 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         {
             entry.Size = 1;
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
-            var resp = await http.GetAsync($"players/{Encode(playerTag)}/battlelog", ct);
+            using var resp = await http.GetAsync($"players/{Encode(playerTag)}/battlelog", ct);
             if (!resp.IsSuccessStatusCode) return new List<CrBattle>();
             var raw = await resp.Content.ReadFromJsonAsync<List<BattlelogEntry>>(cancellationToken: ct);
             if (raw is null) return new List<CrBattle>();
@@ -1300,7 +1300,7 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
     {
         var list = await cache.GetOrCreateAsync($"{cachePrefix}:{playerTag}", async entry =>
         {
-            entry.Size = 1;
+            entry.Size = 150; // ~КБ: кэш ограничен суммой размеров
             entry.AbsoluteExpirationRelativeToNow = ttl;
             return await LoadBattlesAsync(playerTag, ct);
         });
@@ -1310,7 +1310,7 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
     /// <summary>Журнал боёв прямо из API, без кэша: кэш - у обёрток выше.</summary>
     private async Task<List<CrRecentBattle>> LoadBattlesAsync(string playerTag, CancellationToken ct)
     {
-        var resp = await http.GetAsync($"players/{Encode(playerTag)}/battlelog", ct);
+        using var resp = await http.GetAsync($"players/{Encode(playerTag)}/battlelog", ct);
         if (!resp.IsSuccessStatusCode) return new List<CrRecentBattle>();
 
         var raw = await resp.Content.ReadFromJsonAsync<List<BattlelogEntry>>(cancellationToken: ct);

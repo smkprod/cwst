@@ -99,7 +99,7 @@ builder.Services.AddRateLimiter(options =>
 
         var key = ctx.Items.TryGetValue("TelegramUserId", out var uid) && uid is long id
             ? $"user:{id}"
-            : $"ip:{ctx.Connection.RemoteIpAddress}";
+            : $"ip:{ClientIp(ctx)}";
 
         return RateLimitPartition.GetFixedWindowLimiter(key, _ => new FixedWindowRateLimiterOptions
         {
@@ -124,7 +124,7 @@ await DependencyInjection.InitDatabaseAsync(app.Services);
 // Логируем outbound IP — нужно для настройки токена Clash Royale API
 try
 {
-    using var ipHttp = new HttpClient();
+    using var ipHttp = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
     var ip = await ipHttp.GetStringAsync("https://api.ipify.org");
     app.Services.GetRequiredService<ILogger<Program>>()
         .LogInformation("=== OUTBOUND IP: {Ip} (добавь в токен CR API на developer.clashroyale.com) ===", ip.Trim());
@@ -159,3 +159,14 @@ app.UseStaticFiles(staticFiles);
 app.MapFallbackToFile("index.html", staticFiles);
 
 app.Run();
+
+// Адрес клиента для лимитера. API наружу не открыт - к нему ходит только Caddy, а Caddy
+// без trusted_proxies не верит пришедшему X-Forwarded-For и пишет туда настоящий адрес.
+// Без этого все анонимные запросы (картинки, оверлеи) делили один лимит на IP Caddy, и
+// один любопытный оставлял Telegram без превью.
+static string ClientIp(HttpContext ctx)
+{
+    var forwarded = ctx.Request.Headers["X-Forwarded-For"].ToString();
+    var last = forwarded.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).LastOrDefault();
+    return string.IsNullOrEmpty(last) ? ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown" : last;
+}

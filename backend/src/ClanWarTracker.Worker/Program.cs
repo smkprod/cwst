@@ -90,7 +90,7 @@ catch (Exception ex)
 // Логируем outbound IP — нужно для настройки токена Clash Royale API
 try
 {
-    using var http = new HttpClient();
+    using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
     var ip = await http.GetStringAsync("https://api.ipify.org");
     host.Services.GetRequiredService<ILogger<Program>>()
         .LogInformation("=== OUTBOUND IP: {Ip} (добавь в токен CR API на developer.clashroyale.com) ===", ip.Trim());

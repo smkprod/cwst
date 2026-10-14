@@ -474,6 +474,9 @@ public class ChallengeUseCase(
     public async Task<int> SyncAsync(int limit, CancellationToken ct = default)
     {
         var now = DateTime.UtcNow;
+        // Статические словари живут весь срок процесса - старое из них выбрасываем
+        foreach (var kv in LastSync) if (now - kv.Value > TimeSpan.FromHours(1)) LastSync.TryRemove(kv.Key, out _);
+        foreach (var kv in BoardCache) if (now - kv.Value.BuiltUtc > TimeSpan.FromMinutes(10)) BoardCache.TryRemove(kv.Key, out _);
         // Общий челлендж и идущие челленджи блогеров - журналы одни и те же, читаем
         // участников всех событий одним кругом.
         var grace = TimeSpan.FromMinutes(30);

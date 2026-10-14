@@ -85,10 +85,9 @@ public class CaptureWarSnapshotsUseCase(
         // тихо оставалась недосчитанной — как колизей 133 сезона.
         // Поэтому пропускаем неделю ТОЛЬКО если она уже подтверждена журналом.
         // Всё остальное перезаписываем, пока неделя в 10-недельном окне журнала.
-        var verifiedWeeks = (await snapshots.GetByClanAsync(clan.Id, weeks: 16, ct))
-            .Where(s => s.Source == "log" && s.TotalFame > 0)
-            .Select(s => (s.SeasonId, s.SectionIndex))
-            .ToHashSet();
+        // Только ключи недель: раньше здесь каждые 10 минут на каждый клан грузились
+        // все снимки за 16 недель вместе с игроками - почти вся таблица за такт.
+        var verifiedWeeks = (await snapshots.GetVerifiedWeeksAsync(clan.Id, ct)).ToHashSet();
 
         foreach (var w in log)
         {
