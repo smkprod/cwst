@@ -93,6 +93,9 @@ public class HarvestTopPlayersUseCase(
     {
         var day = DateTime.UtcNow.ToString("yyyy-MM-dd");
         if (!force && await top.HasDayAsync(day, ct)) return HarvestResult.Done;
+        if (!force && !await StartAttemptAsync(day, ct))
+            return new HarvestResult(0, $"сбор за {day} начинался {MaxAttemptsPerDay} раза и не дошёл до конца - " +
+                                        "сам до завтра больше не пробуем, повтор - кнопкой в панели");
 
         var response = await crApi.GetGlobalRankingAsync(TopSize, ct);
         var all = response.Players;
@@ -112,6 +115,7 @@ public class HarvestTopPlayersUseCase(
         // лидерборда - победы. Строку отчёта пишет сам клиент API.
         var fromPathOfLegend = response.Source?.StartsWith("Путь легенд", StringComparison.Ordinal) == true;
 
+        var metaSince = DateTime.UtcNow.AddHours(-24);
         var rows = new TopPlayer[ranking.Count];
         var logs = new List<CrRecentBattle>?[ranking.Count];
         var logFailures = 0;
@@ -123,26 +127,35 @@ public class HarvestTopPlayersUseCase(
             try
             {
                 CrPlayerInfo? info = null;
-                try { info = await crApi.GetPlayerInfoAsync(r.Tag, ct); }
+                // Мимо кэша: тысяча профилей с полной коллекцией карт держалась бы в нём
+                // пять минут и не помещалась в память воркера.
+                try { info = await crApi.GetPlayerInfoUncachedAsync(r.Tag, ct); }
                 catch { /* закрытый или пропавший профиль — строку всё равно пишем */ }
 
                 // Журнал нужен для меты (первые MetaPlayers) и для колоды, когда
                 // профиль отдал её неполной: у части игроков «текущая колода» в API
                 // приходит из 7, 6 и даже одной карты.
                 var profileDeck = info?.CurrentDeck ?? [];
+                List<CrRecentBattle>? log = null;
                 if (i < MetaPlayers || profileDeck.Count < 8)
                 {
-                    try { logs[i] = await crApi.GetRecentBattlesAsync(r.Tag, ct); }
+                    try { log = await crApi.GetRecentBattlesUncachedAsync(r.Tag, ct); }
                     catch { if (i < MetaPlayers) Interlocked.Increment(ref logFailures); }
                 }
 
                 // Колода последнего настоящего боя - всегда восемь карт и то, чем
                 // игрок реально играет сейчас. Профиль - запасной вариант.
-                var lastBattleDeck = logs[i]?
+                var lastBattleDeck = log?
                     .Where(CollectPlayerBattlesUseCase.Counts)
                     .OrderByDescending(b => b.BattleTimeUtc)
                     .Select(b => b.MyDeck)
                     .FirstOrDefault();
+
+                // До конца сбора держим только то, что нужно мете: бои последних суток
+                // первых MetaPlayers игроков и без разбора сторон. Полные журналы тысячи
+                // игроков разом роняли воркер по памяти, и сбор начинался заново.
+                if (log is not null && i < MetaPlayers)
+                    logs[i] = log.Where(b => b.BattleTimeUtc >= metaSince).Select(Slim).ToList();
 
                 rows[i] = new TopPlayer
                 {
@@ -254,6 +267,39 @@ public class HarvestTopPlayersUseCase(
     }
 
     private static readonly JsonSerializerOptions RecordJson = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+
+    /// <summary>
+    /// Отметка о начале попытки в базе. Сбор, уронивший воркер, не успевает записать ни
+    /// снимок, ни причину, а после рестарта начинался заново - и так по кругу сутками:
+    /// процессор и сеть заняты, бот перезапускается каждые полторы минуты. Поэтому сам
+    /// воркер пробует не больше MaxAttemptsPerDay раз в сутки.
+    /// </summary>
+    private async Task<bool> StartAttemptAsync(string day, CancellationToken ct)
+    {
+        var raw = await settings.GetAsync(AttemptsKey, ct);
+        var parts = raw?.Split('|');
+        var tries = parts is [var d, var n] && d == day && int.TryParse(n, out var v) ? v : 0;
+        if (tries >= MaxAttemptsPerDay) return false;
+        await settings.SetAsync(AttemptsKey, $"{day}|{tries + 1}", ct);
+        return true;
+    }
+
+    private const string AttemptsKey = "top.harvest.attempts";
+    private const int MaxAttemptsPerDay = 3;
+
+    /// <summary>Бой только с тем, что читает MetaAggregator.</summary>
+    private static CrRecentBattle Slim(CrRecentBattle b) => new()
+    {
+        BattleTimeUtc = b.BattleTimeUtc,
+        Type = b.Type,
+        Won = b.Won,
+        CrownsFor = b.CrownsFor,
+        CrownsAgainst = b.CrownsAgainst,
+        TeamTags = b.TeamTags,
+        OpponentTags = b.OpponentTags,
+        MyDeck = b.MyDeck,
+        OpponentDeck = b.OpponentDeck,
+    };
 
     private static string? Cut(string? s, int max) => s is null || s.Length <= max ? s : s[..max] + "…";
 
