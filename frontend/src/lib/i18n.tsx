@@ -322,6 +322,7 @@ const ru = {
     sourceSponsor: 'входит в спонсорство',
     sourceGift: 'подарок',
     sourceGrant: 'от команды Clanify',
+    sourceReferral: 'за приглашённых друзей',
     sourcePurchase: 'оплачено',
     free: 'Сейчас всё открыто бесплатно для всех',
     opening: 'Открываю оплату…',
@@ -1064,7 +1065,7 @@ const ru = {
     connectButton: 'Добавить бота в чат клана',
     connectMember: 'Без чата клан не видит итоги дня и напоминания о войне. Подключить бота может лидер или админ чата — попроси его.',
     connectAsk: 'Попросить лидера',
-    connectShare: 'Добавь, пожалуйста, бота Clanify в чат нашего клана: будут итоги дня, напоминания доиграть КВ и рейтинг. Это одна кнопка в приложении бота.',
+    connectShare: 'Добавь, пожалуйста, бота Clanify в чат нашего клана: будут итоги дня, напоминания доиграть КВ и рейтинг. Жми ссылку и выбери наш чат — бот подключится сам.',
     inviteTitle: 'Не привязаны: {n}',
     inviteText: 'Они не получают напоминаний о войне и не видят свою статистику. Бот напишет в чат клана список с кнопкой — каждый выберет себя за 10 секунд.',
     inviteButton: 'Позвать в чате',
@@ -1685,17 +1686,25 @@ const ru = {
     btn: 'Открыть канал',
   },
 
+  channelPromo: {
+    label: 'Канал Clanify: мета недели, связи карт и новости Clash Royale',
+    btn: 'Подписаться',
+  },
+  inviteMoment: {
+    title: '4/4 отыграно 💪',
+    text: 'Позови друга из другого клана — за каждого, кто привяжет аккаунт, тебе +3 дня Плюса.',
+  },
   invite: {
-    label: 'Зови друзей в Clanify — вместе следить за войной и устраивать турниры веселее!',
+    label: 'Зови друзей в Clanify: за каждого, кто привяжет аккаунт, тебе +3 дня Плюса!',
     btn: 'Пригласить друга',
     shareText: 'Залетай в Clanify — трекер клан-войн Clash Royale: статистика, прогнозы и турниры. Жми и отправь боту свой тег CR',
   },
 
   leaderCta: {
     label: 'Подключи бота к своему клану',
-    hint: 'Лидер добавляет бота в чат клана и пишет /setup #тег — и весь клан получает статус войны, напоминания тем, кто не отыграл, и итоги дня прямо в чате.',
+    hint: 'Лидер жмёт ссылку, выбирает чат клана и пишет там /setup #тег — и весь клан получает статус войны, напоминания тем, кто не отыграл, и итоги дня прямо в чате.',
     btn: 'Рассказать клану',
-    shareText: 'Подключим Clanify к нашему клану — статус войны, напоминания и итоги дня прямо в чате. Лидер: добавь бота в группу и напиши /setup #нашТег',
+    shareText: 'Подключим Clanify к нашему клану — статус войны, напоминания и итоги дня прямо в чате. Лидер: жми ссылку, выбери чат клана и напиши там /setup #нашТег',
   },
 
   studio: {
@@ -2204,6 +2213,7 @@ const uk: Translations = {
     sourceSponsor: 'входить у спонсорство',
     sourceGift: 'подарунок',
     sourceGrant: 'від команди Clanify',
+    sourceReferral: 'за запрошених друзів',
     sourcePurchase: 'оплачено',
     free: 'Зараз усе відкрито безкоштовно для всіх',
     opening: 'Відкриваю оплату…',
@@ -2946,7 +2956,7 @@ const uk: Translations = {
     connectButton: 'Додати бота в чат клану',
     connectMember: 'Без чату клан не бачить підсумків дня та нагадувань про війну. Підключити бота може лідер або адмін чату — попроси його.',
     connectAsk: 'Попросити лідера',
-    connectShare: 'Додай, будь ласка, бота Clanify в чат нашого клану: будуть підсумки дня, нагадування дограти КВ і рейтинг. Це одна кнопка в застосунку бота.',
+    connectShare: 'Додай, будь ласка, бота Clanify в чат нашого клану: будуть підсумки дня, нагадування дограти КВ і рейтинг. Тисни посилання й обери наш чат — бот підключиться сам.',
     inviteTitle: 'Не прив\'язані: {n}',
     inviteText: 'Вони не отримують нагадувань про війну й не бачать свою статистику. Бот напише в чат клану список із кнопкою — кожен обере себе за 10 секунд.',
     inviteButton: 'Покликати в чаті',
@@ -3565,17 +3575,25 @@ const uk: Translations = {
     btn: 'Відкрити канал',
   },
 
+  channelPromo: {
+    label: 'Канал Clanify: мета тижня, зв\'язки карт і новини Clash Royale',
+    btn: 'Підписатися',
+  },
+  inviteMoment: {
+    title: '4/4 відіграно 💪',
+    text: 'Поклич друга з іншого клану — за кожного, хто прив\'яже акаунт, тобі +3 дні Плюса.',
+  },
   invite: {
-    label: 'Клич друзів у Clanify — разом стежити за війною та влаштовувати турніри веселіше!',
+    label: 'Клич друзів у Clanify: за кожного, хто прив\'яже акаунт, тобі +3 дні Плюса!',
     btn: 'Запросити друга',
     shareText: 'Залітай у Clanify — трекер клан-воєн Clash Royale: статистика, прогнози й турніри. Тисни та надішли боту свій тег CR',
   },
 
   leaderCta: {
     label: 'Підключи бота до свого клану',
-    hint: 'Лідер додає бота в чат клану й пише /setup #тег — і весь клан отримує статус війни, нагадування тим, хто не відіграв, та підсумки дня прямо в чаті.',
+    hint: 'Лідер тисне посилання, обирає чат клану й пише там /setup #тег — і весь клан отримує статус війни, нагадування тим, хто не відіграв, та підсумки дня прямо в чаті.',
     btn: 'Розповісти клану',
-    shareText: 'Підключімо Clanify до нашого клану — статус війни, нагадування та підсумки дня прямо в чаті. Лідере: додай бота в групу й напиши /setup #нашТег',
+    shareText: 'Підключімо Clanify до нашого клану — статус війни, нагадування та підсумки дня прямо в чаті. Лідере: тисни посилання, обери чат клану й напиши там /setup #нашТег',
   },
 
   studio: {
@@ -4082,6 +4100,7 @@ const en: Translations = {
     sourceSponsor: 'included with sponsorship',
     sourceGift: 'gift',
     sourceGrant: 'from the Clanify team',
+    sourceReferral: 'for inviting friends',
     sourcePurchase: 'paid',
     free: 'Everything is free for everyone right now',
     opening: 'Opening payment…',
@@ -4824,7 +4843,7 @@ const en: Translations = {
     connectButton: 'Add the bot to the clan chat',
     connectMember: 'Without the chat the clan doesn\'t see daily recaps or war reminders. A leader or chat admin can add the bot — ask them.',
     connectAsk: 'Ask the leader',
-    connectShare: 'Please add the Clanify bot to our clan chat: daily recaps, war reminders and the clan ranking. It\'s one button in the bot\'s app.',
+    connectShare: 'Please add the Clanify bot to our clan chat: daily recaps, war reminders and the clan ranking. Tap the link and pick our chat — the bot connects itself.',
     inviteTitle: 'Not linked: {n}',
     inviteText: 'They get no war reminders and can\'t see their stats. The bot will post the list with a button in the clan chat — everyone picks themselves in 10 seconds.',
     inviteButton: 'Invite in chat',
@@ -5443,17 +5462,25 @@ const en: Translations = {
     btn: 'Open channel',
   },
 
+  channelPromo: {
+    label: 'Clanify channel: meta of the week, card synergies and Clash Royale news',
+    btn: 'Subscribe',
+  },
+  inviteMoment: {
+    title: '4/4 done 💪',
+    text: 'Invite a friend from another clan — every friend who links their account gives you +3 days of Plus.',
+  },
   invite: {
-    label: 'Bring friends to Clanify — tracking the war and running tournaments is more fun together!',
+    label: 'Invite friends to Clanify: every friend who links their account gives you +3 days of Plus!',
     btn: 'Invite a friend',
     shareText: 'Join Clanify — a Clash Royale clan-war tracker: stats, forecasts and tournaments. Tap and send the bot your CR tag',
   },
 
   leaderCta: {
     label: 'Connect the bot to your clan',
-    hint: 'The leader adds the bot to the clan chat and runs /setup #tag — and the whole clan gets war status, nudges for those who haven\'t played, and daily recaps right in the chat.',
+    hint: 'The leader taps the link, picks the clan chat and runs /setup #tag there — and the whole clan gets war status, nudges for those who haven\'t played, and daily recaps right in the chat.',
     btn: 'Tell the clan',
-    shareText: 'Let\'s connect Clanify to our clan — war status, nudges and daily recaps right in the chat. Leader: add the bot to the group and run /setup #ourTag',
+    shareText: 'Let\'s connect Clanify to our clan — war status, nudges and daily recaps right in the chat. Leader: tap the link, pick the clan chat and run /setup #ourTag there',
   },
 
   studio: {

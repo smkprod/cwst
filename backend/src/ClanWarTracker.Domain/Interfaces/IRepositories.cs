@@ -474,6 +474,9 @@ public interface IEntitlementRepository
     /// <summary>Сколько бесплатных подарочных недель человек раздал с указанного момента.</summary>
     Task<int> CountFreeGiftsSinceAsync(long giverTelegramUserId, DateTime sinceUtc, CancellationToken ct = default);
 
+    /// <summary>Сколько дней доступа человек получил из этого источника с указанного момента (лимит наград).</summary>
+    Task<int> SumDaysSinceAsync(long telegramUserId, string source, DateTime sinceUtc, CancellationToken ct = default);
+
     /// <summary>
     /// Выдачи, срок которых кончается в окне, без напоминания - отслеживаемые.
     /// Вызывающий сам проверяет, что это последний срок человека.

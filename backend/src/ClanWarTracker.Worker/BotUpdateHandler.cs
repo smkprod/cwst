@@ -850,8 +850,15 @@ public class BotUpdateHandler(
 
                         // Кнопка приложения прямо под приветствием: раньше её не было, и
                         // человек, не догадавшийся про кнопку меню, приложения не видел.
+                        // Под приветствием - и канал: человек только пришёл и ещё не решил, остаться ли
+                        var channel = (await sp.GetRequiredService<IServiceSettingRepository>()
+                            .GetAsync(ChannelUseCase.KeyUsername, ct))?.Trim().TrimStart('@');
+                        var startKeyboard = AppButton(t.OpenAppButton);
+                        if (startKeyboard is not null && !string.IsNullOrEmpty(channel))
+                            startKeyboard = new InlineKeyboardMarkup(startKeyboard.InlineKeyboard
+                                .Append([InlineKeyboardButton.WithUrl(t.ChannelButton, $"https://t.me/{channel}")]));
                         await bot.SendMessage(msg.Chat.Id, t.StartPrivate,
-                            replyMarkup: AppButton(t.OpenAppButton), cancellationToken: ct);
+                            replyMarkup: startKeyboard, cancellationToken: ct);
                     }
                     else if (arg is not null && arg.StartsWith(SetupStartPrefix, StringComparison.Ordinal))
                     {

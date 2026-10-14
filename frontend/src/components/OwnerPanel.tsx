@@ -342,6 +342,7 @@ const DEST_LABELS: Record<string, string> = {
   challenge: 'Челлендж',
   ch: 'Челлендж блогера',
   link: 'Привязка аккаунта',
+  invite: 'Пригласить друга',
 }
 
 /**

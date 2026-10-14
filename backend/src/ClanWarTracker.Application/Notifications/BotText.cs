@@ -122,6 +122,15 @@ public sealed class BotText
     /* --- Приглашение друга --- */
     /// <summary>{0} — имя пришедшего игрока.</summary>
     public required string ReferralJoined { get; init; }
+    /// <summary>Друг привязался и пригласившему начислен Плюс: {0} - имя друга, {1} - дней.</summary>
+    public required string ReferralJoinedBonus { get; init; }
+    /// <summary>Кнопка канала бота.</summary>
+    public required string ChannelButton { get; init; }
+    /// <summary>Строка про канал в утренней сводке раз в неделю. {0} - @канал.</summary>
+    public required string DigestChannelLine { get; init; }
+    /// <summary>Строка «позови друга» в утренней сводке раз в неделю. {0} - дней Плюса за друга.</summary>
+    public required string DigestInviteLine { get; init; }
+    public required string InviteFriendButton { get; init; }
 
     /* --- Утренний брифинг лидера --- */
     /// <summary>{0} — «Война»/«Колизей», {1} — номер дня.</summary>
@@ -718,6 +727,11 @@ public sealed class BotText
 
 
         ReferralJoined = "🎉 По твоей ссылке в Clanify зашёл новый игрок: {0}. Спасибо, что зовёшь друзей!",
+        ChannelButton = "📣 Канал Clanify",
+        DigestChannelLine = "📣 Мета недели, связи карт и новости Clash Royale — в нашем канале {0}",
+        DigestInviteLine = "🎁 Позови друга из другого клана: за каждого, кто привяжет аккаунт, тебе +{0} дня Плюса",
+        InviteFriendButton = "🎁 Пригласить друга",
+        ReferralJoinedBonus = "🎉 По твоей ссылке в Clanify зашёл {0} — тебе +{1} дня Плюса! Зови ещё: за каждого друга, который привяжет аккаунт, ещё +{1} дня.",
 
         BriefTitle = "🌅 Брифинг лидера · {0} · день {1}/4",
         BriefWar = "Война",
@@ -1129,6 +1143,11 @@ public sealed class BotText
 
 
         ReferralJoined = "🎉 За твоїм посиланням у Clanify зайшов новий гравець: {0}. Дякуємо, що кличеш друзів!",
+        ChannelButton = "📣 Канал Clanify",
+        DigestChannelLine = "📣 Мета тижня, зв'язки карт і новини Clash Royale — у нашому каналі {0}",
+        DigestInviteLine = "🎁 Поклич друга з іншого клану: за кожного, хто прив'яже акаунт, тобі +{0} дні Плюса",
+        InviteFriendButton = "🎁 Запросити друга",
+        ReferralJoinedBonus = "🎉 За твоїм посиланням у Clanify зайшов {0} — тобі +{1} дні Плюса! Клич ще: за кожного друга, який прив'яже акаунт, ще +{1} дні.",
 
         BriefTitle = "🌅 Брифінг лідера · {0} · день {1}/4",
         BriefWar = "Війна",
@@ -1540,6 +1559,11 @@ public sealed class BotText
 
 
         ReferralJoined = "🎉 A new player joined Clanify through your link: {0}. Thanks for bringing friends!",
+        ChannelButton = "📣 Clanify channel",
+        DigestChannelLine = "📣 Meta of the week, card synergies and Clash Royale news — in our channel {0}",
+        DigestInviteLine = "🎁 Invite a friend from another clan: every friend who links their account gives you +{0} days of Plus",
+        InviteFriendButton = "🎁 Invite a friend",
+        ReferralJoinedBonus = "🎉 {0} joined Clanify through your link — you get +{1} days of Plus! Keep inviting: every friend who links their account gives +{1} more days.",
 
         BriefTitle = "🌅 Leader briefing · {0} · day {1}/4",
         BriefWar = "War",

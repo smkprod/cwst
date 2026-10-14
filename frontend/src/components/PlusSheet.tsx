@@ -163,7 +163,8 @@ function StatusLine({ status, t }: { status: PlusStatus; t: Translations }) {
     return <p className="plus-status plus-status-ok">{p.sponsorActive.replace('{date}', new Date(status.sponsorUntil).toLocaleDateString())}</p>
   }
   if (status.active && status.until) {
-    const source = status.source === 'gift' ? p.sourceGift : status.source === 'grant' ? p.sourceGrant : null
+    const source = status.source === 'gift' ? p.sourceGift : status.source === 'grant' ? p.sourceGrant
+      : status.source === 'referral' ? p.sourceReferral : null
     return (
       <p className="plus-status plus-status-ok">
         <Icon name="checkCircle" size={15} /> {p.activeUntil.replace('{date}', new Date(status.until).toLocaleDateString())}

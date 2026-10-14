@@ -5,6 +5,7 @@ import { LangSwitcher } from './LangSwitcher'
 import { AboutCard } from './AboutCard'
 import { CommunityCard } from './CommunityCard'
 import { InviteCard } from './InviteCard'
+import { ChannelCard } from './ChannelCard'
 import { RecruitToggle } from './RecruitToggle'
 import { RecruitBoard } from './RecruitBoard'
 import { WorldTopView } from './WorldTopView'
@@ -111,6 +112,8 @@ export function MoreView({ canManage, isLeader, onOpenNotifications, initialSect
         <MoreRow icon="info" tone="gray" title={t.more.about} hint={t.more.aboutHint} onClick={() => open('about')} />
       </section>
 
+      <div style={{ height: 10 }} />
+      <ChannelCard />
       <div style={{ height: 10 }} />
       <InviteCard />
       <div style={{ height: 10 }} />
