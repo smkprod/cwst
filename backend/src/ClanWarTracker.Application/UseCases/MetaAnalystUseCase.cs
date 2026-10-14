@@ -126,7 +126,7 @@ public class MetaAnalystUseCase(
     }
 
     /// <summary>Ответ модели → разбор. Номера вне списка и повторы отбрасываются.</summary>
-    private static Report? Parse(string raw, List<string> keys, string day)
+    internal static Report? Parse(string raw, List<string> keys, string day)
     {
         var start = raw.IndexOf('{');
         var end = raw.LastIndexOf('}');
@@ -141,7 +141,11 @@ public class MetaAnalystUseCase(
             {
                 foreach (var p in arr.EnumerateArray())
                 {
-                    if (!p.TryGetProperty("n", out var n) || !n.TryGetInt32(out var i)) continue;
+                    // Нейросеть может прислать что угодно: номер строкой, null, строку вместо
+                    // объекта. TryGetInt32 на не-числе бросает InvalidOperationException, а не
+                    // JsonException, - и разбор целиком падал вместо того, чтобы пропустить строку.
+                    if (p.ValueKind != JsonValueKind.Object || !p.TryGetProperty("n", out var n)
+                        || n.ValueKind != JsonValueKind.Number || !n.TryGetInt32(out var i)) continue;
                     if (i < 1 || i > keys.Count || !seen.Add(i)) continue;
                     var tag = p.TryGetProperty("tag", out var t) && t.ValueKind == JsonValueKind.String ? t.GetString()! : "";
                     picks.Add(new Pick(keys[i - 1], Cut(tag.Trim(), 30), Langs(p, "note", 140)));

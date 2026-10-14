@@ -14,7 +14,12 @@ permissions:
   packages: write
 
 jobs:
+  # Сначала проверки (ci.yml): образ, который не прошёл тесты, на сервер не попадает
+  checks:
+    uses: ./.github/workflows/ci.yml
+
   build:
+    needs: checks
     runs-on: ubuntu-latest
     strategy:
       matrix:

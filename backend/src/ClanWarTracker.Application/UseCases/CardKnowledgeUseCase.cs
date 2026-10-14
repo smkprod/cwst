@@ -152,7 +152,9 @@ public class CardKnowledgeUseCase(
             {
                 foreach (var l in arr.EnumerateArray())
                 {
-                    if (!l.TryGetProperty("n", out var n) || !n.TryGetInt32(out var i) || i < 1 || i > top.Count) continue;
+                    // Не-объект и не-число здесь бросили бы InvalidOperationException и уронили весь разбор
+                    if (l.ValueKind != JsonValueKind.Object || !l.TryGetProperty("n", out var n)
+                        || n.ValueKind != JsonValueKind.Number || !n.TryGetInt32(out var i) || i < 1 || i > top.Count) continue;
                     if (!l.TryGetProperty("note", out var note) || note.ValueKind != JsonValueKind.Object) continue;
                     var text = new Dictionary<string, string>();
                     foreach (var lang in new[] { "ru", "uk", "en" })

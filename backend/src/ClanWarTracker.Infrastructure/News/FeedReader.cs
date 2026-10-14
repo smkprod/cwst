@@ -223,10 +223,13 @@ public partial class FeedReader(HttpClient http) : INewsFeedReader
                 Summary: summary.Length <= 2500 ? summary : summary[..2500] + "…",
                 Link: "https://www.reddit.com" + permalink,
                 ImageUrl: image,
-                PublishedUtc: d.TryGetProperty("created_utc", out var created) && created.TryGetDouble(out var sec)
+                // ValueKind - до TryGet*: на null или строке они бросают, а не возвращают false
+                PublishedUtc: d.TryGetProperty("created_utc", out var created)
+                              && created.ValueKind == JsonValueKind.Number && created.TryGetDouble(out var sec)
                     ? DateTimeOffset.FromUnixTimeSeconds((long)sec).UtcDateTime
                     : null,
-                Score: d.TryGetProperty("score", out var score) && score.TryGetInt32(out var sc) ? sc : 0,
+                Score: d.TryGetProperty("score", out var score)
+                       && score.ValueKind == JsonValueKind.Number && score.TryGetInt32(out var sc) ? sc : 0,
                 Reddit: true));
         }
         return list;
