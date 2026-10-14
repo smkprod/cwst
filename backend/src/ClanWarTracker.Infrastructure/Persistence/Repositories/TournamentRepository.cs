@@ -8,8 +8,13 @@ namespace ClanWarTracker.Infrastructure.Persistence.Repositories;
 
 public class TournamentRepository(AppDbContext db) : ITournamentRepository
 {
+    // Участники и матчи - две коллекции. Одним SQL-запросом это декартово произведение:
+    // строк выходит «участники × матчи», у большого турнира это десятки тысяч толстых строк,
+    // и автосчёт раз в 20 секунд гонял их из базы и ронял воркер по памяти.
+    // Поэтому такие запросы - AsSplitQuery: отдельный запрос на каждую коллекцию.
     public Task<Tournament?> GetByIdAsync(int id, CancellationToken ct = default) =>
         db.Tournaments
+            .AsSplitQuery()
             .Include(t => t.Participants)
             .Include(t => t.Matches).ThenInclude(m => m.ParticipantA)
             .Include(t => t.Matches).ThenInclude(m => m.ParticipantB)
@@ -18,6 +23,7 @@ public class TournamentRepository(AppDbContext db) : ITournamentRepository
 
     public Task<Tournament?> GetByOverlayKeyAsync(string key, CancellationToken ct = default) =>
         db.Tournaments.AsNoTracking()
+            .AsSplitQuery()
             .Include(t => t.Participants)
             .Include(t => t.Matches).ThenInclude(m => m.ParticipantA)
             .Include(t => t.Matches).ThenInclude(m => m.ParticipantB)
@@ -53,6 +59,7 @@ public class TournamentRepository(AppDbContext db) : ITournamentRepository
         db.Tournaments
             .Where(t => t.AutoResults
                         && (t.Status == TournamentStatus.BracketReady || t.Status == TournamentStatus.InProgress))
+            .AsSplitQuery()
             .Include(t => t.Participants)
             .Include(t => t.Matches).ThenInclude(m => m.ParticipantA)
             .Include(t => t.Matches).ThenInclude(m => m.ParticipantB)
