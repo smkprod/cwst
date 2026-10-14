@@ -85,7 +85,9 @@ public class CollectPlayerBattlesUseCase(
 
     private async Task<int> SyncOneSafeAsync(string tag, CancellationToken ct)
     {
-        var log = await crApi.GetRecentBattlesAsync(tag, ct);
+        // Мимо кэша: проход по всем привязанным игрокам иначе держал бы в нём сотни
+        // полных журналов по пять минут - тот же путь к OOM, что был у сбора топа.
+        var log = await crApi.GetRecentBattlesUncachedAsync(tag, ct);
         await _write.WaitAsync(ct);
         try { return await SaveAsync(tag, log, ct); }
         finally { _write.Release(); }

@@ -27,6 +27,11 @@ public class TelegramNotificationSender(ITelegramBotClient bot) : INotificationS
             // молча пропускаем, чтобы один недоступный получатель не срывал всю рассылку
             // (напоминания, финальный пинок, /nudge и т.д.).
         }
+        // Сетевой сбой - тоже один пропущенный получатель, а не вся рассылка: исключение
+        // наружу обрывало проход до записи «уже отправлено», и в следующий такт те же
+        // люди получали сообщение второй раз.
+        catch (HttpRequestException) { }
+        catch (TaskCanceledException) when (!ct.IsCancellationRequested) { }
     }
 
     public async Task<bool> TrySendToUserAsync(long telegramUserId, string text, CancellationToken ct = default)

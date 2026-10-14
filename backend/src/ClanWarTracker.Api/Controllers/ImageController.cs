@@ -38,7 +38,7 @@ public class ImageController(
     /// <summary>GET /api/img/war/{tag}.jpg — карточка «моя война».</summary>
     [HttpGet("war/{tag}.jpg")]
     public Task<IActionResult> WarCard(string tag, CancellationToken ct) =>
-        Serve($"war:{tag}", CardTtl, async () =>
+        Serve($"war:{Normalize(tag)}", CardTtl, async () =>
         {
             var playerTag = Normalize(tag);
             string? clanTag;
@@ -61,7 +61,7 @@ public class ImageController(
     /// <summary>GET /api/img/profile/{tag}.jpg — карточка игрока.</summary>
     [HttpGet("profile/{tag}.jpg")]
     public Task<IActionResult> ProfileCard(string tag, CancellationToken ct) =>
-        Serve($"profile:{tag}", SlowTtl, async () =>
+        Serve($"profile:{Normalize(tag)}", SlowTtl, async () =>
         {
             var info = await Try(() => crApi.GetPlayerInfoAsync(Normalize(tag), ct));
             return info is null ? null : renderer.RenderProfile(new ProfileCardModel(
@@ -73,7 +73,7 @@ public class ImageController(
     /// <summary>GET /api/img/clan/{tag}.jpg — карточка клана.</summary>
     [HttpGet("clan/{tag}.jpg")]
     public Task<IActionResult> ClanCard(string tag, CancellationToken ct) =>
-        Serve($"clan:{tag}", SlowTtl, async () =>
+        Serve($"clan:{Normalize(tag)}", SlowTtl, async () =>
         {
             var info = await Try(() => crApi.GetClanInfoAsync(Normalize(tag), ct));
             return info is null ? null : renderer.RenderClan(new ClanCardModel(
@@ -84,7 +84,7 @@ public class ImageController(
     /// <summary>GET /api/img/deck/{tag}.jpg — текущая колода игрока настоящими картами.</summary>
     [HttpGet("deck/{tag}.jpg")]
     public Task<IActionResult> DeckCard(string tag, CancellationToken ct) =>
-        Serve($"deck:{tag}", SlowTtl, async () =>
+        Serve($"deck:{Normalize(tag)}", SlowTtl, async () =>
         {
             var info = await Try(() => crApi.GetPlayerInfoAsync(Normalize(tag), ct));
             if (info is null || info.CurrentDeck.Count == 0) return null;
@@ -140,7 +140,7 @@ public class ImageController(
     /// </summary>
     [HttpGet("perfect/{tag}.jpg")]
     public Task<IActionResult> PerfectDayCard(string tag, CancellationToken ct) =>
-        Serve($"perfect:{tag}", CardTtl, async () =>
+        Serve($"perfect:{Normalize(tag)}", CardTtl, async () =>
         {
             var playerTag = Normalize(tag);
             var info = await Try(() => crApi.GetPlayerInfoAsync(playerTag, ct));
@@ -253,7 +253,14 @@ public class ImageController(
         {
             entry.Size = 1;
             entry.AbsoluteExpirationRelativeToNow = ttl;
-            try { return await build(); }
+            try
+            {
+                var bytes = await build();
+                // Размер в килобайтах: кэш ограничен суммой размеров, и картинка на 100 КБ
+                // не должна считаться так же, как имя игрока.
+                entry.Size = bytes is null ? 1 : Math.Max(1, bytes.Length / 1024);
+                return bytes;
+            }
             catch
             {
                 entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1);

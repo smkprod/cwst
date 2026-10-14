@@ -46,8 +46,13 @@ public class MetaAnalystUseCase(
         var day = local.ToString("yyyy-MM-dd");
         var last = await LastAsync(ct);
         if (last?.Day == day) return false;
+        // Неудачный разбор (кривой JSON, пустой выбор) иначе повторялся бы каждые пять
+        // минут до конца дня - платным запросом к нейросети.
+        if (!await DailyAttempts.TryStartAsync(settings, AttemptsKey, day, 3, ct)) return false;
         return await RunAsync(ct) is null;
     }
+
+    private const string AttemptsKey = "meta.analyst.attempts";
 
     public async Task<Report?> LastAsync(CancellationToken ct = default)
     {

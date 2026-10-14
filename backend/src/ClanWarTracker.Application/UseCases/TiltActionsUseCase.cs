@@ -187,6 +187,9 @@ public class PlusReminderUseCase(
             var tg = group.Key;
             var latest = group.MaxBy(e => e.UntilUtc)!;
             foreach (var e in group) e.ReminderSentUtc = now;
+            // Отметка - до отправки и по каждому человеку: сбой посреди прохода иначе
+            // терял все отметки, и напоминание приходило уже напомненным ещё раз.
+            await entitlements.SaveChangesAsync(ct);
 
             // Уже продлил или спонсорство идёт дольше - напоминать не о чем.
             var until = await entitlements.UntilAsync(tg, Entitlement.Skus.Plus, ct);

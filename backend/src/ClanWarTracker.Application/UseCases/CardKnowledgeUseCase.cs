@@ -35,6 +35,8 @@ public class CardKnowledgeUseCase(
         if (local.Hour < RunHourLocal) return false;
         var day = local.ToString("yyyy-MM-dd");
         if (await settings.GetAsync(DayKey, ct) == day) return false;
+        // Отметка дня - до запуска: упавший разбор иначе повторялся бы каждые пять минут.
+        await settings.SetAsync(DayKey, day, ct);
         var error = await RunAsync(ct);
         return error is null;
     }

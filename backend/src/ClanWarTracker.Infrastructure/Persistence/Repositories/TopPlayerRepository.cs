@@ -50,4 +50,7 @@ public class TopPlayerRepository(AppDbContext db) : ITopPlayerRepository
             .OrderByDescending(d => d)
             .Take(limit)
             .ToListAsync(ct);
+
+    public Task<int> PurgeBeforeAsync(string dayUtc, CancellationToken ct = default) =>
+        db.TopPlayers.Where(t => string.Compare(t.DayUtc, dayUtc) < 0).ExecuteDeleteAsync(ct);
 }
