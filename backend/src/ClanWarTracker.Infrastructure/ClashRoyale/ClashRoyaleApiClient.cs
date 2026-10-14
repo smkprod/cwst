@@ -256,28 +256,36 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
 
     /// <summary>
     /// /currentriverrace всегда отдаёт seasonId=0 (баг CR API), хотя весь наш дедуп/история
-    /// снимков завязаны на реальный сезон. Уточняем по официальному журналу (/riverracelog):
-    /// берём сезон самой свежей завершённой недели. Сезон сменился ТОЛЬКО когда текущая
-    /// неделя — первая в сезоне (currentSectionIndex == 0): тогда предыдущая завершённая
-    /// неделя была колизеем прошлого сезона, и текущий = +1.
-    /// ВАЖНО: нельзя завязываться на "section >= 3" — в сезонах из 5 недель колизей это
-    /// section 4, и после обычной 4-й недели (section 3) сезон ещё НЕ сменился. Привязка
-    /// к section 0 корректна и для 4-, и для 5-недельных сезонов.
-    /// Журнал недоступен — отдаём сырое значение как есть.
+    /// снимков завязаны на реальный сезон. Уточняем по официальному журналу (/riverracelog),
+    /// правило - в <see cref="RealSeasonId"/>. Журнал недоступен — отдаём сырое значение как есть.
     /// </summary>
     private async Task<int> ResolveRealSeasonIdAsync(string clanTag, int currentSectionIndex, int rawSeasonId, CancellationToken ct)
     {
         try
         {
-            var log = await GetRiverRaceLogAsync(clanTag, ct);
-            if (log.Count > 0)
-            {
-                var newest = log[0]; // журнал отсортирован: свежие недели первыми
-                return currentSectionIndex == 0 ? newest.SeasonId + 1 : newest.SeasonId;
-            }
+            return RealSeasonId(currentSectionIndex, rawSeasonId, await GetRiverRaceLogAsync(clanTag, ct));
         }
         catch { /* журнал не критичен — используем сырое значение */ }
         return rawSeasonId;
+    }
+
+    /// <summary>
+    /// Сезон текущей недели по журналу (свежие недели первыми). Сравниваем номер недели в
+    /// сезоне: последняя завершённая неделя с номером БОЛЬШЕ текущего может быть только
+    /// из прошлого сезона (колизей) - значит, сезон сменился, +1. Меньше или равна - тот
+    /// же сезон.
+    ///
+    /// «Равна» - это смена недели: журнал уже записал только что сыгранную неделю, а
+    /// /currentriverrace ещё минуты отдаёт её же номер. Раньше правило было «неделя 0 -
+    /// значит, сезон + 1», и в такой момент первая неделя сезона 137 записалась ещё и
+    /// первой неделей несуществующего 138. Обратная гонка (текущая уже неделя 1, а журнал
+    /// ещё не обновился и последним в нём колизей прошлого сезона) тоже даёт верный +1.
+    /// </summary>
+    internal static int RealSeasonId(int currentSectionIndex, int rawSeasonId, IReadOnlyList<RiverRaceLogWeek> log)
+    {
+        if (log.Count == 0) return rawSeasonId;
+        var newest = log[0];
+        return newest.SectionIndex > currentSectionIndex ? newest.SeasonId + 1 : newest.SeasonId;
     }
 
     private static string Encode(string tag) => Uri.EscapeDataString(tag); // "#" -> "%23"
