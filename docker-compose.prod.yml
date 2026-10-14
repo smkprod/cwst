@@ -57,7 +57,9 @@ services:
     image: ghcr.io/smkprod/cwst-worker:latest
     restart: unless-stopped
     logging: *default-logging
-    mem_limit: 256m
+    # Запас под суточный сбор топа (тысяча профилей и журналов за пару минут):
+    # на 256m воркер падал по памяти посреди сбора и начинал его заново.
+    mem_limit: 384m
     mem_reservation: 128m
     environment:
       DATABASE_URL: postgres://clanwar:${POSTGRES_PASSWORD}@db:5432/clanwar

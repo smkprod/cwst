@@ -34,6 +34,12 @@ public interface IClashRoyaleApi
     Task<CrPlayerInfo?> GetPlayerInfoAsync(string playerTag, CancellationToken ct = default);
 
     /// <summary>
+    /// То же без кэша - для суточного сбора топа: тысяча профилей с полной коллекцией
+    /// карт в кэше на пять минут не помещалась в память воркера.
+    /// </summary>
+    Task<CrPlayerInfo?> GetPlayerInfoUncachedAsync(string playerTag, CancellationToken ct = default);
+
+    /// <summary>
     /// Колоды игроков из мирового топа — чем играют лучшие прямо сейчас.
     /// Тяжёлый запрос (рейтинг + профиль на каждого), поэтому кэшируется надолго.
     /// Пустой список — рейтинг недоступен, это не ошибка.
@@ -65,6 +71,9 @@ public interface IClashRoyaleApi
     /// только военные бои, здесь — то, чем человек играет на самом деле.
     /// </summary>
     Task<List<CrRecentBattle>> GetRecentBattlesAsync(string playerTag, CancellationToken ct = default);
+
+    /// <summary>То же без кэша - для суточного сбора топа.</summary>
+    Task<List<CrRecentBattle>> GetRecentBattlesUncachedAsync(string playerTag, CancellationToken ct = default);
 
     /// <summary>
     /// Тот же журнал боёв, но с коротким кэшем — для автозачёта результатов турнира.

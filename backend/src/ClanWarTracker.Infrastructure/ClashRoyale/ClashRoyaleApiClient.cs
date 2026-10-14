@@ -618,75 +618,86 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         {
             entry.Size = 1;
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
-            var resp = await http.GetAsync($"players/{Encode(playerTag)}", ct);
-            if (resp.StatusCode == HttpStatusCode.NotFound) return null;
-            if (resp.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.Unauthorized)
-                throw new InvalidOperationException(
-                    "CR API отклонил ключ (403). Ключ привязан к IP — создай новый на developer.clashroyale.com.");
-            if (!resp.IsSuccessStatusCode) return null;
-            var data = await resp.Content.ReadFromJsonAsync<PlayerFullResponse>(cancellationToken: ct);
-            if (data is null) return null;
-            static CrPathOfLegend? MapPol(PathOfLegendResponse? p) =>
-                p is null ? null : new CrPathOfLegend { Trophies = p.Trophies, LeagueNumber = p.LeagueNumber, Rank = p.Rank ?? 0 };
-
-            // Потолок игровых уровней = наибольший maxLevel в коллекции (он у обычных карт).
-            // Фолбэк на 15 нужен лишь если карт нет вовсе — тогда переводить всё равно нечего.
-            var maxCardLevel = (data.Cards ?? []).Count > 0
-                ? data.Cards!.Max(c => c.MaxLevel)
-                : 15;
-
-            return new CrPlayerInfo
-            {
-                Tag = data.Tag,
-                Name = data.Name,
-                ExpLevel = data.ExpLevel,
-                Wins = data.Wins,
-                Losses = data.Losses,
-                Trophies = data.Trophies,
-                BestTrophies = data.BestTrophies,
-                ClanWarTrophies = data.ClanWarTrophies,
-                ClanTag = data.Clan?.Tag,
-                ClanName = data.Clan?.Name,
-                ArenaName = data.Arena?.Name,
-                WarDayWins = data.WarDayWins,
-                BattleCount = data.BattleCount,
-                ThreeCrownWins = data.ThreeCrownWins,
-                CurrentWinLoseStreak = data.CurrentWinLoseStreak,
-                CurrentPathOfLegend = MapPol(data.CurrentPathOfLegend),
-                BestPathOfLegend = MapPol(data.BestPathOfLegend),
-                CurrentFavouriteCard = data.CurrentFavouriteCard?.Name,
-                MaxCardLevel = maxCardLevel,
-                CurrentDeck = (data.CurrentDeck ?? [])
-                    .Where(c => c is not null)
-                    .Select(c => new CrDeckCard
-                    {
-                        Id = c!.Id,
-                        Name = c.Name,
-                        Level = ToGameLevel(c.Level, c.MaxLevel, maxCardLevel),
-                        MaxLevel = maxCardLevel,
-                        IconUrl = CardIcon(c.IconUrls),
-                        EvolutionLevel = c.EvolutionLevel,
-                        MaxEvolutionLevel = c.MaxEvolutionLevel,
-                        EvoIconUrl = c.IconUrls?.EvolutionMedium,
-                    })
-                    .ToList(),
-                Cards = (data.Cards ?? [])
-                    .Where(c => c is not null)
-                    .Select(c => new CrCard
-                    {
-                        Name = c!.Name,
-                        Level = ToGameLevel(c.Level, c.MaxLevel, maxCardLevel),
-                        MaxLevel = maxCardLevel,
-                        IconUrl = CardIcon(c.IconUrls),
-                        EvolutionLevel = c.EvolutionLevel,
-                        MaxEvolutionLevel = c.MaxEvolutionLevel,
-                        EvoIconUrl = c.IconUrls?.EvolutionMedium,
-                    })
-                    .OrderByDescending(c => c.Level)
-                    .ThenBy(c => c.Name)
-                    .ToList(),
-            };
+            return await LoadPlayerInfoAsync(playerTag, ct);
         });
+    }
+
+    public Task<CrPlayerInfo?> GetPlayerInfoUncachedAsync(string playerTag, CancellationToken ct = default) =>
+        LoadPlayerInfoAsync(playerTag, ct);
+
+    public Task<List<CrRecentBattle>> GetRecentBattlesUncachedAsync(string playerTag, CancellationToken ct = default) =>
+        LoadBattlesAsync(playerTag, ct);
+
+    private async Task<CrPlayerInfo?> LoadPlayerInfoAsync(string playerTag, CancellationToken ct)
+    {
+        var resp = await http.GetAsync($"players/{Encode(playerTag)}", ct);
+        if (resp.StatusCode == HttpStatusCode.NotFound) return null;
+        if (resp.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.Unauthorized)
+            throw new InvalidOperationException(
+                "CR API отклонил ключ (403). Ключ привязан к IP — создай новый на developer.clashroyale.com.");
+        if (!resp.IsSuccessStatusCode) return null;
+        var data = await resp.Content.ReadFromJsonAsync<PlayerFullResponse>(cancellationToken: ct);
+        if (data is null) return null;
+        static CrPathOfLegend? MapPol(PathOfLegendResponse? p) =>
+            p is null ? null : new CrPathOfLegend { Trophies = p.Trophies, LeagueNumber = p.LeagueNumber, Rank = p.Rank ?? 0 };
+
+        // Потолок игровых уровней = наибольший maxLevel в коллекции (он у обычных карт).
+        // Фолбэк на 15 нужен лишь если карт нет вовсе — тогда переводить всё равно нечего.
+        var maxCardLevel = (data.Cards ?? []).Count > 0
+            ? data.Cards!.Max(c => c.MaxLevel)
+            : 15;
+
+        return new CrPlayerInfo
+        {
+            Tag = data.Tag,
+            Name = data.Name,
+            ExpLevel = data.ExpLevel,
+            Wins = data.Wins,
+            Losses = data.Losses,
+            Trophies = data.Trophies,
+            BestTrophies = data.BestTrophies,
+            ClanWarTrophies = data.ClanWarTrophies,
+            ClanTag = data.Clan?.Tag,
+            ClanName = data.Clan?.Name,
+            ArenaName = data.Arena?.Name,
+            WarDayWins = data.WarDayWins,
+            BattleCount = data.BattleCount,
+            ThreeCrownWins = data.ThreeCrownWins,
+            CurrentWinLoseStreak = data.CurrentWinLoseStreak,
+            CurrentPathOfLegend = MapPol(data.CurrentPathOfLegend),
+            BestPathOfLegend = MapPol(data.BestPathOfLegend),
+            CurrentFavouriteCard = data.CurrentFavouriteCard?.Name,
+            MaxCardLevel = maxCardLevel,
+            CurrentDeck = (data.CurrentDeck ?? [])
+                .Where(c => c is not null)
+                .Select(c => new CrDeckCard
+                {
+                    Id = c!.Id,
+                    Name = c.Name,
+                    Level = ToGameLevel(c.Level, c.MaxLevel, maxCardLevel),
+                    MaxLevel = maxCardLevel,
+                    IconUrl = CardIcon(c.IconUrls),
+                    EvolutionLevel = c.EvolutionLevel,
+                    MaxEvolutionLevel = c.MaxEvolutionLevel,
+                    EvoIconUrl = c.IconUrls?.EvolutionMedium,
+                })
+                .ToList(),
+            Cards = (data.Cards ?? [])
+                .Where(c => c is not null)
+                .Select(c => new CrCard
+                {
+                    Name = c!.Name,
+                    Level = ToGameLevel(c.Level, c.MaxLevel, maxCardLevel),
+                    MaxLevel = maxCardLevel,
+                    IconUrl = CardIcon(c.IconUrls),
+                    EvolutionLevel = c.EvolutionLevel,
+                    MaxEvolutionLevel = c.MaxEvolutionLevel,
+                    EvoIconUrl = c.IconUrls?.EvolutionMedium,
+                })
+                .OrderByDescending(c => c.Level)
+                .ThenBy(c => c.Name)
+                .ToList(),
+        };
     }
 
     private record PlayerFullResponse(
@@ -1291,56 +1302,61 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
         {
             entry.Size = 1;
             entry.AbsoluteExpirationRelativeToNow = ttl;
-
-            var resp = await http.GetAsync($"players/{Encode(playerTag)}/battlelog", ct);
-            if (!resp.IsSuccessStatusCode) return new List<CrRecentBattle>();
-
-            var raw = await resp.Content.ReadFromJsonAsync<List<BattlelogEntry>>(cancellationToken: ct);
-            var result = new List<CrRecentBattle>();
-
-            foreach (var b in raw ?? [])
-            {
-                var me = b.Team?.FirstOrDefault();
-                var opp = b.Opponent?.FirstOrDefault();
-                var time = ParseCrTime(b.BattleTime);
-                if (me is null || time is null) continue;
-
-                var crownsFor = me.Crowns;
-                var crownsAgainst = opp?.Crowns ?? 0;
-                var isBoat = (b.Type ?? "").Contains("boat", StringComparison.OrdinalIgnoreCase);
-
-                // Потолок игровой шкалы для этого боя - как в профиле: наибольший maxLevel
-                // (он у обычных карт). Уровни в журнале - относительно редкости.
-                var levelCap = (me.Cards ?? []).Concat(opp?.Cards ?? [])
-                    .Where(c => c is not null).Select(c => c!.MaxLevel).DefaultIfEmpty(0).Max();
-
-                result.Add(new CrRecentBattle
-                {
-                    BattleTimeUtc = time.Value,
-                    Type = b.Type ?? "",
-                    Won = isBoat ? (b.BoatBattleWon ?? crownsFor > crownsAgainst) : crownsFor > crownsAgainst,
-                    CrownsFor = crownsFor,
-                    CrownsAgainst = crownsAgainst,
-                    OpponentName = opp?.Name,
-                    OpponentTag = opp?.Tag,
-                    TeamTags = (b.Team ?? []).Select(x => x.Tag).Where(x => x is not null).ToList(),
-                    OpponentTags = (b.Opponent ?? []).Select(x => x.Tag).Where(x => x is not null).ToList(),
-                    MyDeck = Deck(me.Cards, levelCap),
-                    OpponentDeck = Deck(opp?.Cards, levelCap),
-                    ElixirLeaked = me.ElixirLeaked,
-                    TrophyChange = me.TrophyChange,
-                    GameModeId = b.GameMode?.Id,
-                    GameModeName = b.GameMode?.Name,
-                    LeagueNumber = b.LeagueNumber,
-                    DeckSelection = b.DeckSelection,
-                    ArenaName = b.Arena?.Name,
-                    Me = Side(me, levelCap),
-                    Opp = opp is null ? null : Side(opp, levelCap),
-                });
-            }
-            return result;
+            return await LoadBattlesAsync(playerTag, ct);
         });
         return list ?? [];
+    }
+
+    /// <summary>Журнал боёв прямо из API, без кэша: кэш - у обёрток выше.</summary>
+    private async Task<List<CrRecentBattle>> LoadBattlesAsync(string playerTag, CancellationToken ct)
+    {
+        var resp = await http.GetAsync($"players/{Encode(playerTag)}/battlelog", ct);
+        if (!resp.IsSuccessStatusCode) return new List<CrRecentBattle>();
+
+        var raw = await resp.Content.ReadFromJsonAsync<List<BattlelogEntry>>(cancellationToken: ct);
+        var result = new List<CrRecentBattle>();
+
+        foreach (var b in raw ?? [])
+        {
+            var me = b.Team?.FirstOrDefault();
+            var opp = b.Opponent?.FirstOrDefault();
+            var time = ParseCrTime(b.BattleTime);
+            if (me is null || time is null) continue;
+
+            var crownsFor = me.Crowns;
+            var crownsAgainst = opp?.Crowns ?? 0;
+            var isBoat = (b.Type ?? "").Contains("boat", StringComparison.OrdinalIgnoreCase);
+
+            // Потолок игровой шкалы для этого боя - как в профиле: наибольший maxLevel
+            // (он у обычных карт). Уровни в журнале - относительно редкости.
+            var levelCap = (me.Cards ?? []).Concat(opp?.Cards ?? [])
+                .Where(c => c is not null).Select(c => c!.MaxLevel).DefaultIfEmpty(0).Max();
+
+            result.Add(new CrRecentBattle
+            {
+                BattleTimeUtc = time.Value,
+                Type = b.Type ?? "",
+                Won = isBoat ? (b.BoatBattleWon ?? crownsFor > crownsAgainst) : crownsFor > crownsAgainst,
+                CrownsFor = crownsFor,
+                CrownsAgainst = crownsAgainst,
+                OpponentName = opp?.Name,
+                OpponentTag = opp?.Tag,
+                TeamTags = (b.Team ?? []).Select(x => x.Tag).Where(x => x is not null).ToList(),
+                OpponentTags = (b.Opponent ?? []).Select(x => x.Tag).Where(x => x is not null).ToList(),
+                MyDeck = Deck(me.Cards, levelCap),
+                OpponentDeck = Deck(opp?.Cards, levelCap),
+                ElixirLeaked = me.ElixirLeaked,
+                TrophyChange = me.TrophyChange,
+                GameModeId = b.GameMode?.Id,
+                GameModeName = b.GameMode?.Name,
+                LeagueNumber = b.LeagueNumber,
+                DeckSelection = b.DeckSelection,
+                ArenaName = b.Arena?.Name,
+                Me = Side(me, levelCap),
+                Opp = opp is null ? null : Side(opp, levelCap),
+            });
+        }
+        return result;
     }
 
     /// <summary>
