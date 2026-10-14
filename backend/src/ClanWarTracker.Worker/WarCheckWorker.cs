@@ -555,6 +555,11 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
                     var reminder = scope.ServiceProvider.GetRequiredService<PlusReminderUseCase>();
                     var reminded = await reminder.ExecuteAsync(stoppingToken);
                     if (reminded > 0) logger.LogInformation("Plus ending reminders: {Count}", reminded);
+
+                    // Лидерам кланов без чата - «добавь бота в чат» (раз в неделю, не больше трёх раз)
+                    var connect = scope.ServiceProvider.GetRequiredService<ChatConnectReminderUseCase>();
+                    var asked = await connect.ExecuteAsync(stoppingToken);
+                    if (asked > 0) logger.LogInformation("Chat-connect reminders: {Count}", asked);
                 }
                 catch (Exception ex)
                 {

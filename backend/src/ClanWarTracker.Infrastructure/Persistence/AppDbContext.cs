@@ -27,6 +27,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<CreatorChallenge> CreatorChallenges => Set<CreatorChallenge>();
     public DbSet<Duel> Duels => Set<Duel>();
     public DbSet<ChannelPost> ChannelPosts => Set<ChannelPost>();
+    public DbSet<AppOpen> AppOpens => Set<AppOpen>();
     public DbSet<PlayerBattle> PlayerBattles => Set<PlayerBattle>();
     public DbSet<Entitlement> Entitlements => Set<Entitlement>();
     public DbSet<PlayerAlertPrefs> PlayerAlertPrefs => Set<PlayerAlertPrefs>();
@@ -307,6 +308,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasIndex(m => m.TelegramUserId).IsUnique().HasFilter("\"TelegramUserId\" IS NOT NULL");
             e.Property(m => m.TelegramUsername).HasMaxLength(32);
             e.Property(m => m.Note).HasMaxLength(200);
+        });
+
+        mb.Entity<AppOpen>(e =>
+        {
+            e.HasIndex(o => new { o.TelegramUserId, o.DayUtc, o.Source, o.Dest }).IsUnique();
+            e.HasIndex(o => o.DayUtc);
+            e.Property(o => o.DayUtc).HasMaxLength(10);
+            e.Property(o => o.Source).HasMaxLength(8);
+            e.Property(o => o.Dest).HasMaxLength(20);
         });
 
         mb.Entity<ActivityDay>(e =>

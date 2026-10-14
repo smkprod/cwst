@@ -155,6 +155,16 @@ public interface IWarBattleRepository
 }
 
 /// <summary>Журнал активных дней: кто заходил и что-то делал в конкретную дату.</summary>
+/// <summary>Заходы в Mini App с источником - какие кнопки приводят людей (см. AppOpen).</summary>
+public interface IAppOpenRepository
+{
+    /// <summary>Отметить заход. Идемпотентно: строка на человека, день, источник и раздел.</summary>
+    Task AddAsync(AppOpen open, CancellationToken ct = default);
+
+    /// <summary>Заходы с указанного дня - для сводки по источникам.</summary>
+    Task<List<AppOpen>> GetSinceAsync(string sinceDayUtc, CancellationToken ct = default);
+}
+
 public interface IActivityRepository
 {
     /// <summary>
@@ -169,6 +179,9 @@ public interface IActivityRepository
     /// (день → сколько заходило, сколько что-то делало).
     /// </summary>
     Task<Dictionary<string, (int Active, int Acting)>> GetDailyAsync(string sinceDayUtc, CancellationToken ct = default);
+
+    /// <summary>Все дни активности всех игроков (игрок, день) - для удержания: кто возвращается.</summary>
+    Task<List<(int PlayerId, string DayUtc)>> GetAllDaysAsync(CancellationToken ct = default);
 }
 
 /// <summary>Ежедневные снимки мирового топа по кубкам.</summary>

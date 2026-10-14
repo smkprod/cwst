@@ -1,3 +1,4 @@
+using ClanWarTracker.Application.Analytics;
 using ClanWarTracker.Domain.Interfaces;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
@@ -55,7 +56,7 @@ public class TelegramNotificationSender(ITelegramBotClient bot) : INotificationS
     {
         try
         {
-            var keyboard = await KeyboardAsync(rows, ct);
+            var keyboard = await KeyboardAsync(rows, OpenSource.For(telegramUserId), ct);
             var message = await bot.SendMessage(telegramUserId, text, replyMarkup: keyboard,
                 disableNotification: silent, cancellationToken: ct);
             return new DmResult(message.MessageId, false);
@@ -81,7 +82,7 @@ public class TelegramNotificationSender(ITelegramBotClient bot) : INotificationS
         {
             // Пустая клавиатура, а не null: null оставил бы прежние кнопки под новым текстом
             var keyboard = rows is { Count: > 0 }
-                ? await KeyboardAsync(rows, ct)
+                ? await KeyboardAsync(rows, OpenSource.For(chatId), ct)
                 : new InlineKeyboardMarkup(Array.Empty<InlineKeyboardButton[]>());
             await bot.EditMessageText(chatId, messageId, text, replyMarkup: keyboard, cancellationToken: ct);
             return true;
@@ -102,8 +103,9 @@ public class TelegramNotificationSender(ITelegramBotClient bot) : INotificationS
     {
         try
         {
+            // Inline-сообщение человек сам отправил в какой-то чат - это «поделился»
             var keyboard = rows is { Count: > 0 }
-                ? await KeyboardAsync(rows, ct)
+                ? await KeyboardAsync(rows, "s", ct)
                 : new InlineKeyboardMarkup(Array.Empty<InlineKeyboardButton[]>());
             await bot.EditMessageText(inlineMessageId, text, replyMarkup: keyboard,
                 linkPreviewOptions: new global::Telegram.Bot.Types.LinkPreviewOptions { IsDisabled = true },
@@ -159,7 +161,9 @@ public class TelegramNotificationSender(ITelegramBotClient bot) : INotificationS
         catch (HttpRequestException) { return false; }
     }
 
-    private async Task<InlineKeyboardMarkup?> KeyboardAsync(IReadOnlyList<IReadOnlyList<BotButton>> rows, CancellationToken ct)
+    /// <param name="sourceSuffix">Метка источника для кнопок приложения (OpenSource): c - чат клана, d - личка.</param>
+    private async Task<InlineKeyboardMarkup?> KeyboardAsync(
+        IReadOnlyList<IReadOnlyList<BotButton>> rows, string sourceSuffix, CancellationToken ct)
     {
         if (rows.Count == 0) return null;
         var appUrl = await GetAppUrlAsync(ct);
@@ -176,7 +180,15 @@ public class TelegramNotificationSender(ITelegramBotClient bot) : INotificationS
                 else if (b.Url is { } url && url.StartsWith("startapp:", StringComparison.Ordinal))
                 {
                     // Ссылка на приложение с параметром запуска; без юзернейма бота кнопку пропускаем
-                    if (appUrl is not null) buttons.Add(InlineKeyboardButton.WithUrl(b.Text, appUrl + "=" + url["startapp:".Length..]));
+                    if (appUrl is not null) buttons.Add(InlineKeyboardButton.WithUrl(b.Text, Tagged(appUrl, url["startapp:".Length..], sourceSuffix)));
+                }
+                else if (b.Url is { } group && group.StartsWith("startgroup:", StringComparison.Ordinal))
+                {
+                    // «Добавить бота в группу» с параметром: Telegram покажет выбор чата, а бот
+                    // получит там /start с этим параметром (так клан подключается в одно нажатие)
+                    if (appUrl is not null)
+                        buttons.Add(InlineKeyboardButton.WithUrl(b.Text,
+                            appUrl.Replace("?startapp", "?startgroup=") + group["startgroup:".Length..]));
                 }
                 else if (b.Url is { } plain)
                     buttons.Add(InlineKeyboardButton.WithUrl(b.Text, plain));
@@ -201,7 +213,7 @@ public class TelegramNotificationSender(ITelegramBotClient bot) : INotificationS
     {
         try
         {
-            var keyboard = await KeyboardAsync(rows, ct);
+            var keyboard = await KeyboardAsync(rows, OpenSource.For(chatId), ct);
             await bot.SendMessage(chatId, text,
                 replyMarkup: keyboard, messageThreadId: threadId, cancellationToken: ct);
             return true;
@@ -218,7 +230,7 @@ public class TelegramNotificationSender(ITelegramBotClient bot) : INotificationS
             var appUrl = await GetAppUrlAsync(ct);
             var keyboard = appUrl is null
                 ? null
-                : new InlineKeyboardMarkup(InlineKeyboardButton.WithUrl("🎮 Открыть в Mini App", appUrl));
+                : new InlineKeyboardMarkup(InlineKeyboardButton.WithUrl("🎮 Открыть в Mini App", Tagged(appUrl, null, OpenSource.For(chatId))));
 
             await bot.SendPhoto(chatId, global::Telegram.Bot.Types.InputFile.FromUri(photoUrl),
                 caption: caption, replyMarkup: keyboard, messageThreadId: threadId, cancellationToken: ct);
@@ -243,7 +255,7 @@ public class TelegramNotificationSender(ITelegramBotClient bot) : INotificationS
             var appUrl = await GetAppUrlAsync(ct);
             var keyboard = appUrl is null
                 ? null
-                : new InlineKeyboardMarkup(InlineKeyboardButton.WithUrl("🎮 Открыть в Mini App", appUrl));
+                : new InlineKeyboardMarkup(InlineKeyboardButton.WithUrl("🎮 Открыть в Mini App", Tagged(appUrl, null, OpenSource.For(chatId))));
 
             var message = await bot.SendMessage(chatId, text,
                 replyMarkup: keyboard, messageThreadId: threadId, cancellationToken: ct);
@@ -260,7 +272,7 @@ public class TelegramNotificationSender(ITelegramBotClient bot) : INotificationS
             var appUrl = await GetAppUrlAsync(ct);
             var keyboard = appUrl is null
                 ? null
-                : new InlineKeyboardMarkup(InlineKeyboardButton.WithUrl("🎮 Открыть в Mini App", appUrl));
+                : new InlineKeyboardMarkup(InlineKeyboardButton.WithUrl("🎮 Открыть в Mini App", Tagged(appUrl, null, OpenSource.For(chatId))));
 
             await bot.EditMessageText(chatId, messageId, text, replyMarkup: keyboard, cancellationToken: ct);
             return true;
@@ -292,10 +304,17 @@ public class TelegramNotificationSender(ITelegramBotClient bot) : INotificationS
         var parseMode = html ? ParseMode.Html : ParseMode.None;
         var keyboard = appUrl is null
             ? null
-            : new InlineKeyboardMarkup(InlineKeyboardButton.WithUrl("🎮 Открыть в Mini App", appUrl));
+            : new InlineKeyboardMarkup(InlineKeyboardButton.WithUrl("🎮 Открыть в Mini App", Tagged(appUrl, null, OpenSource.For(chatId))));
         await bot.SendMessage(chatId, text,
             parseMode: parseMode, replyMarkup: keyboard, messageThreadId: threadId, cancellationToken: ct);
     }
+
+    /// <summary>
+    /// Ссылка на приложение с разделом и меткой источника: по ней в панели видно, какие
+    /// кнопки бота приводят людей (пост в чате клана или личное сообщение).
+    /// </summary>
+    private static string Tagged(string appUrl, string? param, string suffix) =>
+        appUrl + "=" + OpenSource.Tag(param, suffix);
 
     /// <summary>https://t.me/&lt;bot&gt;?startapp открывает основное Mini App прямо из чата.</summary>
     private async Task<string?> GetAppUrlAsync(CancellationToken ct)

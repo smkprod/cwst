@@ -23,6 +23,7 @@ public class ClanController(
     GetSeasonBreakdownUseCase getSeasonBreakdown,
     GetSeasonArchiveUseCase getSeasonArchive,
     NudgePlayersUseCase nudge,
+    InviteUnlinkedUseCase invite,
     IPlayerRepository players,
     IClanRepository clans,
     IWarBattleRepository warBattles,
@@ -68,7 +69,9 @@ public class ClanController(
                         isClanLeader = isClanLeader || ActingCanManage,
                         viewingAsAdmin,
                         adminReadOnly = Acting is { } who && !who.Can(ServicePermission.ManageClans),
-                        isOwner = IsOwner(userId), reminderHoursBeforeEnd = clan.ReminderHoursBeforeEnd });
+                        isOwner = IsOwner(userId), reminderHoursBeforeEnd = clan.ReminderHoursBeforeEnd,
+                        // Подключён ли бот к чату клана: без чата приложение предлагает его добавить
+                        hasChat = clan.TelegramChatId != 0 });
     }
 
     public record ReminderSettingsRequest(int HoursBeforeEnd);
@@ -480,6 +483,61 @@ public class ClanController(
         return result is null
             ? Conflict(new { error = "no_war_day", message = "Сейчас не день войны — пинать некого" })
             : Ok(result);
+    }
+
+    /// <summary>
+    /// POST /api/clans/my/invite-unlinked — пост в чат клана: кто из состава ещё не привязал
+    /// аккаунт, с кнопкой привязки. Только админ группы или лидер; не чаще раза в сутки.
+    /// </summary>
+    [HttpPost("my/invite-unlinked")]
+    public async Task<IActionResult> InviteUnlinked(CancellationToken ct)
+    {
+        var (player, clan, error) = await ResolvePlayerClanAsync(ct);
+        if (error is not null) return error;
+        if (DenyReadOnlyAdmin() is { } readOnly) return readOnly;
+
+        var userId = (long)HttpContext.Items["TelegramUserId"]!;
+        var isAdmin = await IsClanAdminAsync(clan!.TelegramChatId, userId, ct);
+        var crRole = await crApi.GetPlayerClanRoleAsync(clan.ClanTag, player!.PlayerTag, ct);
+        if (!ActingCanManage && !isAdmin && crRole is not ("leader" or "coLeader"))
+            return StatusCode(403, new { error = "not_admin" });
+
+        InviteUnlinkedUseCase.Result r;
+        try { r = await invite.ExecuteAsync(clan.Id, ct); }
+        catch (HttpRequestException) { return StatusCode(503, new { error = "cr_api_unavailable" }); }
+        return r.Outcome switch
+        {
+            InviteUnlinkedUseCase.Outcome.Ok => Ok(new { posted = true, unlinked = r.Unlinked }),
+            InviteUnlinkedUseCase.Outcome.NoChat => Conflict(new { error = "no_chat" }),
+            InviteUnlinkedUseCase.Outcome.TooSoon => StatusCode(429, new { error = "too_soon" }),
+            InviteUnlinkedUseCase.Outcome.NobodyToInvite => Conflict(new { error = "nobody" }),
+            InviteUnlinkedUseCase.Outcome.SendFailed => StatusCode(502, new { error = "send_failed" }),
+            _ => NotFound(new { error = "clan_not_found" }),
+        };
+    }
+
+    /// <summary>
+    /// GET /api/clans/link-candidates?clan=ТЕГ — кто из состава клана ещё не привязан. Для
+    /// кнопки «Привязать аккаунт» из чата клана: человек выбирает себя из списка, а не
+    /// вспоминает тег. Только кланы, подключённые к боту; данные те же, что в игре публично.
+    /// </summary>
+    [HttpGet("link-candidates")]
+    public async Task<IActionResult> LinkCandidates([FromQuery] string clan, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(clan) || clan.Length > 16) return BadRequest(new { error = "bad_tag" });
+        var c = await clans.GetByTagAsync("#" + clan.Trim().TrimStart('#').ToUpperInvariant(), ct);
+        if (c is null) return NotFound(new { error = "clan_not_found" });
+        try
+        {
+            var list = await invite.UnlinkedAsync(c.Id, c.ClanTag, ct);
+            return Ok(new
+            {
+                clanName = c.Name,
+                members = list.OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase)
+                    .Select(m => new { tag = m.Tag, name = m.Name, role = m.Role, trophies = m.Trophies }),
+            });
+        }
+        catch (HttpRequestException) { return StatusCode(503, new { error = "cr_api_unavailable" }); }
     }
 
     /// <summary>

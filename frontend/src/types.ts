@@ -243,6 +243,7 @@ export interface ClanStatus {
   myPlayerTag?: string       // тег текущего пользователя (если /my/status)
   isAdmin?: boolean          // админ ли текущий пользователь в группе клана
   isClanLeader?: boolean     // leader или coLeader в CR-клане
+  hasChat?: boolean          // бот подключён к чату клана
   isOwner?: boolean          // владелец сервиса (видит панель ⚙️)
   clanBackgroundKey?: BackgroundKey | null  // тема клана, выбранная спонсором
   viewingAsAdmin?: boolean   // это чужой клан, открытый из панели
@@ -1966,3 +1967,20 @@ export interface DeckLab {
   copyLink: string | null
 }
 
+/** Откуда заходят в приложение и возвращаются ли (GET /api/owner/engagement). */
+export interface OwnerEngagement {
+  sources: { source: string; users7: number; users30: number; newUsers30: number }[]
+  dests: { dest: string; users30: number }[]
+  retention: { cohort: number; nextDay: number; week: number; nextDayPercent: number; weekPercent: number }
+  avgDau: number
+  wau: number
+  mau: number
+  stickiness: number
+  trackingSince: string | null
+}
+
+/** Кандидаты на привязку: непривязанные игроки клана (GET /api/clans/link-candidates). */
+export interface LinkCandidates {
+  clanName: string
+  members: { tag: string; name: string; role: string; trophies: number }[]
+}

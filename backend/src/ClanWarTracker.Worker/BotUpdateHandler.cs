@@ -1,3 +1,4 @@
+using ClanWarTracker.Application.Analytics;
 using System.Collections.Concurrent;
 using System.Text;
 using ClanWarTracker.Application.DTOs;
@@ -852,6 +853,12 @@ public class BotUpdateHandler(
                         await bot.SendMessage(msg.Chat.Id, t.StartPrivate,
                             replyMarkup: AppButton(t.OpenAppButton), cancellationToken: ct);
                     }
+                    else if (arg is not null && arg.StartsWith(SetupStartPrefix, StringComparison.Ordinal))
+                    {
+                        // Кнопка «Добавить бота в чат клана» из приложения: ссылка ?startgroup=setup_ТЕГ
+                        // сама присылает сюда /start с тегом - лидеру не нужно знать про /setup
+                        await SetupChatAsync(msg, "#" + arg[SetupStartPrefix.Length..], sp, t, ct);
+                    }
                     else
                     {
                         var groupClanRepo = sp.GetRequiredService<IClanRepository>();
@@ -872,20 +879,7 @@ public class BotUpdateHandler(
                         return;
                     }
                     if (arg is null) { await Reply(msg, t.SetupFormat, ct); return; }
-                    if (!await IsAdminAsync(msg, ct)) { await Reply(msg, t.SetupOnlyAdmin, ct); return; }
-                    var clanName = await sp.GetRequiredService<SetupClanUseCase>()
-                        .ExecuteAsync(msg.Chat.Id, arg, msg.MessageThreadId, ct);
-                    // Главный шаг воронки: клан подключён. Засчитывается тому, кто
-                    // подключил, — если он пришёл по рекламе или реферальной ссылке.
-                    if (clanName is not null)
-                    {
-                        try { await sp.GetRequiredService<IAcquisitionRepository>().MarkClanConnectedAsync(msg.From!.Id, ct); }
-                        catch (Exception ex) { logger.LogWarning(ex, "Could not mark clan connected"); }
-                    }
-                    var topicNote = msg.MessageThreadId is not null ? t.SetupTopicNote : "";
-                    await Reply(msg, clanName is null
-                        ? t.SetupClanNotFound
-                        : string.Format(t.SetupOk, clanName) + topicNote, ct);
+                    await SetupChatAsync(msg, arg, sp, t, ct);
                     break;
 
                 case "/link":
@@ -1431,7 +1425,7 @@ public class BotUpdateHandler(
             new[] { InlineKeyboardButton.WithCallbackData(t.ForeignTagRelinkButton, "relink|" + info.Tag) },
         };
         if (_botUsername != "bot")
-            rows.Add(new[] { InlineKeyboardButton.WithUrl(t.OpenAppButton, $"https://t.me/{_botUsername}?startapp") });
+            rows.Add(new[] { InlineKeyboardButton.WithUrl(t.OpenAppButton, $"https://t.me/{_botUsername}?startapp={OpenSource.Tag(null, "b")}") });
 
         await bot.SendMessage(msg.Chat.Id, sb.ToString(), replyParameters: msg.MessageId,
             replyMarkup: new InlineKeyboardMarkup(rows), cancellationToken: ct);
@@ -1924,6 +1918,28 @@ public class BotUpdateHandler(
         return true;
     }
 
+    /// <summary>Параметр /start в группе от кнопки «Добавить бота в чат клана»: setup_ТЕГ (без #).</summary>
+    private const string SetupStartPrefix = "setup_";
+
+    /// <summary>Привязать этот чат к клану - и /setup #ТЕГ, и кнопка «Добавить в чат» из приложения.</summary>
+    private async Task SetupChatAsync(Message msg, string tag, IServiceProvider sp, BotText t, CancellationToken ct)
+    {
+        if (!await IsAdminAsync(msg, ct)) { await Reply(msg, t.SetupOnlyAdmin, ct); return; }
+        var clanName = await sp.GetRequiredService<SetupClanUseCase>()
+            .ExecuteAsync(msg.Chat.Id, tag, msg.MessageThreadId, ct);
+        // Главный шаг воронки: клан подключён. Засчитывается тому, кто
+        // подключил, — если он пришёл по рекламе или реферальной ссылке.
+        if (clanName is not null)
+        {
+            try { await sp.GetRequiredService<IAcquisitionRepository>().MarkClanConnectedAsync(msg.From!.Id, ct); }
+            catch (Exception ex) { logger.LogWarning(ex, "Could not mark clan connected"); }
+        }
+        var topicNote = msg.MessageThreadId is not null ? t.SetupTopicNote : "";
+        await Reply(msg, clanName is null
+            ? t.SetupClanNotFound
+            : string.Format(t.SetupOk, clanName) + topicNote, ct);
+    }
+
     /// <summary>
     /// Кнопка приложения с параметром запуска: «review» открывает разбор, «plus» —
     /// Плюс, «meta» — мету. Приложение читает его из start_param.
@@ -1933,7 +1949,8 @@ public class BotUpdateHandler(
             ? null
             : new InlineKeyboardMarkup(
                 InlineKeyboardButton.WithUrl(label,
-                    $"https://t.me/{_botUsername}?startapp" + (startParam is null ? "" : "=" + startParam)));
+                    // «-b»: пришёл из ответа бота на команду (для сводки «откуда заходят»)
+                    $"https://t.me/{_botUsername}?startapp={OpenSource.Tag(startParam, "b")}"));
 
     private Task SendWithAppButtonAsync(long chatId, string text, CancellationToken ct) =>
         bot.SendMessage(chatId, text, replyMarkup: AppButton("🎮 Открыть приложение"),
@@ -1979,7 +1996,8 @@ public class BotUpdateHandler(
         if (!url.StartsWith("startapp:", StringComparison.Ordinal)) return InlineKeyboardButton.WithUrl(b.Text, url);
         return _botUsername == "bot"
             ? null
-            : InlineKeyboardButton.WithUrl(b.Text, $"https://t.me/{_botUsername}?startapp={url["startapp:".Length..]}");
+            // Карточки вызова уходят в чужие чаты через инлайн - это «поделился» (-s)
+            : InlineKeyboardButton.WithUrl(b.Text, $"https://t.me/{_botUsername}?startapp={OpenSource.Tag(url["startapp:".Length..], "s")}");
     }
 
     /// <summary>Две карточки вызова в инлайн-выдаче: Bo1 и Bo3.</summary>

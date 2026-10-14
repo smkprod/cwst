@@ -96,6 +96,7 @@ public static class DependencyInjection
         services.AddScoped<IWarBattleRepository, WarBattleRepository>();
         services.AddScoped<IRespectRepository, RespectRepository>();
         services.AddScoped<IActivityRepository, ActivityRepository>();
+        services.AddScoped<IAppOpenRepository, AppOpenRepository>();
         services.AddScoped<ITopPlayerRepository, TopPlayerRepository>();
         services.AddScoped<IMetaRepository, MetaRepository>();
         services.AddScoped<IChallengeRepository, ChallengeRepository>();
@@ -656,6 +657,22 @@ CREATE TABLE IF NOT EXISTS ""ChallengeEntries"" (
 );");
         await db.Database.ExecuteSqlRawAsync(
             "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_ChallengeEntries_EventId_TelegramUserId\" ON \"ChallengeEntries\" (\"EventId\", \"TelegramUserId\");");
+
+        // Заходы в Mini App с источником: какие кнопки приводят людей
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""AppOpens"" (
+    ""Id"" serial PRIMARY KEY,
+    ""TelegramUserId"" bigint NOT NULL,
+    ""DayUtc"" varchar(10) NOT NULL,
+    ""Source"" varchar(8) NOT NULL,
+    ""Dest"" varchar(20) NOT NULL,
+    ""Linked"" boolean NOT NULL,
+    ""FirstUtc"" timestamptz NOT NULL
+);");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_AppOpens_TelegramUserId_DayUtc_Source_Dest\" ON \"AppOpens\" (\"TelegramUserId\", \"DayUtc\", \"Source\", \"Dest\");");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_AppOpens_DayUtc\" ON \"AppOpens\" (\"DayUtc\");");
 
         // Канал бота: опубликованные посты и черновики новостей
         await db.Database.ExecuteSqlRawAsync(@"

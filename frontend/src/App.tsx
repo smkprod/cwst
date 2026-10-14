@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { Icon, type IconName } from './components/ui/Icon'
 import { IconTile } from './components/ui/Section'
 import { api, ApiError, adminClan } from './lib/api'
-import { askDmOnce, haptic, startChallengeCode, startMatchId, startParam, startToMatches } from './lib/telegram'
+import { askDmOnce, haptic, rawStartParam, startChallengeCode, startMatchId, startParam, startToMatches } from './lib/telegram'
 import { ChallengeView, CreatorChallengeScreen } from './components/ChallengeView'
 import { DuelView } from './components/DuelView'
 import { afterPromo, OPEN_CHALLENGE } from './lib/promo'
@@ -35,6 +35,7 @@ import { LeaderCtaCard } from './components/LeaderCtaCard'
 import { MyActionBanner } from './components/MyActionBanner'
 import { SplashScreen } from './components/SplashScreen'
 import { MoreView } from './components/MoreView'
+import { ConnectChatCard, InviteUnlinkedCard } from './components/EngageCards'
 import { MenuChangedNotice } from './components/MenuChangedNotice'
 import { UpdateNotice } from './components/UpdateNotice'
 import { DisciplineCard } from './components/DisciplineCard'
@@ -132,6 +133,15 @@ const START_BATTLES_VIEW = startParam === 'review' ? 'review' : 'history'
 
 export default function App() {
   const [state, setState] = useState<State>({ kind: 'loading' })
+
+  // Откуда открыли приложение - раз за запуск, для сводки «откуда заходят» в панели.
+  // Вне Telegram (превью) не шлём: там нет ни пользователя, ни источника.
+  const openTrackedRef = useRef(false)
+  useEffect(() => {
+    if (openTrackedRef.current || state.kind === 'loading' || state.kind === 'notInTelegram') return
+    openTrackedRef.current = true
+    api.trackOpen(rawStartParam).catch(() => { /* статистика не повод мешать */ })
+  }, [state.kind])
 
   // Разрешение писать в личку — один раз, через пару секунд после загрузки: окно
   // поверх пустого экрана загрузки выглядело бы как ошибка.
@@ -401,6 +411,10 @@ export default function App() {
             {tab === 'clan' && clanSection === 'war' && (
               <div className="fade-in">
                 <WarHeader status={data} canManage={canManage} onOpenSettings={() => { haptic('light'); setSettingsOpen(true) }} />
+                {/* Бот не в чате клана - главный канал не работает: лидеру кнопка «добавить», остальным «попросить» */}
+                {data.hasChat === false && !data.viewingAsAdmin && (
+                  <ConnectChatCard clanTag={data.clanTag} isLeader={Boolean(data.isClanLeader)} />
+                )}
                 {/* Личный призыв — первым делом: «ты не доиграл» цепляет сильнее общих цифр */}
                 <MyActionBanner status={data} />
                 {/* Что изменилось лично у тебя с прошлого захода (сама решает, показываться ли) */}
@@ -426,6 +440,9 @@ export default function App() {
             )}
             {tab === 'clan' && clanSection === 'roster' && (
               <div className="fade-in">
+                {canManage && (
+                  <InviteUnlinkedCard unlinked={data.players.filter(p => !p.isLinked).length} hasChat={data.hasChat !== false} />
+                )}
                 <PlayerList players={data.players} myPlayerTag={data.myPlayerTag} kingTag={king?.playerTag} canManage={canManage} />
               </div>
             )}

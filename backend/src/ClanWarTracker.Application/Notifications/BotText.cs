@@ -74,6 +74,12 @@ public sealed class BotText
     public required string ReminderUnlinked { get; init; }
     /// <summary>{0} — сколько игроков без Telegram.</summary>
     public required string NudgeUnlinked { get; init; }
+    /// <summary>Лидер зовёт в чате тех, кто не привязал аккаунт: {0} - сколько, {1} - имена.</summary>
+    public required string InviteLinkText { get; init; }
+    public required string InviteLinkButton { get; init; }
+    /// <summary>Лидеру клана без чата: бот ещё не в чате клана. {0} - название клана.</summary>
+    public required string ChatConnectDm { get; init; }
+    public required string ChatConnectButton { get; init; }
     /// <summary>{0} — сколько игроков без Telegram.</summary>
     public required string FinalCallUnlinked { get; init; }
     public required string FinalCallTitle { get; init; }
@@ -662,6 +668,14 @@ public sealed class BotText
         ReminderUnlinked = "👥 Ещё <b>{0}</b> без Telegram — пусть привяжут аккаунт в боте.",
         NudgeUnlinked = "👥 Ещё <b>{0}</b> без Telegram — их тег не достанет. "
                       + "Админ может привязать их сам: ответь на сообщение игрока командой /bind #ТЕГ",
+        InviteLinkText = "👋 {0} игроков клана ещё не привязали аккаунт к боту:\n{1}\n\n"
+                       + "Без привязки бот не напомнит о войне, не покажет твой разбор боёв и место в рейтинге клана. "
+                       + "Нажми кнопку и выбери себя в списке — это 10 секунд.",
+        InviteLinkButton = "🔗 Привязать аккаунт",
+        ChatConnectDm = "💬 Бот ещё не подключён к чату клана {0}.\n\n"
+                      + "Без него клан не видит итоги дня, напоминания доиграть войну и поздравления с 900 медалями — "
+                      + "а это то, ради чего соклановцы открывают бота. Нажми кнопку и выбери чат клана: бот подключится сам.",
+        ChatConnectButton = "➕ Добавить бота в чат клана",
         FinalCallUnlinked = "👥 Ещё <b>{0}</b> без Telegram — админ может привязать через /bind.",
         FinalCallTitle = "🚨 <b>Война закрывается через ~30 минут!</b>\nПоследний шанс доиграть КВ:",
 
@@ -1065,6 +1079,14 @@ public sealed class BotText
         ReminderUnlinked = "👥 Ще <b>{0}</b> без Telegram — хай прив’яжуть акаунт у боті.",
         NudgeUnlinked = "👥 Ще <b>{0}</b> без Telegram — тег їх не дістане. "
                       + "Адмін може прив’язати їх сам: дай відповідь на повідомлення гравця командою /bind #ТЕГ",
+        InviteLinkText = "👋 {0} гравців клану ще не прив'язали акаунт до бота:\n{1}\n\n"
+                       + "Без прив'язки бот не нагадає про війну, не покаже твій розбір боїв і місце в рейтингу клану. "
+                       + "Натисни кнопку й обери себе у списку — це 10 секунд.",
+        InviteLinkButton = "🔗 Прив'язати акаунт",
+        ChatConnectDm = "💬 Бот ще не підключений до чату клану {0}.\n\n"
+                      + "Без нього клан не бачить підсумків дня, нагадувань дограти війну та привітань із 900 медалями — "
+                      + "а саме заради цього соклановці відкривають бота. Натисни кнопку й обери чат клану: бот підключиться сам.",
+        ChatConnectButton = "➕ Додати бота в чат клану",
         FinalCallUnlinked = "👥 Ще <b>{0}</b> без Telegram — адмін може прив’язати через /bind.",
         FinalCallTitle = "🚨 <b>Війна зачиняється за ~30 хвилин!</b>\nОстанній шанс дограти КВ:",
 
@@ -1468,6 +1490,14 @@ public sealed class BotText
         ReminderUnlinked = "👥 <b>{0}</b> more without Telegram — ask them to link their account in the bot.",
         NudgeUnlinked = "👥 <b>{0}</b> more without Telegram — a tag won't reach them. "
                       + "An admin can link them: reply to the player's message with /bind #TAG",
+        InviteLinkText = "👋 {0} clan members haven't linked their account to the bot yet:\n{1}\n\n"
+                       + "Without it the bot can't remind you about war, show your battle review or your place in the clan ranking. "
+                       + "Tap the button and pick yourself from the list — it takes 10 seconds.",
+        InviteLinkButton = "🔗 Link account",
+        ChatConnectDm = "💬 The bot isn't connected to the {0} clan chat yet.\n\n"
+                      + "Without it the clan doesn't see daily recaps, war reminders or 900-medal shout-outs — "
+                      + "the very things members open the bot for. Tap the button and pick the clan chat: the bot connects itself.",
+        ChatConnectButton = "➕ Add the bot to the clan chat",
         FinalCallUnlinked = "👥 <b>{0}</b> more without Telegram — an admin can link them via /bind.",
         FinalCallTitle = "🚨 <b>The war closes in ~30 minutes!</b>\nLast chance to finish your attacks:",
 

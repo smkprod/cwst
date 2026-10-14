@@ -61,4 +61,12 @@ public class ActivityRepository(AppDbContext db) : IActivityRepository
 
         return rows.ToDictionary(r => r.Day, r => (r.Active, r.Acting));
     }
+
+    public async Task<List<(int PlayerId, string DayUtc)>> GetAllDaysAsync(CancellationToken ct = default)
+    {
+        var rows = await db.ActivityDays.AsNoTracking()
+            .Select(a => new { a.PlayerId, a.DayUtc })
+            .ToListAsync(ct);
+        return rows.Select(r => (r.PlayerId, r.DayUtc)).ToList();
+    }
 }
