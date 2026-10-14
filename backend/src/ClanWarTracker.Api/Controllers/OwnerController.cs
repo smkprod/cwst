@@ -22,6 +22,7 @@ namespace ClanWarTracker.Api.Controllers;
 public class OwnerController(
     IClanRepository clans,
     GetOwnerDashboardUseCase dashboard,
+    GetEngagementUseCase engagement,
     GetOwnerClanDetailUseCase clanDetail,
     OwnerBroadcastUseCase broadcast,
     HarvestTopPlayersUseCase harvestTop,
@@ -206,6 +207,14 @@ public class OwnerController(
 
         var detail = await clanDetail.ExecuteAsync(id, ct);
         return detail is null ? NotFound(new { error = "clan_not_found" }) : Ok(detail);
+    }
+
+    /// <summary>GET /api/owner/engagement — откуда заходят в приложение и возвращаются ли.</summary>
+    [HttpGet("engagement")]
+    public async Task<IActionResult> GetEngagement(CancellationToken ct)
+    {
+        if (await DenyViewAsync(ct) is { } deny) return deny;
+        return Ok(await engagement.ExecuteAsync(DateTime.UtcNow, ct));
     }
 
     /// <summary>GET /api/owner/stats — детальная сводка по сервису.</summary>

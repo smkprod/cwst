@@ -1,3 +1,4 @@
+using ClanWarTracker.Application.Analytics;
 using System.Net;
 using System.Text.RegularExpressions;
 using ClanWarTracker.Domain.Interfaces;
@@ -150,7 +151,8 @@ public partial class TelegramChannelPublisher(ITelegramBotClient bot) : IChannel
                     if (_botUsername is null) continue;
                     var param = url["startapp:".Length..];
                     buttons.Add(InlineKeyboardButton.WithUrl(b.Text,
-                        param.Length == 0 ? $"https://t.me/{_botUsername}?startapp" : $"https://t.me/{_botUsername}?startapp={param}"));
+                        // «-k»: пришёл из канала (для сводки «откуда заходят»)
+                        $"https://t.me/{_botUsername}?startapp={OpenSource.Tag(param, "k")}"));
                 }
                 else if (url == "bot:")
                 {

@@ -39,10 +39,21 @@ export const tgUser = tg?.initDataUnsafe?.user
  * её под своими сообщениями, чтобы кнопка «Открыть разбор» вела в разбор, а не
  * на первый экран. Запасной путь — параметр адреса: так его передают старые клиенты.
  */
-export const startParam: string =
+export const rawStartParam: string =
   tg?.initDataUnsafe?.start_param
   ?? new URLSearchParams(window.location.search).get('tgWebAppStartParam')
   ?? ''
+
+/**
+ * Раздел без метки источника. Бот дописывает к параметру «-c» (пост в чате клана),
+ * «-d» (личка), «-b» (ответ на команду), «-k» (канал), «-s» (поделились): по ней
+ * сервер считает, какие кнопки приводят людей. Навигации метка не нужна, а «home» -
+ * это просто главный экран.
+ */
+export const startParam: string = (() => {
+  const p = rawStartParam.replace(/-[cdbks]$/, '')
+  return p === 'home' ? '' : p
+})()
 
 /** Бой из карточки трекера: startapp=m_123 открывает отчёт об этом бое. */
 export const startMatchId: number | null = (() => {
@@ -99,7 +110,8 @@ export function botStartLink(payload?: string): string {
  * строка, пока юзернейм бота неизвестен, — делиться ссылкой в никуда незачем.
  */
 export function botAppLink(payload: string): string {
-  return botUsername ? `https://t.me/${botUsername}?startapp=${encodeURIComponent(payload)}` : ''
+  // «-s»: ссылкой поделились (стрим, чат) - так её видно отдельно в сводке источников
+  return botUsername ? `https://t.me/${botUsername}?startapp=${encodeURIComponent(payload)}-s` : ''
 }
 
 /** Лёгкая вибрация при тапах (no-op вне Telegram). */

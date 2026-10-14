@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, ApiError, adminClan } from '../lib/api'
-import type { AppTab, BroadcastTarget, Moderator, OwnerClan, OwnerClanDetail, OwnerPlus, OwnerChallenge, OwnerFoundPlayer, OwnerSponsor, OwnerStats, ServiceIdentity, ServicePermission, SponsorSales, TopStatus, CampaignFunnel } from '../types'
+import type { OwnerEngagement, AppTab, BroadcastTarget, Moderator, OwnerClan, OwnerClanDetail, OwnerPlus, OwnerChallenge, OwnerFoundPlayer, OwnerSponsor, OwnerStats, ServiceIdentity, ServicePermission, SponsorSales, TopStatus, CampaignFunnel } from '../types'
 
 /** «Можно ли мне вот это». Прокидывается вниз, чтобы правила жили в одном месте. */
 type Can = (p: ServicePermission) => boolean
@@ -233,6 +233,8 @@ function Overview({ stats, clans }: { stats: OwnerStats; clans: OwnerClan[] }) {
         ]}
       />
 
+      <EngagementBlock />
+
       <Block title="Кланы" icon="castle" tone="violet">
         <Row label="Всего подключено" value={stats.totalClans} />
         <Row label="Активны за неделю" value={stats.activeClans7d} accent={stats.silentClans > 0 ? undefined : 'good'} />
@@ -312,6 +314,91 @@ function Row({ label, value, accent }: {
       <span className="adm-row-label">{label}</span>
       <span className={`adm-row-value ${accent ? `adm-${accent}` : ''}`}>{value}</span>
     </div>
+  )
+}
+
+/* ---------- Откуда заходят ---------- */
+
+const SOURCE_LABELS: Record<string, string> = {
+  chat: 'Посты бота в чате клана',
+  dm: 'Личные сообщения бота',
+  bot: 'Ответы бота на команды',
+  channel: 'Канал',
+  share: 'Ссылки, которыми поделились',
+  link: 'Прямые ссылки',
+  menu: 'Кнопка меню и ярлык',
+}
+
+const DEST_LABELS: Record<string, string> = {
+  home: 'Главный экран',
+  review: 'Разбор боёв',
+  matches: 'История боёв',
+  m: 'Отчёт о бое',
+  plus: 'Плюс',
+  plus_trk: 'Плюс (из трекера)',
+  builder: 'Конструктор колод',
+  meta: 'Мировой топ',
+  duel: 'Дуэли',
+  challenge: 'Челлендж',
+  ch: 'Челлендж блогера',
+  link: 'Привязка аккаунта',
+}
+
+/**
+ * Какие кнопки бота приводят людей в приложение и возвращаются ли новые. Своя загрузка:
+ * сводка выше не должна ждать этот расчёт и падать вместе с ним.
+ */
+function EngagementBlock() {
+  const [data, setData] = useState<OwnerEngagement | null>(null)
+  const [failed, setFailed] = useState(false)
+  useEffect(() => {
+    api.ownerGetEngagement().then(setData).catch(() => setFailed(true))
+  }, [])
+  if (failed) return null
+  if (!data) return <div className="card adm-block"><div className="center"><div className="spinner" /></div></div>
+
+  const r = data.retention
+  return (
+    <>
+      <Block title="Откуда заходят" icon="link" tone="blue" info={
+        <p>
+          Уникальные люди за 7 и 30 дней по тому, чем открыли приложение. «Новых» — ещё
+          не привязали аккаунт: так видно, что приводит новых людей, а не только своих.
+          {data.trackingSince ? ` Считаем с ${data.trackingSince}.` : ' Данные появятся после первых заходов.'}
+        </p>
+      }>
+        {data.sources.length === 0
+          ? <p className="muted small" style={{ margin: 0 }}>Пока нет заходов с метками — они пишутся с этого обновления.</p>
+          : data.sources.map(s => (
+            <Row key={s.source} label={SOURCE_LABELS[s.source] ?? s.source}
+              value={`${s.users7} · ${s.users30}${s.newUsers30 > 0 ? ` (+${s.newUsers30} новых)` : ''}`} />
+          ))}
+        {data.dests.length > 0 && (
+          <>
+            <p className="muted small" style={{ margin: '12px 0 4px' }}>Куда вели кнопки, людей за 30 дней</p>
+            {data.dests.map(d => <Row key={d.dest} label={DEST_LABELS[d.dest] ?? d.dest} value={d.users30} />)}
+          </>
+        )}
+      </Block>
+
+      <Block title="Возвращаются ли" icon="refresh" tone="green" info={
+        <p>
+          По привязанным игрокам, которые заходили в приложение. Новички — впервые зашли
+          8–37 дней назад, у них уже видно, вернулись ли. Регулярность — какая доля
+          месячной аудитории заходит в обычный день: 20% и выше — хорошо.
+        </p>
+      }>
+        <Row label="Новичков в выборке" value={r.cohort} />
+        <Row label="Вернулись на следующий день" value={`${r.nextDayPercent}% (${r.nextDay})`}
+          accent={r.cohort === 0 ? undefined : r.nextDayPercent >= 30 ? 'good' : r.nextDayPercent < 15 ? 'bad' : 'warn'} />
+        <Row label="Вернулись в течение недели" value={`${r.weekPercent}% (${r.week})`}
+          accent={r.cohort === 0 ? undefined : r.weekPercent >= 50 ? 'good' : r.weekPercent < 25 ? 'bad' : 'warn'} />
+        <Row label="В среднем в день (7 дней)" value={data.avgDau} />
+        <Row label="За неделю / за месяц" value={`${data.wau} / ${data.mau}`} />
+        <Row label="Регулярность" value={`${data.stickiness}%`}
+          accent={data.mau === 0 ? undefined : data.stickiness >= 20 ? 'good' : data.stickiness < 10 ? 'bad' : 'warn'} />
+      </Block>
+    </>
   )
 }
 
