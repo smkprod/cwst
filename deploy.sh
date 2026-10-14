@@ -42,7 +42,62 @@ docker compose -f docker-compose.prod.yml up -d
 echo "==> docker cleanup"
 docker image prune -f
 
-echo "==> done"
 docker compose -f docker-compose.prod.yml ps
 free -h | head -2
 df -h / | tail -1
+
+# --- Проверка после деплоя ---
+# Однажды воркер после деплоя падал по памяти каждые полторы минуты сутками, а
+# узнали об этом по графикам хостинга. Теперь деплой сам ждёт и смотрит: живы ли
+# контейнеры, не перезапускаются ли, отвечает ли API. SKIP_CHECK=1 - пропустить.
+if [ "${SKIP_CHECK:-0}" = "1" ]; then
+  echo "==> проверка пропущена (SKIP_CHECK=1)"
+  exit 0
+fi
+
+WAIT="${CHECK_WAIT:-120}"
+restarts() { docker inspect -f '{{.RestartCount}}' "$1" 2>/dev/null || echo "?"; }
+running() { docker inspect -f '{{.State.Running}}' "$1" 2>/dev/null || echo "false"; }
+API_C=$(docker compose -f docker-compose.prod.yml ps -q api)
+WORKER_C=$(docker compose -f docker-compose.prod.yml ps -q worker)
+API_R0=$(restarts "$API_C"); WORKER_R0=$(restarts "$WORKER_C")
+
+echo "==> проверка: жду ${WAIT} с, смотрю на перезапуски и падения…"
+sleep "$WAIT"
+
+problems=0
+for svc in api worker; do
+  c=$(docker compose -f docker-compose.prod.yml ps -q "$svc")
+  r0=$([ "$svc" = api ] && echo "$API_R0" || echo "$WORKER_R0")
+  r1=$(restarts "$c")
+  if [ "$(running "$c")" != "true" ]; then
+    echo "❌ $svc не запущен"; problems=1
+  elif [ "$r1" != "$r0" ]; then
+    echo "❌ $svc перезапускался за время проверки ($r0 → $r1)"; problems=1
+  else
+    echo "✅ $svc работает, перезапусков нет"
+  fi
+done
+
+if docker compose -f docker-compose.prod.yml exec -T caddy wget -qO- -T 10 http://api:10000/health >/dev/null 2>&1; then
+  echo "✅ API отвечает на /health"
+else
+  echo "❌ API не отвечает на /health"; problems=1
+fi
+
+crashes=$(docker compose -f docker-compose.prod.yml logs --since "$((WAIT + 60))s" api worker 2>&1 \
+  | grep -cE "Out of memory|OutOfMemoryException|Unhandled exception" || true)
+if [ "$crashes" -gt 0 ]; then
+  echo "❌ в логах падения ($crashes): docker compose -f docker-compose.prod.yml logs --tail 100 worker"
+  problems=1
+fi
+
+docker stats --no-stream --format "   {{.Name}}: CPU {{.CPUPerc}}, память {{.MemUsage}}" \
+  $(docker compose -f docker-compose.prod.yml ps -q)
+
+if [ "$problems" -ne 0 ]; then
+  echo "==> ❌ ДЕПЛОЙ С ПРОБЛЕМАМИ — смотри строки выше и логи:"
+  echo "    docker compose -f docker-compose.prod.yml logs --tail 100 worker api"
+  exit 1
+fi
+echo "==> ✅ done: всё работает"

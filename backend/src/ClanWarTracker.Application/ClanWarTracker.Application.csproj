@@ -8,6 +8,10 @@
     <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="9.0.4" />
   </ItemGroup>
   <ItemGroup>
+    <!-- Тесты проверяют и внутреннюю логику (разбор ответов нейросети) -->
+    <InternalsVisibleTo Include="ClanWarTracker.Tests" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\ClanWarTracker.Domain\ClanWarTracker.Domain.csproj" />
   </ItemGroup>
 </Project>
