@@ -10,7 +10,8 @@ public class TournamentRepository(AppDbContext db) : ITournamentRepository
 {
     // Участники и матчи - две коллекции. Одним SQL-запросом это декартово произведение:
     // строк выходит «участники × матчи», у большого турнира это десятки тысяч толстых строк,
-    // и автосчёт раз в 20 секунд гонял их из базы и ронял воркер по памяти. Поэтому такие запросы - AsSplitQuery: отдельный запрос на каждую коллекцию.
+    // и автосчёт раз в 20 секунд гонял их из базы и ронял воркер по памяти.
+    // Поэтому такие запросы - AsSplitQuery: отдельный запрос на каждую коллекцию.
     public Task<Tournament?> GetByIdAsync(int id, CancellationToken ct = default) =>
         db.Tournaments
             .AsSplitQuery()
