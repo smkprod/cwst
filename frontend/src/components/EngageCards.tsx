@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { api, ApiError } from '../lib/api'
-import { getBotUsername, haptic, hapticNotify, openTelegramLink, shareToTelegram } from '../lib/telegram'
+import { botStartLink, getBotUsername, haptic, hapticNotify, openTelegramLink, shareToTelegram, tgUser } from '../lib/telegram'
 import { useT } from '../lib/i18n'
 import { SectionHead } from './ui/Section'
 import { Icon } from './ui/Icon'
@@ -27,13 +27,17 @@ export function ConnectChatCard({ clanTag, isLeader }: { clanTag: string; isLead
   const [hidden, setHidden] = useState(() => !isLeader && dismissedRecently(key))
   if (hidden) return null
 
+  const groupLink = () => {
+    const bot = getBotUsername()
+    return bot ? `https://t.me/${bot}?startgroup=setup_${clanTag.replace('#', '').toUpperCase()}` : ''
+  }
   const connect = () => {
     haptic('medium')
-    const bot = getBotUsername()
-    if (!bot) return
-    openTelegramLink(`https://t.me/${bot}?startgroup=setup_${clanTag.replace('#', '').toUpperCase()}`)
+    const link = groupLink()
+    if (link) openTelegramLink(link)
   }
-  const ask = () => { haptic('light'); shareToTelegram(e.connectShare) }
+  // Лидеру уходит та же ссылка «добавить в группу»: нажал, выбрал чат - клан подключён
+  const ask = () => { haptic('light'); shareToTelegram(e.connectShare, groupLink() || undefined) }
   const hide = () => {
     haptic('light')
     try { localStorage.setItem(key, String(Date.now())) } catch { /* приватный режим */ }
@@ -100,6 +104,41 @@ export function InviteUnlinkedCard({ unlinked, hasChat }: { unlinked: number; ha
         </button>
       )}
       {note && <p className="muted small" style={{ margin: '8px 0 0', textAlign: 'center' }}>{note}</p>}
+    </section>
+  )
+}
+
+/**
+ * Удачный момент позвать друга: игрок только что отыграл все 4 колоды. Награда за друга -
+ * +3 дня Плюса (начисляет сервер, когда друг привяжет аккаунт). Скрывается на неделю.
+ */
+export function InviteMomentCard() {
+  const { t } = useT()
+  const bot = getBotUsername()
+  const key = 'inviteMomentHidden'
+  const [hidden, setHidden] = useState(() => dismissedRecently(key))
+  if (hidden || !bot || !tgUser) return null
+
+  const invite = () => {
+    haptic('medium')
+    shareToTelegram(t.invite.shareText, botStartLink(`ref_${tgUser!.id}`))
+  }
+  const hide = () => {
+    haptic('light')
+    try { localStorage.setItem(key, String(Date.now())) } catch { /* приватный режим */ }
+    setHidden(true)
+  }
+
+  return (
+    <section className="card menu-notice fade-in">
+      <SectionHead icon="gift" tone="violet" title={t.inviteMoment.title} className="mx-connect-head" />
+      <p className="muted small" style={{ margin: '0 0 10px' }}>{t.inviteMoment.text}</p>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <button className="btn btn-nudge" style={{ flex: 1 }} onClick={invite}>
+          <Icon name="gift" size={16} /> {t.invite.btn}
+        </button>
+        <button className="btn-mini" onClick={hide} aria-label="×"><Icon name="x" size={14} /></button>
+      </div>
     </section>
   )
 }

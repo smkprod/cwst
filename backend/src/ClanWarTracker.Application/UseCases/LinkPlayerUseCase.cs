@@ -6,8 +6,14 @@ namespace ClanWarTracker.Application.UseCases;
 
 public class LinkPlayerUseCase(
     IClashRoyaleApi crApi, IClanRepository clans, IPlayerRepository players, INotificationSender notifier,
-    IAcquisitionRepository acquisitions)
+    IAcquisitionRepository acquisitions, PlusAccess plus, IEntitlementRepository entitlements)
 {
+    /// <summary>Награда пригласившему за друга, который привязал аккаунт.</summary>
+    public const int ReferralDays = 3;
+
+    /// <summary>Потолок наград за 30 дней: зовут друзей, а не заводят вторые аккаунты.</summary>
+    public const int ReferralDaysPer30 = 30;
+
     /// <param name="chatId">ID группового чата клана, или null если вызов из ЛС.</param>
     /// <param name="referrerTelegramUserId">Telegram ID пригласившего (из реф-ссылки), или null.</param>
     /// <returns>Имя игрока из CR API или null, если тег не найден.</returns>
@@ -97,7 +103,9 @@ public class LinkPlayerUseCase(
     }
 
     /// <summary>
-    /// Награда виральной петли: сразу сообщаем пригласившему, что друг подключился.
+    /// Награда виральной петли: пригласившему +3 дня Плюса (не больше 30 дней за 30 дней) и
+    /// сразу сообщение, что друг подключился. Сюда попадаем только при первой привязке
+    /// нового игрока - повторная привязка того же тега награду не даёт.
     /// Язык берём у клана пригласившего — это его бот и его язык, а не приглашённого.
     /// </summary>
     private async Task NotifyReferrerAsync(Player? referrer, string name, CancellationToken ct)
@@ -109,9 +117,23 @@ public class LinkPlayerUseCase(
             : null;
         var t = NotificationSettings.Parse(refClan?.NotificationSettingsJson).Text;
 
+        var rewarded = false;
         try
         {
-            await notifier.SendToUserAsync(refId, string.Format(t.ReferralJoined, name), ct);
+            var got = await entitlements.SumDaysSinceAsync(refId, Entitlement.Sources.Referral, DateTime.UtcNow.AddDays(-30), ct);
+            if (got + ReferralDays <= ReferralDaysPer30)
+            {
+                await plus.GrantAsync(refId, ReferralDays, Entitlement.Sources.Referral, referrer.PlayerTag, 0, null, ct);
+                rewarded = true;
+            }
+        }
+        catch { /* награда не повод срывать привязку друга */ }
+
+        try
+        {
+            await notifier.SendToUserAsync(refId, rewarded
+                ? string.Format(t.ReferralJoinedBonus, name, ReferralDays)
+                : string.Format(t.ReferralJoined, name), ct);
         }
         catch { /* пригласивший мог заблокировать бота — не критично */ }
     }

@@ -35,7 +35,8 @@ import { LeaderCtaCard } from './components/LeaderCtaCard'
 import { MyActionBanner } from './components/MyActionBanner'
 import { SplashScreen } from './components/SplashScreen'
 import { MoreView } from './components/MoreView'
-import { ConnectChatCard, InviteUnlinkedCard } from './components/EngageCards'
+import { ConnectChatCard, InviteMomentCard, InviteUnlinkedCard } from './components/EngageCards'
+import { ChannelCard } from './components/ChannelCard'
 import { MenuChangedNotice } from './components/MenuChangedNotice'
 import { UpdateNotice } from './components/UpdateNotice'
 import { DisciplineCard } from './components/DisciplineCard'
@@ -126,7 +127,7 @@ function ClanSectionTabs({ value, onChange, t }: {
  * разбор, «/meta» — в мировой топ, «/plus» — в окно Плюса, ch_<код> — в челлендж
  * блогера (отдельный экран вне бара). Без параметра — как раньше.
  */
-const START_TAB: Tab = startChallengeCode ? 'creatorChallenge' : startParam === 'challenge' ? 'challenge' : startParam === 'duel' ? 'duel' : startParam === 'review' || startToMatches ? 'me' : startParam === 'meta' || startParam === 'builder' ? 'more' : 'clan'
+const START_TAB: Tab = startChallengeCode ? 'creatorChallenge' : startParam === 'challenge' ? 'challenge' : startParam === 'duel' ? 'duel' : startParam === 'review' || startToMatches ? 'me' : startParam === 'meta' || startParam === 'builder' || startParam === 'invite' ? 'more' : 'clan'
 
 /** «Разбор» из бота — разбор за 30 дней, трекер и «Все бои» — история. */
 const START_BATTLES_VIEW = startParam === 'review' ? 'review' : 'history'
@@ -368,6 +369,9 @@ export default function App() {
       const { data } = state
       const canManage = Boolean(data.isAdmin || data.isClanLeader)
       const notFinished = data.players.filter(p => p.status !== 'played').length
+      // Удачный момент позвать друга: сам только что отыграл все колоды дня
+      const iFinishedToday = data.periodType !== 'training'
+        && data.players.some(p => p.playerTag === data.myPlayerTag && p.decksUsedToday >= 4)
 
 
       // Король недели считается один раз на оба экрана — иначе состав и рейтинг
@@ -420,6 +424,7 @@ export default function App() {
                 {/* Что изменилось лично у тебя с прошлого захода (сама решает, показываться ли) */}
                 <WhatsNewCard />
                 <StatsStrip stats={data.stats} />
+                {iFinishedToday && !data.viewingAsAdmin && <InviteMomentCard />}
                 {/* Действие вперёд наблюдения: пока глава читает цифры, лентяи не отыграют.
                     Кнопка первой, чтобы пнуть можно было не пролистывая экран. */}
                 {canManage && data.periodType !== 'training' && (
@@ -457,6 +462,9 @@ export default function App() {
               <div className="fade-in">
                 <MyStatsView defaultSection={startParam === 'review' || startToMatches ? 'battles' : 'clan'}
                   battlesView={START_BATTLES_VIEW} openMatchId={startMatchId} />
+                {/* Мягкая реклама - под своей статистикой, а не над ней: сначала то, ради чего пришёл */}
+                <div style={{ height: 10 }} />
+                <ChannelCard dismissKey="me" />
               </div>
             )}
             {tab === 'tournament' && (

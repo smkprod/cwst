@@ -49,6 +49,12 @@ public class EntitlementRepository(AppDbContext db) : IEntitlementRepository
             .CountAsync(e => e.GiverTelegramUserId == giverTelegramUserId && e.Source == Entitlement.Sources.Gift
                              && e.Stars == 0 && e.CreatedAtUtc >= sinceUtc && e.RevokedAtUtc == null, ct);
 
+    public async Task<int> SumDaysSinceAsync(long telegramUserId, string source, DateTime sinceUtc, CancellationToken ct = default) =>
+        await db.Entitlements.AsNoTracking()
+            .Where(e => e.TelegramUserId == telegramUserId && e.Source == source
+                        && e.CreatedAtUtc >= sinceUtc && e.RevokedAtUtc == null)
+            .SumAsync(e => (int?)e.Days, ct) ?? 0;
+
     public Task<List<Entitlement>> GetEndingAsync(DateTime fromUtc, DateTime toUtc, CancellationToken ct = default) =>
         db.Entitlements
             .Where(e => e.RevokedAtUtc == null && e.ReminderSentUtc == null

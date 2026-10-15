@@ -57,9 +57,13 @@ public class AppController(
         // Цена продажи: ноль - продажа выключена, и фронт оставляет кнопку «написать».
         var offer = await SponsorSales.ReadAsync(settings, ct);
 
+        // Канал бота - для карточки «подпишись» в приложении. Пусто - канал не подключён.
+        var channel = (await settings.GetAsync(ChannelUseCase.KeyUsername, ct))?.Trim().TrimStart('@') ?? "";
+
         return Ok(new
         {
             botUsername = username ?? "",
+            channelUsername = channel,
             tabs,
             playerBackgrounds = SponsorBackground.ForPlayers,
             clanBackgrounds = SponsorBackground.ForClans,

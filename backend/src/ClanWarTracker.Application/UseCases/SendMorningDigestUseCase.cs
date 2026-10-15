@@ -134,12 +134,26 @@ public class SendMorningDigestUseCase(
 
                 var t = BotText.For(await TiltMessages.LangAsync(prefs, player, clans, ct));
                 var text = DigestText.Morning(t, day, history, Top, cat);
+                var buttons = DigestText.MorningButtons(t).ToList();
+
+                // Мягкая реклама - одна строка и раз в неделю: в понедельник канал, в четверг
+                // «позови друга». Сводка - личное сообщение, рекламой его делать нельзя.
+                if (local.DayOfWeek == DayOfWeek.Monday && await ChannelAsync(ct) is { } channel)
+                {
+                    text += "\n\n" + string.Format(t.DigestChannelLine, "@" + channel);
+                    buttons.Insert(1, [new BotButton(t.ChannelButton, Url: "https://t.me/" + channel)]);
+                }
+                else if (local.DayOfWeek == DayOfWeek.Thursday)
+                {
+                    text += "\n\n" + string.Format(t.DigestInviteLine, LinkPlayerUseCase.ReferralDays);
+                    buttons.Insert(1, [new BotButton(t.InviteFriendButton, Url: "startapp:invite")]);
+                }
 
                 // Отметку занимаем до отправки: вторая копия воркера или перезапуск посреди
                 // прохода иначе прислали бы ту же сводку ещё раз
                 if (!await sentLog.TryClaimAsync(SentKind, key, ct)) { sentKeys.Add(key); continue; }
 
-                var result = await sender.SendDmAsync(tg, text, DigestText.MorningButtons(t), silent: false, ct);
+                var result = await sender.SendDmAsync(tg, text, buttons, silent: false, ct);
                 if (!result.Delivered && !result.Blocked)
                 {
                     // Временный сбой Telegram - отметку возвращаем, следующий проход попробует снова
@@ -168,5 +182,18 @@ public class SendMorningDigestUseCase(
             }
         }
         return new Summary(due, sent, skipped, blocked, failed);
+    }
+
+    private string? _channel;
+    private bool _channelLoaded;
+
+    /// <summary>Канал бота (без @), если подключён: один запрос на проход, а не на каждого.</summary>
+    private async Task<string?> ChannelAsync(CancellationToken ct)
+    {
+        if (_channelLoaded) return _channel;
+        _channelLoaded = true;
+        var name = (await settings.GetAsync(ChannelUseCase.KeyUsername, ct))?.Trim().TrimStart('@');
+        _channel = string.IsNullOrEmpty(name) ? null : name;
+        return _channel;
     }
 }

@@ -1,5 +1,5 @@
 import { useT } from '../lib/i18n'
-import { haptic, shareToTelegram } from '../lib/telegram'
+import { getBotUsername, haptic, shareToTelegram } from '../lib/telegram'
 import { IconTile } from './ui/Section'
 import { InfoButton } from './ui/Info'
 
@@ -10,7 +10,9 @@ export function LeaderCtaCard() {
 
   const tellClan = () => {
     haptic('medium')
-    shareToTelegram(t.leaderCta.shareText)
+    // Ссылка «добавить бота в группу»: лидер выбирает чат клана, и бот уже там
+    const bot = getBotUsername()
+    shareToTelegram(t.leaderCta.shareText, bot ? `https://t.me/${bot}?startgroup=hello` : undefined)
   }
 
   return (

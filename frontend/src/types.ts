@@ -1338,6 +1338,8 @@ export type AppTab = 'clan' | 'me' | 'hall' | 'tournament' | 'search' | 'more' |
 
 export interface AppConfig {
   botUsername: string
+  /** Канал бота без @; пусто - не подключён. */
+  channelUsername?: string
   tabs: AppTab[]
   /** Наборы разные: широкие сцены игроку в строку, вертикальные виды клану в блок. */
   playerBackgrounds: BackgroundKey[]

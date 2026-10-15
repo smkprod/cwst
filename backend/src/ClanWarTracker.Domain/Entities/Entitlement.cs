@@ -64,6 +64,8 @@ public class Entitlement
         public const string Grant = "grant";
         /// <summary>Плюс, входящий в купленное спонсорство: дни складываются с купленным Плюсом.</summary>
         public const string Sponsor = "sponsor";
+        /// <summary>Награда за приглашённого друга, который привязал аккаунт.</summary>
+        public const string Referral = "referral";
     }
 }
 
