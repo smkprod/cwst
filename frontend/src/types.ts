@@ -1831,7 +1831,7 @@ export interface CreatorChallengeCard {
 
 /* ---------- Канал бота ---------- */
 
-export type ChannelToggle = 'daily' | 'weekly' | 'challenge' | 'cards' | 'news' | 'newsauto' | 'recapai'
+export type ChannelToggle = 'daily' | 'weekly' | 'challenge' | 'cards' | 'news' | 'newsauto' | 'recapai' | 'column' | 'columnauto'
 
 export interface ChannelPost {
   id: number

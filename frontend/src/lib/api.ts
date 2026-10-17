@@ -242,6 +242,7 @@ export const api = {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ request: instruction, text }),
     }, 120_000),
   channelRunAnalyst: () => request<ChannelState>('/api/owner/channel/ai/meta', { method: 'POST' }, 120_000),
+  channelWriteColumn: () => request<ChannelState>('/api/owner/channel/ai/column', { method: 'POST' }, 120_000),
   channelCheckAi: () => request<ChannelState>('/api/owner/channel/ai/check', { method: 'POST' }, 60_000),
   channelPreview: (kind: 'daily' | 'weekly' | 'links') => postJson<ChannelState>('/api/owner/channel/preview', { kind }),
   // Пересказ новостей идёт через внешний API - ждём дольше обычного

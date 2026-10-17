@@ -54,8 +54,9 @@ public partial class ChannelUseCase(
     public const string KeyFeedInit = "channel.feedinit";
 
     /// <summary>Рубильники автопостов. newsauto - публиковать новости без проверки (только пересказанные).</summary>
-    public static readonly string[] Toggles = ["daily", "weekly", "challenge", "cards", "news", "newsauto", "recapai"];
-    private static readonly HashSet<string> OffByDefault = ["newsauto", "recapai"];
+    public static readonly string[] Toggles = ["daily", "weekly", "challenge", "cards", "news", "newsauto", "recapai", "column", "columnauto"];
+    // Авторская колонка по умолчанию пишется черновиком: в канал сама - только если владелец включит
+    private static readonly HashSet<string> OffByDefault = ["newsauto", "recapai", "columnauto"];
 
     /// <summary>Посты - по Киеву, как и остальные расписания бота.</summary>
     private const int TzOffsetMinutes = 180;
@@ -240,6 +241,10 @@ public partial class ChannelUseCase(
     /* ---------------- Публикация ---------------- */
 
     /// <summary>Публикует уже записанный пост и отмечает итог в нём же.</summary>
+    /// <summary>Опубликовать готовый пост (черновик) - для колонки и других сценариев вне такта.</summary>
+    public Task<bool> PublishPostAsync(ChannelPost post, long channelId, CancellationToken ct) =>
+        PublishAsync(post, channelId, ct);
+
     private async Task<bool> PublishAsync(ChannelPost post, long channelId, CancellationToken ct)
     {
         var rows = Rows(post);

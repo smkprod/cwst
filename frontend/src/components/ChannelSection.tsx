@@ -114,6 +114,7 @@ export function ChannelSection() {
       {state.id !== null && (
         <>
           <AiComposeCard state={state} onState={setState} />
+          <ColumnCard state={state} onState={setState} />
           <ComposeCard onState={setState} />
           <DraftsCard state={state} onState={setState} />
           <AutoCard state={state} onState={setState} />
@@ -686,6 +687,61 @@ function AiComposeCard({ state, onState }: Props) {
         onChange={e => setRequest(e.target.value)} />
       <button className="btn btn-nudge" disabled={busy || !request.trim() || !state.ai.enabled} onClick={generate}>
         <Icon name="sparkles" size={16} />{busy ? 'Пишу пост… до 40 сек' : 'Сгенерировать'}
+      </button>
+      {note && <p className="muted small owner-bc-result">{note}</p>}
+    </div>
+  )
+}
+
+/**
+ * Авторская колонка: раз в день нейросеть пишет пост-мнение «от автора канала» -
+ * о свежей новости, мете, колоде топ-1 или игроке дня, с картинкой бота.
+ */
+function ColumnCard({ state, onState }: Props) {
+  const [busy, setBusy] = useState(false)
+  const [note, setNote] = useState<string | null>(null)
+
+  const flip = async (key: ChannelToggle) => {
+    haptic('light')
+    const next = !state.toggles[key]
+    onState({ ...state, toggles: { ...state.toggles, [key]: next } })
+    try { onState(await api.channelSettings({ [key]: next })) } catch { onState(state) }
+  }
+
+  const writeNow = async () => {
+    haptic('medium')
+    setBusy(true)
+    setNote(null)
+    try {
+      onState(await api.channelWriteColumn())
+      hapticNotify('success')
+      setNote('Готово - колонка в черновиках ниже')
+    } catch (e) {
+      hapticNotify('error')
+      setNote(errorText(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="card">
+      <SectionHead icon="edit" tone="violet" title="Авторская колонка"
+        info={<>
+          <p>Раз в день, днём по Киеву, нейросеть пишет пост с мнением - как живой автор канала, а не сводку: о свежей новости или обновлении, о мете недели, о колоде игрока №1 или об игроке дня. Темы идут по кругу.</p>
+          <p>Картинка - из бота: связи карт, колода, профиль игрока или обложка новости (ролик YouTube играет прямо в Telegram). Цифры и ники - только из данных бота.</p>
+          <p>По умолчанию колонка ложится черновиком. Когда убедитесь, что пишет хорошо, включите «Публиковать сама».</p>
+        </>} />
+      <div className="ch-toggles">
+        <ToggleLine icon="edit" tone="violet" label="Колонка каждый день" on={state.toggles.column}
+          disabled={!state.ai.enabled}
+          desc="Один пост в день в черновики." onToggle={() => flip('column')} />
+        <ToggleLine icon="zap" tone="red" label="Публиковать сама" on={state.toggles.columnauto}
+          disabled={!state.ai.enabled || !state.toggles.column}
+          desc="Колонка уходит в канал без проверки. Выключено по умолчанию." onToggle={() => flip('columnauto')} />
+      </div>
+      <button className="btn btn-nudge" disabled={busy || !state.ai.enabled} onClick={writeNow}>
+        <Icon name="edit" size={16} />{busy ? 'Пишу колонку… до 60 сек' : 'Написать колонку сейчас'}
       </button>
       {note && <p className="muted small owner-bc-result">{note}</p>}
     </div>

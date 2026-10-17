@@ -12,7 +12,7 @@ namespace ClanWarTracker.Api.Controllers;
 [ApiController]
 [Route("api/owner/channel")]
 public class ChannelController(ChannelUseCase channel, ChannelAiUseCase channelAi, MetaAnalystUseCase analyst,
-    CardKnowledgeUseCase knowledge, ServiceAccess access) : ControllerBase
+    CardKnowledgeUseCase knowledge, ChannelColumnUseCase column, ServiceAccess access) : ControllerBase
 {
     public record AiRequest(string? Request, string? Text);
     public record ConnectRequest(string? Handle);
@@ -127,6 +127,20 @@ public class ChannelController(ChannelUseCase channel, ChannelAiUseCase channelA
     {
         if (await DenyAsync(ct) is { } deny) return deny;
         return await AiDone(await channelAi.GenerateAsync(req.Request, ct), ct);
+    }
+
+    /// <summary>POST /api/owner/channel/ai/column — авторская колонка сейчас, черновиком.</summary>
+    [HttpPost("ai/column")]
+    public async Task<IActionResult> WriteColumn(CancellationToken ct)
+    {
+        if (await DenyAsync(ct) is { } deny) return deny;
+        var (outcome, error) = await column.DraftNowAsync(ct);
+        return outcome switch
+        {
+            ChannelColumnUseCase.Outcome.NoAi => StatusCode(409, new { error = "no_ai" }),
+            ChannelColumnUseCase.Outcome.Ok => Ok(await channel.GetAsync(ct)),
+            _ => StatusCode(502, new { error = "ai_failed", message = error ?? "Нейросеть не ответила" }),
+        };
     }
 
     /// <summary>POST /api/owner/channel/drafts/{id}/rewrite — переписать черновик с ИИ по указанию.</summary>
