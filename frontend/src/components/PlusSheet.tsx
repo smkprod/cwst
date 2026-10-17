@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { api, ApiError } from '../lib/api'
 import type { PlusStatus } from '../types'
+import { useShowcase } from '../lib/showcase'
 import { haptic, hapticNotify, openInvoice, shareToTelegram, tg } from '../lib/telegram'
 import { useT, type Translations } from '../lib/i18n'
 import { PLUS_CHANGED } from '../lib/plusSheet'
@@ -22,6 +23,7 @@ type Pay = 'idle' | 'opening' | 'waiting' | 'paid' | 'gifted' | 'failed'
 export function PlusSheet({ focus, onClose }: { focus: PlusFocus; onClose: () => void }) {
   const { t } = useT()
   const p = t.plus
+  const openShowcase = useShowcase()
   const [status, setStatus] = useState<PlusStatus | null>(null)
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading')
   const [pay, setPay] = useState<Pay>('idle')
@@ -112,6 +114,10 @@ export function PlusSheet({ focus, onClose }: { focus: PlusFocus; onClose: () =>
           <button className="modal-close plus-close" onClick={close} aria-label={p.close}><Icon name="x" size={18} /></button>
           <div className="plus-title bt-inline"><IconTile name="gem" tone="violet" size={36} /> {p.title}</div>
           <div className="plus-tagline">{p.parents}</div>
+          {/* Сначала увидеть, потом платить: витрина с живыми примерами и примеркой фонов */}
+          <button className="plus-showcase-link" onClick={() => { close(); openShowcase(focus === 'sponsor' ? 'sponsor' : 'plus') }}>
+            <Icon name="sparkles" size={14} /> {t.showcase.openShowcase} <Icon name="chevronRight" size={14} />
+          </button>
         </div>
 
         {state === 'loading' && <div className="center" style={{ padding: 16 }}><div className="spinner" /></div>}
