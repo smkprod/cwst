@@ -5,6 +5,7 @@ import { LangSwitcher } from './LangSwitcher'
 import { AboutCard } from './AboutCard'
 import { CommunityCard } from './CommunityCard'
 import { InviteCard } from './InviteCard'
+import { useShowcase } from '../lib/showcase'
 import { ChannelCard } from './ChannelCard'
 import { RecruitToggle } from './RecruitToggle'
 import { RecruitBoard } from './RecruitBoard'
@@ -17,7 +18,6 @@ import { PlayerSearchView } from './PlayerSearchView'
 import { StudioView } from './StudioView'
 import { DeckBuilderView } from './DeckBuilderView'
 import type { AppConfig } from '../types'
-import { usePlusSheet } from '../lib/plusSheet'
 import { Icon, type IconName } from './ui/Icon'
 import { IconTile, SectionHead, type Tone } from './ui/Section'
 
@@ -55,7 +55,7 @@ interface Props {
 export function MoreView({ canManage, isLeader, onOpenNotifications, initialSection = null, config = null, onConfigChanged, showStudio = false }: Props) {
   const { t } = useT()
   const [section, setSection] = useState<Section | null>(initialSection)
-  const openPlus = usePlusSheet()
+  const openShowcase = useShowcase()
 
   // Подстраница открывается с начала, а не с той высоты, до которой пролистали список
   const open = (next: Section) => { haptic('light'); setSection(next); window.scrollTo(0, 0) }
@@ -105,7 +105,8 @@ export function MoreView({ canManage, isLeader, onOpenNotifications, initialSect
 
         <MoreRow icon="globe" tone="blue" title={t.more.worldTop} hint={t.more.worldTopHint} onClick={() => open('worldTop')} />
 
-        <MoreRow icon="gem" tone="violet" title={t.more.plus} hint={t.more.plusHint} onClick={() => openPlus()} />
+        {/* Сначала витрина: что внутри, как выглядит, примерка фонов - а оттуда уже покупка */}
+        <MoreRow icon="gem" tone="violet" title={t.more.plus} hint={t.more.plusHint} onClick={() => openShowcase('plus')} />
 
         <MoreRow icon="users" tone="green" title={isLeader ? t.more.recruitBoard : t.more.recruitMe} hint={isLeader ? t.more.recruitBoardHint : t.more.recruitMeHint} onClick={() => open('recruit')} />
 

@@ -8,6 +8,7 @@ import { LangProvider } from './lib/i18n'
 import { ClanModalProvider } from './lib/clanModal'
 import { PlayerSheetProvider } from './lib/playerSheet'
 import { PlusSheetProvider } from './lib/plusSheet'
+import { ShowcaseHost, ShowcaseProvider } from './lib/showcase'
 import './styles.css'
 import './styles/ui-owner.css'
 import './styles/ui-player.css'
@@ -15,6 +16,7 @@ import './styles/ui-clan.css'
 import './styles/ui-battles.css'
 import './styles/ui-misc.css'
 import './styles/ui-studio.css'
+import './styles/ui-showcase.css'
 
 initTelegram()
 
@@ -25,14 +27,17 @@ void ensureBotUsername()
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <LangProvider>
-      <PlusSheetProvider>
-        <PlayerSheetProvider>
-          <ClanModalProvider>
-            <App />
-            <ChallengePromo />
-          </ClanModalProvider>
-        </PlayerSheetProvider>
-      </PlusSheetProvider>
+      <ShowcaseProvider>
+        <PlusSheetProvider>
+          <PlayerSheetProvider>
+            <ClanModalProvider>
+              <App />
+              <ChallengePromo />
+              <ShowcaseHost />
+            </ClanModalProvider>
+          </PlayerSheetProvider>
+        </PlusSheetProvider>
+      </ShowcaseProvider>
     </LangProvider>
   </React.StrictMode>,
 )

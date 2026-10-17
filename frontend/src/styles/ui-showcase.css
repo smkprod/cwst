@@ -1,0 +1,227 @@
+/* --- Витрина Плюса и спонсорства ---
+   Полноэкранная страница поверх приложения: выше нижнего меню (35), ниже окон (50),
+   чтобы окно покупки открывалось поверх неё. */
+
+.sc-overlay {
+  position: fixed; inset: 0; z-index: 45;
+  background: var(--bg);
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
+  animation: fadeIn 0.2s ease;
+}
+.sc-page { max-width: 520px; margin: 0 auto; padding: 12px 12px 28px; }
+
+.sc-top { display: flex; align-items: center; gap: 10px; margin: 4px 0 12px; }
+.sc-back {
+  flex: none; width: 38px; height: 38px; border-radius: 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--ui-line); background: var(--ui-surface); color: inherit; cursor: pointer;
+}
+.sc-top-text { min-width: 0; }
+.sc-title { font-size: 20px; font-weight: 800; line-height: 1.2; }
+.sc-sub { font-size: 13px; color: var(--muted); }
+
+.sc-tabs {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px;
+  border-radius: 14px; background: var(--ui-surface); border: 1px solid var(--ui-line);
+}
+.sc-tab {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px; border-radius: 10px; border: 0; background: transparent;
+  color: var(--muted); font: inherit; font-weight: 700; cursor: pointer;
+  transition: background 0.25s ease, color 0.25s ease;
+}
+.sc-tab-on { color: #fff; }
+.sc-tab-plus { background: linear-gradient(135deg, #8b5cf6, #3b82f6); box-shadow: 0 4px 16px rgba(124, 92, 246, 0.35); }
+.sc-tab-sponsor { background: linear-gradient(135deg, #f5b335, #e46b2b); box-shadow: 0 4px 16px rgba(245, 160, 53, 0.35); }
+
+.sc-lead {
+  margin: 12px 2px 4px; padding: 10px 12px; border-radius: 12px;
+  font-size: 14px; font-weight: 600; line-height: 1.4;
+  animation: fadeIn 0.3s ease;
+}
+.sc-lead-plus { background: rgba(124, 92, 246, 0.12); border-left: 3px solid #8b5cf6; }
+.sc-lead-sponsor { background: rgba(245, 179, 53, 0.12); border-left: 3px solid #f5b335; }
+
+.sc-block { margin-top: 10px; }
+.sc-hint { margin: 0 0 10px; }
+.sc-demo { margin: 8px 0 0; font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 4px; }
+.sc-graph { margin-top: 8px; }
+
+/* --- Переписка с ботом, которая «печатается» --- */
+.sc-chat {
+  position: relative; border-radius: 14px; padding: 12px 10px 10px;
+  background:
+    radial-gradient(circle at 20% 15%, rgba(124, 92, 246, 0.10), transparent 45%),
+    radial-gradient(circle at 85% 80%, rgba(59, 130, 246, 0.10), transparent 45%),
+    rgba(0, 0, 0, 0.22);
+  min-height: 120px;
+}
+.sc-chat-feed { display: flex; flex-direction: column; gap: 6px; }
+.sc-bubble {
+  max-width: 88%; padding: 8px 11px; border-radius: 14px;
+  font-size: 13.5px; line-height: 1.4; white-space: pre-wrap;
+  opacity: 0; transform: translateY(10px) scale(0.97);
+  animation: sc-pop 0.36s cubic-bezier(.2,.8,.3,1.2) forwards;
+}
+.sc-bot { align-self: flex-start; background: var(--bg-card); border-bottom-left-radius: 4px; }
+.sc-mine { align-self: flex-end; background: #2b5278; color: #fff; border-bottom-right-radius: 4px; }
+.sc-strong { font-weight: 700; }
+.sc-chat-card .sc-bot { border-radius: 8px; }
+.sc-chat-card .sc-bot:first-of-type { border-top-left-radius: 14px; border-top-right-radius: 14px; }
+
+.sc-plusline {
+  position: relative; padding-top: 22px;
+  border: 1px solid rgba(245, 200, 61, 0.55);
+  animation: sc-pop 0.42s cubic-bezier(.2,.8,.3,1.2) forwards, sc-glow 2.4s ease-in-out 1.2s infinite;
+}
+.sc-plus-tag {
+  position: absolute; top: 5px; left: 10px;
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 10px; font-weight: 800; letter-spacing: 0.3px; text-transform: uppercase;
+  color: #1a1206; background: linear-gradient(135deg, #ffd66b, #f5b335);
+  padding: 1px 7px; border-radius: 999px;
+}
+.sc-bubble-btns { display: grid; grid-auto-flow: column; gap: 6px; margin-top: 8px; }
+.sc-bubble-btns span {
+  text-align: center; font-size: 12.5px; font-weight: 600; padding: 7px 6px; border-radius: 9px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.sc-typing {
+  align-self: flex-start; display: inline-flex; gap: 4px; padding: 10px 12px;
+  border-radius: 14px; background: var(--bg-card); overflow: hidden;
+  animation: fadeIn 0.2s ease;
+}
+.sc-typing i {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--muted);
+  animation: sc-dot 0.9s ease-in-out infinite;
+}
+.sc-typing i:nth-child(2) { animation-delay: 0.15s; }
+.sc-typing i:nth-child(3) { animation-delay: 0.3s; }
+
+.sc-replay {
+  display: inline-flex; align-items: center; gap: 4px; margin-top: 10px;
+  padding: 5px 10px; border-radius: 999px; border: 1px solid var(--ui-line);
+  background: transparent; color: var(--muted); font: inherit; font-size: 12px; cursor: pointer;
+  animation: fadeIn 0.3s ease;
+}
+
+/* Достижение - карточкой в чате */
+.sc-ach { align-self: flex-start; max-width: 92%; padding: 6px; background: var(--bg-card); border-bottom-left-radius: 4px; }
+.sc-ach-card {
+  position: relative; overflow: hidden; height: 120px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(circle at 50% 40%, #ffe7a3 0%, #f5b335 35%, #8a4b12 100%);
+  color: #3a2205;
+}
+.sc-ach-medal { animation: sc-float 2.6s ease-in-out infinite; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.35)); }
+.sc-ach-medal svg { width: 54px; height: 54px; }
+.sc-ach-shine {
+  position: absolute; top: 0; bottom: 0; width: 40%; left: -60%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  animation: sc-shine 2.8s ease-in-out 0.8s infinite;
+}
+.sc-ach-text { padding: 8px 6px 2px; font-size: 13px; line-height: 1.4; }
+
+/* --- Таблицы «что где» --- */
+.sc-table { display: grid; align-items: stretch; column-gap: 6px; }
+.sc-th { font-size: 12px; font-weight: 800; text-align: center; color: var(--muted); padding: 4px 2px 8px; }
+.sc-th-on { color: var(--gold, #ffc83d); }
+.sc-td-f, .sc-td { padding: 9px 2px; border-top: 1px solid var(--ui-line); font-size: 13px; display: flex; align-items: center; }
+.sc-td { text-align: center; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+.sc-td-on { color: var(--gold, #ffc83d); background: rgba(245, 200, 61, 0.06); }
+.sc-td-no { color: var(--muted); opacity: 0.6; }
+
+/* --- Примерка: строка рейтинга --- */
+.sc-rows { display: flex; flex-direction: column; gap: 6px; }
+.sc-lrow {
+  display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 12px;
+  background: var(--ui-surface); border: 1px solid var(--ui-line);
+}
+.sc-lrow-dim { opacity: 0.55; }
+.sc-lrow-me { border-color: rgba(245, 200, 61, 0.6); animation: sc-pop 0.4s cubic-bezier(.2,.8,.3,1.2) both; }
+.sc-lrow-rank { width: 18px; font-weight: 800; color: var(--muted); }
+.sc-lrow-me .sc-lrow-rank { color: #fff; }
+.sc-lrow-name { flex: 1; min-width: 0; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.sc-lrow-val { font-weight: 800; }
+
+.sc-swatches { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.sc-swatch {
+  width: 54px; height: 38px; border-radius: 10px; cursor: pointer;
+  background-size: cover; background-position: center;
+  border: 2px solid transparent; transition: transform 0.2s ease, border-color 0.2s ease;
+}
+.sc-swatch-on { border-color: var(--gold, #ffc83d); transform: scale(1.08); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35); }
+
+/* --- Примерка: тема клана (переменные темы задаются атрибутом на самой карточке) --- */
+.sc-theme {
+  border-radius: 14px; overflow: hidden; border: 1px solid var(--ui-line);
+  background: var(--bg); animation: fadeIn 0.35s ease;
+}
+.sc-theme-hero {
+  position: relative; height: 112px; background-size: cover; background-position: center;
+  display: flex; flex-direction: column; justify-content: flex-end; padding: 10px 12px;
+}
+.sc-theme-veil { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0.05), rgba(0,0,0,0.7)); }
+.sc-theme-name, .sc-theme-war { position: relative; }
+.sc-theme-name { font-size: 18px; font-weight: 800; color: #fff; display: inline-flex; align-items: center; gap: 6px; }
+.sc-theme-name svg { color: var(--gold, #ffc83d); }
+.sc-theme-war { font-size: 12px; color: rgba(255, 255, 255, 0.85); }
+.sc-theme-body { background: var(--bg-card); padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.sc-theme-stat { font-size: 13px; color: var(--muted); }
+.sc-theme-stat b { font-size: 20px; color: var(--accent); margin-right: 4px; }
+.sc-theme-bar { height: 8px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+.sc-theme-bar i {
+  display: block; height: 100%; width: 72%; border-radius: inherit; background: var(--accent);
+  transform-origin: left; animation: sc-grow 0.9s cubic-bezier(.2,.8,.3,1) both;
+}
+.sc-theme-btn {
+  align-self: flex-start; display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: 10px; border: 0; color: #fff; font: inherit; font-weight: 700;
+  background: var(--accent); pointer-events: none;
+}
+
+/* --- Примерка: страница клана --- */
+.sc-design { animation: fadeIn 0.35s ease; }
+.sc-design .page-hero { margin: 0; }
+.sc-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.sc-chip {
+  padding: 6px 11px; border-radius: 999px; border: 1px solid var(--ui-line);
+  background: var(--ui-surface); color: var(--muted); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;
+}
+.sc-chip-on { color: #fff; border-color: transparent; background: var(--ui-grad); }
+
+.sc-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+.sc-mini { margin: 0; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; }
+.sc-gift { animation: sc-float 2.8s ease-in-out infinite; }
+.sc-gift-alt { animation-delay: 1.2s; }
+
+.sc-cta {
+  position: sticky; bottom: 12px; width: 100%; margin-top: 14px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  font-size: 16px; padding: 14px; border-radius: 14px; border: 0; color: #fff;
+}
+.sc-cta-plus { background: linear-gradient(135deg, #8b5cf6, #3b82f6); box-shadow: 0 8px 26px rgba(124, 92, 246, 0.45); }
+.sc-cta-sponsor { background: linear-gradient(135deg, #f5b335, #e46b2b); box-shadow: 0 8px 26px rgba(245, 160, 53, 0.45); }
+
+/* Ссылка на витрину в окне покупки */
+.plus-showcase-link {
+  margin-top: 10px; display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08); color: inherit; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+
+@keyframes sc-pop { to { opacity: 1; transform: none; } }
+@keyframes sc-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 200, 61, 0); }
+  50% { box-shadow: 0 0 16px 1px rgba(245, 200, 61, 0.35); }
+}
+@keyframes sc-dot { 0%, 100% { transform: translateY(0); opacity: 0.5; } 50% { transform: translateY(-3px); opacity: 1; } }
+@keyframes sc-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes sc-shine { 0% { left: -60%; } 60%, 100% { left: 130%; } }
+@keyframes sc-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .sc-bubble, .sc-replay, .sc-lrow-me { animation: none !important; opacity: 1; transform: none; }
+  .sc-ach-medal, .sc-ach-shine, .sc-gift, .sc-theme-bar i, .sc-plusline { animation: none !important; }
+}

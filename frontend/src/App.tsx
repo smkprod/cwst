@@ -37,6 +37,7 @@ import { SplashScreen } from './components/SplashScreen'
 import { MoreView } from './components/MoreView'
 import { ConnectChatCard, InviteMomentCard, InviteUnlinkedCard } from './components/EngageCards'
 import { ChannelCard } from './components/ChannelCard'
+import { useShowcase } from './lib/showcase'
 import { MenuChangedNotice } from './components/MenuChangedNotice'
 import { UpdateNotice } from './components/UpdateNotice'
 import { DisciplineCard } from './components/DisciplineCard'
@@ -134,6 +135,16 @@ const START_BATTLES_VIEW = startParam === 'review' ? 'review' : 'history'
 
 export default function App() {
   const [state, setState] = useState<State>({ kind: 'loading' })
+
+  // Ссылка startapp=showcase - сразу витрина Плюса и спонсорства
+  const openShowcase = useShowcase()
+  const showcaseOpenedRef = useRef(false)
+  useEffect(() => {
+    if (showcaseOpenedRef.current || state.kind === 'loading' || state.kind === 'notInTelegram') return
+    if (startParam !== 'showcase' && startParam !== 'showcase_sponsor') return
+    showcaseOpenedRef.current = true
+    openShowcase(startParam === 'showcase_sponsor' ? 'sponsor' : 'plus')
+  }, [state.kind, openShowcase])
 
   // Откуда открыли приложение - раз за запуск, для сводки «откуда заходят» в панели.
   // Вне Telegram (превью) не шлём: там нет ни пользователя, ни источника.
