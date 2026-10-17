@@ -21,7 +21,12 @@ export type ShowcaseTab = 'plus' | 'sponsor'
  * бое, строка рейтинга с фоном, тема клана. Фоны и темы можно примерить - нажал и
  * сразу видишь на себе.
  */
-export function Showcase({ initialTab = 'plus', onClose }: { initialTab?: ShowcaseTab; onClose: () => void }) {
+export function Showcase({ initialTab = 'plus', onClose, embedded = false }: {
+  initialTab?: ShowcaseTab
+  onClose: () => void
+  /** Вкладкой в нижнем меню: без своего слоя поверх приложения и без кнопки «назад». */
+  embedded?: boolean
+}) {
   const { t } = useT()
   const s = t.showcase
   const [tab, setTab] = useState<ShowcaseTab>(initialTab)
@@ -30,12 +35,14 @@ export function Showcase({ initialTab = 'plus', onClose }: { initialTab?: Showca
   const pick = (next: ShowcaseTab) => { haptic('light'); setTab(next) }
 
   return (
-    <div className="sc-overlay" role="dialog" aria-modal="true">
+    <div className={embedded ? 'sc-embedded fade-in' : 'sc-overlay'} role={embedded ? undefined : 'dialog'} aria-modal={embedded ? undefined : true}>
       <div className="sc-page">
         <div className="sc-top">
-          <button className="sc-back" onClick={() => { haptic('light'); onClose() }} aria-label="×">
-            <Icon name="chevronLeft" size={20} />
-          </button>
+          {!embedded && (
+            <button className="sc-back" onClick={() => { haptic('light'); onClose() }} aria-label="×">
+              <Icon name="chevronLeft" size={20} />
+            </button>
+          )}
           <div className="sc-top-text">
             <div className="sc-title">{s.title}</div>
             <div className="sc-sub">{s.sub}</div>
@@ -57,6 +64,12 @@ export function Showcase({ initialTab = 'plus', onClose }: { initialTab?: Showca
 
         {/* Кнопка покупки - сразу на виду, не надо листать; вторая - закреплена внизу */}
         <Cta tab={tab} t={t} onBuy={() => openPlus(tab)} top />
+
+        <Block icon="swap" tone={tab === 'plus' ? 'violet' : 'gold'} title={s.baTitle} hint={s.baHint}>
+          <BeforeAfter key={tab} t={t}
+            before={tab === 'plus' ? <PlusFace t={t} plus={false} /> : <SponsorFace t={t} sponsor={false} />}
+            after={tab === 'plus' ? <PlusFace t={t} plus /> : <SponsorFace t={t} sponsor />} />
+        </Block>
 
         {tab === 'plus'
           ? <PlusPart t={t} onBuy={() => openPlus('plus')} />
@@ -222,6 +235,117 @@ function Swatches({ keys, value, onPick }: { keys: BackgroundKey[]; value: Backg
           style={{ backgroundImage: `url(/bg/${k}.webp)` }}
           onClick={() => { haptic('light'); onPick(k) }} aria-label={k} />
       ))}
+    </div>
+  )
+}
+
+/* ================= До и после ================= */
+
+/**
+ * Один и тот же экран «до» и «после» с ползунком: тянешь - видишь разницу на месте.
+ * При появлении ползунок сам проезжает туда-обратно, чтобы было понятно, что его тянут.
+ */
+function BeforeAfter({ before, after, t }: { before: ReactNode; after: ReactNode; t: Translations }) {
+  const s = t.showcase
+  const [ref, seen] = useInView<HTMLDivElement>()
+  const box = useRef<HTMLDivElement | null>(null)
+  const [pos, setPos] = useState(50)
+  const touched = useRef(false)
+
+  // Подсказка движением: 50 → 22 → 78 → 50, пока человек сам не тронул
+  useEffect(() => {
+    if (!seen || REDUCED) return
+    const keys = [50, 22, 78, 50]
+    const step = 650
+    const t0 = performance.now()
+    let raf = 0
+    const tick = (now: number) => {
+      if (touched.current) return
+      const k = Math.min((now - t0) / step, keys.length - 1)
+      const i = Math.floor(k)
+      if (i >= keys.length - 1) { setPos(50); return }
+      const f = k - i
+      const ease = f < 0.5 ? 2 * f * f : 1 - (-2 * f + 2) ** 2 / 2
+      setPos(keys[i] + (keys[i + 1] - keys[i]) * ease)
+      raf = requestAnimationFrame(tick)
+    }
+    const start = window.setTimeout(() => { raf = requestAnimationFrame(tick) }, 400)
+    return () => { window.clearTimeout(start); cancelAnimationFrame(raf) }
+  }, [seen])
+
+  const moveTo = (clientX: number) => {
+    const el = box.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    setPos(Math.max(2, Math.min(98, ((clientX - r.left) / r.width) * 100)))
+  }
+
+  return (
+    <div ref={el => { ref(el); box.current = el }} className="ba"
+      onPointerDown={e => { touched.current = true; (e.target as Element).setPointerCapture?.(e.pointerId); moveTo(e.clientX) }}
+      onPointerMove={e => { if (e.buttons) moveTo(e.clientX) }}>
+      <div className="ba-layer ba-after">{after}</div>
+      <div className="ba-layer ba-before" style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }}>{before}</div>
+      <div className="ba-line" style={{ left: `${pos}%` }}>
+        <span className="ba-knob"><Icon name="swap" size={14} /></span>
+      </div>
+      <span className="ba-tag ba-tag-l" style={{ opacity: pos > 18 ? 1 : 0 }}>{s.baBefore}</span>
+      <span className="ba-tag ba-tag-r" style={{ opacity: pos < 82 ? 1 : 0 }}>{s.baAfter}</span>
+    </div>
+  )
+}
+
+/** Экран разбора как его видит игрок без Плюса и с Плюсом - одна раскладка, чтобы ползунок совпадал. */
+function PlusFace({ t, plus }: { t: Translations; plus: boolean }) {
+  const s = t.showcase
+  const rows: [string, number][] = [['Golem', 33], ['Mega Knight', 37], ['Lava Loon', 44]]
+  return (
+    <div className={`ba-face ${plus ? 'ba-face-plus' : 'ba-face-free'}`}>
+      <div className="ba-face-head"><Icon name="target" size={14} /> {s.baLoseTo}</div>
+      {rows.map(([name, pct], i) => (
+        <div key={name} className={`ba-bar ${!plus && i > 0 ? 'ba-blur' : ''}`}>
+          <span className="ba-bar-name">{name}</span>
+          <span className="ba-bar-track"><i style={{ width: `${pct}%` }} /></span>
+          <b>{pct}%</b>
+        </div>
+      ))}
+      {!plus && <div className="ba-lock"><Icon name="lock" size={12} /> {s.baLocked}</div>}
+      <div className="ba-stats">
+        {s.baRows.map(r => {
+          const [label, free, paid] = r.split('|')
+          return (
+            <div key={label} className="ba-stat">
+              <span className="ba-stat-l">{label}</span>
+              <b className={plus ? 'ba-gold' : ''}>{plus ? paid : free}</b>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+/** Как тебя видят другие: обычный игрок и спонсор - строка рейтинга и карточка клана. */
+function SponsorFace({ t, sponsor }: { t: Translations; sponsor: boolean }) {
+  const s = t.showcase
+  const name = tgUser?.first_name || s.you
+  const row = rowBackground({ backgroundKey: sponsor ? 'sunset' : null })
+  return (
+    <div className="ba-face" data-clan-theme={sponsor ? 'kingdomFire' : undefined}>
+      <div className="ba-face-head"><Icon name={sponsor ? 'star' : 'user'} size={14} /> {sponsor ? s.baSponsor : s.baPlayer}</div>
+      <div className={`sc-lrow ${sponsor ? 'sc-lrow-me' : ''} ${row.className}`} style={row.style}>
+        {sponsor && <span className="sponsor-bg-veil" />}
+        <span className="sc-lrow-rank">2</span>
+        <span className="sc-lrow-name">{name} {sponsor && <SponsorMarks of={{ isSponsor: true }} />}</span>
+        <span className="sc-lrow-val">3 150</span>
+      </div>
+      <div className={`ba-clan ${sponsor ? 'ba-clan-on' : ''}`}
+        style={sponsor ? { backgroundImage: `url(/bg/kingdomFire.webp)` } : undefined}>
+        {sponsor && <span className="sc-theme-veil" />}
+        <div className="ba-clan-name">{s.clanName} {sponsor && <Icon name="star" size={13} fill="currentColor" />}</div>
+        <div className="ba-clan-sub">{sponsor ? `«${s.clanMotto}»` : '#2PYG0QV'}</div>
+      </div>
+      <div className="ba-clan-bar"><i /></div>
     </div>
   )
 }

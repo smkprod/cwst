@@ -1334,7 +1334,7 @@ export type BackgroundKey =
   | 'kingdomSun' | 'kingdom' | 'kingdom2' | 'kingdomFire'
 
 /** Вкладки нижней панели. Состав задаёт владелец из админки. */
-export type AppTab = 'clan' | 'me' | 'hall' | 'tournament' | 'search' | 'more' | 'challenge' | 'duel'
+export type AppTab = 'clan' | 'me' | 'hall' | 'tournament' | 'search' | 'more' | 'challenge' | 'duel' | 'plus'
 
 export interface AppConfig {
   botUsername: string

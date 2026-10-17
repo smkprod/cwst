@@ -19,9 +19,11 @@ public static class AppTabs
     public const string More = "more";
     public const string Challenge = "challenge";
     public const string Duel = "duel";
+    /// <summary>Витрина Плюса и спонсорства - владелец может вынести её в нижнее меню.</summary>
+    public const string Plus = "plus";
 
     /// <summary>Все вкладки, какие есть. Порядок — предлагаемый по умолчанию.</summary>
-    public static readonly string[] Known = [Clan, Me, Hall, Tournament, Search, More, Challenge, Duel];
+    public static readonly string[] Known = [Clan, Me, Hall, Tournament, Search, More, Challenge, Duel, Plus];
 
     /// <summary>
     /// Что показываем, пока владелец ничего не выбрал. Пять из шести: внизу больше

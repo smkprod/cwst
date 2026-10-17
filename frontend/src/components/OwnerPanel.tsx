@@ -1061,6 +1061,7 @@ const ALL_TABS: { key: AppTab; icon: IconName; label: string }[] = [
   { key: 'more', icon: 'gear', label: 'Ещё' },
   { key: 'challenge', icon: 'ticket', label: 'Челлендж' },
   { key: 'duel', icon: 'swords', label: 'Дуэли' },
+  { key: 'plus', icon: 'gem', label: 'Плюс — витрина Плюса и спонсорства' },
 ]
 
 /**
