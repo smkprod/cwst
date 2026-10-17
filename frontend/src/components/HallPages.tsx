@@ -9,7 +9,9 @@ import { Icon } from './ui/Icon'
 import { IconTile, SectionHead } from './ui/Section'
 import { InfoButton } from './ui/Info'
 
-const Star = () => <span className="hall-sponsor-tag"><Icon name="star" size={13} fill="currentColor" /></span>
+/** Звезда у имени: золотая у спонсора, фиолетовая у Плюса. */
+const Star = ({ plus = false }: { plus?: boolean }) =>
+  <span className={`hall-sponsor-tag ${plus ? 'pl-plus-star' : ''}`}><Icon name="star" size={13} fill="currentColor" /></span>
 
 const LEVEL_CLS = ['', 'badge-bronze', 'badge-silver', 'badge-gold']
 
@@ -133,7 +135,7 @@ export function ClanPageView({ clanId, onOpenPlayer, onBack }: {
                         <BadgeIcon badge={m.badgeKey} size={13} />
                       </span>
                     )}
-                    {m.isSponsor && <Star />}
+                    {m.isSponsor ? <Star /> : m.isPlus && <Star plus />}
                   </span>
                   <span className="hall-sub muted small">{t.hallPage.hallRankShort} #{m.hallRank}</span>
                   <span className="hall-fame">{fmt(m.seasonFame)}</span>
@@ -209,7 +211,7 @@ export function PlayerPageView({ playerTag, onOpenClan, onBack }: {
             )}
             <h2 className="page-hero-name">
               {page.name}
-              {page.isSponsor && <Star />}
+              {page.isSponsor ? <Star /> : page.isPlus && <Star plus />}
             </h2>
             <span className="page-hero-tag">{page.playerTag}</span>
 

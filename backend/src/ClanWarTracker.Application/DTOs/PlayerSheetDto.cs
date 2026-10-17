@@ -60,7 +60,9 @@ public record PlayerSheetDto(
     int Games30,
     double WinPercent30,
     string RoyaleApiUrl,
-    DuelSheetDto? Duel = null);
+    DuelSheetDto? Duel = null,
+    /// <summary>Звезда у имени: с Плюсом (у спонсора своя, золотая).</summary>
+    bool IsPlus = false);
 
 /// <summary>Ранг в лиге дуэлей Clanify. Нет - игрок в лигу не вступал.</summary>
 public record DuelSheetDto(int Trophies, int Peak, string League, int Division, int Wins, int Losses, int Place);

@@ -53,6 +53,7 @@ public class GetClanPageUseCase(
                     BadgeKey: p.BadgeKey,
                     BadgeLevel: p.BadgeLevel,
                     IsSponsor: p.IsSponsor,
+                    IsPlus: p.IsPlus,
                     BackgroundKey: p.BackgroundKey))
                 .ToList();
 

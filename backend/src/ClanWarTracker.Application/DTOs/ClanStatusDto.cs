@@ -105,7 +105,9 @@ public record PlayerStatusDto(
     bool IsSponsor = false,
     string? BackgroundKey = null,
     string? BadgeKey = null,
-    int BadgeLevel = 0);
+    int BadgeLevel = 0,
+    /// <summary>Звезда у имени: с Плюсом (у спонсора своя, золотая).</summary>
+    bool IsPlus = false);
 
 public record ClanStatsDto(
     int TotalFame,

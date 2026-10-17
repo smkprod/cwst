@@ -21,6 +21,8 @@ export interface PlayerStatus {
   dnaLabel?: string          // архетип ("Тащер 💪" и т.п.), undefined — мало данных
   reliabilityScore: number   // надёжность 0..100 (0 — нет данных)
   isSponsor?: boolean        // спонсор — ★ рядом с именем
+  /** Звезда у имени: с Плюсом (у спонсора своя, золотая). */
+  isPlus?: boolean
   backgroundKey?: BackgroundKey | null  // оформление строки спонсора
   badgeKey?: string | null   // выставленный напоказ значок
   badgeLevel?: number        // 1 бронза, 2 серебро, 3 золото
@@ -675,6 +677,8 @@ export interface PlayerSheet {
   worldRank: number | null
   inBot: boolean
   isSponsor: boolean
+  /** Звезда у имени: с Плюсом (у спонсора своя, золотая). */
+  isPlus?: boolean
   backgroundKey: BackgroundKey | null
   badgeKey: string | null
   badgeLevel: number
@@ -772,6 +776,8 @@ export interface PlusStatus {
   sponsorPrice: number
   sponsorDays: number
   isSponsor: boolean
+  /** Звезда у имени: с Плюсом (у спонсора своя, золотая). */
+  isPlus?: boolean
   sponsorUntil: string | null
   /** Бесплатные подарочные недели спонсора на этот месяц. */
   freeGiftsLeft: number
@@ -1412,6 +1418,8 @@ export interface HallPlayer {
   badgeKey: string | null
   badgeLevel: number
   isSponsor: boolean
+  /** Звезда у имени: с Плюсом (у спонсора своя, золотая). */
+  isPlus?: boolean
   backgroundKey: BackgroundKey | null
 }
 
@@ -1457,6 +1465,8 @@ export interface ClanPageMember {
   badgeKey: string | null
   badgeLevel: number
   isSponsor: boolean
+  /** Звезда у имени: с Плюсом (у спонсора своя, золотая). */
+  isPlus?: boolean
   backgroundKey: BackgroundKey | null
 }
 
@@ -1504,6 +1514,8 @@ export interface PlayerPage {
   weeksPlayed: number
   bestWeekFame: number
   isSponsor: boolean
+  /** Звезда у имени: с Плюсом (у спонсора своя, золотая). */
+  isPlus?: boolean
   backgroundKey: BackgroundKey | null
   showcaseKey: string | null
   showcaseLevel: number

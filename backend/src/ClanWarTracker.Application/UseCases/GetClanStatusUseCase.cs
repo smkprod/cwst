@@ -12,7 +12,8 @@ public class GetClanStatusUseCase(
     IPlayerRepository players,
     IWarSnapshotRepository snapshots,
     IMemoryCache cache,
-    WarForecastService forecast)
+    WarForecastService forecast,
+    IEntitlementRepository entitlements)
 {
     /// <summary>За сколько часов до конца дня жёлтый статус превращается в красный.</summary>
     private const int RedThresholdHours = 4;
@@ -50,6 +51,7 @@ public class GetClanStatusUseCase(
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         var now = DateTime.UtcNow;
+        var plusHolders = await PlusHolders.GetAsync(entitlements, ct);
         var hoursLeft = Math.Max(0, (int)war.TimeLeft(now).TotalHours);
 
         // Уточняем военные колоды по снапшоту первого военного дня:
@@ -142,7 +144,8 @@ public class GetClanStatusUseCase(
                     ? SponsorBackground.NormalizePlayer(lp2.SponsorBackgroundKey)
                     : null,
                 BadgeKey: byTag.TryGetValue(x.Participant.PlayerTag, out var lp3) ? lp3.ShowcaseBadgeKey : null,
-                BadgeLevel: byTag.TryGetValue(x.Participant.PlayerTag, out var lp4) ? lp4.ShowcaseBadgeLevel : 0))
+                BadgeLevel: byTag.TryGetValue(x.Participant.PlayerTag, out var lp4) ? lp4.ShowcaseBadgeLevel : 0,
+                IsPlus: byTag.TryGetValue(x.Participant.PlayerTag, out var lp5) && !lp5.IsSponsor(now) && PlusHolders.Has(plusHolders, lp5)))
             // в основном списке UI хочет видеть не сыгравших сверху
             .OrderBy(p => p.Status == "played" ? 1 : p.Status == "timeLeft" ? 0 : -1)
             .ThenByDescending(p => p.Fame)

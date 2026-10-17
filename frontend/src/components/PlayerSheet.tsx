@@ -110,6 +110,7 @@ export function PlayerSheetBody({ tag, warRow, isMe = false, canManage = false, 
               {name}
               <SponsorMarks of={{
                 isSponsor: data?.isSponsor ?? warRow?.isSponsor,
+                isPlus: data?.isPlus ?? warRow?.isPlus,
                 badgeKey: data?.badgeKey ?? warRow?.badgeKey,
                 badgeLevel: data?.badgeLevel ?? warRow?.badgeLevel,
               }} />

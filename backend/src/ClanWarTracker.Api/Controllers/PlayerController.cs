@@ -23,6 +23,7 @@ public class PlayerController(
     SuggestDecksUseCase suggestDecks,
     LinkPlayerUseCase linkPlayer,
     AnnounceAchievementUseCase announceAchievement,
+    PlusAccess plusAccess,
     IServiceSettingRepository settings,
     IRespectRepository respects,
     GetBattleAnalysisUseCase battleAnalysis,
@@ -371,13 +372,15 @@ public class PlayerController(
             await players.SaveChangesAsync(ct);
         }
 
-        // Награда спонсора уходит в чат клана карточкой. Только спонсора и только
-        // новая: это и есть та привилегия, за которую платят, и обесценить её
-        // проще всего, объявляя в чат всё подряд.
+        // Новая награда игрока с Плюсом (спонсорство Плюс включает) уходит в чат клана
+        // карточкой. Только платящего и только новая: это привилегия, и обесценить её
+        // проще всего, объявляя в чат всё подряд. Active, а не Unlocked: при
+        // выключенном платном Unlocked у всех, и чат получил бы карточки каждого.
         //
         // Не при первом заходе: у человека с историей там сразу десяток открытых
         // наград, и чат получил бы десять карточек подряд ни с того ни с сего.
-        if (!firstEver && unlocked.Count > 0 && player.IsSponsor(DateTime.UtcNow))
+        if (!firstEver && unlocked.Count > 0 && player.TelegramUserId is long tg
+            && (await plusAccess.GetAsync(tg, ct)).Active)
             await announceAchievement.ExecuteAsync(player, result.Badges, unlocked, ct);
 
         return Ok(result with { JustUnlocked = unlocked, ShowcaseKey = player.ShowcaseBadgeKey });

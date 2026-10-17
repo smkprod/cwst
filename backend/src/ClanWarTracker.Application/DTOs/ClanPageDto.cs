@@ -47,7 +47,8 @@ public record ClanPageMemberDto(
     string? BadgeKey,
     int BadgeLevel,
     bool IsSponsor,
-    string? BackgroundKey);
+    string? BackgroundKey,
+    bool IsPlus = false);
 
 /// <param name="SectionIndex">Номер военной недели внутри сезона, с нуля.</param>
 public record PageWeekDto(int SectionIndex, int Fame);

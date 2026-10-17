@@ -16,7 +16,8 @@ public class GetPlayerSheetUseCase(
     IPlayerRepository players,
     ITopPlayerRepository top,
     IPlayerBattleRepository battles,
-    DuelUseCase duels)
+    DuelUseCase duels,
+    IEntitlementRepository entitlements)
 {
     /// <summary>Сколько последних боёв показываем. Журнал хранит 25, больше десятка не листают.</summary>
     private const int BattlesShown = 10;
@@ -45,6 +46,7 @@ public class GetPlayerSheetUseCase(
         var linked = await players.GetByTagAsync(tag, ct);
         var inBot = linked?.TelegramUserId is not null;
         var sponsor = linked is not null && linked.IsSponsor(now);
+        var withPlus = !sponsor && PlusHolders.Has(await PlusHolders.GetAsync(entitlements, ct), linked);
 
         int? worldRank = null;
         var day = await top.LatestDayAsync(ct);
@@ -130,6 +132,7 @@ public class GetPlayerSheetUseCase(
             Games30: stored.Count,
             WinPercent30: stored.Count == 0 ? 0 : Math.Round(100.0 * storedWins / stored.Count, 1),
             RoyaleApiUrl: $"https://royaleapi.com/player/{Uri.EscapeDataString(tag.TrimStart('#'))}",
-            Duel: duel);
+            Duel: duel,
+            IsPlus: withPlus);
     }
 }
