@@ -55,7 +55,10 @@ public partial class TelegramChannelPublisher(ITelegramBotClient bot) : IChannel
         try
         {
             var keyboard = await KeyboardAsync(rows, ct);
-            if (!string.IsNullOrWhiteSpace(photoUrl) && VisibleLength(html) <= CaptionLimit)
+            // Ролик YouTube - не фото обложки, а превью самого ролика: Telegram играет его
+            // прямо в ленте, и в YouTube уходить не нужно
+            var video = VideoUrl(photoUrl);
+            if (video is null && !string.IsNullOrWhiteSpace(photoUrl) && VisibleLength(html) <= CaptionLimit)
             {
                 var m = await bot.SendPhoto(channelId, InputFile.FromUri(photoUrl), caption: html,
                     parseMode: ParseMode.Html, replyMarkup: keyboard, cancellationToken: ct);
@@ -66,7 +69,7 @@ public partial class TelegramChannelPublisher(ITelegramBotClient bot) : IChannel
             // сообщение вместо фото и отдельного текста, которые в ленте разъезжаются.
             var preview = string.IsNullOrWhiteSpace(photoUrl)
                 ? new LinkPreviewOptions { IsDisabled = true }
-                : new LinkPreviewOptions { Url = photoUrl, PreferLargeMedia = true, ShowAboveText = true };
+                : new LinkPreviewOptions { Url = video ?? photoUrl, PreferLargeMedia = true, ShowAboveText = true };
             var sent = await bot.SendMessage(channelId, html, parseMode: ParseMode.Html,
                 linkPreviewOptions: preview, replyMarkup: keyboard, cancellationToken: ct);
             return sent.MessageId;
@@ -79,12 +82,13 @@ public partial class TelegramChannelPublisher(ITelegramBotClient bot) : IChannel
         IReadOnlyList<IReadOnlyList<BotButton>> rows, CancellationToken ct = default)
     {
         var hasPhoto = !string.IsNullOrWhiteSpace(photoUrl);
+        var video = VideoUrl(photoUrl);
         try
         {
             var keyboard = await KeyboardAsync(rows, ct);
             // Пост с картинкой ушёл либо фото с подписью, либо текстом с большим превью -
             // какой из двух, видно только по ответу Telegram, поэтому пробуем по очереди.
-            if (hasPhoto && VisibleLength(html) <= CaptionLimit)
+            if (hasPhoto && video is null && VisibleLength(html) <= CaptionLimit)
             {
                 try
                 {
@@ -99,12 +103,20 @@ public partial class TelegramChannelPublisher(ITelegramBotClient bot) : IChannel
                 }
             }
             var preview = hasPhoto
-                ? new LinkPreviewOptions { Url = photoUrl, PreferLargeMedia = true, ShowAboveText = true }
+                ? new LinkPreviewOptions { Url = video ?? photoUrl, PreferLargeMedia = true, ShowAboveText = true }
                 : new LinkPreviewOptions { IsDisabled = true };
             try
             {
                 await bot.EditMessageText(channelId, messageId, html, parseMode: ParseMode.Html,
                     linkPreviewOptions: preview, replyMarkup: keyboard, cancellationToken: ct);
+                return ChannelEditResult.Ok;
+            }
+            catch (ApiRequestException ex) when (video is not null && VisibleLength(html) <= CaptionLimit
+                                                 && ex.Message.Contains("no text", StringComparison.OrdinalIgnoreCase))
+            {
+                // Ролик, опубликованный ещё старым способом - фото обложки с подписью: правим подпись
+                await bot.EditMessageCaption(channelId, messageId, html, parseMode: ParseMode.Html,
+                    replyMarkup: keyboard, cancellationToken: ct);
                 return ChannelEditResult.Ok;
             }
             catch (ApiRequestException ex) when (hasPhoto && ex.Message.Contains("no text", StringComparison.OrdinalIgnoreCase))
@@ -120,6 +132,19 @@ public partial class TelegramChannelPublisher(ITelegramBotClient bot) : IChannel
         catch (ApiRequestException) { return ChannelEditResult.Failed; }
         catch (HttpRequestException) { return ChannelEditResult.Failed; }
     }
+
+    /// <summary>
+    /// Обложка ролика YouTube (i.ytimg.com/vi/ID/...) → ссылка на сам ролик. Превью такой
+    /// ссылки Telegram показывает с кнопкой ▶ и играет ролик прямо в приложении. null - не ролик.
+    /// </summary>
+    internal static string? VideoUrl(string? photoUrl)
+    {
+        var m = YouTubeThumbRegex().Match(photoUrl ?? "");
+        return m.Success ? $"https://www.youtube.com/watch?v={m.Groups[1].Value}" : null;
+    }
+
+    [GeneratedRegex(@"^https?://(?:i\.ytimg\.com|img\.youtube\.com)/vi/([A-Za-z0-9_-]{6,20})/")]
+    private static partial Regex YouTubeThumbRegex();
 
     /// <summary>Длина текста, как её считает Telegram: без тегов и с раскрытыми сущностями.</summary>
     private static int VisibleLength(string html) => WebUtility.HtmlDecode(TagRegex().Replace(html, "")).Length;
