@@ -197,10 +197,12 @@
 .sc-gift-alt { animation-delay: 1.2s; }
 
 .sc-cta {
-  position: sticky; bottom: 12px; width: 100%; margin-top: 14px;
+  width: 100%;
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   font-size: 16px; padding: 14px; border-radius: 14px; border: 0; color: #fff;
 }
+.sc-cta-top { margin-top: 10px; animation: sc-pulse 2.4s ease-in-out 1s infinite; }
+.sc-cta-bottom { position: sticky; bottom: 12px; margin-top: 14px; }
 .sc-cta-plus { background: linear-gradient(135deg, #8b5cf6, #3b82f6); box-shadow: 0 8px 26px rgba(124, 92, 246, 0.45); }
 .sc-cta-sponsor { background: linear-gradient(135deg, #f5b335, #e46b2b); box-shadow: 0 8px 26px rgba(245, 160, 53, 0.45); }
 
@@ -212,6 +214,7 @@
 }
 
 @keyframes sc-pop { to { opacity: 1; transform: none; } }
+@keyframes sc-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.02); } }
 @keyframes sc-glow {
   0%, 100% { box-shadow: 0 0 0 0 rgba(245, 200, 61, 0); }
   50% { box-shadow: 0 0 16px 1px rgba(245, 200, 61, 0.35); }
@@ -223,5 +226,5 @@
 
 @media (prefers-reduced-motion: reduce) {
   .sc-bubble, .sc-replay, .sc-lrow-me { animation: none !important; opacity: 1; transform: none; }
-  .sc-ach-medal, .sc-ach-shine, .sc-gift, .sc-theme-bar i, .sc-plusline { animation: none !important; }
+  .sc-ach-medal, .sc-ach-shine, .sc-gift, .sc-theme-bar i, .sc-plusline, .sc-cta-top { animation: none !important; }
 }
