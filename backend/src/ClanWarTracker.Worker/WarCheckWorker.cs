@@ -91,6 +91,10 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
                 var r = await channel.TickAsync(stoppingToken);
                 if (r.Published > 0 || r.Drafts > 0)
                     logger.LogInformation("Channel: published {Published}, new drafts {Drafts}", r.Published, r.Drafts);
+
+                // Авторская колонка - раз в день, своё мнение от нейросети по данным бота
+                var column = scope.ServiceProvider.GetRequiredService<ChannelColumnUseCase>();
+                if (await column.TickAsync(stoppingToken)) logger.LogInformation("Channel column written");
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { throw; }
             catch (Exception ex)
