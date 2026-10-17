@@ -308,7 +308,9 @@ function Marks({ row }: { row: HallPlayer | HallClan }) {
           <BadgeIcon badge={player.badgeKey} size={13} />
         </span>
       )}
-      {player?.isSponsor && <span className="hall-sponsor-tag"><Icon name="star" size={12} fill="currentColor" /></span>}
+      {player?.isSponsor
+        ? <span className="hall-sponsor-tag"><Icon name="star" size={12} fill="currentColor" /></span>
+        : player?.isPlus && <span className="hall-sponsor-tag pl-plus-star"><Icon name="star" size={12} fill="currentColor" /></span>}
       {clan && clan.sponsorCount > 0 && <span className="hall-sponsor-tag"><Icon name="star" size={12} fill="currentColor" /></span>}
     </>
   )

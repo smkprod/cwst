@@ -44,6 +44,8 @@ const LEVEL_CLS = ['', 'badge-bronze', 'badge-silver', 'badge-gold']
 
 export interface Marked {
   isSponsor?: boolean
+  /** С Плюсом - звезда своего цвета; у спонсора золотая. */
+  isPlus?: boolean
   badgeKey?: string | null
   badgeLevel?: number
   backgroundKey?: BackgroundKey | null
@@ -59,7 +61,9 @@ export function SponsorMarks({ of }: { of: Marked }) {
           <BadgeIcon badge={of.badgeKey} size={13} />
         </span>
       )}
-      {of.isSponsor && <span className="hall-sponsor-tag pl-sponsor-star"><Icon name="star" size={12} fill="currentColor" /></span>}
+      {of.isSponsor
+        ? <span className="hall-sponsor-tag pl-sponsor-star"><Icon name="star" size={12} fill="currentColor" /></span>
+        : of.isPlus && <span className="hall-sponsor-tag pl-sponsor-star pl-plus-star"><Icon name="star" size={12} fill="currentColor" /></span>}
     </>
   )
 }

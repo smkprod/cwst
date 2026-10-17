@@ -72,7 +72,8 @@ public class GetPlayerPageUseCase(
                   && string.Equals(viewer.PlayerTag, row.PlayerTag, StringComparison.OrdinalIgnoreCase),
             DesignKey: ClanPageDesign.Normalize(clan?.PageDesignKey),
             Badges: badges,
-            Weeks: weeks);
+            Weeks: weeks,
+            IsPlus: row.IsPlus);
     }
 
     /// <summary>

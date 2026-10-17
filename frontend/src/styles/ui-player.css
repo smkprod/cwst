@@ -23,6 +23,8 @@
 .pl-badge-icon.badge-silver { color: #c9d2de; }
 .pl-badge-icon.badge-gold { color: var(--gold, #ffc83d); }
 .pl-sponsor-star { display: inline-flex; align-items: center; vertical-align: middle; margin-left: 3px; color: var(--gold, #ffc83d); }
+/* Звезда Плюса - фиолетовая, чтобы золотая осталась знаком спонсора */
+.pl-plus-star, .hall-sponsor-tag.pl-plus-star { color: #a78bfa; }
 
 /* Значки наград: иконка вместо эмодзи, цвет по уровню */
 .ach-icon, .ach-unlocked-icon, .looks-badge-icon { display: inline-grid; place-items: center; }

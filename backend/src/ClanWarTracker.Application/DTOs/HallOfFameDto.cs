@@ -41,7 +41,8 @@ public record HallPlayerDto(
     string? BadgeKey,
     int BadgeLevel,
     bool IsSponsor,
-    string? BackgroundKey);
+    string? BackgroundKey,
+    bool IsPlus = false);
 
 /// <param name="SponsorCount">Сколько спонсоров в клане — клан с ними получает свои возможности.</param>
 /// <param name="BackgroundKey">Фон клана на Аллее, если его выставил спонсор клана.</param>

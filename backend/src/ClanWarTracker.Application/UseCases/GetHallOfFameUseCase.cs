@@ -16,7 +16,8 @@ public class GetHallOfFameUseCase(
     IWarSnapshotRepository snapshots,
     IPlayerRepository players,
     IServiceSettingRepository settings,
-    IMemoryCache cache)
+    IMemoryCache cache,
+    IEntitlementRepository entitlements)
 {
     /// <summary>
     /// Сколько держим посчитанное.
@@ -111,6 +112,7 @@ public class GetHallOfFameUseCase(
         // каждого из сотни игроков — это сотня запросов ради одной таблицы.
         var linked = await players.GetAllLinkedAsync(ct);
         var now = DateTime.UtcNow;
+        var plusHolders = await PlusHolders.GetAsync(entitlements, ct);
 
         // У одного тега бывает несколько строк - по одной на каждый клан, где игрок
         // бывал. First() брал любую, и у спонсора на Аллее могла оказаться строка
@@ -132,6 +134,7 @@ public class GetHallOfFameUseCase(
             {
                 byTag.TryGetValue(r.Tag, out var player);
                 var sponsor = player?.IsSponsor(now) == true;
+                var withPlus = !sponsor && PlusHolders.Has(plusHolders, player);
                 return new HallPlayerDto(
                     Rank: i + 1,
                     PlayerTag: r.Tag,
@@ -145,7 +148,8 @@ public class GetHallOfFameUseCase(
                     IsSponsor: sponsor,
                     // Фон показываем только действующему спонсору: истёкшее
                     // спонсорство не должно продолжать красить строку.
-                    BackgroundKey: sponsor ? SponsorBackground.NormalizePlayer(player?.SponsorBackgroundKey) : null);
+                    BackgroundKey: sponsor ? SponsorBackground.NormalizePlayer(player?.SponsorBackgroundKey) : null,
+                    IsPlus: withPlus);
             })
             .ToList();
 

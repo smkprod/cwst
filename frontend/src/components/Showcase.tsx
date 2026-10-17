@@ -125,6 +125,12 @@ function PlusPart({ t, onBuy }: { t: Translations; onBuy: () => void }) {
         <MatchupPanel m={demo.matchup} t={t} onPlus={onBuy} />
       </Block>
 
+      <Block icon="medal" tone="gold" title={s.achTitle} hint={s.achHint}>
+        <ChatDemo replay={s.replay} bubbles={[
+          { text: '', delay: 0.4, achievement: s.achText.replace('{name}', tgUser?.first_name || s.you) },
+        ]} />
+      </Block>
+
       <section className="card sc-block">
         <SectionHead icon="list" tone="gold" title={s.plusTable} />
         <Table head={[s.colFree, s.colPlus]} rows={s.plusRows} accent={1} />
@@ -203,12 +209,6 @@ function SponsorPart({ t }: { t: Translations; onBuy: () => void }) {
               onClick={() => { haptic('light'); setDesign(k) }}>{t.hallPage.designs[k]}</button>
           ))}
         </div>
-      </Block>
-
-      <Block icon="medal" tone="gold" title={s.achTitle} hint={s.achHint}>
-        <ChatDemo replay={s.replay} bubbles={[
-          { text: '', delay: 0.4, achievement: s.achText.replace('{name}', name) },
-        ]} />
       </Block>
 
       <div className="sc-duo">
