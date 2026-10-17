@@ -14,7 +14,7 @@ const ru = {
 
   tabs: { duel: 'Дуэли', challenge: 'Челлендж', war: 'Война', rating: 'Рейтинг', me: 'Я', search: 'Поиск', owner: 'Панель',
           recruit: 'Биржа', tournament: 'Турнир', clan: 'Клан', more: 'Ещё', roster: 'Состав',
-          hall: 'Аллея', studio: 'Студия' },
+          hall: 'Аллея', studio: 'Студия', plus: 'Плюс' },
 
   tilt: {
     title: 'Стоп-тильт',
@@ -1741,6 +1741,15 @@ const ru = {
     compareRows: ['Трекер, базовый разбор, 2 сигнала стоп-тильта|✓|✓|✓', 'Полный разбор, стоп-тильт без лимита|—|✓|✓', '★ у имени везде|—|—|✓', 'Свой фон в рейтингах|—|—|✓', 'Фон и тема клана|—|—|✓', 'Премиум-страница клана|—|—|✓', 'Достижения в чат клана|—|—|✓', 'Вызовы другим кланам|—|—|✓', '2 недели Плюса в подарок|—|—|✓'],
     buySponsor: 'Стать спонсором',
     openShowcase: 'Как это выглядит',
+    baTitle: 'До и после',
+    baHint: 'Потяни ползунок: слева — как сейчас, справа — как будет',
+    baBefore: 'До',
+    baAfter: 'После',
+    baLoseTo: 'Кому ты проигрываешь',
+    baLocked: 'ещё 5 — в Плюсе',
+    baRows: ['Трекер: совет после боя|раз в день|после каждого', 'Стоп-тильт|2 сигнала|без лимита', 'История боёв|7 дней|30 дней', 'Сложные карты|1|6 + контры'],
+    baPlayer: 'Обычный игрок',
+    baSponsor: 'Спонсор',
   },
   channelPromo: {
     label: 'Канал Clanify: мета недели, связи карт и новости Clash Royale',
@@ -1961,7 +1970,7 @@ const uk: Translations = {
 
   tabs: { duel: 'Дуелі', challenge: 'Челендж', roster: 'Склад', war: 'Війна', rating: 'Рейтинг', me: 'Я', search: 'Пошук', owner: 'Панель',
           recruit: 'Біржа', tournament: 'Турнір', clan: 'Клан', more: 'Ще',
-          hall: 'Алея', studio: 'Студія' },
+          hall: 'Алея', studio: 'Студія', plus: 'Плюс' },
 
   tilt: {
     title: 'Стоп-тільт',
@@ -3686,6 +3695,15 @@ const uk: Translations = {
     compareRows: ['Трекер, базовий розбір, 2 сигнали стоп-тільту|✓|✓|✓', 'Повний розбір, стоп-тільт без ліміту|—|✓|✓', '★ біля імені всюди|—|—|✓', 'Свій фон у рейтингах|—|—|✓', 'Фон і тема клану|—|—|✓', 'Преміум-сторінка клану|—|—|✓', 'Досягнення в чат клану|—|—|✓', 'Виклики іншим кланам|—|—|✓', '2 тижні Плюса в подарунок|—|—|✓'],
     buySponsor: 'Стати спонсором',
     openShowcase: 'Як це виглядає',
+    baTitle: 'До і після',
+    baHint: 'Потягни повзунок: зліва — як зараз, справа — як буде',
+    baBefore: 'До',
+    baAfter: 'Після',
+    baLoseTo: 'Кому ти програєш',
+    baLocked: 'ще 5 — у Плюсі',
+    baRows: ['Трекер: порада після бою|раз на день|після кожного', 'Стоп-тільт|2 сигнали|без ліміту', 'Історія боїв|7 днів|30 днів', 'Складні карти|1|6 + контри'],
+    baPlayer: 'Звичайний гравець',
+    baSponsor: 'Спонсор',
   },
   channelPromo: {
     label: 'Канал Clanify: мета тижня, зв\'язки карт і новини Clash Royale',
@@ -3904,7 +3922,7 @@ const en: Translations = {
 
   tabs: { duel: 'Duels', challenge: 'Challenge', roster: 'Roster', war: 'War', rating: 'Rating', me: 'Me', search: 'Search', owner: 'Panel',
           recruit: 'Market', tournament: 'Tournament', clan: 'Clan', more: 'More',
-          hall: 'Hall', studio: 'Studio' },
+          hall: 'Hall', studio: 'Studio', plus: 'Plus' },
 
   tilt: {
     title: 'Stop-tilt',
@@ -5629,6 +5647,15 @@ const en: Translations = {
     compareRows: ['Tracker, basic review, 2 stop-tilt signals|✓|✓|✓', 'Full review, unlimited stop-tilt|—|✓|✓', '★ next to your name everywhere|—|—|✓', 'Your background in rankings|—|—|✓', 'Clan background and theme|—|—|✓', 'Premium clan page|—|—|✓', 'Achievements in clan chat|—|—|✓', 'Challenges to other clans|—|—|✓', '2 weeks of Plus to gift|—|—|✓'],
     buySponsor: 'Become a sponsor',
     openShowcase: 'See how it looks',
+    baTitle: 'Before and after',
+    baHint: 'Drag the slider: left — how it is now, right — how it will be',
+    baBefore: 'Before',
+    baAfter: 'After',
+    baLoseTo: 'Who you lose to',
+    baLocked: '5 more — in Plus',
+    baRows: ['Tracker: tip after a battle|once a day|after every one', 'Stop-tilt|2 signals|unlimited', 'Battle history|7 days|30 days', 'Tough cards|1|6 + counters'],
+    baPlayer: 'Regular player',
+    baSponsor: 'Sponsor',
   },
   channelPromo: {
     label: 'Clanify channel: meta of the week, card synergies and Clash Royale news',

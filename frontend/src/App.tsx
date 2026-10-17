@@ -38,6 +38,7 @@ import { MoreView } from './components/MoreView'
 import { ConnectChatCard, InviteMomentCard, InviteUnlinkedCard } from './components/EngageCards'
 import { ChannelCard } from './components/ChannelCard'
 import { useShowcase } from './lib/showcase'
+import { Showcase } from './components/Showcase'
 import { MenuChangedNotice } from './components/MenuChangedNotice'
 import { UpdateNotice } from './components/UpdateNotice'
 import { DisciplineCard } from './components/DisciplineCard'
@@ -66,7 +67,7 @@ const TRANSIENT_TOLERANCE = 3
  * редкое собрано в «Ещё». Панель владельца — пятая и только у владельца: она невидима
  * для остальных, так что места в баре ни у кого не занимает.
  */
-type Tab = 'clan' | 'me' | 'hall' | 'tournament' | 'search' | 'more' | 'challenge' | 'duel' | 'owner' | 'creatorChallenge'
+type Tab = 'clan' | 'me' | 'hall' | 'tournament' | 'search' | 'more' | 'challenge' | 'duel' | 'plus' | 'owner' | 'creatorChallenge'
 
 /** Набор вкладок, пока сервер не ответил. Совпадает с умолчанием на сервере. */
 const DEFAULT_TABS: AppTab[] = ['clan', 'me', 'hall', 'search', 'more']
@@ -81,6 +82,7 @@ const TAB_LOOKS = (t: Translations): Record<AppTab, { icon: IconName; label: str
   more: { icon: 'gear', label: t.tabs.more },
   challenge: { icon: 'ticket', label: t.tabs.challenge },
   duel: { icon: 'swords', label: t.tabs.duel },
+  plus: { icon: 'gem', label: t.tabs.plus },
 })
 
 /**
@@ -356,6 +358,7 @@ export default function App() {
             battlesView={START_BATTLES_VIEW} openMatchId={startMatchId}
             showChallenge={Boolean(config?.tabs.includes('challenge')) || startParam === 'challenge'}
             showDuel={Boolean(config?.tabs.includes('duel')) || startParam === 'duel'}
+            showPlus={Boolean(config?.tabs.includes('plus'))}
             showStudio={canUseStudio(me)}
             config={config} onConfigChanged={loadConfig} />
     case 'notInTelegram':
@@ -488,6 +491,7 @@ export default function App() {
                 <PlayerSearchView />
               </div>
             )}
+            {tab === 'plus' && <Showcase embedded onClose={() => setTab('clan')} />}
             {tab === 'more' && (
               <MoreView
                 canManage={canManage}
@@ -603,6 +607,7 @@ export default function App() {
                 <PlayerSearchView />
               </div>
             )}
+            {tab === 'plus' && <Showcase embedded onClose={() => setTab('clan')} />}
             {tab === 'more' && (
               // Гость клан не настраивает: уведомления и биржа лидера ему недоступны
               <MoreView

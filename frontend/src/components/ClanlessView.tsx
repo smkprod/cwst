@@ -15,10 +15,11 @@ import { ChallengeView, CreatorChallengeScreen } from './ChallengeView'
 import { DuelView } from './DuelView'
 import { OPEN_CHALLENGE } from '../lib/promo'
 import { MyStatsView, type BattlesView, type MeSection } from './MyStatsView'
+import { Showcase } from './Showcase'
 import { WorldTopView } from './WorldTopView'
 import { MoreView } from './MoreView'
 
-export type SoloTab = 'me' | 'meta' | 'clan' | 'search' | 'more' | 'challenge' | 'duel' | 'creatorChallenge'
+export type SoloTab = 'me' | 'meta' | 'clan' | 'search' | 'more' | 'challenge' | 'duel' | 'plus' | 'creatorChallenge'
 
 /** Почему у игрока нет экрана войны: клан не подключён или у подключённого нет войны. */
 export type SoloReason = 'noClan' | 'noWar'
@@ -31,7 +32,7 @@ export type SoloReason = 'noClan' | 'noWar'
  * Теперь это то же приложение для игрока: разбор своих боёв первым, мета топа,
  * поиск, «Ещё» с языком и Плюсом. Клан — одна из вкладок, а не условие входа.
  */
-export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection = 'battles', battlesView = 'history', openMatchId = null, showChallenge = false, showDuel = false, showStudio = false, challengeCode = null, config = null, onConfigChanged }: {
+export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection = 'battles', battlesView = 'history', openMatchId = null, showChallenge = false, showDuel = false, showPlus = false, showStudio = false, challengeCode = null, config = null, onConfigChanged }: {
   reason?: SoloReason
   initialTab?: SoloTab
   meSection?: MeSection
@@ -41,6 +42,8 @@ export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection =
   showChallenge?: boolean
   /** Вкладка лиги дуэлей - по тому же выбору владельца. */
   showDuel?: boolean
+  /** Витрина Плюса и спонсорства в нижнем меню - тоже по выбору владельца. */
+  showPlus?: boolean
   /** «Студия» блогера — по праву, а не по выбору владельца. Клан блогеру не обязателен. Живёт в «Ещё». */
   showStudio?: boolean
   /** Челлендж блогера из ссылки со стрима (startapp=ch_<код>) — экран initialTab='creatorChallenge'. */
@@ -104,6 +107,7 @@ export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection =
     { id: 'meta', icon: 'flame' as IconName, label: t.worldTop.tabMeta },
     ...(showChallenge ? [{ id: 'challenge' as SoloTab, icon: 'ticket' as IconName, label: t.tabs.challenge }] : []),
     ...(showDuel ? [{ id: 'duel' as SoloTab, icon: 'swords' as IconName, label: t.tabs.duel }] : []),
+    ...(showPlus ? [{ id: 'plus' as SoloTab, icon: 'gem' as IconName, label: t.tabs.plus }] : []),
     { id: 'clan', icon: 'castle' as IconName, label: t.clanless.tabClan },
     { id: 'search', icon: 'search' as IconName, label: t.tabs.search },
     { id: 'more', icon: 'gear' as IconName, label: t.tabs.more },
@@ -164,6 +168,7 @@ export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection =
         )}
 
         {tab === 'search' && <div className="fade-in"><PlayerSearchView /></div>}
+        {tab === 'plus' && <Showcase embedded onClose={() => setTab('me')} />}
         {tab === 'creatorChallenge' && challengeCode && (
           <CreatorChallengeScreen code={challengeCode} onBack={() => switchTab('me')} />
         )}

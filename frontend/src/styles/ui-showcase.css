@@ -228,3 +228,68 @@
   .sc-bubble, .sc-replay, .sc-lrow-me { animation: none !important; opacity: 1; transform: none; }
   .sc-ach-medal, .sc-ach-shine, .sc-gift, .sc-theme-bar i, .sc-plusline, .sc-cta-top { animation: none !important; }
 }
+
+/* --- Витрина вкладкой в нижнем меню: без своего слоя, нижняя кнопка - над меню --- */
+.sc-embedded .sc-page { padding-top: 4px; }
+.sc-embedded .sc-cta-bottom { bottom: calc(76px + env(safe-area-inset-bottom)); }
+
+/* --- До и после: два слоя в одной клетке сетки, верхний обрезается ползунком --- */
+.ba {
+  position: relative; display: grid; border-radius: 14px; overflow: hidden;
+  touch-action: pan-y; user-select: none; -webkit-user-select: none; cursor: ew-resize;
+  border: 1px solid var(--ui-line);
+}
+.ba-layer { grid-area: 1 / 1; }
+.ba-before { z-index: 1; will-change: clip-path; }
+.ba-line {
+  position: absolute; top: 0; bottom: 0; z-index: 2; width: 2px; margin-left: -1px;
+  background: #fff; box-shadow: 0 0 10px rgba(255, 255, 255, 0.6); pointer-events: none;
+}
+.ba-knob {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 34px; height: 34px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: #fff; color: #1b1f2e; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+}
+.ba-tag {
+  position: absolute; top: 8px; z-index: 3; pointer-events: none; transition: opacity 0.2s ease;
+  font-size: 11px; font-weight: 800; letter-spacing: 0.4px; text-transform: uppercase;
+  padding: 3px 8px; border-radius: 999px;
+}
+.ba-tag-l { left: 8px; background: rgba(0, 0, 0, 0.55); color: #cfd4e2; }
+.ba-tag-r { right: 8px; background: linear-gradient(135deg, #ffd66b, #f5b335); color: #1a1206; }
+
+.ba-face { padding: 36px 12px 12px; display: flex; flex-direction: column; gap: 8px; background: var(--bg-card); min-height: 100%; }
+.ba-face-free { background: #1c2130; filter: saturate(0.6); }
+.ba-face-plus { background: linear-gradient(160deg, rgba(124, 92, 246, 0.22), rgba(59, 130, 246, 0.12)), var(--bg-card); }
+.ba-face-head { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 800; }
+.ba-bar { display: grid; grid-template-columns: 92px 1fr 38px; align-items: center; gap: 8px; font-size: 12.5px; }
+.ba-bar-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ba-bar-track { height: 7px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+.ba-bar-track i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #e2524a, #f08a4b); }
+.ba-bar b { text-align: right; }
+.ba-blur { filter: blur(4px); opacity: 0.6; }
+.ba-lock {
+  align-self: flex-start; display: inline-flex; align-items: center; gap: 5px; margin-top: -2px;
+  font-size: 11.5px; font-weight: 700; color: #ffd66b; padding: 3px 9px; border-radius: 999px;
+  background: rgba(245, 179, 53, 0.12); border: 1px solid rgba(245, 179, 53, 0.35);
+}
+.ba-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 4px; }
+.ba-stat { display: flex; flex-direction: column; gap: 2px; padding: 8px 9px; border-radius: 10px; background: rgba(0, 0, 0, 0.2); }
+.ba-stat-l { font-size: 11px; color: var(--muted); line-height: 1.25; }
+.ba-stat b { font-size: 13.5px; }
+.ba-gold { color: #ffd66b; }
+
+.ba-clan {
+  position: relative; overflow: hidden; border-radius: 12px; padding: 14px 12px; min-height: 74px;
+  background: rgba(255, 255, 255, 0.05); background-size: cover; background-position: center;
+  display: flex; flex-direction: column; justify-content: flex-end;
+}
+.ba-clan-name, .ba-clan-sub { position: relative; }
+.ba-clan-name { font-weight: 800; font-size: 16px; display: inline-flex; align-items: center; gap: 5px; }
+.ba-clan-on .ba-clan-name { color: #fff; }
+.ba-clan-on .ba-clan-name svg { color: var(--gold, #ffc83d); }
+.ba-clan-sub { font-size: 12px; color: var(--muted); }
+.ba-clan-on .ba-clan-sub { color: rgba(255, 255, 255, 0.85); font-style: italic; }
+.ba-clan-bar { height: 7px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+.ba-clan-bar i { display: block; height: 100%; width: 68%; border-radius: inherit; background: var(--accent); }
