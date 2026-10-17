@@ -55,18 +55,28 @@ export function Showcase({ initialTab = 'plus', onClose }: { initialTab?: Showca
           {tab === 'plus' ? s.plusLead : s.sponsorLead}
         </p>
 
+        {/* Кнопка покупки - сразу на виду, не надо листать; вторая - закреплена внизу */}
+        <Cta tab={tab} t={t} onBuy={() => openPlus(tab)} top />
+
         {tab === 'plus'
           ? <PlusPart t={t} onBuy={() => openPlus('plus')} />
           : <SponsorPart t={t} onBuy={() => openPlus('sponsor')} />}
 
         <Compare t={t} highlight={tab} />
 
-        <button className={`btn sc-cta ${tab === 'plus' ? 'sc-cta-plus' : 'sc-cta-sponsor'}`}
-          onClick={() => { haptic('medium'); openPlus(tab) }}>
-          <Icon name={tab === 'plus' ? 'gem' : 'star'} size={18} /> {tab === 'plus' ? s.buyPlus : s.buySponsor}
-        </button>
+        <Cta tab={tab} t={t} onBuy={() => openPlus(tab)} />
       </div>
     </div>
+  )
+}
+
+function Cta({ tab, t, onBuy, top = false }: { tab: ShowcaseTab; t: Translations; onBuy: () => void; top?: boolean }) {
+  const s = t.showcase
+  return (
+    <button className={`btn sc-cta ${top ? 'sc-cta-top' : 'sc-cta-bottom'} ${tab === 'plus' ? 'sc-cta-plus' : 'sc-cta-sponsor'}`}
+      onClick={() => { haptic('medium'); onBuy() }}>
+      <Icon name={tab === 'plus' ? 'gem' : 'star'} size={18} /> {tab === 'plus' ? s.buyPlus : s.buySponsor}
+    </button>
   )
 }
 
