@@ -214,3 +214,9 @@ html.hw-night .tab-active .tab-label { color: #fff; }
 @media (prefers-reduced-motion: reduce) {
   .hw-boss, .hw-soon-ghost, .hws-bat, .hw-sky i, .hw-bar i::after, .hw-cta::after { animation: none; }
 }
+
+/* --- Заставка загрузки в Хэллоуин: тыквенный логотип --- */
+.splash-hw { background: radial-gradient(circle at 50% 42%, #3a1606, #070205 68%); }
+.splash-hw .splash-glow { background: radial-gradient(circle, rgba(255, 140, 40, 0.3), rgba(255, 80, 20, 0.14) 45%, transparent 70%); }
+.splash-hw .splash-logo { width: min(74vw, 290px); }
+.splash-hw .splash-fill { background: linear-gradient(90deg, transparent, #ffb347, #ff6a1a, transparent); }

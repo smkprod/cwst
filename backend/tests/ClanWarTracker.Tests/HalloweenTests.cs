@@ -106,6 +106,13 @@ public class HalloweenTests
     }
 
     [Fact]
+    public void Vampire_HasBonusHpForTheWarItCameInto()
+    {
+        Assert.Equal(5000, HalloweenUseCase.Bosses[0].BonusHp);
+        Assert.Equal(0, HalloweenUseCase.Bosses[1].BonusHp);
+    }
+
+    [Fact]
     public void Bosses_FollowEachOtherWithoutGaps()
     {
         var b = HalloweenUseCase.Bosses;

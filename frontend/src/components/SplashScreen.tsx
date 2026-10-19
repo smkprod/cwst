@@ -23,11 +23,13 @@ export function SplashScreen() {
   }, [])
 
   const phrases = t.splash.phrases
+  // Хэллоуин: пометку ставит index.html, там же и даты
+  const hw = document.documentElement.hasAttribute('data-hw')
 
   return (
-    <div className="splash" role="status" aria-label={t.loading}>
+    <div className={`splash ${hw ? 'splash-hw' : ''}`} role="status" aria-label={t.loading}>
       <div className="splash-glow" />
-      <img className="splash-logo" src="/clanify-logo.png" alt="Clanify" />
+      <img className="splash-logo" src={hw ? '/hw/logo.webp' : '/clanify-logo.png'} alt="Clanify" />
       <div className="splash-track">
         <div className="splash-fill" />
       </div>
