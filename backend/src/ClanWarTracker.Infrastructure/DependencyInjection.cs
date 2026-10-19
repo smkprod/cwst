@@ -1108,4 +1108,6 @@ internal sealed class CardUrls(string? baseUrl) : ClanWarTracker.Application.Not
         var bucket = DateTime.UtcNow.Ticks / TimeSpan.TicksPerMinute / 10;
         return $"{baseUrl}/api/img/{kind}/{playerTag.TrimStart('#')}.jpg?v={bucket}";
     }
+
+    public string? Asset(string path) => string.IsNullOrEmpty(baseUrl) ? null : $"{baseUrl}/{path.TrimStart('/')}";
 }

@@ -504,6 +504,20 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
 
             try
             {
+                // Хэллоуин: анонс босса, «повержен» и Плюс в награду. Сам use case молчит,
+                // когда ивент не идёт, - вне его стоит одного сравнения дат.
+                using var scope = scopeFactory.CreateScope();
+                var halloween = scope.ServiceProvider.GetRequiredService<HalloweenUseCase>();
+                var sent = await halloween.TickAsync(stoppingToken);
+                if (sent > 0) logger.LogInformation("Halloween messages sent: {Count}", sent);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Halloween tick failed");
+            }
+
+            try
+            {
                 // Снимок мирового топа — раз в сутки. Сам use case проверяет, есть ли
                 // уже снимок за сегодня, поэтому частый цикл ему не вредит: лишний
                 // вызов стоит одного запроса к базе, а не тысячи к API.

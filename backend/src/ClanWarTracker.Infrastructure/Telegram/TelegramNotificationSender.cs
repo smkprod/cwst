@@ -248,6 +248,21 @@ public class TelegramNotificationSender(ITelegramBotClient bot) : INotificationS
         }
     }
 
+    public async Task<bool> SendPhotoToChatWithButtonsAsync(
+        long chatId, string photoUrl, string caption, IReadOnlyList<IReadOnlyList<BotButton>> rows,
+        int? threadId = null, CancellationToken ct = default)
+    {
+        try
+        {
+            var keyboard = await KeyboardAsync(rows, OpenSource.For(chatId), ct);
+            await bot.SendPhoto(chatId, global::Telegram.Bot.Types.InputFile.FromUri(photoUrl),
+                caption: caption, replyMarkup: keyboard, messageThreadId: threadId, cancellationToken: ct);
+            return true;
+        }
+        catch (ApiRequestException) { return false; }
+        catch (HttpRequestException) { return false; }
+    }
+
     public async Task<int?> PostAsync(long chatId, string text, int? threadId = null, CancellationToken ct = default)
     {
         try

@@ -39,6 +39,9 @@ import { ConnectChatCard, InviteMomentCard, InviteUnlinkedCard } from './compone
 import { ChannelCard } from './components/ChannelCard'
 import { useShowcase } from './lib/showcase'
 import { Showcase } from './components/Showcase'
+import { HalloweenView } from './components/HalloweenView'
+import { HalloweenBanner } from './components/HalloweenBanner'
+import { OPEN_HALLOWEEN } from './lib/halloween'
 import { MenuChangedNotice } from './components/MenuChangedNotice'
 import { UpdateNotice } from './components/UpdateNotice'
 import { DisciplineCard } from './components/DisciplineCard'
@@ -67,7 +70,7 @@ const TRANSIENT_TOLERANCE = 3
  * редкое собрано в «Ещё». Панель владельца — пятая и только у владельца: она невидима
  * для остальных, так что места в баре ни у кого не занимает.
  */
-type Tab = 'clan' | 'me' | 'hall' | 'tournament' | 'search' | 'more' | 'challenge' | 'duel' | 'plus' | 'owner' | 'creatorChallenge'
+type Tab = 'clan' | 'me' | 'hall' | 'tournament' | 'search' | 'more' | 'challenge' | 'duel' | 'plus' | 'halloween' | 'owner' | 'creatorChallenge'
 
 /** Набор вкладок, пока сервер не ответил. Совпадает с умолчанием на сервере. */
 const DEFAULT_TABS: AppTab[] = ['clan', 'me', 'hall', 'search', 'more']
@@ -130,10 +133,29 @@ function ClanSectionTabs({ value, onChange, t }: {
  * разбор, «/meta» — в мировой топ, «/plus» — в окно Плюса, ch_<код> — в челлендж
  * блогера (отдельный экран вне бара). Без параметра — как раньше.
  */
-const START_TAB: Tab = startChallengeCode ? 'creatorChallenge' : startParam === 'challenge' ? 'challenge' : startParam === 'duel' ? 'duel' : startParam === 'review' || startToMatches ? 'me' : startParam === 'meta' || startParam === 'builder' || startParam === 'invite' ? 'more' : 'clan'
+const START_TAB: Tab = startChallengeCode ? 'creatorChallenge' : startParam === 'halloween' ? 'halloween' : startParam === 'challenge' ? 'challenge' : startParam === 'duel' ? 'duel' : startParam === 'review' || startToMatches ? 'me' : startParam === 'meta' || startParam === 'builder' || startParam === 'invite' ? 'more' : 'clan'
 
 /** «Разбор» из бота — разбор за 30 дней, трекер и «Все бои» — история. */
 const START_BATTLES_VIEW = startParam === 'review' ? 'review' : 'history'
+
+type TabItem = { id: Tab; icon: IconName; label: string }
+
+/**
+ * Пока идёт ивент, у него своя вкладка - третьей, чтобы её видели все, а не только
+ * те, кто полезет в «Ещё». Больше пяти значков на телефоне не помещаются: на время
+ * ивента уступает поиск (он остаётся в «Ещё»), затем остальное редкое.
+ */
+function withEventTab(list: TabItem[], config: AppConfig | null, t: Translations): TabItem[] {
+  if (config?.event !== 'halloween') return list
+  const out = [...list]
+  out.splice(Math.min(2, out.length), 0, { id: 'halloween', icon: 'gift', label: t.tabs.halloween })
+  for (const drop of ['search', 'tournament', 'duel', 'challenge', 'plus', 'hall'] as Tab[]) {
+    if (out.length <= 5) break
+    const i = out.findIndex(x => x.id === drop)
+    if (i >= 0) out.splice(i, 1)
+  }
+  return out
+}
 
 export default function App() {
   const [state, setState] = useState<State>({ kind: 'loading' })
@@ -178,6 +200,12 @@ export default function App() {
     window.addEventListener(OPEN_CHALLENGE, go)
     return () => window.removeEventListener(OPEN_CHALLENGE, go)
   }, [])
+  // Заставка и баннер Хэллоуина ведут во вкладку босса
+  useEffect(() => {
+    const go = () => setTab('halloween')
+    window.addEventListener(OPEN_HALLOWEEN, go)
+    return () => window.removeEventListener(OPEN_HALLOWEEN, go)
+  }, [])
   const openPlus = usePlusSheet()
 
   // Кнопка «💎 Открыть Плюс» в боте: окно Плюса сразу при запуске, один раз.
@@ -221,6 +249,11 @@ export default function App() {
       .catch(() => { /* останемся на наборе вкладок по умолчанию */ })
   }, [])
   const { t } = useT()
+
+  // Ивент кончился, а приложение открыли старой ссылкой startapp=halloween - на первый экран
+  useEffect(() => {
+    if (config && config.event !== 'halloween' && tab === 'halloween') setTab('clan')
+  }, [config, tab])
 
   // Сколько подряд неудачных обновлений терпим, прежде чем показать ошибку.
   // Разовый сбой сети или икота CR API не должны стирать рабочий экран.
@@ -396,7 +429,7 @@ export default function App() {
       // выключить её из панели значило бы потерять доступ к самой панели. Студии в
       // баре больше нет: шесть-семь пунктов не помещались, и она переехала в «Ещё».
       const tabs = [
-        ...(config?.tabs ?? DEFAULT_TABS).map(id => ({ id: id as Tab, ...TAB_LOOKS(t)[id] })),
+        ...withEventTab((config?.tabs ?? DEFAULT_TABS).map(id => ({ id: id as Tab, ...TAB_LOOKS(t)[id] })), config, t),
         ...(canUseOwnerPanel(me) ? [{ id: 'owner' as Tab, icon: 'dashboard' as IconName, label: t.tabs.owner }] : []),
       ]
 
@@ -429,6 +462,7 @@ export default function App() {
             {tab === 'clan' && clanSection === 'war' && (
               <div className="fade-in">
                 <WarHeader status={data} canManage={canManage} onOpenSettings={() => { haptic('light'); setSettingsOpen(true) }} />
+                {config?.event === 'halloween' && <HalloweenBanner />}
                 {/* Бот не в чате клана - главный канал не работает: лидеру кнопка «добавить», остальным «попросить» */}
                 {data.hasChat === false && !data.viewingAsAdmin && (
                   <ConnectChatCard clanTag={data.clanTag} isLeader={Boolean(data.isClanLeader)} />
@@ -492,6 +526,7 @@ export default function App() {
               </div>
             )}
             {tab === 'plus' && <Showcase embedded onClose={() => setTab('clan')} />}
+            {tab === 'halloween' && <HalloweenView />}
             {tab === 'more' && (
               <MoreView
                 canManage={canManage}
@@ -527,7 +562,9 @@ export default function App() {
                 className={`tab ${tab === tb.id ? 'tab-active' : ''}`}
                 onClick={() => switchTab(tb.id)}
               >
-                <span className="tab-icon"><Icon name={tb.icon} size={20} /></span>
+                <span className="tab-icon">{tb.id === 'halloween'
+                  ? <img className="tab-img" src="/hw/pumpkin-s.webp" alt="" />
+                  : <Icon name={tb.icon} size={20} />}</span>
                 <span className="tab-label">{tb.label}</span>
               </button>
             ))}

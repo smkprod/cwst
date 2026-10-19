@@ -13,4 +13,7 @@ public interface ICardUrls
     /// null — публичный адрес не настроен, картинку слать некуда.
     /// </summary>
     string? Card(string kind, string playerTag);
+
+    /// <summary>Адрес статичного файла приложения (картинки ивента): path - от корня, без «/».</summary>
+    string? Asset(string path);
 }

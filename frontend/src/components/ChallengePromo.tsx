@@ -3,7 +3,7 @@ import { api } from '../lib/api'
 import type { Challenge } from '../types'
 import { haptic, initData, startChallengeCode, startParam } from '../lib/telegram'
 import { useT } from '../lib/i18n'
-import { openChallenge, promoDone } from '../lib/promo'
+import { challengePromoDone, openChallenge } from '../lib/promo'
 import { Icon } from './ui/Icon'
 
 const seenKey = (id: string) => `cwst_ch_promo_${id}`
@@ -23,7 +23,7 @@ export function ChallengePromo() {
     // Вне Telegram, или пришёл по ссылке прямо на челлендж — анонс не нужен. Тем
     // более по ссылке на челлендж блогера: зазывать его зрителя в общий — уводить
     // со стрима, ради которого он открыл приложение.
-    if (!initData || startParam === 'challenge' || startChallengeCode) { promoDone(); return }
+    if (!initData || startParam === 'challenge' || startChallengeCode) { challengePromoDone(false); return }
     let alive = true
     const id = window.setTimeout(() => {
       api.getChallenge()
@@ -32,12 +32,12 @@ export function ChallengePromo() {
           let seen = false
           try { seen = localStorage.getItem(seenKey(c.event.id)) === '1' } catch { /* без памяти — покажем */ }
           const open = c.event.status !== 'ended' && !c.joined && c.linked && !seen
-          if (!open) { promoDone(); return }
+          if (!open) { challengePromoDone(false); return }
           try { localStorage.setItem(seenKey(c.event.id), '1') } catch { /* пусть так */ }
           setData(c)
           haptic('medium')
         })
-        .catch(() => promoDone())
+        .catch(() => challengePromoDone(false))
     }, 900)
     return () => { alive = false; window.clearTimeout(id) }
   }, [])
@@ -59,8 +59,8 @@ export function ChallengePromo() {
   const d = Math.floor(left / 86400), h = Math.floor((left % 86400) / 3600), m = Math.floor((left % 3600) / 60), sec = left % 60
   const timer = `${d > 0 ? `${d}${s.daysShort} ` : ''}${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
 
-  const close = () => { haptic('light'); setData(null); promoDone() }
-  const go = () => { haptic('medium'); setData(null); promoDone(); openChallenge() }
+  const close = () => { haptic('light'); setData(null); challengePromoDone(true) }
+  const go = () => { haptic('medium'); setData(null); challengePromoDone(true); openChallenge() }
 
   return (
     <div className="modal-backdrop chp-backdrop" onClick={close}>

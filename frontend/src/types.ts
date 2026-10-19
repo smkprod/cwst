@@ -1344,6 +1344,8 @@ export type AppTab = 'clan' | 'me' | 'hall' | 'tournament' | 'search' | 'more' |
 
 export interface AppConfig {
   botUsername: string
+  /** Идущий ивент: пока он идёт, у него своя вкладка в нижнем меню. */
+  event?: 'halloween' | null
   /** Канал бота без @; пусто - не подключён. */
   channelUsername?: string
   tabs: AppTab[]
@@ -1997,4 +1999,40 @@ export interface OwnerEngagement {
 export interface LinkCandidates {
   clanName: string
   members: { tag: string; name: string; role: string; trophies: number }[]
+}
+
+/** Босс клана на Хэллоуин: GET /api/clans/my/halloween. */
+export type HalloweenBossKey = 'vampire' | 'king'
+
+export interface HalloweenHitter {
+  tag: string
+  name: string
+  damage: number
+  warWins: number
+  threeCrowns: number
+  ladderWins: number
+}
+
+export interface HalloweenView {
+  clanName: string
+  bossKey: HalloweenBossKey
+  startUtc: string
+  endUtc: string
+  eventEndUtc: string
+  hp: number
+  damage: number
+  today: number
+  defeatedUtc: string | null
+  top: HalloweenHitter[]
+  me: HalloweenHitter | null
+  myRank: number | null
+  hitters: number
+  nextBossKey: HalloweenBossKey | null
+  nextStartUtc: string | null
+  previous: { key: HalloweenBossKey; hp: number; damage: number; defeatedUtc: string | null } | null
+  warWin: number
+  warThreeCrowns: number
+  ladderWin: number
+  ladderWinsPerDay: number
+  rewardPlusDays: number
 }
