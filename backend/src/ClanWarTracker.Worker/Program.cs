@@ -42,6 +42,7 @@ builder.Services.AddScoped<PlusAccess>();
 builder.Services.AddScoped<ProcessPlusPaymentUseCase>();
 builder.Services.AddScoped<BattleTrackerUseCase>();
 builder.Services.AddScoped<ChallengeUseCase>();
+builder.Services.AddScoped<HalloweenUseCase>();
 builder.Services.AddScoped<ChannelUseCase>();
 builder.Services.AddScoped<ChannelAiUseCase>();
 builder.Services.AddScoped<ChannelColumnUseCase>();

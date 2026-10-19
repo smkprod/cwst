@@ -24,6 +24,7 @@ public class ClanController(
     GetSeasonArchiveUseCase getSeasonArchive,
     NudgePlayersUseCase nudge,
     InviteUnlinkedUseCase invite,
+    HalloweenUseCase halloween,
     IPlayerRepository players,
     IClanRepository clans,
     IWarBattleRepository warBattles,
@@ -386,6 +387,21 @@ public class ClanController(
             Battles: battles
                 .Select(b => new WarBattleDto(b.PlayerName, b.PlayerTag, b.BattleTimeUtc, b.Won, b.CrownsFor, b.CrownsAgainst))
                 .ToList()));
+    }
+
+    /// <summary>
+    /// GET /api/clans/my/halloween — босс клана: здоровье, урон за сегодня и таблица
+    /// урона. 404 no_event — ивент не идёт (вкладки тогда и нет).
+    /// </summary>
+    [HttpGet("my/halloween")]
+    public async Task<IActionResult> GetHalloween(CancellationToken ct)
+    {
+        var (player, clan, error) = await ResolvePlayerClanAsync(ct);
+        if (error is not null) return error;
+
+        // Зашедший из панели админ смотрит клан со стороны: своей строки там у него нет
+        var view = await halloween.ViewAsync(clan!, Acting is null ? player!.PlayerTag : null, ct);
+        return view is null ? NotFound(new { error = "no_event" }) : Ok(view);
     }
 
     /// <summary>

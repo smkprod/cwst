@@ -96,6 +96,11 @@ public interface INotificationSender
     Task<bool> SendPhotoToChatAsync(
         long chatId, string photoUrl, string caption, int? threadId = null, CancellationToken ct = default);
 
+    /// <summary>То же со своими кнопками вместо общей «Открыть в Mini App». false - не вышло, шли текстом.</summary>
+    Task<bool> SendPhotoToChatWithButtonsAsync(
+        long chatId, string photoUrl, string caption, IReadOnlyList<IReadOnlyList<BotButton>> rows,
+        int? threadId = null, CancellationToken ct = default);
+
     /// <summary>То же, что SendToChatAsync, но с кнопкой «Открыть в Mini App» под сообщением
     /// (если username бота удалось определить; иначе просто текст).</summary>
     Task SendToChatWithAppButtonAsync(
