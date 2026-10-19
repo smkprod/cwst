@@ -31,7 +31,8 @@ public class HalloweenUseCase(
     IMemoryCache cache)
 {
     /// <param name="HpPerMember">Здоровья на активного игрока клана.</param>
-    public sealed record Boss(string Key, DateTime StartUtc, DateTime EndUtc, int HpPerMember);
+    /// <param name="BonusHp">Надбавка сверх размера клана.</param>
+    public sealed record Boss(string Key, DateTime StartUtc, DateTime EndUtc, int HpPerMember, int BonusHp = 0);
 
     /// <summary>
     /// Граница между боссами - понедельник после конца КВ: так каждому достаётся целая
@@ -39,7 +40,8 @@ public class HalloweenUseCase(
     /// </summary>
     public static readonly Boss[] Bosses =
     [
-        new("vampire", Utc(2026, 10, 18, 21), Utc(2026, 10, 26, 12), 600),
+        // +5000: вампир пришёл посреди КВ, и её последний день достался ему в урон
+        new("vampire", Utc(2026, 10, 18, 21), Utc(2026, 10, 26, 12), 600, BonusHp: 5000),
         new("king", Utc(2026, 10, 26, 12), Utc(2026, 11, 2, 12), 700),
     ];
 
@@ -177,14 +179,15 @@ public class HalloweenUseCase(
 
     /// <summary>
     /// Здоровье босса для клана: сколько человек играли КВ за три недели до босса.
-    /// Запоминается при первом подсчёте - дальше то же число до конца босса.
+    /// Запоминается при первом подсчёте - дальше то же число до конца босса. Хранится
+    /// без надбавки: её можно поменять, и она дойдёт и до уже посчитанных кланов.
     /// </summary>
     private async Task<int> HpAsync(Clan clan, Boss boss, CancellationToken ct)
     {
         var key = $"hw.hp.{boss.Key}.{clan.Id}";
         if (int.TryParse(await settings.GetAsync(key, ct), NumberStyles.Integer, CultureInfo.InvariantCulture, out var stored)
             && stored > 0)
-            return stored;
+            return stored + boss.BonusHp;
 
         var recent = await warBattles.GetSinceAsync(clan.Id, boss.StartUtc.AddDays(-21), ct);
         var active = recent
@@ -194,7 +197,7 @@ public class HalloweenUseCase(
             .Count();
         var hp = HpFor(boss, active);
         await settings.SetAsync(key, hp.ToString(CultureInfo.InvariantCulture), ct);
-        return hp;
+        return hp + boss.BonusHp;
     }
 
     public sealed record HitterDto(string Tag, string Name, int Damage, int WarWins, int ThreeCrowns, int LadderWins);

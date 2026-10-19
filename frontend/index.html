@@ -25,6 +25,10 @@
         background: linear-gradient(90deg, transparent, #5aa9ff, #9c6bff, transparent);
         animation: bootSweep 1.3s ease-in-out infinite;
       }
+      /* Хэллоуин: тыквенный логотип и тёплый фон, пока идёт ивент (см. скрипт ниже) */
+      html[data-hw] #boot-splash { background: radial-gradient(circle at 50% 42%, #3a1606, #070205 68%); }
+      html[data-hw] #boot-splash img { width: min(74vw, 290px); }
+      html[data-hw] #boot-splash .boot-fill { background: linear-gradient(90deg, transparent, #ffb347, #ff6a1a, transparent); }
       @keyframes bootSweep {
         from { transform: translateX(-120%); }
         to { transform: translateX(320%); }
@@ -49,9 +53,19 @@
   </head>
   <body>
     <div id="boot-splash">
-      <img src="/clanify-logo.png" alt="Clanify" />
+      <img id="boot-logo" alt="Clanify" />
       <div class="boot-track"><div class="boot-fill"></div></div>
     </div>
+    <script>
+      // Логотип выбираем до загрузки картинки: в Хэллоуин (даты боссов из HalloweenUseCase)
+      // - тыквенный. Пометка на <html> нужна и заставке React - SplashScreen.
+      (function () {
+        var now = Date.now();
+        var hw = now >= Date.UTC(2026, 9, 18, 21) && now < Date.UTC(2026, 10, 2, 12);
+        if (hw) document.documentElement.setAttribute('data-hw', '');
+        document.getElementById('boot-logo').src = hw ? '/hw/logo.webp' : '/clanify-logo.png';
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
