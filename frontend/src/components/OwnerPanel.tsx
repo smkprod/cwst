@@ -140,7 +140,7 @@ export function OwnerPanel({ me }: { me: ServiceIdentity }) {
         </>
       )}
 
-      {current.key === 'overview' && <Overview stats={stats} clans={clans} />}
+      {current.key === 'overview' && <Overview stats={stats} clans={clans} showFunnel={can('Sponsors')} />}
       {current.key === 'find' && me.role === 'owner' && <FindPlayerSection />}
       {current.key === 'clans' && <ClansSection clans={clans} onChanged={load} can={can} t={t} />}
       {current.key === 'broadcast' && can('Broadcast') && (
@@ -160,7 +160,8 @@ export function OwnerPanel({ me }: { me: ServiceIdentity }) {
 
 /* ---------- Сводка ---------- */
 
-function Overview({ stats, clans }: { stats: OwnerStats; clans: OwnerClan[] }) {
+/** showFunnel - воронка с числом заплативших: это данные продаж, как и разделы «Плюс» и «Спонсоры». */
+function Overview({ stats, clans, showFunnel }: { stats: OwnerStats; clans: OwnerClan[]; showFunnel: boolean }) {
   const conversion = stats.totalLinkedUsers > 0
     ? Math.round(stats.usersWithClan * 100 / stats.totalLinkedUsers)
     : 0
@@ -234,7 +235,7 @@ function Overview({ stats, clans }: { stats: OwnerStats; clans: OwnerClan[] }) {
       />
 
       <EngagementBlock />
-      <FunnelBlock />
+      {showFunnel && <FunnelBlock />}
 
       <Block title="Кланы" icon="castle" tone="violet">
         <Row label="Всего подключено" value={stats.totalClans} />

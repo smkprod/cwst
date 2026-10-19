@@ -47,7 +47,8 @@ export function PlusSheet({ focus, onClose }: { focus: PlusFocus; onClose: () =>
   useEffect(() => {
     if (state !== 'ready' || !status?.paywall || !status.linked) return
     markOfferSeen('plus', 'sheet')
-    markOfferSeen('sponsor', 'sheet')
+    // Без цены карточки спонсорства нет - и видеть было нечего
+    if (status.sponsorPrice > 0) markOfferSeen('sponsor', 'sheet')
   }, [state, status])
 
   // Открыли с «Стать спонсором» — сразу к карточке спонсора
@@ -107,7 +108,7 @@ export function PlusSheet({ focus, onClose }: { focus: PlusFocus; onClose: () =>
   const ask = async () => {
     haptic('medium')
     try {
-      const { link } = await api.createPlusInvoice(30)
+      const { link } = await api.createPlusInvoice(30, undefined, true)
       shareToTelegram(p.askText, link)
     } catch {
       hapticNotify('error')

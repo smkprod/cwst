@@ -27,4 +27,7 @@ public class FunnelRepository(AppDbContext db) : IFunnelRepository
         db.FunnelEvents.AsNoTracking()
             .Where(f => string.Compare(f.DayUtc, sinceDayUtc) >= 0)
             .ToListAsync(ct);
+
+    public Task<string?> FirstDayAsync(CancellationToken ct = default) =>
+        db.FunnelEvents.AsNoTracking().OrderBy(f => f.DayUtc).Select(f => f.DayUtc).FirstOrDefaultAsync(ct);
 }

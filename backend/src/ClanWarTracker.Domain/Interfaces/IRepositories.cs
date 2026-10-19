@@ -162,6 +162,9 @@ public interface IFunnelRepository
 
     /// <summary>Шаги с указанного дня - для воронки в панели.</summary>
     Task<List<FunnelEvent>> GetSinceAsync(string sinceDayUtc, CancellationToken ct = default);
+
+    /// <summary>Самый ранний день с отметками. null - отметок ещё не было.</summary>
+    Task<string?> FirstDayAsync(CancellationToken ct = default);
 }
 
 /// <summary>Журнал активных дней: кто заходил и что-то делал в конкретную дату.</summary>

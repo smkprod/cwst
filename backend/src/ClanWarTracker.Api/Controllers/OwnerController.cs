@@ -222,7 +222,8 @@ public class OwnerController(
     [HttpGet("funnel")]
     public async Task<IActionResult> GetFunnel(CancellationToken ct)
     {
-        if (await DenyViewAsync(ct) is { } deny) return deny;
+        // Число заплативших - данные продаж: то же право, что у разделов «Плюс» и «Спонсоры»
+        if (await DenyAsync(ServicePermission.Sponsors, ct) is { } deny) return deny;
         return Ok(await purchaseFunnel.ExecuteAsync(DateTime.UtcNow, ct));
     }
 

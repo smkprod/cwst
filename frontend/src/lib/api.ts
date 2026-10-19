@@ -189,11 +189,12 @@ export const api = {
   getPlus: () => request<PlusStatus>('/api/plus'),
   /** Счёт на пропуск Плюса (7 или 30 дней) — ссылка для openInvoice. */
   /** С тегом получателя — подарок; без — себе (или «попросить в подарок»: ссылку пересылают). */
-  createPlusInvoice: (days: number, recipientTag?: string) =>
+  /** ask - ссылку пересылают другу («попросить в подарок»): в воронке это не «нажал купить». */
+  createPlusInvoice: (days: number, recipientTag?: string, ask = false) =>
     request<{ link: string }>('/api/plus/invoice', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ days, recipientTag: recipientTag ?? null }),
+      body: JSON.stringify({ days, recipientTag: recipientTag ?? null, ask }),
     }),
   /** Бесплатная подарочная неделя спонсора. */
   giftFreePlus: (recipientTag: string) =>

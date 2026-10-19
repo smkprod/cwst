@@ -55,11 +55,15 @@ public class PurchaseFunnel(IFunnelRepository funnel, ISponsorPaymentRepository 
         var weekStart = Day(6);
 
         var steps = await funnel.GetSinceAsync(monthStart, ct);
+        var since = await funnel.FirstDayAsync(ct);
         // Журнал оплат общий на оба товара: вид оплаты и есть товар воронки. Возвраты не считаем.
-        var paid = (await payments.GetAllAsync(ct))
+        // Оплаты - только с первого дня отметок: старые оплаты против пустых «увидели» и
+        // «нажали» дали бы «400%» и ложную подсказку.
+        var paidFrom = since is not null && string.CompareOrdinal(since, monthStart) > 0 ? since : monthStart;
+        var paid = since is null ? [] : (await payments.GetAllAsync(ct))
             .Where(p => p.RefundedAtUtc is null)
             .Select(p => new Payment(p.Kind, p.PaidAtUtc.ToString("yyyy-MM-dd"), p.PayerTelegramUserId))
-            .Where(p => string.CompareOrdinal(p.Day, monthStart) >= 0)
+            .Where(p => string.CompareOrdinal(p.Day, paidFrom) >= 0)
             .ToList();
 
         Totals Count(string product, string since, string? until = null)
@@ -93,7 +97,6 @@ public class PurchaseFunnel(IFunnelRepository funnel, ISponsorPaymentRepository 
             .OrderByDescending(p => p.Users30)
             .ToList();
 
-        var since = steps.Count == 0 ? null : steps.Min(s => s.DayUtc);
         return new Dto(products, days, places, since);
     }
 

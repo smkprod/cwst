@@ -70,6 +70,7 @@ public class FunnelTests : IDisposable
     [Fact]
     public async Task PaymentsSplitByKind_RefundsIgnored()
     {
+        await MarkAsync(9, "plus", "seen", "sheet", daysAgo: 3);
         await PayAsync(1, SponsorPayment.Kinds.Sponsor);
         await PayAsync(2, SponsorPayment.Kinds.Plus);
         await PayAsync(3, SponsorPayment.Kinds.Sponsor, refunded: true);
@@ -78,6 +79,30 @@ public class FunnelTests : IDisposable
 
         Assert.Equal(1, r.Products.Single(p => p.Product == "sponsor").Month.Paid);
         Assert.Equal(1, r.Products.Single(p => p.Product == "plus").Month.Paid);
+    }
+
+    [Fact]
+    public async Task PaymentsBeforeTrackingStarted_AreNotCounted()
+    {
+        await PayAsync(1, SponsorPayment.Kinds.Plus, daysAgo: 5);
+        await MarkAsync(2, "plus", "seen", "sheet", daysAgo: 2);
+        await PayAsync(2, SponsorPayment.Kinds.Plus, daysAgo: 1);
+
+        var plus = (await RunAsync()).Products.Single(p => p.Product == "plus");
+
+        // Заплатил до первой отметки - против пустых шагов дал бы «оплат больше, чем нажатий»
+        Assert.Equal(1, plus.Month.Paid);
+    }
+
+    [Fact]
+    public async Task NoTracking_NoPaid()
+    {
+        await PayAsync(1, SponsorPayment.Kinds.Plus);
+
+        var r = await RunAsync();
+
+        Assert.All(r.Products, p => Assert.Equal(0, p.Month.Paid));
+        Assert.Null(r.TrackingSince);
     }
 
     [Fact]
