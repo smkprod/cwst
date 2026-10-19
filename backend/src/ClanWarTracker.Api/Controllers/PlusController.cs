@@ -26,6 +26,7 @@ public class PlusController(
     IServiceSettingRepository settings,
     GetTiltProfileUseCase tiltProfile,
     INotificationSender sender,
+    IFunnelRepository funnel,
     ILogger<PlusController> logger) : ControllerBase
 {
     /// <param name="RecipientTag">Кому подарить. null - себе.</param>
@@ -129,6 +130,7 @@ public class PlusController(
                 prices: [new LabeledPrice($"Плюс на {req.Days} дн.", stars)],
                 providerToken: "",
                 cancellationToken: ct);
+            await PurchaseFunnel.MarkAsync(funnel, UserId, FunnelEvent.Products.Plus, FunnelEvent.Steps.Buy, "invoice", ct);
             return Ok(new { link });
         }
         catch (Exception ex)

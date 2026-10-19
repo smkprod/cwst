@@ -23,6 +23,7 @@ public class OwnerController(
     IClanRepository clans,
     GetOwnerDashboardUseCase dashboard,
     GetEngagementUseCase engagement,
+    PurchaseFunnel purchaseFunnel,
     GetOwnerClanDetailUseCase clanDetail,
     OwnerBroadcastUseCase broadcast,
     HarvestTopPlayersUseCase harvestTop,
@@ -215,6 +216,14 @@ public class OwnerController(
     {
         if (await DenyViewAsync(ct) is { } deny) return deny;
         return Ok(await engagement.ExecuteAsync(DateTime.UtcNow, ct));
+    }
+
+    /// <summary>GET /api/owner/funnel — увидели предложение → нажали «Купить» → заплатили.</summary>
+    [HttpGet("funnel")]
+    public async Task<IActionResult> GetFunnel(CancellationToken ct)
+    {
+        if (await DenyViewAsync(ct) is { } deny) return deny;
+        return Ok(await purchaseFunnel.ExecuteAsync(DateTime.UtcNow, ct));
     }
 
     /// <summary>GET /api/owner/stats — детальная сводка по сервису.</summary>

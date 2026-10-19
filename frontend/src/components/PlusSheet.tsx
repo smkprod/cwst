@@ -5,6 +5,7 @@ import { useShowcase } from '../lib/showcase'
 import { haptic, hapticNotify, openInvoice, shareToTelegram, tg } from '../lib/telegram'
 import { useT, type Translations } from '../lib/i18n'
 import { PLUS_CHANGED } from '../lib/plusSheet'
+import { markOfferSeen } from '../lib/funnel'
 import { Icon, type IconName } from './ui/Icon'
 import { InfoButton } from './ui/Info'
 import { IconTile, SectionHead } from './ui/Section'
@@ -41,6 +42,13 @@ export function PlusSheet({ focus, onClose }: { focus: PlusFocus; onClose: () =>
     .catch(() => setState('error'))
 
   useEffect(() => { load() }, [])
+
+  // Оба предложения на экране - шаг «увидел» воронки покупки по обоим
+  useEffect(() => {
+    if (state !== 'ready' || !status?.paywall || !status.linked) return
+    markOfferSeen('plus', 'sheet')
+    markOfferSeen('sponsor', 'sheet')
+  }, [state, status])
 
   // Открыли с «Стать спонсором» — сразу к карточке спонсора
   useEffect(() => {

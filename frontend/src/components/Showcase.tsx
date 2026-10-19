@@ -4,6 +4,7 @@ import { useT, type Translations } from '../lib/i18n'
 import { haptic, tgUser } from '../lib/telegram'
 import { REDUCED, useInView } from '../lib/anim'
 import { usePlusSheet } from '../lib/plusSheet'
+import { markOfferSeen } from '../lib/funnel'
 import { rowBackground, SponsorMarks } from '../lib/sponsorMarks'
 import { ArchRadar, HeatMap, SessionChart } from './TrackerGraphics'
 import { MatchupPanel } from './MatchupPanel'
@@ -33,6 +34,9 @@ export function Showcase({ initialTab = 'plus', onClose, embedded = false }: {
   const openPlus = usePlusSheet()
 
   const pick = (next: ShowcaseTab) => { haptic('light'); setTab(next) }
+
+  // Шаг «увидел» воронки покупки: какая витрина открыта, та и увидена
+  useEffect(() => { markOfferSeen(tab, embedded ? 'tab' : 'showcase') }, [tab, embedded])
 
   return (
     <div className={embedded ? 'sc-embedded fade-in' : 'sc-overlay'} role={embedded ? undefined : 'dialog'} aria-modal={embedded ? undefined : true}>
