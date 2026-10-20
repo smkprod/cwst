@@ -24,6 +24,7 @@ public class OwnerController(
     GetOwnerDashboardUseCase dashboard,
     GetEngagementUseCase engagement,
     PurchaseFunnel purchaseFunnel,
+    FeedbackUseCase feedback,
     GetOwnerClanDetailUseCase clanDetail,
     OwnerBroadcastUseCase broadcast,
     HarvestTopPlayersUseCase harvestTop,
@@ -216,6 +217,14 @@ public class OwnerController(
     {
         if (await DenyViewAsync(ct) is { } deny) return deny;
         return Ok(await engagement.ExecuteAsync(DateTime.UtcNow, ct));
+    }
+
+    /// <summary>GET /api/owner/feedback — что просят игроки, за что платят и что мешает купить.</summary>
+    [HttpGet("feedback")]
+    public async Task<IActionResult> GetFeedback(CancellationToken ct)
+    {
+        if (await DenyViewAsync(ct) is { } deny) return deny;
+        return Ok(await feedback.SummaryAsync(ct));
     }
 
     /// <summary>GET /api/owner/funnel — увидели предложение → нажали «Купить» → заплатили.</summary>

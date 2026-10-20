@@ -574,6 +574,11 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
                     var reminded = await reminder.ExecuteAsync(stoppingToken);
                     if (reminded > 0) logger.LogInformation("Plus ending reminders: {Count}", reminded);
 
+                    // Опрос «что добавить» - покупателям и самым активным, раз на человека
+                    var feedback = scope.ServiceProvider.GetRequiredService<FeedbackUseCase>();
+                    var polled = await feedback.AskTickAsync(stoppingToken);
+                    if (polled > 0) logger.LogInformation("Feedback asks sent: {Count}", polled);
+
                     // Лидерам кланов без чата - «добавь бота в чат» (раз в неделю, не больше трёх раз)
                     var connect = scope.ServiceProvider.GetRequiredService<ChatConnectReminderUseCase>();
                     var asked = await connect.ExecuteAsync(stoppingToken);

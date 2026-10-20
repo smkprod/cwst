@@ -154,6 +154,23 @@ public interface IWarBattleRepository
     Task SaveChangesAsync(CancellationToken ct = default);
 }
 
+/// <summary>Ответы на опрос «что добавить» (см. FeedbackAnswer).</summary>
+public interface IFeedbackRepository
+{
+    /// <summary>Ответ человека - отслеживаемый. null - не отвечал.</summary>
+    Task<FeedbackAnswer?> GetAsync(long telegramUserId, CancellationToken ct = default);
+
+    Task AddAsync(FeedbackAnswer answer, CancellationToken ct = default);
+
+    /// <summary>Все ответы, свежие первыми - для панели.</summary>
+    Task<List<FeedbackAnswer>> GetAllAsync(CancellationToken ct = default);
+
+    /// <summary>Кто уже ответил - только id.</summary>
+    Task<HashSet<long>> AnsweredIdsAsync(CancellationToken ct = default);
+
+    Task SaveChangesAsync(CancellationToken ct = default);
+}
+
 /// <summary>Шаги к покупке: увидел предложение, нажал «Купить» (см. FunnelEvent).</summary>
 public interface IFunnelRepository
 {

@@ -1,0 +1,39 @@
+/* Опрос «что добавить»: окно, карточка на первом экране и цитаты в панели */
+
+.fb-backdrop { z-index: 205; align-items: flex-end; padding: 0; }
+.fb-sheet {
+  position: relative; width: 100%; max-width: 480px; max-height: 92vh; overflow-y: auto; margin: 0 auto;
+  padding: 22px 18px calc(18px + env(safe-area-inset-bottom)); border-radius: 24px 24px 0 0;
+  background: var(--bg-card); border: 1px solid var(--line);
+}
+.fb-x { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; border-radius: 50%; border: none;
+  display: grid; place-items: center; background: rgba(255, 255, 255, 0.08); color: var(--text); cursor: pointer; }
+.fb-title { font-size: 21px; font-weight: 900; padding-right: 36px; }
+.fb-lead { margin-top: 6px; font-size: 13.5px; color: var(--muted); line-height: 1.4; }
+.fb-q { margin: 16px 0 8px; font-size: 14px; font-weight: 800; }
+.fb-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.fb-chip { display: inline-flex; align-items: center; gap: 5px; padding: 8px 12px; border-radius: 999px; cursor: pointer;
+  font: inherit; font-size: 13px; font-weight: 700; color: var(--text);
+  background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.1); }
+.fb-on { background: rgba(156, 107, 255, 0.22); border-color: rgba(156, 107, 255, 0.7); color: #e3d2ff; }
+.fb-text { width: 100%; padding: 10px 12px; border-radius: var(--r-ctl); resize: vertical; font: inherit; font-size: 14px;
+  color: var(--text); background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.1); }
+.fb-error { margin-top: 10px; color: #ff8a84; font-size: 13px; font-weight: 700; }
+.fb-send { width: 100%; margin-top: 14px; padding: 14px; }
+.fb-send:disabled { opacity: 0.5; }
+.fb-done { display: grid; justify-items: center; gap: 14px; padding: 20px 0 6px; text-align: center; }
+.fb-done h2 { font-size: 19px; font-weight: 900; }
+.fb-done-ic { width: 62px; height: 62px; border-radius: 20px; display: grid; place-items: center; color: #fff;
+  background: linear-gradient(135deg, #9d6bff, #5b2bc4); box-shadow: 0 8px 22px rgba(139, 92, 246, 0.45); }
+
+.fb-card { position: relative; display: flex; align-items: center; gap: 12px; padding: 14px 14px 14px 12px; margin: 12px 0;
+  background: linear-gradient(120deg, rgba(156, 107, 255, 0.16), rgba(90, 169, 255, 0.06)); border-color: rgba(156, 107, 255, 0.3); }
+.fb-card-ic { width: 40px; height: 40px; border-radius: 13px; flex-shrink: 0; display: grid; place-items: center; color: #fff;
+  background: linear-gradient(135deg, #9d6bff, #5b2bc4); }
+.fb-card-body { flex: 1; min-width: 0; display: grid; gap: 2px; padding-right: 10px; }
+.fb-card-reward { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 800; color: #c7adff; }
+.fb-card-x { position: absolute; top: 6px; right: 6px; width: 24px; height: 24px; border: none; border-radius: 50%;
+  display: grid; place-items: center; background: none; color: var(--muted); cursor: pointer; }
+
+.fb-quote { display: grid; gap: 3px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; line-height: 1.4; }
+.fb-quote small { font-size: 11.5px; }

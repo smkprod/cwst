@@ -41,6 +41,7 @@ import { useShowcase } from './lib/showcase'
 import { Showcase } from './components/Showcase'
 import { HalloweenView } from './components/HalloweenView'
 import { HalloweenBanner } from './components/HalloweenBanner'
+import { FeedbackCard } from './components/FeedbackCard'
 import { OPEN_HALLOWEEN } from './lib/halloween'
 import { MenuChangedNotice } from './components/MenuChangedNotice'
 import { UpdateNotice } from './components/UpdateNotice'
@@ -471,6 +472,7 @@ export default function App() {
                 <MyActionBanner status={data} />
                 {/* Что изменилось лично у тебя с прошлого захода (сама решает, показываться ли) */}
                 <WhatsNewCard />
+                {!data.viewingAsAdmin && <FeedbackCard />}
                 <StatsStrip stats={data.stats} />
                 {iFinishedToday && !data.viewingAsAdmin && <InviteMomentCard />}
                 {/* Действие вперёд наблюдения: пока глава читает цифры, лентяи не отыграют.
