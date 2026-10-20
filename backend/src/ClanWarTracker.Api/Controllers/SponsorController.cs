@@ -1,4 +1,5 @@
 using ClanWarTracker.Application.UseCases;
+using ClanWarTracker.Domain.Entities;
 using ClanWarTracker.Domain.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Telegram.Bot;
@@ -19,6 +20,7 @@ public class SponsorController(
     ITelegramBotClient bot,
     IPlayerRepository players,
     IServiceSettingRepository settings,
+    IFunnelRepository funnel,
     ILogger<SponsorController> logger) : ControllerBase
 {
     /// <summary>
@@ -52,6 +54,7 @@ public class SponsorController(
                 prices: [new LabeledPrice($"Спонсорство на {offer.Days} дн.", offer.Stars)],
                 providerToken: "",
                 cancellationToken: ct);
+            await PurchaseFunnel.MarkAsync(funnel, userId, FunnelEvent.Products.Sponsor, FunnelEvent.Steps.Buy, "invoice", ct);
             return Ok(new { link });
         }
         catch (Exception ex)

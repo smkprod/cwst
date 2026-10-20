@@ -105,3 +105,19 @@
 .ch-analyst { display: grid; gap: 6px; margin: -4px 0 12px; }
 .ch-analyst .btn-mini { justify-self: start; }
 .ch-feed-status li > .ch-feed-note { grid-column: 2; font-size: 11.5px; }
+
+/* --- Воронка покупки --- */
+.fn-product + .fn-product { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.fn-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+.fn-step { display: grid; grid-template-columns: 118px 1fr 64px; align-items: center; gap: 8px; padding: 3px 0; font-size: 13px; }
+.fn-label { color: var(--muted); }
+.fn-bar { height: 10px; border-radius: 999px; background: rgba(255, 255, 255, 0.06); overflow: hidden; }
+.fn-bar i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #9c6bff, #5aa9ff); }
+.fn-step:nth-child(4) .fn-bar i { background: linear-gradient(90deg, #31b545, #8be0a0); }
+.fn-value { text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; }
+.fn-value small { font-weight: 600; color: var(--muted); }
+.fn-verdict { margin: 8px 0 0; font-size: 12.5px; font-weight: 700; }
+.fn-days { display: flex; align-items: flex-end; gap: 3px; height: 34px; margin-top: 10px; }
+.fn-day { position: relative; flex: 1; height: 100%; display: flex; align-items: flex-end; border-radius: 3px; background: rgba(255, 255, 255, 0.04); }
+.fn-day-seen { display: block; width: 100%; border-radius: 3px; background: rgba(156, 107, 255, 0.55); }
+.fn-day-paid { position: absolute; left: 50%; top: -3px; width: 6px; height: 6px; margin-left: -3px; border-radius: 50%; background: #31b545; box-shadow: 0 0 6px #31b545; }

@@ -1,4 +1,5 @@
 using ClanWarTracker.Application.Analytics;
+using ClanWarTracker.Application.UseCases;
 using ClanWarTracker.Domain.Entities;
 using ClanWarTracker.Domain.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -12,9 +13,25 @@ namespace ClanWarTracker.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/track")]
-public class TrackController(IAppOpenRepository opens, IPlayerRepository players) : ControllerBase
+public class TrackController(IAppOpenRepository opens, IPlayerRepository players, IFunnelRepository funnel) : ControllerBase
 {
     public record OpenRequest(string? Param);
+
+    public record OfferRequest(string? Product, string? Place);
+
+    /// <summary>
+    /// POST /api/track/offer — человек увидел предложение (окно покупки, витрину). Только
+    /// этот шаг идёт от приложения: «нажал купить» сервер отмечает сам, выставляя счёт.
+    /// </summary>
+    [HttpPost("offer")]
+    public async Task<IActionResult> Offer([FromBody] OfferRequest req, CancellationToken ct)
+    {
+        if (HttpContext.Items["TelegramUserId"] is not long userId) return Unauthorized();
+        if (Array.IndexOf(FunnelEvent.Products.All, req.Product) < 0 || Array.IndexOf(FunnelEvent.SeenPlaces, req.Place) < 0)
+            return BadRequest(new { error = "bad_offer" });
+        await PurchaseFunnel.MarkAsync(funnel, userId, req.Product!, FunnelEvent.Steps.Seen, req.Place!, ct);
+        return Ok(new { ok = true });
+    }
 
     /// <summary>POST /api/track/open — заход в приложение.</summary>
     [HttpPost("open")]

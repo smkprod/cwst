@@ -1,5 +1,5 @@
 import { initData } from './telegram'
-import type { HalloweenView, LinkCandidates, OwnerEngagement, AppConfig, AppTab, BackgroundKey, ClanDesignKey, ClanPage, PlayerPage, HallOfFame, OwnerSponsor, Moderator, ServiceIdentity, ServicePermission, BroadcastTarget, TopStatus, SponsorSales, CampaignFunnel, ClanDiscipline, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, MetaDecks, BattleAnalysis, PlayerSheet, PlusStatus, OwnerPlus, TiltProfile, Challenge, OwnerChallenge, OwnerFoundPlayer, TrackerState, MatchHistory, MatchReport, TopPlayerRow, TopPlayerDetail, DuelLeague, Tournament, TournamentSummary, WarJournal, Studio, StudioChallengeRequest, CreatorChallengeCard, ChannelState, ChannelToggle, BuilderCard, BuilderDecks, BuilderWar, BuilderQuery, DeckLab } from '../types'
+import type { HalloweenView, OwnerFunnel, LinkCandidates, OwnerEngagement, AppConfig, AppTab, BackgroundKey, ClanDesignKey, ClanPage, PlayerPage, HallOfFame, OwnerSponsor, Moderator, ServiceIdentity, ServicePermission, BroadcastTarget, TopStatus, SponsorSales, CampaignFunnel, ClanDiscipline, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, MetaDecks, BattleAnalysis, PlayerSheet, PlusStatus, OwnerPlus, TiltProfile, Challenge, OwnerChallenge, OwnerFoundPlayer, TrackerState, MatchHistory, MatchReport, TopPlayerRow, TopPlayerDetail, DuelLeague, Tournament, TournamentSummary, WarJournal, Studio, StudioChallengeRequest, CreatorChallengeCard, ChannelState, ChannelToggle, BuilderCard, BuilderDecks, BuilderWar, BuilderQuery, DeckLab } from '../types'
 
 // Адрес API вынесен в отдельный модуль: им же пользуются виджеты OBS, которым
 // нельзя тянуть сюда Telegram (см. apiBase.ts).
@@ -189,11 +189,12 @@ export const api = {
   getPlus: () => request<PlusStatus>('/api/plus'),
   /** Счёт на пропуск Плюса (7 или 30 дней) — ссылка для openInvoice. */
   /** С тегом получателя — подарок; без — себе (или «попросить в подарок»: ссылку пересылают). */
-  createPlusInvoice: (days: number, recipientTag?: string) =>
+  /** ask - ссылку пересылают другу («попросить в подарок»): в воронке это не «нажал купить». */
+  createPlusInvoice: (days: number, recipientTag?: string, ask = false) =>
     request<{ link: string }>('/api/plus/invoice', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ days, recipientTag: recipientTag ?? null }),
+      body: JSON.stringify({ days, recipientTag: recipientTag ?? null, ask }),
     }),
   /** Бесплатная подарочная неделя спонсора. */
   giftFreePlus: (recipientTag: string) =>
@@ -211,6 +212,9 @@ export const api = {
       body: JSON.stringify({ link, lang }),
     }),
   getHalloween: () => request<HalloweenView>('/api/clans/my/halloween'),
+  /** Увидел предложение - шаг воронки покупки. «Нажал купить» сервер отмечает сам. */
+  trackOffer: (product: 'plus' | 'sponsor', place: 'sheet' | 'showcase' | 'tab') =>
+    postJson<{ ok: boolean }>('/api/track/offer', { product, place }),
   /** Без кода — общий уикенд-челлендж, с кодом — челлендж блогера. */
   getCreatorChallenges: () => request<CreatorChallengeCard[]>('/api/challenge/creators'),
   getChallenge: (code?: string | null) =>
@@ -446,6 +450,7 @@ export const api = {
   ownerTopStatus: () => request<TopStatus>('/api/owner/top/status'),
   ownerGetStats: () => request<OwnerStats>('/api/owner/stats'),
   ownerGetEngagement: () => request<OwnerEngagement>('/api/owner/engagement'),
+  ownerGetFunnel: () => request<OwnerFunnel>('/api/owner/funnel'),
   inviteUnlinked: () =>
     request<{ posted: boolean; unlinked: number }>('/api/clans/my/invite-unlinked', { method: 'POST' }),
   getLinkCandidates: (clanTag: string) =>

@@ -154,6 +154,19 @@ public interface IWarBattleRepository
     Task SaveChangesAsync(CancellationToken ct = default);
 }
 
+/// <summary>Шаги к покупке: увидел предложение, нажал «Купить» (см. FunnelEvent).</summary>
+public interface IFunnelRepository
+{
+    /// <summary>Отметить шаг. Идемпотентно: строка на человека, день, товар, шаг и место.</summary>
+    Task AddAsync(FunnelEvent e, CancellationToken ct = default);
+
+    /// <summary>Шаги с указанного дня - для воронки в панели.</summary>
+    Task<List<FunnelEvent>> GetSinceAsync(string sinceDayUtc, CancellationToken ct = default);
+
+    /// <summary>Самый ранний день с отметками. null - отметок ещё не было.</summary>
+    Task<string?> FirstDayAsync(CancellationToken ct = default);
+}
+
 /// <summary>Журнал активных дней: кто заходил и что-то делал в конкретную дату.</summary>
 /// <summary>Заходы в Mini App с источником - какие кнопки приводят людей (см. AppOpen).</summary>
 public interface IAppOpenRepository

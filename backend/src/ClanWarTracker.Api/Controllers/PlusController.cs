@@ -26,10 +26,12 @@ public class PlusController(
     IServiceSettingRepository settings,
     GetTiltProfileUseCase tiltProfile,
     INotificationSender sender,
+    IFunnelRepository funnel,
     ILogger<PlusController> logger) : ControllerBase
 {
     /// <param name="RecipientTag">Кому подарить. null - себе.</param>
-    public record InvoiceRequest(int Days, string? RecipientTag);
+    /// <param name="Ask">Ссылку перешлют другу («попросить в подарок») - в воронке это не «нажал купить».</param>
+    public record InvoiceRequest(int Days, string? RecipientTag, bool Ask = false);
 
     /// <summary>Настройки «Стоп-тильта»: null - поле не меняется. DailyLossLimit 0 - выключить лимит.</summary>
     public record AlertsRequest(bool? Enabled, int? LossThreshold, int? DailyLossLimit, bool? QuietHours);
@@ -129,6 +131,8 @@ public class PlusController(
                 prices: [new LabeledPrice($"Плюс на {req.Days} дн.", stars)],
                 providerToken: "",
                 cancellationToken: ct);
+            if (!req.Ask)
+                await PurchaseFunnel.MarkAsync(funnel, UserId, FunnelEvent.Products.Plus, FunnelEvent.Steps.Buy, "invoice", ct);
             return Ok(new { link });
         }
         catch (Exception ex)

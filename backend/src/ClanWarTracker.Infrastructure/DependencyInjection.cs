@@ -97,6 +97,7 @@ public static class DependencyInjection
         services.AddScoped<IRespectRepository, RespectRepository>();
         services.AddScoped<IActivityRepository, ActivityRepository>();
         services.AddScoped<IAppOpenRepository, AppOpenRepository>();
+        services.AddScoped<IFunnelRepository, FunnelRepository>();
         services.AddScoped<ITopPlayerRepository, TopPlayerRepository>();
         services.AddScoped<IMetaRepository, MetaRepository>();
         services.AddScoped<IChallengeRepository, ChallengeRepository>();
@@ -673,6 +674,22 @@ CREATE TABLE IF NOT EXISTS ""AppOpens"" (
             "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_AppOpens_TelegramUserId_DayUtc_Source_Dest\" ON \"AppOpens\" (\"TelegramUserId\", \"DayUtc\", \"Source\", \"Dest\");");
         await db.Database.ExecuteSqlRawAsync(
             "CREATE INDEX IF NOT EXISTS \"IX_AppOpens_DayUtc\" ON \"AppOpens\" (\"DayUtc\");");
+
+        // Шаги к покупке: увидел предложение, нажал «Купить»
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""FunnelEvents"" (
+    ""Id"" serial PRIMARY KEY,
+    ""TelegramUserId"" bigint NOT NULL,
+    ""DayUtc"" varchar(10) NOT NULL,
+    ""Product"" varchar(10) NOT NULL,
+    ""Step"" varchar(8) NOT NULL,
+    ""Place"" varchar(12) NOT NULL,
+    ""FirstUtc"" timestamptz NOT NULL
+);");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_FunnelEvents_TelegramUserId_DayUtc_Product_Step_Place\" ON \"FunnelEvents\" (\"TelegramUserId\", \"DayUtc\", \"Product\", \"Step\", \"Place\");");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_FunnelEvents_DayUtc\" ON \"FunnelEvents\" (\"DayUtc\");");
 
         // Канал бота: опубликованные посты и черновики новостей
         await db.Database.ExecuteSqlRawAsync(@"

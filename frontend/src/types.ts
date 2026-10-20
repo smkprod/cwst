@@ -2036,3 +2036,13 @@ export interface HalloweenView {
   ladderWinsPerDay: number
   rewardPlusDays: number
 }
+
+/** Воронка покупки для панели: увидели → нажали «Купить» → заплатили. */
+export interface FunnelTotals { seen: number; buy: number; paid: number }
+
+export interface OwnerFunnel {
+  products: { product: 'plus' | 'sponsor'; week: FunnelTotals; month: FunnelTotals }[]
+  days: { day: string; product: 'plus' | 'sponsor'; seen: number; buy: number; paid: number }[]
+  places: { product: 'plus' | 'sponsor'; place: string; users30: number }[]
+  trackingSince: string | null
+}

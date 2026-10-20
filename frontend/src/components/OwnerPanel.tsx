@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, ApiError, adminClan } from '../lib/api'
-import type { OwnerEngagement, AppTab, BroadcastTarget, Moderator, OwnerClan, OwnerClanDetail, OwnerPlus, OwnerChallenge, OwnerFoundPlayer, OwnerSponsor, OwnerStats, ServiceIdentity, ServicePermission, SponsorSales, TopStatus, CampaignFunnel } from '../types'
+import type { OwnerEngagement, OwnerFunnel, FunnelTotals, AppTab, BroadcastTarget, Moderator, OwnerClan, OwnerClanDetail, OwnerPlus, OwnerChallenge, OwnerFoundPlayer, OwnerSponsor, OwnerStats, ServiceIdentity, ServicePermission, SponsorSales, TopStatus, CampaignFunnel } from '../types'
 
 /** «Можно ли мне вот это». Прокидывается вниз, чтобы правила жили в одном месте. */
 type Can = (p: ServicePermission) => boolean
@@ -140,7 +140,7 @@ export function OwnerPanel({ me }: { me: ServiceIdentity }) {
         </>
       )}
 
-      {current.key === 'overview' && <Overview stats={stats} clans={clans} />}
+      {current.key === 'overview' && <Overview stats={stats} clans={clans} showFunnel={can('Sponsors')} />}
       {current.key === 'find' && me.role === 'owner' && <FindPlayerSection />}
       {current.key === 'clans' && <ClansSection clans={clans} onChanged={load} can={can} t={t} />}
       {current.key === 'broadcast' && can('Broadcast') && (
@@ -160,7 +160,8 @@ export function OwnerPanel({ me }: { me: ServiceIdentity }) {
 
 /* ---------- Сводка ---------- */
 
-function Overview({ stats, clans }: { stats: OwnerStats; clans: OwnerClan[] }) {
+/** showFunnel - воронка с числом заплативших: это данные продаж, как и разделы «Плюс» и «Спонсоры». */
+function Overview({ stats, clans, showFunnel }: { stats: OwnerStats; clans: OwnerClan[]; showFunnel: boolean }) {
   const conversion = stats.totalLinkedUsers > 0
     ? Math.round(stats.usersWithClan * 100 / stats.totalLinkedUsers)
     : 0
@@ -234,6 +235,7 @@ function Overview({ stats, clans }: { stats: OwnerStats; clans: OwnerClan[] }) {
       />
 
       <EngagementBlock />
+      {showFunnel && <FunnelBlock />}
 
       <Block title="Кланы" icon="castle" tone="violet">
         <Row label="Всего подключено" value={stats.totalClans} />
@@ -330,6 +332,8 @@ const SOURCE_LABELS: Record<string, string> = {
 }
 
 const DEST_LABELS: Record<string, string> = {
+  halloween: 'Хэллоуин',
+  showcase: 'Витрина',
   home: 'Главный экран',
   review: 'Разбор боёв',
   matches: 'История боёв',
@@ -400,6 +404,98 @@ function EngagementBlock() {
           accent={data.mau === 0 ? undefined : data.stickiness >= 20 ? 'good' : data.stickiness < 10 ? 'bad' : 'warn'} />
       </Block>
     </>
+  )
+}
+
+/* ---------- Воронка покупки ---------- */
+
+const FUNNEL_PRODUCTS: { key: 'plus' | 'sponsor'; label: string }[] = [
+  { key: 'plus', label: 'Плюс' },
+  { key: 'sponsor', label: 'Спонсорство' },
+]
+
+const FUNNEL_PLACES: Record<string, string> = {
+  sheet: 'Окно покупки',
+  showcase: 'Витрина',
+  tab: 'Витрина во вкладке',
+}
+
+const pct = (part: number, whole: number) => (whole > 0 ? Math.round((100 * part) / whole) : 0)
+
+/**
+ * На каком шаге теряем людей. Пороги грубые, но честные: при десятках человек точнее
+ * не бывает, а владельцу нужен не процент, а ответ «что чинить».
+ */
+function funnelVerdict(m: FunnelTotals): { text: string; accent: 'good' | 'bad' | 'warn' } | null {
+  if (m.seen === 0) return { text: 'Предложение никто не видит — сначала показывать, потом продавать', accent: 'bad' }
+  if (m.seen < 20) return { text: 'Видят единицы — узкое место в охвате, а не в цене', accent: 'warn' }
+  if (pct(m.buy, m.seen) < 5) return { text: 'Видят, но не жмут «Купить» — не цепляет ценность', accent: 'bad' }
+  if (m.buy > 0 && pct(m.paid, m.buy) < 40) return { text: 'Жмут, но не платят — мешает цена или оплата звёздами', accent: 'warn' }
+  if (m.paid > 0) return { text: 'Воронка работает — дальше растить охват', accent: 'good' }
+  return null
+}
+
+function FunnelBlock() {
+  const [data, setData] = useState<OwnerFunnel | null>(null)
+  const [failed, setFailed] = useState(false)
+  useEffect(() => {
+    api.ownerGetFunnel().then(setData).catch(() => setFailed(true))
+  }, [])
+  if (failed) return null
+  if (!data) return <div className="card adm-block"><div className="center"><div className="spinner" /></div></div>
+
+  return (
+    <Block title="Воронка покупки" icon="filter" tone="violet" info={
+      <p>
+        Разные люди за 30 дней: увидели предложение (окно покупки или витрину), нажали
+        «Купить» (бот выставил счёт), заплатили. Узкое место видно по самому резкому
+        обрыву: не видят — нужен охват, видят и не жмут — ценность, жмут и не платят — цена.
+        {data.trackingSince ? ` «Увидели» и «нажали» считаем с ${data.trackingSince}.` : ' Шаги начнут писаться с этого обновления.'}
+      </p>
+    }>
+      {FUNNEL_PRODUCTS.map(({ key, label }) => {
+        const row = data.products.find(p => p.product === key)
+        if (!row) return null
+        const m = row.month
+        const top = Math.max(m.seen, m.buy, m.paid, 1)
+        const verdict = funnelVerdict(m)
+        const days = data.days.filter(d => d.product === key)
+        const dayTop = Math.max(1, ...days.map(d => d.seen))
+        return (
+          <div key={key} className="fn-product">
+            <div className="fn-head">
+              <b>{label}</b>
+              <span className="muted small">неделя: {row.week.seen} → {row.week.buy} → {row.week.paid}</span>
+            </div>
+            {([['Увидели', m.seen, null], ['Нажали «Купить»', m.buy, m.seen], ['Заплатили', m.paid, m.buy]] as const).map(([name, v, prev]) => (
+              <div key={name} className="fn-step">
+                <span className="fn-label">{name}</span>
+                <span className="fn-bar"><i style={{ width: `${Math.max(v > 0 ? 4 : 0, pct(v, top))}%` }} /></span>
+                <span className="fn-value">{v}{prev !== null && prev > 0 ? <small> · {pct(v, prev)}%</small> : null}</span>
+              </div>
+            ))}
+            {verdict && <p className={`fn-verdict adm-${verdict.accent}`}>{verdict.text}</p>}
+            <div className="fn-days" aria-label="Две недели по дням">
+              {days.map(d => (
+                <span key={d.day} className="fn-day" title={`${d.day}: ${d.seen} / ${d.buy} / ${d.paid}`}>
+                  <i className="fn-day-seen" style={{ height: `${pct(d.seen, dayTop)}%` }} />
+                  {d.paid > 0 && <i className="fn-day-paid" />}
+                </span>
+              ))}
+            </div>
+          </div>
+        )
+      })}
+      {data.places.length > 0 && (
+        <>
+          <p className="muted small" style={{ margin: '12px 0 4px' }}>Где увидели, людей за 30 дней</p>
+          {data.places.map(p => (
+            <Row key={`${p.product}:${p.place}`}
+              label={`${p.product === 'plus' ? 'Плюс' : 'Спонсорство'} · ${FUNNEL_PLACES[p.place] ?? p.place}`} value={p.users30} />
+          ))}
+        </>
+      )}
+    </Block>
   )
 }
 
