@@ -98,6 +98,7 @@ public static class DependencyInjection
         services.AddScoped<IActivityRepository, ActivityRepository>();
         services.AddScoped<IAppOpenRepository, AppOpenRepository>();
         services.AddScoped<IFunnelRepository, FunnelRepository>();
+        services.AddScoped<IFeedbackRepository, FeedbackRepository>();
         services.AddScoped<ITopPlayerRepository, TopPlayerRepository>();
         services.AddScoped<IMetaRepository, MetaRepository>();
         services.AddScoped<IChallengeRepository, ChallengeRepository>();
@@ -674,6 +675,22 @@ CREATE TABLE IF NOT EXISTS ""AppOpens"" (
             "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_AppOpens_TelegramUserId_DayUtc_Source_Dest\" ON \"AppOpens\" (\"TelegramUserId\", \"DayUtc\", \"Source\", \"Dest\");");
         await db.Database.ExecuteSqlRawAsync(
             "CREATE INDEX IF NOT EXISTS \"IX_AppOpens_DayUtc\" ON \"AppOpens\" (\"DayUtc\");");
+
+        // Опрос «что добавить»: строка на человека
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""FeedbackAnswers"" (
+    ""Id"" serial PRIMARY KEY,
+    ""TelegramUserId"" bigint NOT NULL,
+    ""PlayerTag"" varchar(16) NULL,
+    ""Segment"" varchar(8) NOT NULL,
+    ""Wants"" varchar(200) NOT NULL,
+    ""Reason"" varchar(20) NULL,
+    ""Text"" varchar(500) NULL,
+    ""CreatedUtc"" timestamptz NOT NULL,
+    ""UpdatedUtc"" timestamptz NOT NULL
+);");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_FeedbackAnswers_TelegramUserId\" ON \"FeedbackAnswers\" (\"TelegramUserId\");");
 
         // Шаги к покупке: увидел предложение, нажал «Купить»
         await db.Database.ExecuteSqlRawAsync(@"

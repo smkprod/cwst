@@ -2046,3 +2046,15 @@ export interface OwnerFunnel {
   places: { product: 'plus' | 'sponsor'; place: string; users30: number }[]
   trackingSince: string | null
 }
+
+/** Опрос «что добавить»: отвечал ли и кто (покупателю - «за что купил», остальным - «что мешает»). */
+export interface FeedbackMine { answered: boolean; isBuyer: boolean; rewardPlusDays: number }
+
+export interface OwnerFeedback {
+  total: number
+  buyers: number
+  wants: { key: string; count: number }[]
+  buyerReasons: { key: string; count: number }[]
+  playerReasons: { key: string; count: number }[]
+  recent: { segment: string; playerTag: string | null; wants: string; reason: string | null; text: string | null; updatedUtc: string }[]
+}

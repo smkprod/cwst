@@ -29,6 +29,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ChannelPost> ChannelPosts => Set<ChannelPost>();
     public DbSet<AppOpen> AppOpens => Set<AppOpen>();
     public DbSet<FunnelEvent> FunnelEvents => Set<FunnelEvent>();
+    public DbSet<FeedbackAnswer> FeedbackAnswers => Set<FeedbackAnswer>();
     public DbSet<PlayerBattle> PlayerBattles => Set<PlayerBattle>();
     public DbSet<Entitlement> Entitlements => Set<Entitlement>();
     public DbSet<PlayerAlertPrefs> PlayerAlertPrefs => Set<PlayerAlertPrefs>();
@@ -318,6 +319,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(o => o.DayUtc).HasMaxLength(10);
             e.Property(o => o.Source).HasMaxLength(8);
             e.Property(o => o.Dest).HasMaxLength(20);
+        });
+
+        mb.Entity<FeedbackAnswer>(e =>
+        {
+            e.HasIndex(f => f.TelegramUserId).IsUnique();
+            e.Property(f => f.PlayerTag).HasMaxLength(16);
+            e.Property(f => f.Segment).HasMaxLength(8);
+            e.Property(f => f.Wants).HasMaxLength(200);
+            e.Property(f => f.Reason).HasMaxLength(20);
+            e.Property(f => f.Text).HasMaxLength(500);
         });
 
         mb.Entity<FunnelEvent>(e =>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, ApiError, adminClan } from '../lib/api'
-import type { OwnerEngagement, OwnerFunnel, FunnelTotals, AppTab, BroadcastTarget, Moderator, OwnerClan, OwnerClanDetail, OwnerPlus, OwnerChallenge, OwnerFoundPlayer, OwnerSponsor, OwnerStats, ServiceIdentity, ServicePermission, SponsorSales, TopStatus, CampaignFunnel } from '../types'
+import type { OwnerEngagement, OwnerFeedback, OwnerFunnel, FunnelTotals, AppTab, BroadcastTarget, Moderator, OwnerClan, OwnerClanDetail, OwnerPlus, OwnerChallenge, OwnerFoundPlayer, OwnerSponsor, OwnerStats, ServiceIdentity, ServicePermission, SponsorSales, TopStatus, CampaignFunnel } from '../types'
 
 /** «Можно ли мне вот это». Прокидывается вниз, чтобы правила жили в одном месте. */
 type Can = (p: ServicePermission) => boolean
@@ -236,6 +236,7 @@ function Overview({ stats, clans, showFunnel }: { stats: OwnerStats; clans: Owne
 
       <EngagementBlock />
       {showFunnel && <FunnelBlock />}
+      <FeedbackBlock />
 
       <Block title="Кланы" icon="castle" tone="violet">
         <Row label="Всего подключено" value={stats.totalClans} />
@@ -492,6 +493,60 @@ function FunnelBlock() {
           {data.places.map(p => (
             <Row key={`${p.product}:${p.place}`}
               label={`${p.product === 'plus' ? 'Плюс' : 'Спонсорство'} · ${FUNNEL_PLACES[p.place] ?? p.place}`} value={p.users30} />
+          ))}
+        </>
+      )}
+    </Block>
+  )
+}
+
+/* ---------- Отзывы ---------- */
+
+const FB_LABELS: Record<string, string> = {
+  deep_review: 'Разбор боёв глубже', deck_for_me: 'Колода под мои карты', war_scout: 'Разведка соперников в КВ',
+  share_cards: 'Карточки для чата и сторис', daily_goals: 'Ежедневные задания', tournaments: 'Турниры с призами',
+  leader_tools: 'Инструменты лидера', rivals: 'Соревнование с друзьями',
+  tilt: 'Стоп-тильт', review: 'Разбор боёв', tracker: 'Совет после боя', star: 'Звезда и статус', support: 'Поддержать проект',
+  price: 'Дорого', unclear: 'Не понял, что даёт', no_stars: 'Неудобно платить звёздами', not_needed: 'Пока не нужно',
+  didnt_see: 'Не знал, что он есть',
+}
+
+function FeedbackBlock() {
+  const [data, setData] = useState<OwnerFeedback | null>(null)
+  const [failed, setFailed] = useState(false)
+  useEffect(() => {
+    api.ownerGetFeedback().then(setData).catch(() => setFailed(true))
+  }, [])
+  if (failed) return null
+  if (!data) return <div className="card adm-block"><div className="center"><div className="spinner" /></div></div>
+
+  const list = (title: string, rows: { key: string; count: number }[]) => rows.length > 0 && (
+    <>
+      <p className="muted small" style={{ margin: '12px 0 4px' }}>{title}</p>
+      {rows.map(r => <Row key={r.key} label={FB_LABELS[r.key] ?? r.key} value={r.count} />)}
+    </>
+  )
+  return (
+    <Block title="Что просят игроки" icon="message" tone="orange" info={
+      <p>
+        Ответы на опрос «что добавить». Бот зовёт в него лично — тех, кто платил (через сутки
+        после оплаты), и самых активных, не больше 15 человек в день и раз на человека.
+        В приложении у всех есть карточка. За первый ответ — 2 дня Плюса.
+      </p>
+    }>
+      <Row label="Ответов" value={`${data.total}${data.buyers > 0 ? ` (покупателей ${data.buyers})` : ''}`} />
+      {data.total === 0 && <p className="muted small" style={{ margin: '6px 0 0' }}>Ответы появятся после обновления — бот начнёт звать в опрос днём.</p>}
+      {list('Чего не хватает', data.wants)}
+      {list('За что купили', data.buyerReasons)}
+      {list('Что мешает купить Плюс', data.playerReasons)}
+      {data.recent.some(r => r.text) && (
+        <>
+          <p className="muted small" style={{ margin: '12px 0 4px' }}>Своими словами</p>
+          {data.recent.filter(r => r.text).slice(0, 15).map((r, i) => (
+            <div key={i} className="fb-quote">
+              <span>{r.text}</span>
+              <small className="muted">{r.segment === 'buyer' ? '💜 покупатель' : 'игрок'}{r.playerTag ? ` · ${r.playerTag}` : ''} · {r.updatedUtc.slice(0, 10)}</small>
+            </div>
           ))}
         </>
       )}
