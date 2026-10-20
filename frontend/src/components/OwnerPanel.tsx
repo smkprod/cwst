@@ -332,6 +332,8 @@ const SOURCE_LABELS: Record<string, string> = {
 }
 
 const DEST_LABELS: Record<string, string> = {
+  halloween: 'Хэллоуин',
+  showcase: 'Витрина',
   home: 'Главный экран',
   review: 'Разбор боёв',
   matches: 'История боёв',
