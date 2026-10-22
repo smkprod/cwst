@@ -2046,6 +2046,15 @@ const ru = {
     cardGo: 'Ответить',
     close: 'Закрыть',
   },
+  day: {
+    title: 'Мой день',
+    yesterday: 'Вчера',
+    today: 'Сегодня',
+    share: 'Поделиться',
+    shareText: 'Мой день в Clash Royale 👇',
+    emptyYesterday: 'Вчера в ладдере и Пути легенд боёв не было.',
+    emptyToday: 'Сегодня ещё нет боёв — сыграй, и здесь появится итог дня. Бои подтягиваются раз в пару часов.',
+  },
 }
 
 export type Translations = typeof ru
@@ -4092,6 +4101,15 @@ const uk: Translations = {
     cardGo: 'Відповісти',
     close: 'Закрити',
   },
+  day: {
+    title: 'Мій день',
+    yesterday: 'Учора',
+    today: 'Сьогодні',
+    share: 'Поділитися',
+    shareText: 'Мій день у Clash Royale 👇',
+    emptyYesterday: 'Учора боїв у ладері й Шляху легенд не було.',
+    emptyToday: 'Сьогодні ще немає боїв — зіграй, і тут з\'явиться підсумок дня. Бої підтягуються раз на кілька годин.',
+  },
 }
 
 const en: Translations = {
@@ -6135,6 +6153,15 @@ const en: Translations = {
     cardReward: '+{days} days of Plus for answering',
     cardGo: 'Answer',
     close: 'Close',
+  },
+  day: {
+    title: 'My day',
+    yesterday: 'Yesterday',
+    today: 'Today',
+    share: 'Share',
+    shareText: 'My day in Clash Royale 👇',
+    emptyYesterday: 'No ladder or Path of Legends battles yesterday.',
+    emptyToday: 'No battles today yet — play and your day recap shows up here. Battles sync every couple of hours.',
   },
 }
 

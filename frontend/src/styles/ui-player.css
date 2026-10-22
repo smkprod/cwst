@@ -197,3 +197,15 @@
 .lab-slot-empty { display: block; }
 .lab-slot-empty > svg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
 .lab-slot-empty { position: relative; }
+
+/* «Мой день»: итог дня картинкой */
+.day-card { padding: 14px; }
+.day-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.day-head b { display: inline-flex; align-items: center; gap: 6px; font-size: 15px; }
+.day-switch { display: flex; gap: 2px; padding: 2px; border-radius: 10px; background: rgba(255, 255, 255, 0.06); }
+.day-opt { padding: 5px 10px; border: none; border-radius: 8px; background: none; color: var(--muted); font: inherit; font-size: 12.5px; cursor: pointer; }
+.day-opt-on { background: rgba(255, 255, 255, 0.12); color: var(--text); font-weight: 700; }
+.day-img { display: block; width: 100%; aspect-ratio: 800 / 410; border-radius: 12px; background: rgba(255, 255, 255, 0.04); opacity: 0; transition: opacity 0.25s; }
+.day-img-on { opacity: 1; }
+.day-share { margin-top: 10px; }
+.day-empty { margin: 4px 0 2px; }

@@ -7,6 +7,10 @@ public record WarCardModel(
     string PlayerName, string ClanName, int Fame, int Rank, int ClanSize,
     int DecksToday, int RacePosition, int RaceClans, string BotName, string? ArtUrl);
 
+/// <param name="Results">Исходы боёв дня по порядку: 1 - победа, 0 - ничья, -1 - поражение.</param>
+public record DayCardModel(string PlayerName, string DateLabel, int Wins, int Losses, int WinPercent, int Trophies,
+    int BestStreak, int ThreeCrowns, IReadOnlyList<int> Results, string BotName, string? ArtUrl);
+
 public record ProfileCardModel(
     string PlayerName, string? ClanName, int Level, int Trophies, int BestTrophies,
     int WarDayWins, int ThreeCrownWins, string BotName, string? ArtUrl);
@@ -66,6 +70,9 @@ public class CardRenderer(IWebHostEnvironment env, IHttpClientFactory http, IMem
     /// <summary>Высота карточек со статистикой.</summary>
     public const int StatHeight = 360;
 
+    /// <summary>Итог дня: под плитками ещё ряд боёв по порядку.</summary>
+    public const int DayHeight = 410;
+
     /// <summary>Колода выше: восемь артов в два ряда просто не влезают ниже.</summary>
     public const int DeckHeight = 540;
 
@@ -112,6 +119,40 @@ public class CardRenderer(IWebHostEnvironment env, IHttpClientFactory http, IMem
             ($"{m.DecksToday}/4", "колод сегодня"),
             ($"{m.RacePosition}/{m.RaceClans}", "место в гонке"));
     });
+
+    /// <summary>
+    /// Итог дня: счёт героем, плитки и цепочка боёв кружками - победы зелёные,
+    /// поражения красные. Цепочка и есть смысл карточки: по ней видно, где пошла
+    /// серия и где начался слив, раньше, чем прочитаешь хоть одну цифру.
+    /// </summary>
+    public byte[] RenderDay(DayCardModel m) => Draw(m.ArtUrl, DayHeight, canvas =>
+    {
+        Header(canvas, m.PlayerName, $"Твой день · {m.DateLabel}", m.BotName, DayHeight);
+        Hero(canvas, $"{m.Wins}–{m.Losses}", $"побед и поражений · {m.WinPercent}% побед");
+        Tiles(canvas,
+            ((m.Trophies > 0 ? "+" : "") + Num(m.Trophies), "кубков за день"),
+            (m.BestStreak.ToString(), "лучшая серия"),
+            (m.ThreeCrowns.ToString(), "три короны"));
+
+        var shown = m.Results.Count > DayRecapMax ? m.Results.Skip(m.Results.Count - DayRecapMax).ToList() : m.Results.ToList();
+        if (shown.Count == 0) return;
+        const float r = 8, y = 352;
+        var step = Math.Min(24f, (Width - 2 * Pad - 140) / Math.Max(1, shown.Count));
+        using var p = new SKPaint { IsAntialias = true };
+        for (var i = 0; i < shown.Count; i++)
+        {
+            var color = shown[i] > 0 ? new SKColor(49, 196, 92) : shown[i] < 0 ? new SKColor(235, 72, 72) : Muted;
+            var x = Pad + r + i * step;
+            p.Color = color.WithAlpha(90);
+            p.MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, 4);
+            canvas.DrawCircle(x, y, r, p);
+            p.MaskFilter = null;
+            p.Color = color;
+            canvas.DrawCircle(x, y, r - 1, p);
+        }
+    });
+
+    private const int DayRecapMax = 30;
 
     public byte[] RenderProfile(ProfileCardModel m) => Draw(m.ArtUrl, StatHeight, canvas =>
     {

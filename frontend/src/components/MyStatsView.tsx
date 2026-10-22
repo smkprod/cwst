@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { DayCard } from './DayCard'
 import { api, ApiError } from '../lib/api'
 import type { LinkedPlayer, MyStats, PlayerHistory, PlayerProfile, PlayerWeekHistory } from '../types'
 import { fmt, fmtShort } from '../lib/format'
@@ -112,6 +113,8 @@ export function MyStatsView({ defaultSection = 'clan', battlesView = 'history', 
   // Пока это два отдельных места вставки, они разъедутся снова.
   const sectionTabs = (
     <>
+    {/* Итог дня - первой: это повод заглянуть сюда каждый день, а не только в КВ */}
+    {playerTag && <DayCard playerTag={playerTag} />}
     {/* «Стоп-тильт» — первой карточкой: это то, за чем игрок сюда приходит */}
     <TiltCard />
     <PlayerLooksCard />

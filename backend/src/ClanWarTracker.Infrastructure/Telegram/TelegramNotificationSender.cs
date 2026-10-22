@@ -52,13 +52,16 @@ public class TelegramNotificationSender(ITelegramBotClient bot) : INotificationS
 
     public async Task<DmResult> SendDmAsync(
         long telegramUserId, string text, IReadOnlyList<IReadOnlyList<BotButton>> rows, bool silent = false,
-        CancellationToken ct = default)
+        CancellationToken ct = default, string? previewUrl = null)
     {
         try
         {
             var keyboard = await KeyboardAsync(rows, OpenSource.For(telegramUserId), ct);
+            var preview = previewUrl is null
+                ? null
+                : new global::Telegram.Bot.Types.LinkPreviewOptions { Url = previewUrl, PreferLargeMedia = true, ShowAboveText = true };
             var message = await bot.SendMessage(telegramUserId, text, replyMarkup: keyboard,
-                disableNotification: silent, cancellationToken: ct);
+                linkPreviewOptions: preview, disableNotification: silent, cancellationToken: ct);
             return new DmResult(message.MessageId, false);
         }
         catch (ApiRequestException ex)
