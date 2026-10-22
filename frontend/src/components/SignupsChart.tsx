@@ -15,8 +15,10 @@ export interface ChartMetric {
 type Range = 30 | 90
 
 interface Bar {
-  label: string       // подпись под курсором: «14 авг» или «11–17 авг»
+  label: string       // подпись под курсором: «14 авг, пн» или «11–17 авг»
   value: number
+  /** День недели (0 - понедельник) - только у дневных столбиков. */
+  wd?: number
 }
 
 /**
@@ -65,6 +67,7 @@ export function SignupsChart(
   const top = max
   const shown = picked !== null ? bars[picked] : null
   const noun = metrics.find(m => m.key === metric)?.noun ?? ''
+  const byWeekday = weekdayAverages(window, metric)
 
   return (
     <div className="card ow-chart">
@@ -138,6 +141,16 @@ export function SignupsChart(
               </button>
             ))}
           </div>
+          {/* Буква дня недели под каждым столбиком: так провалы по дням видно сразу */}
+          {range === 30 && (
+            <div className="chart-wd" aria-hidden="true">
+              {bars.map((b, i) => (
+                <span key={i} className={b.wd !== undefined && b.wd >= 5 ? 'chart-wd-end' : ''}>
+                  {b.wd !== undefined ? WD_LETTERS[b.wd] : ''}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -145,8 +158,49 @@ export function SignupsChart(
         <span>{bars[0]?.label}</span>
         <span>{bars[bars.length - 1]?.label}</span>
       </div>
+
+      {byWeekday && (
+        <>
+          <p className="chart-wd-title">В среднем по дням недели, за {range} дн.</p>
+          <div className="chart-wd-avg">
+            {byWeekday.values.map((v, i) => (
+              <div key={i} className={`chart-wd-cell${i === byWeekday.min ? ' chart-wd-min' : ''}${i === byWeekday.max ? ' chart-wd-max' : ''}`}>
+                <small>{WD_SHORT[i]}</small>
+                <b>{v}</b>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   )
+}
+
+const WD_LETTERS = ['П', 'В', 'С', 'Ч', 'П', 'С', 'В']
+const WD_SHORT = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс']
+
+/** «2026-08-14» → 0..6, понедельник первый. Через UTC: местный пояс сдвинул бы день. */
+function weekday(iso: string): number {
+  const [y, m, d] = iso.split('-').map(Number)
+  return (new Date(Date.UTC(y, m - 1, d)).getUTCDay() + 6) % 7
+}
+
+/**
+ * Среднее за каждый день недели и самые слабый и сильный. Сегодняшний день не
+ * берём: он ещё не кончился и тянул бы свой день недели вниз. null - данных мало.
+ */
+function weekdayAverages(points: SignupPoint[], metric: ChartMetric['key']) {
+  const full = points.slice(0, -1)
+  if (full.length < 7) return null
+  const sum = Array(7).fill(0), count = Array(7).fill(0)
+  for (const p of full) {
+    const w = weekday(p.date)
+    sum[w] += p[metric]
+    count[w] += 1
+  }
+  const values = sum.map((s, i) => (count[i] > 0 ? Math.round((s / count[i]) * 10) / 10 : 0))
+  if (values.every(v => v === 0)) return null
+  return { values, min: values.indexOf(Math.min(...values)), max: values.indexOf(Math.max(...values)) }
 }
 
 const MONTHS = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек']
@@ -158,7 +212,10 @@ function short(iso: string): string {
 }
 
 function daily(points: SignupPoint[], metric: ChartMetric['key']): Bar[] {
-  return points.map(p => ({ label: short(p.date), value: p[metric] }))
+  return points.map(p => {
+    const wd = weekday(p.date)
+    return { label: `${short(p.date)}, ${WD_SHORT[wd]}`, value: p[metric], wd }
+  })
 }
 
 /**
