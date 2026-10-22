@@ -24,7 +24,8 @@ public class SendMorningDigestUseCase(
     CollectPlayerBattlesUseCase collect,
     IServiceSettingRepository settings,
     INotificationSender sender,
-    ISentNotificationRepository sentLog)
+    ISentNotificationRepository sentLog,
+    ICardUrls cardUrls)
 {
     /// <summary>Вид отметки в общей таблице отправленного - тот же, что у воркера.</summary>
     public const string SentKind = "morningdigest";
@@ -153,7 +154,9 @@ public class SendMorningDigestUseCase(
                 // прохода иначе прислали бы ту же сводку ещё раз
                 if (!await sentLog.TryClaimAsync(SentKind, key, ct)) { sentKeys.Add(key); continue; }
 
-                var result = await sender.SendDmAsync(tg, text, buttons, silent: false, ct);
+                // Картинка дня большим превью над текстом: счёт, кубки и цепочка боёв видны сразу
+                var dayCard = cardUrls.Card("day", player.PlayerTag) is { } url ? $"{url}&o={tz}&d=1" : null;
+                var result = await sender.SendDmAsync(tg, text, buttons, silent: false, ct, previewUrl: dayCard);
                 if (!result.Delivered && !result.Blocked)
                 {
                     // Временный сбой Telegram - отметку возвращаем, следующий проход попробует снова

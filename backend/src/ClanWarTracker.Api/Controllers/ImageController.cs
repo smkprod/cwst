@@ -1,4 +1,5 @@
 using ClanWarTracker.Api.Rendering;
+using ClanWarTracker.Application.Battles;
 using ClanWarTracker.Application.UseCases;
 using ClanWarTracker.Domain.Enums;
 using ClanWarTracker.Domain.Interfaces;
@@ -27,6 +28,8 @@ public class ImageController(
     ITelegramBotClient bot,
     ITournamentRepository tournaments,
     IMetaRepository meta,
+    IPlayerBattleRepository battles,
+    IPlayerRepository players,
     IMemoryCache cache) : ControllerBase
 {
     /// <summary>Столько живёт нарисованная карточка. Война меняется медленнее.</summary>
@@ -57,6 +60,35 @@ public class ImageController(
                 me.DecksUsedToday, ours?.Position ?? 0, status.Race.Count,
                 await BotNameAsync(ct), await ArtAsync(playerTag, ct)));
         });
+
+    private static readonly string[] MonthsGen =
+        ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
+
+    /// <summary>
+    /// GET /api/img/day/{tag}.jpg?o=180&amp;d=1 — итог игрового дня: o - смещение часового
+    /// пояса в минутах, d - сколько дней назад (0 - сегодня, 1 - вчера). Только у
+    /// привязанных: их бои бот копит сам. Боёв нет - 404, и превью просто не будет.
+    /// </summary>
+    [HttpGet("day/{tag}.jpg")]
+    public Task<IActionResult> DayCard(string tag, [FromQuery] int o = 180, [FromQuery] int d = 1, CancellationToken ct = default)
+    {
+        var offset = Math.Clamp(o, -720, 840);
+        var back = Math.Clamp(d, 0, 6);
+        var (_, _, date) = DayRecap.Window(DateTime.UtcNow, offset, back);
+        // Сегодняшний день ещё идёт - держим недолго; прошедший уже не изменится
+        var ttl = back == 0 ? TimeSpan.FromMinutes(5) : TimeSpan.FromHours(6);
+        return Serve($"day:{Normalize(tag)}:{offset}:{date:yyyyMMdd}", ttl, async () =>
+        {
+            var playerTag = Normalize(tag);
+            var recap = await DayRecap.LoadAsync(battles, playerTag, DateTime.UtcNow, offset, back, ct);
+            if (recap.Battles == 0) return null;
+            var player = await players.GetByTagAsync(playerTag, ct);
+            return renderer.RenderDay(new DayCardModel(
+                player?.Name ?? playerTag, $"{date.Day} {MonthsGen[date.Month - 1]}",
+                recap.Wins, recap.Losses, recap.WinPercent, recap.Trophies, recap.BestStreak, recap.ThreeCrowns,
+                recap.Results, await BotNameAsync(ct), await ArtAsync(playerTag, ct)));
+        });
+    }
 
     /// <summary>GET /api/img/profile/{tag}.jpg — карточка игрока.</summary>
     [HttpGet("profile/{tag}.jpg")]

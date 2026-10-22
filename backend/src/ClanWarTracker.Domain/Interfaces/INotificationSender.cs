@@ -40,9 +40,11 @@ public interface INotificationSender
     /// То же, но с разбором неудачи и тихой отправкой (silent - без звука и вибрации:
     /// так трекер боёв не пищит посреди захода).
     /// </summary>
+    /// <param name="previewUrl">Картинка большим превью над текстом (итог дня). null - как обычно.
+    /// Telegram не смог её скачать - сообщение всё равно уйдёт, просто без картинки.</param>
     Task<DmResult> SendDmAsync(
         long telegramUserId, string text, IReadOnlyList<IReadOnlyList<BotButton>> rows, bool silent = false,
-        CancellationToken ct = default);
+        CancellationToken ct = default, string? previewUrl = null);
 
     /// <summary>
     /// Переписывает своё сообщение в личке. rows null или пустые - кнопки убираются.
