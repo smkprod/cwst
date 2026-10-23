@@ -43,6 +43,8 @@ import { HalloweenView } from './components/HalloweenView'
 import { HalloweenBanner } from './components/HalloweenBanner'
 import { FeedbackCard } from './components/FeedbackCard'
 import { OPEN_HALLOWEEN } from './lib/halloween'
+import { OPEN_TRAINER } from './lib/trainer'
+import type { MoreSection } from './components/MoreView'
 import { MenuChangedNotice } from './components/MenuChangedNotice'
 import { UpdateNotice } from './components/UpdateNotice'
 import { DisciplineCard } from './components/DisciplineCard'
@@ -134,7 +136,7 @@ function ClanSectionTabs({ value, onChange, t }: {
  * разбор, «/meta» — в мировой топ, «/plus» — в окно Плюса, ch_<код> — в челлендж
  * блогера (отдельный экран вне бара). Без параметра — как раньше.
  */
-const START_TAB: Tab = startChallengeCode ? 'creatorChallenge' : startParam === 'halloween' ? 'halloween' : startParam === 'challenge' ? 'challenge' : startParam === 'duel' ? 'duel' : startParam === 'review' || startToMatches ? 'me' : startParam === 'meta' || startParam === 'builder' || startParam === 'invite' ? 'more' : 'clan'
+const START_TAB: Tab = startChallengeCode ? 'creatorChallenge' : startParam === 'halloween' ? 'halloween' : startParam === 'challenge' ? 'challenge' : startParam === 'duel' ? 'duel' : startParam === 'review' || startToMatches ? 'me' : startParam === 'meta' || startParam === 'builder' || startParam === 'invite' || startParam === 'trainer' ? 'more' : 'clan'
 
 /** «Разбор» из бота — разбор за 30 дней, трекер и «Все бои» — история. */
 const START_BATTLES_VIEW = startParam === 'review' ? 'review' : 'history'
@@ -200,6 +202,15 @@ export default function App() {
     const go = () => setTab('challenge')
     window.addEventListener(OPEN_CHALLENGE, go)
     return () => window.removeEventListener(OPEN_CHALLENGE, go)
+  }, [])
+  // Раздел «Ещё», с которого открыть вкладку: по ссылке бота или из вывода профиля
+  const [moreSection, setMoreSection] = useState<MoreSection | null>(
+    startParam === 'meta' ? 'worldTop' : startParam === 'builder' ? 'builder' : startParam === 'trainer' ? 'trainer' : null)
+  const [moreKey, setMoreKey] = useState(0)
+  useEffect(() => {
+    const go = () => { setMoreSection('trainer'); setMoreKey(k => k + 1); setTab('more') }
+    window.addEventListener(OPEN_TRAINER, go)
+    return () => window.removeEventListener(OPEN_TRAINER, go)
   }, [])
   // Заставка и баннер Хэллоуина ведут во вкладку босса
   useEffect(() => {
@@ -531,9 +542,10 @@ export default function App() {
             {tab === 'halloween' && <HalloweenView />}
             {tab === 'more' && (
               <MoreView
+                key={moreKey}
                 canManage={canManage}
                 isLeader={Boolean(data.isClanLeader)}
-                initialSection={startParam === 'meta' ? 'worldTop' : startParam === 'builder' ? 'builder' : null}
+                initialSection={moreSection}
                 onOpenNotifications={() => { haptic('light'); setSettingsOpen(true) }}
                 config={config}
                 onConfigChanged={loadConfig}

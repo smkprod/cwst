@@ -5,6 +5,7 @@ import { usePlusSheet, PLUS_CHANGED } from '../lib/plusSheet'
 import { openTip } from '../lib/tipSheet'
 import { haptic } from '../lib/telegram'
 import { isTipId, tipText } from '../lib/tips'
+import { openTrainer, puzzleForTip } from '../lib/trainer'
 import type { Dashboard, DashboardInsight } from '../types'
 import { Icon } from './ui/Icon'
 import { GameIcon, type GameIconName } from './GameIcon'
@@ -198,7 +199,14 @@ function Insight({ ins, t }: { ins: DashboardInsight; t: Translations }) {
         <span className="pd-ins-why"><em>{s.why}:</em> {why}</span>
         {tip && <span className="pd-ins-fix"><em>{s.fix}:</em> {tip.steps[1] ?? tip.title}</span>}
         {tip && isTipId(ins.tip) && (
-          <button className="btn-mini pd-ins-btn" onClick={() => openTip(ins.tip!)}><GameIcon name="play" size={16} /> {s.watchTip}</button>
+          <div className="pd-ins-btns">
+            <button className="btn-mini pd-ins-btn" onClick={() => openTip(ins.tip!)}><GameIcon name="play" size={16} /> {s.watchTip}</button>
+            {puzzleForTip(ins.tip) && (
+              <button className="btn-mini pd-ins-train" onClick={() => { haptic('light'); openTrainer(puzzleForTip(ins.tip)!) }}>
+                <GameIcon name="swords" size={16} /> {t.trainer.tryIt}
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>

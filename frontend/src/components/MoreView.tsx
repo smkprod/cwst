@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { TipsLibrary } from './TipSheet'
+import { TrainerView } from './Trainer'
 import { haptic } from '../lib/telegram'
 import { useT } from '../lib/i18n'
 import { LangSwitcher } from './LangSwitcher'
@@ -22,7 +23,7 @@ import type { AppConfig } from '../types'
 import { Icon, type IconName } from './ui/Icon'
 import { IconTile, SectionHead, type Tone } from './ui/Section'
 
-export type MoreSection = 'recruit' | 'about' | 'worldTop' | 'challenge' | 'duel' | 'tournament' | 'hall' | 'search' | 'studio' | 'builder' | 'tips'
+export type MoreSection = 'recruit' | 'about' | 'worldTop' | 'challenge' | 'duel' | 'tournament' | 'hall' | 'search' | 'studio' | 'builder' | 'tips' | 'trainer'
 type Section = MoreSection
 
 interface Props {
@@ -77,6 +78,7 @@ export function MoreView({ canManage, isLeader, onOpenNotifications, initialSect
         {section === 'studio' && showStudio && <StudioView />}
         {section === 'builder' && <DeckBuilderView />}
         {section === 'tips' && <TipsLibrary />}
+        {section === 'trainer' && <TrainerView />}
       </div>
     )
   }
@@ -90,6 +92,8 @@ export function MoreView({ canManage, isLeader, onOpenNotifications, initialSect
         {showStudio && (
           <MoreRow icon="rocket" tone="orange" title={t.more.studio} hint={t.more.studioHint} onClick={() => open('studio')} />
         )}
+
+        <MoreRow icon="swords" tone="red" title={t.trainer.moreTitle} hint={t.trainer.moreHint} onClick={() => open('trainer')} />
 
         <MoreRow icon="target" tone="orange" title={t.dash.tipsTitle} hint={t.dash.tipsLead} onClick={() => open('tips')} />
 
