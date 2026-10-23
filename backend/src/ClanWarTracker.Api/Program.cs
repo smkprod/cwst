@@ -37,6 +37,7 @@ builder.Services.AddScoped<TrackerActionsUseCase>();
 builder.Services.AddScoped<ChallengeUseCase>();
 builder.Services.AddScoped<HalloweenUseCase>();
 builder.Services.AddScoped<FeedbackUseCase>();
+builder.Services.AddScoped<GetPlayerDashboardUseCase>();
 builder.Services.AddScoped<PurchaseFunnel>();
 builder.Services.AddScoped<ChannelUseCase>();
 builder.Services.AddScoped<ChannelAiUseCase>();
