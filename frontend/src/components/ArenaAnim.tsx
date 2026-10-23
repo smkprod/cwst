@@ -14,7 +14,7 @@ import { useCardArt } from '../lib/cardArt'
  * (секунда, клетка), между ними - линейно. Башни стреляют снарядами по чужим в радиусе.
  */
 
-export type ActorKind = 'enemy' | 'mine' | 'building' | 'spell' | 'barrel' | 'log'
+export type ActorKind = 'enemy' | 'mine' | 'building' | 'spell' | 'barrel' | 'log' | 'text'
 
 export interface Key { t: number; x: number; y: number }
 
@@ -80,24 +80,56 @@ function lastPos(a: Actor): { x: number; y: number } {
   return { x: k.x, y: k.y }
 }
 
-export function ArenaAnim({ scene, paused = false }: { scene: Scene; paused?: boolean }) {
-  const [t, setT] = useState(paused ? scene.duration * 0.35 : 0)
+/** Жетон-«призрак» там, куда игрок собирается поставить карту (тренажёр). */
+export interface Ghost { x: number; y: number; card: string; kind: ActorKind; r?: number; ok?: boolean }
+
+/**
+ * @param at Показать один кадр на этой секунде (без анимации).
+ * @param loop false - сыграть сцену один раз и встать на последнем кадре, позвав onEnd.
+ * @param onTap Тап по полю - в координатах клеток (тренажёр).
+ */
+export function ArenaAnim({ scene, paused = false, at: frameAt, loop = true, onEnd, onTap, ghost }: {
+  scene: Scene
+  paused?: boolean
+  at?: number
+  loop?: boolean
+  onEnd?: () => void
+  onTap?: (x: number, y: number) => void
+  ghost?: Ghost | null
+}) {
+  const still = frameAt ?? (paused ? scene.duration * 0.35 : null)
+  const [t, setT] = useState(still ?? 0)
   const startRef = useRef<number | null>(null)
+  const endRef = useRef(onEnd)
+  endRef.current = onEnd
   const art = useCardArt()
   const uid = useId().replace(/:/g, '')
 
   useEffect(() => {
-    if (paused) { setT(scene.duration * 0.35); return }
+    if (still !== null) { setT(still); return }
     let raf = 0
+    let done = false
     startRef.current = null
     const tick = (now: number) => {
       if (startRef.current === null) startRef.current = now
-      setT(((now - startRef.current) / 1000) % scene.duration)
+      const el = (now - startRef.current) / 1000
+      if (!loop && el >= scene.duration) {
+        setT(scene.duration)
+        if (!done) { done = true; endRef.current?.() }
+        return
+      }
+      setT(loop ? el % scene.duration : el)
       raf = requestAnimationFrame(tick)
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [scene, paused])
+  }, [scene, still, loop])
+
+  const tap = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (!onTap) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    onTap(((e.clientX - rect.left) / rect.width) * (W / TILE), ((e.clientY - rect.top) / rect.height) * (H / TILE) + VIEW_TOP)
+  }
 
   const live = scene.actors.map(a => ({ a, p: at(a, t) })).filter(x => x.p) as { a: Actor; p: { x: number; y: number } }[]
   const enemies = live.filter(x => x.a.kind === 'enemy')
@@ -123,7 +155,7 @@ export function ArenaAnim({ scene, paused = false }: { scene: Scene; paused?: bo
   const g = (name: string) => `${name}-${uid}`
 
   return (
-    <svg className="arena" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="arena">
+    <svg className={`arena ${onTap ? 'arena-tap' : ''}`} viewBox={`0 0 ${W} ${H}`} role="img" aria-label="arena" onPointerDown={tap}>
       <defs>
         <pattern id={g('tiles')} width={TILE * 2} height={TILE * 2} patternUnits="userSpaceOnUse">
           <rect width={TILE * 2} height={TILE * 2} fill="#2b3a6e" />
@@ -223,7 +255,18 @@ export function ArenaAnim({ scene, paused = false }: { scene: Scene; paused?: bo
         return <circle key={s.key} cx={x} cy={y} r="3.2" fill="#ffe08a" filter={`url(#${g('glow')})`} />
       })}
 
-      {live.map(({ a, p }) => <Token key={a.id} a={a} x={px(p.x)} y={py(p.y)} t={t} art={art[a.card ?? '']} g={g} />)}
+      {live.map(({ a, p }) => a.kind === 'text'
+        ? <FloatText key={a.id} a={a} x={px(p.x)} y={py(p.y)} k={(t - span(a).from) / Math.max(0.01, span(a).to - span(a).from)} />
+        : <Token key={a.id} a={a} x={px(p.x)} y={py(p.y)} t={t} art={art[a.card ?? '']} g={g} />)}
+
+      {ghost && (
+        <g opacity="0.75">
+          <rect x={px(Math.floor(ghost.x))} y={py(Math.floor(ghost.y))} width={TILE} height={TILE}
+            fill="none" stroke={ghost.ok === false ? '#ef4454' : '#ffe08a'} strokeWidth="2" strokeDasharray="3 3" />
+          <Token a={{ id: 'ghost', kind: ghost.kind, label: '', card: ghost.card, r: ghost.r, keys: [{ t: 0, x: ghost.x, y: ghost.y }] }}
+            x={px(ghost.x)} y={py(ghost.y)} t={t} art={art[ghost.card]} g={g} />
+        </g>
+      )}
 
       {poofs.map(({ a, dt }) => {
         const p = lastPos(a)
@@ -253,29 +296,25 @@ function Pill({ x, y, text, tone }: { x: number; y: number; text: string; tone: 
   )
 }
 
-function Tower({ tw, g }: { tw: typeof TOWERS[number]; g: (n: string) => string }) {
-  const s = tw.size * TILE
-  const x = px(tw.x) - s / 2
-  const y = py(tw.y) - s / 2
-  const merlon = s / 7
+function Tower({ tw }: { tw: typeof TOWERS[number]; g: (n: string) => string }) {
+  // Картинка башни сбоку: низ - по нижнему краю клеток башни, ширина чуть больше
+  // клеток - так башня читается объёмной, как в игре, а не плоским квадратом
+  const w = tw.size * TILE * (tw.king ? 1.35 : 1.4)
+  const h = w
+  const bottom = py(tw.y + tw.size / 2) + 4
   return (
     <g>
-      <ellipse cx={px(tw.x)} cy={y + s + 3} rx={s / 2} ry={5} fill="rgba(0,0,0,0.35)" />
-      {/* Каменное основание */}
-      <rect x={x} y={y + s * 0.18} width={s} height={s * 0.82} rx="7" fill={`url(#${g('stone')})`} stroke="#4d5a80" strokeWidth="2" />
-      {/* Зубцы */}
-      {Array.from({ length: 4 }, (_, i) => (
-        <rect key={i} x={x + merlon * (i * 2)} y={y} width={merlon} height={s * 0.24} rx="2" fill={`url(#${g('stone')})`} stroke="#4d5a80" strokeWidth="1.5" />
-      ))}
-      {/* Синяя площадка сверху */}
-      <rect x={x + s * 0.16} y={y + s * 0.28} width={s * 0.68} height={s * 0.46} rx="6" fill={`url(#${g('roof')})`} stroke="#cfe3ff" strokeWidth="1.5" />
-      {tw.king ? (
-        <path transform={`translate(${px(tw.x) - 13} ${py(tw.y) - 9}) scale(0.9)`}
-          d="M2 7 9 12 15 3l6 9 7-5-3 14H5L2 7Z" fill={`url(#${g('gold')})`} stroke="#7a4b00" strokeWidth="1.2" />
-      ) : (
-        <circle cx={px(tw.x)} cy={py(tw.y) - 2} r={s * 0.13} fill="#ffe08a" stroke="#7a4b00" strokeWidth="1.2" />
-      )}
+      <ellipse cx={px(tw.x)} cy={bottom - 2} rx={tw.size * TILE * 0.55} ry={6} fill="rgba(0,0,0,0.4)" />
+      <image href={tw.king ? '/arena/king.webp' : '/arena/princess.webp'} x={px(tw.x) - w / 2} y={bottom - h} width={w} height={h} />
     </g>
+  )
+}
+
+/** Всплывающий урон: поднимается и гаснет. */
+function FloatText({ a, x, y, k }: { a: Actor; x: number; y: number; k: number }) {
+  return (
+    <text x={x} y={y - 18 * k} textAnchor="middle" fontSize="15" fontWeight="900" fill="#ff6b78"
+      stroke="#3a0610" strokeWidth="3" paintOrder="stroke" opacity={Math.min(1, 2 * (1 - k))}>{a.label}</text>
   )
 }
 
