@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { DayCard } from './DayCard'
+import { ProfileDashboard } from './ProfileDashboard'
 import { api, ApiError } from '../lib/api'
 import type { LinkedPlayer, MyStats, PlayerHistory, PlayerProfile, PlayerWeekHistory } from '../types'
 import { fmt, fmtShort } from '../lib/format'
@@ -139,6 +140,7 @@ export function MyStatsView({ defaultSection = 'clan', battlesView = 'history', 
   // когда известен тег. Раньше отсутствие в составе войны делало вкладку тупиком.
   const gameSection = (
     <div className="fade-in">
+      {playerTag && <ProfileDashboard />}
       {profile && playerTag ? (
         <>
           <DecksButton playerTag={playerTag} />

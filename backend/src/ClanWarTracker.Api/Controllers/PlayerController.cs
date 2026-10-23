@@ -27,6 +27,7 @@ public class PlayerController(
     IServiceSettingRepository settings,
     IRespectRepository respects,
     GetBattleAnalysisUseCase battleAnalysis,
+    GetPlayerDashboardUseCase dashboard,
     GetPlayerSheetUseCase playerSheet,
     GetMatchHistoryUseCase matchHistory,
     GetMatchReportUseCase matchReport,
@@ -65,6 +66,18 @@ public class PlayerController(
         catch (InvalidOperationException ex) when (ex.Message.Contains("CR API"))
             { return StatusCode(503, new { error = "cr_api_token_invalid", message = ex.Message }); }
         return dto is null ? NotFound(new { error = "player_not_found" }) : Ok(dto);
+    }
+
+    /// <summary>
+    /// GET /api/players/me/dashboard?tz=180 — профиль-дашборд: кубки, счёт, серии,
+    /// последние бои, режимы, колода, карты и выводы «что исправить». tz - минуты к UTC.
+    /// </summary>
+    [HttpGet("me/dashboard")]
+    public async Task<IActionResult> MyDashboard([FromQuery] int tz = 180, CancellationToken ct = default)
+    {
+        var userId = (long)HttpContext.Items["TelegramUserId"]!;
+        var dto = await dashboard.ExecuteAsync(userId, Math.Clamp(tz, -720, 840), ct);
+        return dto is null ? NotFound(new { error = "player_not_linked" }) : Ok(dto);
     }
 
     /// <summary>

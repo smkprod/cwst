@@ -2058,3 +2058,43 @@ export interface OwnerFeedback {
   playerReasons: { key: string; count: number }[]
   recent: { segment: string; playerTag: string | null; wants: string; reason: string | null; text: string | null; updatedUtc: string }[]
 }
+
+/** Профиль-дашборд: GET /api/players/me/dashboard. */
+export interface DashboardInsight {
+  kind: 'tough_card' | 'leak' | 'tilt' | 'daypart' | 'levels' | 'deck_meta'
+  tip: string | null
+  key: string | null
+  iconUrl: string | null
+  games: number
+  value: number
+  baseline: number
+}
+
+export interface Dashboard {
+  name: string
+  tag: string
+  trophies: number
+  bestTrophies: number
+  trophyDelta: number
+  trophySeries: number[]
+  games: number
+  wins: number
+  losses: number
+  draws: number
+  winPercent: number
+  currentStreak: number
+  bestWinStreak: number
+  worstLossStreak: number
+  recent: { id: number; result: number; crownsFor: number; crownsAgainst: number; mode: string; atUtc: string; oppArchetype: string | null; trophies: number | null }[]
+  modes: { mode: string; games: number; wins: number; winPercent: number }[]
+  crowns: { wins1: number; wins2: number; wins3: number; losses: number; draws: number }
+  deck: { name: string; iconUrl: string; level: number; maxLevel: number; evo: boolean; elixir: number }[]
+  avgElixir: number
+  cardRates: { card: { cardId: number; name: string; iconUrl: string; evo: boolean; elixir: number }; games: number; winPercent: number }[]
+  cardRatesLocked: number
+  insights: DashboardInsight[]
+  insightsLocked: number
+  unlocked: boolean
+  paywall: boolean
+  sinceUtc: string | null
+}

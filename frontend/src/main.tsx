@@ -4,6 +4,7 @@ import App from './App'
 import { ChallengePromo } from './components/ChallengePromo'
 import { HalloweenSplash } from './components/HalloweenSplash'
 import { FeedbackSheet } from './components/FeedbackSheet'
+import { TipSheet } from './components/TipSheet'
 import { initTelegram } from './lib/telegram'
 import { ensureBotUsername } from './lib/botUsername'
 import { LangProvider } from './lib/i18n'
@@ -21,6 +22,7 @@ import './styles/ui-studio.css'
 import './styles/ui-showcase.css'
 import './styles/ui-halloween.css'
 import './styles/ui-feedback.css'
+import './styles/ui-dashboard.css'
 
 initTelegram()
 
@@ -39,6 +41,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               <ChallengePromo />
               <HalloweenSplash />
               <FeedbackSheet />
+              <TipSheet />
               <ShowcaseHost />
             </ClanModalProvider>
           </PlayerSheetProvider>
