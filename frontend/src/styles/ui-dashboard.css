@@ -11,8 +11,8 @@
 .pd-empty { text-align: center; color: var(--muted); padding: 22px 14px; }
 .pd-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
 .pd-head b { font-size: 14px; font-weight: 900; letter-spacing: 0.4px; text-transform: uppercase; }
-.pd-head-ic { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; color: #fff;
-  background: linear-gradient(135deg, #5a8dff, #3a4fd6); box-shadow: 0 4px 12px rgba(80, 120, 255, 0.45); }
+.pd-head-ic { width: 28px; height: 28px; display: grid; place-items: center; filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.45)); }
+.game-icon { display: block; flex-shrink: 0; }
 .pd-note { margin-left: auto; font-size: 11px; color: #9aa9d6; text-align: right; }
 
 /* --- Шапка --- */
@@ -31,7 +31,7 @@
 .pd-tile small { font-size: 10.5px; color: #9aa9d6; }
 .pd-tile-row { display: flex; align-items: center; gap: 5px; color: #ffc83d; }
 .pd-tile-row b { font-size: 22px; font-weight: 900; color: #fff; font-variant-numeric: tabular-nums; }
-.pd-up, .pd-down { font-size: 12px; font-weight: 800; margin-top: 2px; }
+.pd-up, .pd-down { font-size: 11px; font-weight: 800; margin-top: 2px; white-space: nowrap; }
 .pd-up { color: #35d08a; } .pd-down { color: #ef4454; }
 .pd-up span, .pd-down span { font-weight: 600; color: #9aa9d6; }
 .pd-spark { width: 100%; height: 26px; margin: 4px 0 2px; }
@@ -52,7 +52,7 @@
 /* --- Что исправить --- */
 .pd-fix { border-color: rgba(255, 170, 60, 0.4);
   background: linear-gradient(165deg, rgba(70, 44, 24, 0.75), rgba(22, 16, 30, 0.95)); }
-.pd-fix .pd-head-ic { background: linear-gradient(135deg, #ff9c3a, #e2531a); box-shadow: 0 4px 12px rgba(255, 120, 40, 0.45); }
+
 .pd-lead { font-size: 12.5px; color: #e4cfae; margin: -2px 0 10px; }
 .pd-insight { display: flex; gap: 10px; padding: 10px; border-radius: 14px; background: rgba(0, 0, 0, 0.28);
   border: 1px solid rgba(255, 170, 60, 0.2); }

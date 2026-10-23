@@ -6,7 +6,8 @@ import { openTip } from '../lib/tipSheet'
 import { haptic } from '../lib/telegram'
 import { isTipId, tipText } from '../lib/tips'
 import type { Dashboard, DashboardInsight } from '../types'
-import { Icon, type IconName } from './ui/Icon'
+import { Icon } from './ui/Icon'
+import { GameIcon, type GameIconName } from './GameIcon'
 
 /**
  * Профиль-дашборд: вся своя игра на одном экране. Сверху - кубки, процент побед и
@@ -67,12 +68,12 @@ export function Crown({ tone, size = 26 }: { tone: 'win' | 'loss' | 'draw' | 'go
   )
 }
 
-function Panel({ icon, title, note, children, className = '' }: { icon?: IconName; title?: string; note?: string; children: ReactNode; className?: string }) {
+function Panel({ icon, title, note, children, className = '' }: { icon?: GameIconName; title?: string; note?: string; children: ReactNode; className?: string }) {
   return (
     <section className={`pd-panel ${className}`}>
       {title && (
         <div className="pd-head">
-          {icon && <span className="pd-head-ic"><Icon name={icon} size={16} /></span>}
+          {icon && <span className="pd-head-ic"><GameIcon name={icon} size={26} /></span>}
           <b>{title}</b>
           {note && <span className="pd-note">{note}</span>}
         </div>
@@ -97,7 +98,7 @@ function Hero({ d, t }: { d: Dashboard; t: Translations }) {
       </div>
       <div className="pd-hero-grid">
         <div className="pd-tile pd-trophies">
-          <div className="pd-tile-row"><Icon name="trophy" size={18} /> <b>{d.trophies > 0 ? fmt(d.trophies) : '—'}</b></div>
+          <div className="pd-tile-row"><GameIcon name="trophy" size={24} /> <b>{d.trophies > 0 ? fmt(d.trophies) : '—'}</b></div>
           {d.trophyDelta !== 0 && (
             <div className={d.trophyDelta > 0 ? 'pd-up' : 'pd-down'}>
               {d.trophyDelta > 0 ? '▲ +' : '▼ '}{fmt(d.trophyDelta)} <span>{s.week.replace('{n}', '')}</span>
@@ -160,7 +161,7 @@ function FixPanel({ d, t }: { d: Dashboard; t: Translations }) {
       {shown.map((ins, i) => <Insight key={i} ins={ins} t={t} />)}
       {locked.map((ins, i) => (
         <div key={`l${i}`} className="pd-insight pd-insight-locked" onClick={() => { haptic('light'); openPlus('plus') }}>
-          <span className="pd-ins-ic"><Icon name="lock" size={18} /></span>
+          <span className="pd-ins-ic"><GameIcon name="lock" size={24} /></span>
           <div className="pd-ins-body">
             <b>{s.lockedKind[ins.kind] ?? ins.kind}</b>
             <span className="pd-blur">██████ ███ ████████ ██ ███%</span>
@@ -169,7 +170,7 @@ function FixPanel({ d, t }: { d: Dashboard; t: Translations }) {
       ))}
       {d.insightsLocked > 0 && (
         <button className="pd-cta" onClick={() => { haptic('medium'); openPlus('plus') }}>
-          <Icon name="gem" size={16} /> {s.lockedCta} · {s.lockedMore.replace('{n}', String(d.insightsLocked))}
+          <GameIcon name="gem" size={20} /> {s.lockedCta} · {s.lockedMore.replace('{n}', String(d.insightsLocked))}
         </button>
       )}
     </Panel>
@@ -190,22 +191,22 @@ function Insight({ ins, t }: { ins: DashboardInsight; t: Translations }) {
   return (
     <div className="pd-insight">
       <span className="pd-ins-ic">
-        {ins.iconUrl ? <img src={ins.iconUrl} alt="" /> : <Icon name={KIND_ICON[ins.kind] ?? 'alert'} size={18} />}
+        {ins.iconUrl ? <img src={ins.iconUrl} alt="" /> : <GameIcon name={KIND_ICON[ins.kind] ?? 'target'} size={26} />}
       </span>
       <div className="pd-ins-body">
         <b>{title}</b>
         <span className="pd-ins-why"><em>{s.why}:</em> {why}</span>
         {tip && <span className="pd-ins-fix"><em>{s.fix}:</em> {tip.steps[1] ?? tip.title}</span>}
         {tip && isTipId(ins.tip) && (
-          <button className="btn-mini pd-ins-btn" onClick={() => openTip(ins.tip!)}><Icon name="play" size={13} /> {s.watchTip}</button>
+          <button className="btn-mini pd-ins-btn" onClick={() => openTip(ins.tip!)}><GameIcon name="play" size={16} /> {s.watchTip}</button>
         )}
       </div>
     </div>
   )
 }
 
-const KIND_ICON: Record<string, IconName> = {
-  tough_card: 'swords', leak: 'droplet', tilt: 'flame', daypart: 'clock', levels: 'trendDown', deck_meta: 'cards',
+const KIND_ICON: Record<string, GameIconName> = {
+  tough_card: 'swords', leak: 'drop', tilt: 'flame', daypart: 'scroll', levels: 'chart', deck_meta: 'cards',
 }
 
 function Recent({ d, t }: { d: Dashboard; t: Translations }) {
@@ -243,7 +244,7 @@ function TrophyChart({ d, t }: { d: Dashboard; t: Translations }) {
   const line = v.map((n, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(n).toFixed(1)}`).join(' ')
   const area = `${line} L${W},${H} L0,${H} Z`
   return (
-    <Panel icon="trendUp" title={s.trophyTitle} note={s.trophyNote.replace('{n}', String(v.length - 1))}>
+    <Panel icon="trophy" title={s.trophyTitle} note={s.trophyNote.replace('{n}', String(v.length - 1))}>
       <svg className="pd-chart" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
         <defs>
           <linearGradient id="pd-area" x1="0" y1="0" x2="0" y2="1">
@@ -271,7 +272,7 @@ function Deck({ d, t }: { d: Dashboard; t: Translations }) {
           </div>
         ))}
       </div>
-      <div className="pd-elixir"><Icon name="droplet" size={15} /> {s.avgElixir}: <b>{d.avgElixir.toFixed(1)}</b></div>
+      <div className="pd-elixir"><GameIcon name="drop" size={18} /> {s.avgElixir}: <b>{d.avgElixir.toFixed(1)}</b></div>
     </Panel>
   )
 }
@@ -293,7 +294,7 @@ function CardRates({ d, t }: { d: Dashboard; t: Translations }) {
       ))}
       {d.cardRatesLocked > 0 && (
         <button className="pd-locked-row" onClick={() => { haptic('light'); openPlus('plus') }}>
-          <Icon name="lock" size={14} /> {s.cardsLocked.replace('{n}', String(d.cardRatesLocked))}
+          <GameIcon name="lock" size={18} /> {s.cardsLocked.replace('{n}', String(d.cardRatesLocked))}
         </button>
       )}
     </Panel>
@@ -337,7 +338,7 @@ function Crowns({ d, t }: { d: Dashboard; t: Translations }) {
 function Modes({ d, t }: { d: Dashboard; t: Translations }) {
   const s = t.dash
   return (
-    <Panel icon="list" title={s.modesTitle}>
+    <Panel icon="scroll" title={s.modesTitle}>
       {d.modes.map(m => (
         <div key={m.mode} className="pd-mode">
           <span>{s.modes[m.mode] ?? m.mode}</span>
