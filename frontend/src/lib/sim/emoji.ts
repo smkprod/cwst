@@ -17,6 +17,7 @@ export const EMOJI: Record<string, string> = {
   'Fireball': '☄️',
   'The Log': '🪵',
   'Goblin Barrel': '🛢️',
+  'Tornado': '🌪️',
 }
 
 export const emojiOf = (card: string) => EMOJI[card] ?? '⚔️'

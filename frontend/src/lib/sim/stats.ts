@@ -401,6 +401,14 @@ export const SPELLS = {
     "count": 3,
     "spawnDeploy": 1.1,
     "radius": 1.5
+  },
+  "Tornado": {
+    "radius": 5.5,
+    "duration": 1.05,
+    "dps": 106,
+    "hitEvery": 0.5,
+    "crownPct": -83,
+    "pull": 6.0
   }
 } as const
 
@@ -420,5 +428,6 @@ export const COST: Record<string, number> = {
   "X-Bow": 6,
   "Fireball": 4,
   "The Log": 2,
-  "Goblin Barrel": 3
+  "Goblin Barrel": 3,
+  "Tornado": 3
 }

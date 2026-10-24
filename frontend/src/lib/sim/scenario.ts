@@ -19,6 +19,8 @@ export interface Scenario {
   horizon: number
   /** Урон по башне, при котором ещё «идеально» и ещё «сработало». */
   limits: [perfect: number, ok: number]
+  /** Особая цель: «король» - на три звезды нужно ещё и разбудить свою королевскую башню. */
+  goal?: 'king'
 }
 
 /** Сколько секунд боя показываем до паузы. */
@@ -97,6 +99,8 @@ export interface Outcome {
   enemyCost: number
   /** Свой юнит пережил бой. */
   survived: boolean
+  /** Своя королевская башня проснулась и стреляет. */
+  kingAwake: boolean
 }
 
 /** Оценка: идеально - выбил, башня почти цела и размен не в минус; сработало - башня потеряла немного. */
@@ -106,11 +110,14 @@ export function judge(sc: Scenario, sim: Sim, w: Watch, card: string, base: numb
   const myCost = COST[card] ?? 0
   const enemyCost = sc.enemy.reduce((a, e) => a + (COST[e.card] ?? 0), 0)
   const [perfect, ok] = sc.limits
-  const grade: Grade = killed && dmg <= perfect && myCost <= enemyCost ? 'perfect'
+  const king = sim.tower('me', 'K')
+  const kingAwake = king.alive && king.active
+  const goalMet = sc.goal !== 'king' || kingAwake
+  const grade: Grade = killed && dmg <= perfect && myCost <= enemyCost && goalMet ? 'perfect'
     : dmg <= ok && dmg < base ? 'ok' : 'fail'
   return {
     grade, dmg, base: Math.round(base), killed, killIn: killed && w.clearAt !== null ? w.clearAt - w.start : null,
-    myCost, enemyCost, survived: mine.some(e => e.alive),
+    myCost, enemyCost, survived: mine.some(e => e.alive), kingAwake,
   }
 }
 

@@ -12,28 +12,28 @@ import type { Scene } from '../components/ArenaAnim'
  */
 
 export type TipId = 'anti_hog' | 'anti_tank' | 'kite' | 'log_barrel' | 'anti_air' | 'anti_siege' | 'anti_miner'
-  | 'elixir' | 'tilt' | 'levels' | 'deck'
+  | 'elixir' | 'king_tornado' | 'tilt' | 'levels' | 'deck'
 
-export const TIP_IDS: TipId[] = ['anti_hog', 'kite', 'log_barrel', 'anti_tank', 'anti_air', 'anti_siege', 'anti_miner', 'elixir', 'tilt', 'levels', 'deck']
+export const TIP_IDS: TipId[] = ['anti_hog', 'king_tornado', 'kite', 'log_barrel', 'anti_tank', 'anti_air', 'anti_siege', 'anti_miner', 'elixir', 'tilt', 'levels', 'deck']
 
 /** Фишки, у которых есть схема арены. Остальные - советы без поля. */
-export const ARENA_TIPS: TipId[] = ['anti_hog', 'kite', 'log_barrel', 'anti_tank', 'anti_air', 'anti_siege', 'anti_miner', 'elixir']
+export const ARENA_TIPS: TipId[] = ['anti_hog', 'king_tornado', 'kite', 'log_barrel', 'anti_tank', 'anti_air', 'anti_siege', 'anti_miner', 'elixir']
 
 type Units = Record<'hog' | 'cannon' | 'mk' | 'skeletons' | 'barrel' | 'log' | 'goblins' | 'giant' | 'minipekka'
-  | 'counter' | 'balloon' | 'musk' | 'xbow' | 'knight' | 'miner' | 'golem' | 'here' | 'cells4', string>
+  | 'counter' | 'balloon' | 'musk' | 'xbow' | 'knight' | 'miner' | 'golem' | 'here' | 'cells4' | 'tornado' | 'kingUp', string>
 
 export interface TipText { title: string; when: string; steps: string[] }
 
 const UNITS: Record<Lang, Units> = {
   ru: { hog: 'Хог', cannon: 'Пушка', mk: 'Мега-рыцарь', skeletons: 'Скелеты', barrel: 'Бочка', log: 'Бревно', goblins: 'Гоблины',
     giant: 'Гигант', minipekka: 'Мини-ПЕККА', counter: 'Контратака', balloon: 'Шар', musk: 'Мушкетёр', xbow: 'Икс-лук',
-    knight: 'Рыцарь', miner: 'Шахтёр', golem: 'Голем', here: 'сюда', cells4: '4 клетки' },
+    knight: 'Рыцарь', miner: 'Шахтёр', golem: 'Голем', here: 'сюда', cells4: '4 клетки', tornado: 'Торнадо', kingUp: 'Король проснулся!' },
   uk: { hog: 'Хог', cannon: 'Гармата', mk: 'Мега-лицар', skeletons: 'Скелети', barrel: 'Бочка', log: 'Колода', goblins: 'Гобліни',
     giant: 'Гігант', minipekka: 'Міні-ПЕККА', counter: 'Контратака', balloon: 'Куля', musk: 'Мушкетерка', xbow: 'Ікс-лук',
-    knight: 'Лицар', miner: 'Шахтар', golem: 'Голем', here: 'сюди', cells4: '4 клітинки' },
+    knight: 'Лицар', miner: 'Шахтар', golem: 'Голем', here: 'сюди', cells4: '4 клітинки', tornado: 'Торнадо', kingUp: 'Король прокинувся!' },
   en: { hog: 'Hog', cannon: 'Cannon', mk: 'Mega Knight', skeletons: 'Skeletons', barrel: 'Barrel', log: 'Log', goblins: 'Goblins',
     giant: 'Giant', minipekka: 'Mini P.E.K.K.A', counter: 'Counter-push', balloon: 'Balloon', musk: 'Musketeer', xbow: 'X-Bow',
-    knight: 'Knight', miner: 'Miner', golem: 'Golem', here: 'here', cells4: '4 tiles' },
+    knight: 'Knight', miner: 'Miner', golem: 'Golem', here: 'here', cells4: '4 tiles', tornado: 'Tornado', kingUp: 'King is awake!' },
 }
 
 /** Сцены: (подписи юнитов на языке) → таймлайн. Клетки - как в игре, см. ArenaAnim. */
@@ -49,14 +49,25 @@ const SCENES: Partial<Record<TipId, (u: Units) => Scene>> = {
       { id: 'cannon', kind: 'building', card: 'Cannon', label: u.cannon, r: 0.95, keys: [{ t: 1.35, x: 9, y: 22 }, { t: 6.5, x: 9, y: 22 }] },
     ],
   }),
-  // Дешёвый юнит в центр между башнями: тяж идёт к нему под огнём обеих принцесс
+  // Торнадо на вторую клетку перед королём, на две к башне, когда Хог уже у неё: Хога тянет в радиус короля
+  king_tornado: u => ({
+    duration: 6.5,
+    marks: [{ x: 7.5, y: 26, from: 1.4, to: 2.3, label: u.here }],
+    actors: [
+      { id: 'hog', kind: 'enemy', card: 'Hog Rider', label: u.hog, r: 0.75, to: 5.2,
+        keys: [{ t: 0, x: 3.5, y: 11.5 }, { t: 1.1, x: 3.5, y: 17.3 }, { t: 2.3, x: 3.5, y: 21.6 }, { t: 3.2, x: 6.3, y: 24.3 }, { t: 5.2, x: 6.3, y: 24.4 }] },
+      { id: 'tn', kind: 'spell', card: 'Tornado', label: u.tornado, r: 5.5, keys: [{ t: 2.3, x: 7.5, y: 26 }, { t: 3.35, x: 7.5, y: 26 }] },
+      { id: 'up', kind: 'text', label: u.kingUp, keys: [{ t: 2.9, x: 9, y: 27.2 }, { t: 4.4, x: 9, y: 27.2 }] },
+    ],
+  }),
+  // Тяжа держит урон в лоб: Мини-ПЕККА сразу за мостом, башня помогает - как в тренажёре
   kite: u => ({
     duration: 7,
-    marks: [{ x: 9, y: 24.5, from: 0.6, to: 1.4, label: u.here }],
+    marks: [{ x: 3.5, y: 18.5, from: 0.9, to: 1.7, label: u.here }],
     actors: [
-      { id: 'mk', kind: 'enemy', card: 'Mega Knight', label: u.mk, r: 1.0, to: 5.4,
-        keys: [{ t: 0, x: 3.5, y: 12.5 }, { t: 1.1, x: 3.5, y: 18.6 }, { t: 2.8, x: 7.6, y: 23.4 }, { t: 5.4, x: 8, y: 23.6 }] },
-      { id: 'sk', kind: 'mine', card: 'Skeletons', label: u.skeletons, r: 0.55, to: 3.1, keys: [{ t: 1.25, x: 9, y: 24.5 }, { t: 3.1, x: 9, y: 24.5 }] },
+      { id: 'mk', kind: 'enemy', card: 'Mega Knight', label: u.mk, r: 1.0, to: 5.6,
+        keys: [{ t: 0, x: 3.5, y: 12.5 }, { t: 1.6, x: 3.5, y: 17.6 }, { t: 2.4, x: 3.5, y: 18.4 }, { t: 5.6, x: 3.5, y: 18.6 }] },
+      { id: 'mp', kind: 'mine', card: 'Mini P.E.K.K.A', label: u.minipekka, r: 0.65, keys: [{ t: 1.7, x: 3.5, y: 19.6 }, { t: 2.6, x: 3.5, y: 19.7 }, { t: 7, x: 3.5, y: 19.7 }] },
     ],
   }),
   // Бревно катится вперёд, к сопернику: кидаем на свою башню, и оно сметает приземлившихся
@@ -94,14 +105,14 @@ const SCENES: Partial<Record<TipId, (u: Units) => Scene>> = {
       { id: 'musk', kind: 'mine', card: 'Musketeer', label: u.musk, r: 0.65, keys: [{ t: 1.3, x: 14.5, y: 28.6 }, { t: 6.5, x: 14.5, y: 28.6 }] },
     ],
   }),
-  // Икс-лук у реки на чужой стороне: танк на мост перед ним, сразу
+  // Икс-лук бьёт ближайшее: пушка у самой реки забирает его огонь и сама достаёт до лука
   anti_siege: u => ({
-    duration: 6.5,
+    duration: 7,
     noShots: true,
-    marks: [{ x: 14.5, y: 16, from: 0.6, to: 1.4, label: u.here }],
+    marks: [{ x: 14, y: 18, size: 2, from: 0.6, to: 1.4, label: u.here }],
     actors: [
-      { id: 'xbow', kind: 'enemy', card: 'X-Bow', label: u.xbow, r: 0.9, to: 4.4, keys: [{ t: 0, x: 14.5, y: 12.8 }, { t: 4.4, x: 14.5, y: 12.8 }] },
-      { id: 'kn', kind: 'mine', card: 'Knight', label: u.knight, r: 0.7, keys: [{ t: 1.3, x: 14.5, y: 16 }, { t: 2.4, x: 14.5, y: 14.2 }, { t: 6.5, x: 14.5, y: 14.2 }] },
+      { id: 'xbow', kind: 'enemy', card: 'X-Bow', label: u.xbow, r: 0.9, to: 5.6, keys: [{ t: 0, x: 14.5, y: 13 }, { t: 5.6, x: 14.5, y: 13 }] },
+      { id: 'cn', kind: 'building', card: 'Cannon', label: u.cannon, r: 0.95, keys: [{ t: 1.0, x: 14, y: 18 }, { t: 7, x: 14, y: 18 }] },
     ],
   }),
   // Шахтёр вылезает у башни: дешёвый юнит вплотную
@@ -131,10 +142,10 @@ const TEXT: Record<Lang, Record<TipId, TipText>> = {
       steps: ['Дождись, пока Хог перейдёт мост — раньше не ставь, иначе его пустят в другую линию.',
         'Ставь пушку или теслу в центр, примерно в 4 клетках ниже реки.',
         'Хог свернёт к зданию и встанет бить его под огнём башен — до твоей башни он не дойдёт.'] },
-    kite: { title: 'Увести тяжа в центр', when: 'Против Мега-рыцаря, ПЕККИ, Принца — тех, кто бьёт ближайшего.',
-      steps: ['Тяж перешёл мост и идёт на башню.',
-        'Брось дешёвого юнита (скелетов, ледяного духа) в центр между башнями.',
-        'Тяж свернёт к нему и пойдёт через центр под огнём двух башен, а ты добьёшь его без потерь.'] },
+    kite: { title: 'Тяж: встречай уроном', when: 'Против Мега-рыцаря, ПЕККИ, Принца — тяжей, которые бьют ближайшего.',
+      steps: ['Тяж перешёл мост — ему нужно всего 3–4 удара, чтобы снести башню.',
+        'Ставь Мини-ПЕККА прямо на его пути, сразу за мостом: 720 урона за удар, и башня добивает.',
+        'Скелеты в центре только уведут его на секунду — Мега-рыцарь давит их прыжком. Отвлекай, когда урон уже на поле.'] },
     log_barrel: { title: 'Бревно по бочке', when: 'Против Гоблинской бочки и Бочки со скелетами.',
       steps: ['Бочку видно в полёте — не паникуй и не кидай раньше времени.',
         'Как только бочка подлетает к башне, кидай бревно прямо на свою башню — оно покатится вперёд.',
@@ -147,14 +158,18 @@ const TEXT: Record<Lang, Record<TipId, TipText>> = {
       steps: ['Не жди, пока Шар долетит до башни — он сносит её за пару ударов.',
         'Поставь мушкетёра или стрелков за башней, как только Шар перелетел реку.',
         'Башня и юнит собьют его раньше, чем он начнёт бить.'] },
-    anti_siege: { title: 'Икс-лук: дави сразу', when: 'Против Икс-лука и Мортиры у реки.',
-      steps: ['Соперник поставил лук у реки — он ещё не набрал урон.',
-        'Сразу ставь танка (Рыцаря, Ледяного голема) прямо на мост перед ним.',
-        'Танк ломает лук, мелочь соперника добей заклинанием.'] },
+    anti_siege: { title: 'Икс-лук: здание у реки', when: 'Против Икс-лука и Мортиры у реки.',
+      steps: ['Икс-лук бьёт ближайшее — и с моста достаёт до твоей башни.',
+        'Поставь пушку у самой реки напротив лука: он переключится на неё, а пушка сама достанет до лука.',
+        'Рыцарь на мосту тоже ломает лук, но под огнём лука и чужой башни сам теряет здоровье — здание надёжнее.'] },
     anti_miner: { title: 'Шахтёр: юнит рядом с башней', when: 'Против Шахтёра, Кладбища, Гоблинского бура.',
       steps: ['Шахтёр вылезает прямо у твоей башни — от него не убежать.',
         'Ставь дешёвого юнита (скелетов) вплотную к башне, как только он вылез.',
         'Ещё лучше — угадай заранее: у соперника 3 эликсира и он ждёт.'] },
+    king_tornado: { title: 'Торнадо будит короля', when: 'Против Хога, Тарана, Рам, Гоблинской бочки — всех, кто идёт на башню принцессы.',
+      steps: ['Дождись, пока Хог подойдёт к твоей башне принцессы — раньше Торнадо не дотянет его до короля.',
+        'Кидай Торнадо на вторую клетку перед королём, на две клетки в сторону этой башни.',
+        'Хога затянет в радиус короля — король проснётся, вместе с принцессой собьёт Хога и будет стрелять до конца боя.'] },
     elixir: { title: 'Не держи 10 эликсира', when: 'Если в поражениях у тебя течёт эликсир.',
       steps: ['10 эликсира — это потеря: всё, что набирается сверх, сгорает.',
         'При 9+ и тишине на поле ставь дорогую карту в самый тыл, у задней стенки.',
@@ -177,10 +192,10 @@ const TEXT: Record<Lang, Record<TipId, TipText>> = {
       steps: ['Дочекайся, поки Хог перейде міст — раніше не став, інакше його пустять іншою лінією.',
         'Став гармату чи теслу в центр, приблизно за 4 клітинки нижче річки.',
         'Хог зверне до будівлі й стане бити її під вогнем веж — до твоєї вежі не дійде.'] },
-    kite: { title: 'Відвести важкого в центр', when: 'Проти Мега-лицаря, ПЕККИ, Принца — тих, хто б\'є найближчого.',
-      steps: ['Важкий перейшов міст і йде на вежу.',
-        'Кинь дешевого юніта (скелетів, крижаного духа) в центр між вежами.',
-        'Важкий зверне до нього й піде центром під вогнем двох веж, а ти доб\'єш його без втрат.'] },
+    kite: { title: 'Важкий: зустрічай уроном', when: 'Проти Мега-лицаря, ПЕККИ, Принца — важких, що б\'ють найближчого.',
+      steps: ['Важкий перейшов міст — йому треба лише 3–4 удари, щоб знести вежу.',
+        'Став Міні-ПЕККА просто на його шляху, одразу за мостом: 720 урону за удар, і вежа добиває.',
+        'Скелети в центрі лише відведуть його на секунду — Мега-лицар тисне їх стрибком. Відволікай, коли урон уже на полі.'] },
     log_barrel: { title: 'Колода по бочці', when: 'Проти Гоблінської бочки та Бочки зі скелетами.',
       steps: ['Бочку видно в польоті — не панікуй і не кидай зарано.',
         'Щойно бочка підлітає до вежі, кидай колоду просто на свою вежу — вона покотиться вперед.',
@@ -193,14 +208,18 @@ const TEXT: Record<Lang, Record<TipId, TipText>> = {
       steps: ['Не чекай, поки Куля долетить до вежі — вона зносить її за кілька ударів.',
         'Постав мушкетерку чи лучниць за вежею, щойно Куля перелетіла річку.',
         'Вежа й юніт зіб\'ють її раніше, ніж вона почне бити.'] },
-    anti_siege: { title: 'Ікс-лук: тисни одразу', when: 'Проти Ікс-лука й Мортири біля річки.',
-      steps: ['Суперник поставив лук біля річки — він ще не набрав урону.',
-        'Одразу став танка (Лицаря, Крижаного голема) просто на міст перед ним.',
-        'Танк ламає лук, дрібноту суперника добий закляттям.'] },
+    anti_siege: { title: 'Ікс-лук: будівля біля річки', when: 'Проти Ікс-лука й Мортири біля річки.',
+      steps: ['Ікс-лук б\'є найближче — і з мосту дістає до твоєї вежі.',
+        'Постав гармату біля самої річки навпроти лука: він переключиться на неї, а гармата сама дістане до лука.',
+        'Лицар на мосту теж ламає лук, але під вогнем лука й чужої вежі сам втрачає здоров\'я — будівля надійніша.'] },
     anti_miner: { title: 'Шахтар: юніт біля вежі', when: 'Проти Шахтаря, Кладовища, Гоблінського бура.',
       steps: ['Шахтар вилазить просто біля твоєї вежі — від нього не втекти.',
         'Став дешевого юніта (скелетів) впритул до вежі, щойно він виліз.',
         'Ще краще — вгадай заздалегідь: у суперника 3 еліксиру і він чекає.'] },
+    king_tornado: { title: 'Торнадо будить короля', when: 'Проти Хога, Тарана, Рам, Гоблінської бочки — усіх, хто йде на вежу принцеси.',
+      steps: ['Дочекайся, поки Хог підійде до твоєї вежі принцеси — раніше Торнадо не дотягне його до короля.',
+        'Кидай Торнадо на другу клітинку перед королем, на дві клітинки в бік цієї вежі.',
+        'Хога затягне в радіус короля — король прокинеться, разом із принцесою зіб\'є Хога й стрілятиме до кінця бою.'] },
     elixir: { title: 'Не тримай 10 еліксиру', when: 'Якщо в поразках у тебе тече еліксир.',
       steps: ['10 еліксиру — це втрата: усе, що набирається понад, згорає.',
         'При 9+ і тиші на полі став дорогу карту в самий тил, біля задньої стінки.',
@@ -223,10 +242,10 @@ const TEXT: Record<Lang, Record<TipId, TipText>> = {
       steps: ['Wait until the Hog crosses the bridge — earlier and they just switch lanes.',
         'Drop a Cannon or Tesla in the middle, about 4 tiles below the river.',
         'The Hog turns to the building and stops to hit it under tower fire — it never reaches yours.'] },
-    kite: { title: 'Pull the tank into the middle', when: 'Against Mega Knight, P.E.K.K.A, Prince — anything that hits the closest target.',
-      steps: ['The tank crossed the bridge and heads to your tower.',
-        'Drop a cheap unit (Skeletons, Ice Spirit) in the middle between your towers.',
-        'The tank turns to it and walks through the middle under two towers — you finish it for free.'] },
+    kite: { title: 'Tank: meet it with damage', when: 'Against Mega Knight, P.E.K.K.A, Prince — tanks that hit the closest target.',
+      steps: ['The tank crossed the bridge — it needs only 3–4 hits to take your tower.',
+        'Drop Mini P.E.K.K.A right in its path just past the bridge: 720 damage per hit, the tower finishes it.',
+        'Skeletons in the middle only pull it for a second — the Mega Knight crushes them with its jump. Distract once your damage is on the field.'] },
     log_barrel: { title: 'Log the barrel', when: 'Against Goblin Barrel and Skeleton Barrel.',
       steps: ['You can see the barrel in the air — don\'t panic and don\'t throw early.',
         'As soon as the barrel reaches your tower, Log right onto your own tower — it rolls forward.',
@@ -239,14 +258,18 @@ const TEXT: Record<Lang, Record<TipId, TipText>> = {
       steps: ['Don\'t wait until the Balloon reaches your tower — it kills it in a few hits.',
         'Place a Musketeer or Archers behind the tower as soon as it crosses the river.',
         'The tower and the unit take it down before it starts hitting.'] },
-    anti_siege: { title: 'X-Bow: pressure right away', when: 'Against X-Bow and Mortar at the river.',
-      steps: ['They placed the X-Bow at the river — it hasn\'t dealt damage yet.',
-        'Immediately drop a tank (Knight, Ice Golem) on the bridge in front of it.',
-        'The tank breaks it; finish their small support with a spell.'] },
+    anti_siege: { title: 'X-Bow: building at the river', when: 'Against X-Bow and Mortar at the river.',
+      steps: ['The X-Bow hits the closest target — and reaches your tower from the bridge.',
+        'Place a Cannon right at the river across from it: the X-Bow switches to it, and the Cannon reaches the X-Bow.',
+        'A Knight on the bridge also breaks it, but takes fire from the X-Bow and their tower — the building is safer.'] },
     anti_miner: { title: 'Miner: unit next to the tower', when: 'Against Miner, Graveyard, Goblin Drill.',
       steps: ['The Miner pops up right at your tower — you can\'t outrun it.',
         'Drop a cheap unit (Skeletons) right next to the tower as soon as it appears.',
         'Even better — predict it: they have 3 elixir and are waiting.'] },
+    king_tornado: { title: 'Tornado wakes the King', when: 'Against Hog, Battle Ram, Ram Rider, Goblin Barrel — anything going for your Princess Tower.',
+      steps: ['Wait until the Hog reaches your Princess Tower — earlier and the Tornado won\'t drag it to the King.',
+        'Drop Tornado on the second tile in front of your King, two tiles toward that tower.',
+        'The Hog gets pulled into King range — your King wakes up, kills the Hog with the Princess and keeps shooting all match.'] },
     elixir: { title: 'Don\'t sit at 10 elixir', when: 'If you leak elixir in your losses.',
       steps: ['10 elixir is a loss: everything above it burns.',
         'At 9+ with a quiet field, place your expensive card at the very back.',

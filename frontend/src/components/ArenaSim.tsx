@@ -3,8 +3,8 @@ import { DT, TOWER_SIZE, type Entity, type Projectile, type Sim } from '../lib/s
 import { SPELLS, UNITS } from '../lib/sim/stats'
 import { useCardArt } from '../lib/cardArt'
 import {
-  ArenaDefs, ArenaGround, BarrelIcon, BombIcon, Burst, FireballIcon, H, Medallion, Pill, TILE, TILE_H, TowerArt, UnitArt, VIEW_TOP, W,
-  artFor, keeperArt, px, py, towerTop,
+  ArenaDefs, ArenaGround, BarrelIcon, BombIcon, Burst, FireballIcon, H, Medallion, Pill, TILE, TILE_H, TornadoSwirl, TowerArt, UnitArt,
+  VIEW_TOP, W, artFor, keeperArt, px, py, towerTop,
 } from './ArenaAnim'
 
 /**
@@ -23,7 +23,7 @@ export interface Camp { name: string; clan: string; you: string }
 const ME = '#3d8bff'
 const FOE = '#ef4454'
 
-export function ArenaSim({ sim, running, speed = 1, onTick, onTap, ghost, zone, names, camp }: {
+export function ArenaSim({ sim, running, speed = 1, onTick, onTap, ghost, ghostLabel, zone, names, camp }: {
   sim: Sim
   running: boolean
   speed?: number
@@ -34,6 +34,8 @@ export function ArenaSim({ sim, running, speed = 1, onTick, onTap, ghost, zone, 
   onTick?: (sim: Sim) => boolean
   onTap?: (x: number, y: number) => void
   ghost?: SimGhost | null
+  /** Подпись над «призраком» - на показе решения: «Сюда - Пушка». */
+  ghostLabel?: string
   /** Подсветить, куда нельзя: войска - только своя половина, Шахтёр - везде, кроме реки. */
   zone?: 'troop' | 'spell' | 'miner' | null
 }) {
@@ -125,6 +127,12 @@ export function ArenaSim({ sim, running, speed = 1, onTick, onTap, ghost, zone, 
       ))}
 
       {sim.bombs.map(b => <Bomb key={b.id} b={b} now={sim.t} clock={clock} />)}
+      {sim.vortices.map(v => (
+        <g key={v.id} transform={`translate(${px(v.x)} ${py(v.y)})`}>
+          <TornadoSwirl rx={SPELLS.Tornado.radius * TILE} ry={SPELLS.Tornado.radius * TILE_H} t={clock}
+            k={1 - (sim.t - v.t0) / SPELLS.Tornado.duration} />
+        </g>
+      ))}
 
       {towers.map(t => <TowerSim key={t.id} e={t} now={sim.t} g={g} />)}
 
@@ -170,6 +178,7 @@ export function ArenaSim({ sim, running, speed = 1, onTick, onTap, ghost, zone, 
       })}
 
       {ghost && <GhostMark ghost={ghost} clock={clock} g={g} art={artFor(art, ghost.card)} />}
+      {ghost && ghostLabel && <Pill x={Math.min(W - 60, Math.max(60, px(ghost.x)))} y={py(ghost.y) - 30} text={ghostLabel} tone="gold" />}
 
       {camp && <CampHud camp={camp} sim={sim} g={g} />}
     </svg>
@@ -425,6 +434,14 @@ function GhostMark({ ghost, clock, g, art }: { ghost: SimGhost; clock: number; g
       <g opacity={pulse} pointerEvents="none">
         <ellipse cx={x} cy={y} rx={SPELLS.Fireball.radius * TILE} ry={SPELLS.Fireball.radius * TILE_H} fill="rgba(255,140,40,0.18)" stroke={stroke} strokeWidth="2" strokeDasharray="5 4" />
         <g transform={`translate(${x} ${y})`}><FireballIcon size={16} g={g} /></g>
+      </g>
+    )
+  }
+  if (ghost.card === 'Tornado') {
+    return (
+      <g pointerEvents="none" transform={`translate(${x} ${y})`} opacity={0.55 + 0.35 * pulse}>
+        <TornadoSwirl rx={SPELLS.Tornado.radius * TILE} ry={SPELLS.Tornado.radius * TILE_H} t={clock} />
+        {bad && <ellipse rx={SPELLS.Tornado.radius * TILE} ry={SPELLS.Tornado.radius * TILE_H} fill="none" stroke={stroke} strokeWidth="2" />}
       </g>
     )
   }
