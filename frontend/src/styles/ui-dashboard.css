@@ -197,6 +197,8 @@
 .tr-elixir-bar { flex: 1; display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; }
 .tr-elixir-bar i { height: 12px; border-radius: 4px; background: rgba(255, 255, 255, 0.08); }
 .tr-elixir-bar i.on { background: linear-gradient(180deg, #f07bff, #b23ad6); box-shadow: 0 0 8px rgba(214, 90, 255, 0.6); }
+.tr-elixir-bar i { position: relative; overflow: hidden; }
+.tr-elixir-bar i span { position: absolute; inset: 0 auto 0 0; background: linear-gradient(180deg, rgba(240, 123, 255, 0.55), rgba(178, 58, 214, 0.55)); }
 .tr-elixir b { font-size: 16px; font-weight: 900; color: #f0b8ff; width: 20px; text-align: right; }
 .tr-hand { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .tr-card { position: relative; display: grid; justify-items: center; gap: 3px; padding: 6px 4px 6px; border-radius: 14px; cursor: pointer;
@@ -210,6 +212,24 @@
 .tr-cost { position: absolute; top: -6px; left: -6px; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
   font-size: 12.5px; font-weight: 900; color: #fff; background: radial-gradient(circle at 35% 30%, #f7a8ff, #b23ad6 70%); border: 2px solid #fff; }
 .tr-hint { text-align: center; font-size: 13px; color: #ffe08a; font-weight: 700; }
+.tr-emoji { font-size: 30px; line-height: 1; filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.45)); }
+.tr-card-emoji { position: absolute; top: -6px; right: -6px; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
+  font-size: 13px; background: #16204a; border: 1.5px solid #3d8bff; }
+.tr-speed { position: absolute; right: 8px; bottom: 8px; padding: 5px 10px; border-radius: 999px; font: inherit; font-size: 12px; font-weight: 900;
+  color: #e2e8f8; background: rgba(10, 14, 32, 0.75); border: 1px solid rgba(255, 255, 255, 0.25); cursor: pointer; backdrop-filter: blur(4px); }
+.tr-speed-on { color: #2a1400; background: linear-gradient(135deg, #ffe08a, #ff9c3a); border-color: transparent; }
+.tr-place { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); padding: 11px 22px; border-radius: 999px; font: inherit;
+  font-size: 15px; font-weight: 900; color: #0d2a12; cursor: pointer; border: none; white-space: nowrap;
+  background: linear-gradient(135deg, #7dffb0, #35d08a); box-shadow: 0 8px 22px rgba(53, 208, 138, 0.5); animation: trPop 1.3s ease-in-out infinite; }
+@keyframes trPop { 0%, 100% { transform: translateX(-50%) scale(1); } 50% { transform: translateX(-50%) scale(1.06); } }
+.tr-facts { display: grid; gap: 6px; margin-top: 10px; }
+.tr-facts span { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; padding: 8px 10px; border-radius: 12px; font-size: 13.5px; font-weight: 800;
+  background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08); }
+.tr-facts small { margin-left: auto; font-size: 12px; font-weight: 800; opacity: 0.75; }
+.tr-fact-good { color: #9ff0c4; }
+.tr-fact-bad { color: #ffb0b7; }
+.tr-trick { padding: 9px 11px; border-radius: 12px; background: rgba(255, 224, 138, 0.08); border: 1px solid rgba(255, 224, 138, 0.25); }
+.tr-trick b { color: #ffe08a; }
 .tr-result { padding: 14px; border-radius: 18px; border: 1px solid; animation: slideUp 0.25s ease; }
 .tr-result-perfect { background: linear-gradient(160deg, rgba(53, 208, 138, 0.22), rgba(16, 22, 46, 0.95)); border-color: rgba(53, 208, 138, 0.55); }
 .tr-result-ok { background: linear-gradient(160deg, rgba(255, 200, 61, 0.2), rgba(16, 22, 46, 0.95)); border-color: rgba(255, 200, 61, 0.5); }
