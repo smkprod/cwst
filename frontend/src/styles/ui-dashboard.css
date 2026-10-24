@@ -200,11 +200,12 @@
 .tr-turn-bad { border-color: #ff7a85; background: rgba(90, 14, 26, 0.88); }
 .tr-tray { display: grid; gap: 9px; padding: 12px 10px 10px; background: linear-gradient(180deg, #7b4f2b, #573619);
   border-top: 3px solid #2b1a0c; box-shadow: inset 0 2px 0 rgba(255, 220, 170, 0.18); }
-.tr-elixir { display: flex; align-items: center; gap: 6px; }
+.tr-elixir { position: relative; display: flex; align-items: center; gap: 6px; padding-bottom: 8px; }
 .tr-drop { flex-shrink: 0; width: 30px; height: 34px; display: grid; place-items: center; margin-top: -4px;
   border-radius: 50% 50% 50% 50% / 62% 62% 38% 38%; background: radial-gradient(circle at 38% 32%, #ffb6ff, #d64ce8 55%, #9b1fb5);
   border: 2px solid #3d1446; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35); }
 .tr-drop b { font-size: 15px; font-weight: 900; color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+.tr-max { position: absolute; left: 38px; bottom: -3px; font-size: 9.5px; font-weight: 900; color: #ffd6ff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7); }
 .tr-elixir-bar { flex: 1; display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; padding: 3px; border-radius: 8px; background: rgba(0, 0, 0, 0.35); }
 .tr-elixir-bar i { position: relative; overflow: hidden; height: 13px; border-radius: 4px; background: rgba(255, 255, 255, 0.07); }
 .tr-elixir-bar i.on { background: linear-gradient(180deg, #ff9cff, #c33ad9); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45); }

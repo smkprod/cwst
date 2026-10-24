@@ -3,8 +3,8 @@ import { DT, TOWER_SIZE, type Entity, type Projectile, type Sim } from '../lib/s
 import { SPELLS, UNITS } from '../lib/sim/stats'
 import { useCardArt } from '../lib/cardArt'
 import {
-  ArenaDefs, ArenaGround, BarrelIcon, BombIcon, Burst, FireballIcon, H, Pill, TILE, TILE_H, TowerArt, UnitArt, VIEW_TOP, W,
-  artFor, px, py, towerTop,
+  ArenaDefs, ArenaGround, BarrelIcon, BombIcon, Burst, FireballIcon, H, Medallion, Pill, TILE, TILE_H, TowerArt, UnitArt, VIEW_TOP, W,
+  artFor, keeperArt, px, py, towerTop,
 } from './ArenaAnim'
 
 /**
@@ -17,15 +17,19 @@ import {
 
 export interface SimGhost { card: string; x: number; y: number; ok: boolean }
 
+/** Подписи тренировочного лагеря, как в игре: соперник-тренер, его клан, «Ты» на своей половине. */
+export interface Camp { name: string; clan: string; you: string }
+
 const ME = '#3d8bff'
 const FOE = '#ef4454'
 
-export function ArenaSim({ sim, running, speed = 1, onTick, onTap, ghost, zone, names }: {
+export function ArenaSim({ sim, running, speed = 1, onTick, onTap, ghost, zone, names, camp }: {
   sim: Sim
   running: boolean
   speed?: number
   /** Имя карты на языке игрока - подпись под юнитом, пока он появляется. */
   names?: (card: string) => string
+  camp?: Camp
   /** После каждого шага боя; true - встать (пауза или конец). */
   onTick?: (sim: Sim) => boolean
   onTap?: (x: number, y: number) => void
@@ -107,6 +111,10 @@ export function ArenaSim({ sim, running, speed = 1, onTick, onTap, ghost, zone, 
     <svg className={`arena ${onTap ? 'arena-tap' : ''}`} viewBox={`0 0 ${W} ${H}`} role="img" aria-label="arena" onPointerDown={tap}>
       <ArenaDefs g={g} />
       <ArenaGround t={clock} g={g} />
+      {camp && (
+        <text x={px(9)} y={py(21.6)} textAnchor="middle" fontSize="26" fontWeight="900" fill="#fff" opacity="0.28"
+          stroke="#2b4a12" strokeWidth="2" paintOrder="stroke" letterSpacing="1">{camp.you}</text>
+      )}
 
       {zone && <Zone kind={zone} />}
 
@@ -118,7 +126,7 @@ export function ArenaSim({ sim, running, speed = 1, onTick, onTap, ghost, zone, 
 
       {sim.bombs.map(b => <Bomb key={b.id} b={b} now={sim.t} clock={clock} />)}
 
-      {towers.map(t => <TowerSim key={t.id} e={t} now={sim.t} />)}
+      {towers.map(t => <TowerSim key={t.id} e={t} now={sim.t} g={g} />)}
 
       {ground.map(unit)}
       {sim.rollers.map(r => <Log key={r.id} x={px(r.x)} y={py(r.y)} clock={clock} fade={0.4 + Math.abs(r.y0 - r.y) / 0.6} />)}
@@ -162,7 +170,36 @@ export function ArenaSim({ sim, running, speed = 1, onTick, onTap, ghost, zone, 
       })}
 
       {ghost && <GhostMark ghost={ghost} clock={clock} g={g} art={artFor(art, ghost.card)} />}
+
+      {camp && <CampHud camp={camp} sim={sim} g={g} />}
     </svg>
+  )
+}
+
+/**
+ * Как в тренировочном лагере игры: слева сверху соперник - портрет короля, имя
+ * тренера и клан; справа у реки - короны: сверху его, снизу твои (по сломанным башням).
+ */
+function CampHud({ camp, sim, g }: { camp: Camp; sim: Sim; g: (n: string) => string }) {
+  const broken = (team: 'me' | 'enemy') => sim.entities.filter(e => e.kind === 'tower' && e.team === team && !e.alive).length
+  return (
+    <g pointerEvents="none">
+      <g transform={`translate(${px(0.95)} ${py(1.45)})`}><Medallion src={keeperArt(true, true)} r={11} color={FOE} g={g} /></g>
+      <text x={px(1.95)} y={py(1.05)} fontSize="12" fontWeight="900" fill="#ff8fb1" stroke="#3a0b1c" strokeWidth="3" paintOrder="stroke">{camp.name}</text>
+      <text x={px(1.95)} y={py(2.05)} fontSize="9.5" fontWeight="800" fill="#fff" stroke="#1b2a10" strokeWidth="2.6" paintOrder="stroke">{camp.clan}</text>
+      <Crowns x={px(17.25)} y={py(12.6)} n={broken('me')} color={FOE} />
+      <Crowns x={px(17.25)} y={py(19.4)} n={broken('enemy')} color={ME} />
+    </g>
+  )
+}
+
+function Crowns({ x, y, n, color }: { x: number; y: number; n: number; color: string }) {
+  return (
+    <g transform={`translate(${x} ${y})`}>
+      <rect x={-11} y={-15} width={22} height={30} rx="5" fill="rgba(13,20,48,0.78)" stroke="rgba(255,255,255,0.35)" />
+      <path d="M-7 -2 L-8 -10 L-3.5 -6 L0 -12 L3.5 -6 L8 -10 L7 -2 Z" fill={color} stroke="#ffd34d" strokeWidth="1.3" />
+      <text y={11} textAnchor="middle" fontSize="12" fontWeight="900" fill="#fff" stroke="#0d1430" strokeWidth="2.4" paintOrder="stroke">{n}</text>
+    </g>
   )
 }
 
@@ -184,7 +221,7 @@ function Zone({ kind }: { kind: 'troop' | 'spell' | 'miner' }) {
   )
 }
 
-function TowerSim({ e, now }: { e: Entity; now: number }) {
+function TowerSim({ e, now, g }: { e: Entity; now: number; g: (n: string) => string }) {
   const size = TOWER_SIZE[e.slot!]
   const king = e.slot === 'K'
   const top = towerTop(e.y, size, king)
@@ -194,7 +231,7 @@ function TowerSim({ e, now }: { e: Entity; now: number }) {
   return (
     <g>
       <g transform={hurt ? `translate(${Math.sin(now * 90) * 1.5} 0)` : undefined}>
-        <TowerArt x={e.x} y={e.y} size={size} king={king} enemy={e.team === 'enemy'} dead={!e.alive} />
+        <TowerArt x={e.x} y={e.y} size={size} king={king} enemy={e.team === 'enemy'} dead={!e.alive} g={g} />
       </g>
       {e.alive && (
         <g>

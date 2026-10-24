@@ -1,6 +1,9 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { useCardArt } from '../lib/cardArt'
 import { emojiOf } from '../lib/sim/emoji'
+import kingMe from '../assets/keepers/king-me.webp'
+import kingFoe from '../assets/keepers/king-foe.webp'
+import princessArt from '../assets/keepers/princess.webp'
 
 /**
  * Схема арены с анимацией: куда и когда ставить карту.
@@ -166,7 +169,7 @@ export function ArenaAnim({ scene, paused = false, at: frameAt, loop = true, onE
           stroke={shots.some(s => s.key === tw.id) ? 'rgba(255,236,150,0.75)' : 'rgba(255,255,255,0.22)'} strokeDasharray="3 7" />
       ))}
 
-      {TOWERS.map(tw => <TowerArt key={tw.id} x={tw.x} y={tw.y} size={tw.size} king={tw.king} enemy={tw.enemy} />)}
+      {TOWERS.map(tw => <TowerArt key={tw.id} x={tw.x} y={tw.y} size={tw.size} king={tw.king} enemy={tw.enemy} g={g} />)}
 
       {(scene.rulers ?? []).filter(r => t >= r.from && t <= r.to).map((r, i) => (
         <g key={`ru${i}`}>
@@ -421,27 +424,20 @@ export function Burst({ r, k }: { r: number; k: number }) {
   )
 }
 
-/**
- * Хозяин башни: король с бородой и короной или принцесса с розовыми волосами и
- * диадемой; одежда - цвета стороны.
- */
-function Keeper({ king, color, size }: { king: boolean; color: string; size: number }) {
+/** Хозяин башни - портрет в круглом медальоне посреди площадки: кольцо цвета стороны, золотой ободок. */
+export function Medallion({ src, r, color, g }: { src: string; r: number; color: string; g: (n: string) => string }) {
   return (
-    <g transform={`scale(${size / 20})`}>
-      <path d="M-9 10 Q-9 2 0 2 Q9 2 9 10 Z" fill={color} stroke="#1b2440" strokeWidth="1" />
-      {!king && <ellipse cx="0" cy="-3" rx="8.6" ry="8.2" fill="#ff6fa8" stroke="#a8336a" strokeWidth="1" />}
-      <circle cx="0" cy="-2" r="6.4" fill="#f5c9a0" stroke="#8a5a3a" strokeWidth="0.8" />
-      {king && <path d="M-6.2 0 Q0 9 6.2 0 Q4 4.5 0 4.5 Q-4 4.5 -6.2 0 Z" fill="#7a4a25" />}
-      {king && <path d="M-3.4 1.2 Q0 0 3.4 1.2" fill="none" stroke="#5b3518" strokeWidth="1.4" />}
-      <circle cx="-2.3" cy="-2.6" r="0.9" fill="#2a1a10" />
-      <circle cx="2.3" cy="-2.6" r="0.9" fill="#2a1a10" />
-      {!king && <path d="M-6.5 -5 Q-3 -9.5 0 -6.5 Q3 -9.5 6.5 -5 Q4 -8 0 -9 Q-4 -8 -6.5 -5 Z" fill="#ff6fa8" />}
-      {king
-        ? <path d="M-6 -6 L-6.8 -12.5 L-3 -9 L0 -13.5 L3 -9 L6.8 -12.5 L6 -6 Z" fill="#ffd34d" stroke="#a8740f" strokeWidth="1" />
-        : <path d="M-3.5 -8.6 L-2.2 -11.2 L0 -9.4 L2.2 -11.2 L3.5 -8.6 Z" fill="#ffd34d" stroke="#a8740f" strokeWidth="0.8" />}
+    <g>
+      <circle r={r + 3} fill={color} stroke="#0d1430" strokeWidth="1.2" />
+      <circle r={r + 1} fill="#ffd34d" />
+      <g transform={`scale(${r})`}>
+        <image href={src} x={-1} y={-1} width={2} height={2} clipPath={`url(#${g('tok')})`} />
+      </g>
     </g>
   )
 }
+
+export const keeperArt = (king: boolean, enemy: boolean) => (king ? (enemy ? kingFoe : kingMe) : princessArt)
 
 /**
  * Размеры башни в пикселях: фасад и площадка сверху - как башня в игре под тем же
@@ -452,12 +448,13 @@ function towerBox(y: number, size: number, king: boolean) {
   const w = size * TILE * (king ? 0.84 : 0.86)
   const front = size * TILE_H * (king ? 0.62 : 0.64)
   const deck = size * TILE_H * (king ? 0.5 : 0.52)
-  return { bottom, w, front, deck, top: bottom - front - deck, face: king ? 22 : 18 }
+  return { bottom, w, front, deck, top: bottom - front - deck, face: king ? 18 : 15 }
 }
 
-/** Верх башни над флажками - над ним рисуется полоска здоровья. */
+/** Верх башни над медальоном и флажками - над ним рисуется полоска здоровья. */
 export function towerTop(y: number, size: number, king: boolean): number {
-  return towerBox(y, size, king).top - 20
+  const b = towerBox(y, size, king)
+  return Math.min(b.top - 20, b.top + b.deck * 0.4 - b.face - 8)
 }
 
 const TEAM = {
@@ -467,11 +464,11 @@ const TEAM = {
 
 /**
  * Башня в духе игры: каменный фасад с кладкой и зубцами, полоса и флажки цвета
- * стороны, золотая корона на гербе, деревянная площадка, на ней хозяин - принцесса
- * или король с пушкой. Всё рисуется здесь же, без картинок.
+ * стороны, золотая корона на гербе, каменная площадка, посреди неё - хозяин башни
+ * в круглом медальоне: король или принцесса.
  */
-export function TowerArt({ x, y, size, king, enemy = false, dead = false }: {
-  x: number; y: number; size: number; king: boolean; enemy?: boolean; dead?: boolean
+export function TowerArt({ x, y, size, king, enemy = false, dead = false, g }: {
+  x: number; y: number; size: number; king: boolean; enemy?: boolean; dead?: boolean; g: (n: string) => string
 }) {
   if (dead) {
     // Развалины: груда камней на площадке башни
@@ -509,15 +506,6 @@ export function TowerArt({ x, y, size, king, enemy = false, dead = false }: {
       <rect x={l} y={top} width={w} height={deck + 2} rx="3" fill="#d6dbe4" stroke="#4f5768" strokeWidth="1.2" />
       <rect x={l + 4} y={top + 3} width={w - 8} height={deck - 3} rx="2" fill="#b4bccb" />
       <rect x={l + 4} y={top + 3} width={w - 8} height={3} rx="1.5" fill="#9ca5b6" />
-      {/* Хозяин башни на площадке; у короля сбоку пушка, ствол - в сторону соперника */}
-      <g transform={`translate(${king ? cx - 7 : cx} ${top + deck * 0.4})`}><Keeper king={king} color={team.main} size={face} /></g>
-      {king && (
-        <g>
-          <rect x={cx + 9} y={enemy ? top + deck * 0.5 : top + deck * 0.5 - 11} width={6} height={11} rx="2" fill="#2f333d" stroke="#14161c" strokeWidth="1" />
-          <circle cx={cx + 12} cy={top + deck * 0.5} r={5.5} fill="#3a3e4a" stroke="#14161c" strokeWidth="1.2" />
-          <circle cx={cx + 12} cy={enemy ? top + deck * 0.5 + 10 : top + deck * 0.5 - 10} r={2.2} fill="#0c0d10" />
-        </g>
-      )}
       {/* Фасад: кладка, полоса цвета стороны, зубцы по краю, герб с короной */}
       <rect x={l} y={ft} width={w} height={front} rx="2" fill="#aab2c1" stroke="#4f5768" strokeWidth="1.2" />
       <rect x={l + 1} y={bottom - front * 0.3} width={w - 2} height={front * 0.3 - 1} fill="#8f98aa" />
@@ -533,6 +521,8 @@ export function TowerArt({ x, y, size, king, enemy = false, dead = false }: {
       <rect x={cx - 9 * k} y={pcy - 6.5 * k} width={18 * k} height={13 * k} rx={3 * k} fill={team.main} stroke={team.dark} strokeWidth="1" />
       <path d={`M${cx - 6 * k} ${pcy + 3.5 * k} L${cx - 7 * k} ${pcy - 3 * k} L${cx - 3.5 * k} ${pcy} L${cx} ${pcy - 4.5 * k} L${cx + 3.5 * k} ${pcy} L${cx + 7 * k} ${pcy - 3 * k} L${cx + 6 * k} ${pcy + 3.5 * k} Z`}
         fill="#ffd34d" stroke="#a8740f" strokeWidth="1" />
+      {/* Хозяин башни посреди площадки, поверх зубцов - как король на башне в игре */}
+      <g transform={`translate(${cx} ${top + deck * 0.45})`}><Medallion src={keeperArt(king, enemy)} r={face} color={team.main} g={g} /></g>
     </g>
   )
 }

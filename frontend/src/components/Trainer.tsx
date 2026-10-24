@@ -182,6 +182,7 @@ function TrainerGame({ puzzle, daily, onExit, onNext, onStars }: {
     setPhase('result')
     onStars(stars)
     hapticNotify(stars > 0 ? 'success' : 'error')
+    if (stars === 3) celebrate()
   }
 
   const onTick = (sim: Sim): boolean => {
@@ -247,7 +248,8 @@ function TrainerGame({ puzzle, daily, onExit, onNext, onStars }: {
       <div className="tr-stage">
         <div className={`tr-board ${phase === 'choose' ? 'tr-board-live' : ''}`}>
           <ArenaSim key={round} sim={sim} running={phase === 'intro' || phase === 'battle'} speed={fast ? 2.5 : 1}
-            onTick={onTick} onTap={phase === 'choose' ? tap : undefined} ghost={ghost} zone={zone} names={n} />
+            onTick={onTick} onTap={phase === 'choose' ? tap : undefined} ghost={ghost} zone={zone} names={n}
+            camp={{ name: s.campName, clan: s.campClan, you: s.you }} />
           {phase === 'choose' && !ghost?.ok && (
             <div className={`tr-turn ${hint && ghost ? 'tr-turn-bad' : ''}`}>
               {hint ?? (card ? (kind === 'spell' ? s.pickSpell : s.pickTile) : `${s.yourTurn} · ${s.pickCard}`)}
@@ -283,7 +285,7 @@ function TrainerGame({ puzzle, daily, onExit, onNext, onStars }: {
               )
             })}
           </div>
-          <ElixirBar sim={sim} />
+          <ElixirBar sim={sim} max={s.max} />
         </div>
       </div>
 
@@ -322,8 +324,23 @@ function TrainerGame({ puzzle, daily, onExit, onNext, onStars }: {
   )
 }
 
+/**
+ * Салют за три звезды. Библиотека грузится отдельным кусочком только в этот момент,
+ * в основной бандл не входит; кто просил меньше анимации - салюта не будет.
+ */
+function celebrate() {
+  import('canvas-confetti').then(({ default: confetti }) => {
+    const base = { disableForReducedMotion: true, zIndex: 300, colors: ['#ffd34d', '#3d8bff', '#ff8fb1', '#7dffb0', '#ffffff'] }
+    confetti({ ...base, particleCount: 90, spread: 75, startVelocity: 42, origin: { x: 0.5, y: 0.75 } })
+    setTimeout(() => {
+      confetti({ ...base, particleCount: 45, angle: 60, spread: 55, origin: { x: 0, y: 0.8 } })
+      confetti({ ...base, particleCount: 45, angle: 120, spread: 55, origin: { x: 1, y: 0.8 } })
+    }, 220)
+  }).catch(() => { /* без салюта - не страшно */ })
+}
+
 /** Эликсир из боя: копится по 1 за 2,8 секунды, как в игре. */
-function ElixirBar({ sim }: { sim: Sim }) {
+function ElixirBar({ sim, max }: { sim: Sim; max: string }) {
   const [v, setV] = useState(sim.elixir.me)
   useEffect(() => {
     let raf = 0
@@ -335,6 +352,7 @@ function ElixirBar({ sim }: { sim: Sim }) {
   return (
     <div className="tr-elixir">
       <span className="tr-drop"><b>{full}</b></span>
+      <small className="tr-max">{max}</small>
       <div className="tr-elixir-bar">
         {Array.from({ length: 10 }, (_, i) => (
           <i key={i} className={i < full ? 'on' : ''}>
