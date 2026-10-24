@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import { useCardArt } from '../lib/cardArt'
 import { emojiOf } from '../lib/sim/emoji'
 
 /**
@@ -10,7 +11,7 @@ import { emojiOf } from '../lib/sim/emoji'
  * Радиус принцесс 7,5 клетки, короля 7. Как в игре, поле видно под углом: клетка
  * сплюснута по высоте (TILE_H), поэтому радиусы рисуются эллипсами.
  *
- * Юниты - жетоны со смайликом карты и кольцом стороны (свои синие, чужие красные),
+ * Юниты - жетоны с артом карты и кольцом стороны (свои синие, чужие красные),
  * здания - квадратные жетоны, заклинания - зона. Сцена - таймлайн: ключевые точки
  * (секунда, клетка), между ними - линейно. Башни стреляют снарядами по чужим в радиусе.
  */
@@ -109,6 +110,7 @@ export function ArenaAnim({ scene, paused = false, at: frameAt, loop = true, onE
   const endRef = useRef(onEnd)
   endRef.current = onEnd
   const uid = useId().replace(/:/g, '')
+  const art = useCardArt()
 
   useEffect(() => {
     if (still !== null) { setT(still); return }
@@ -197,7 +199,7 @@ export function ArenaAnim({ scene, paused = false, at: frameAt, loop = true, onE
 
       {live.map(({ a, p }) => a.kind === 'text'
         ? <FloatText key={a.id} a={a} x={px(p.x)} y={py(p.y)} k={(t - span(a).from) / Math.max(0.01, span(a).to - span(a).from)} />
-        : <Token key={a.id} a={a} x={px(p.x)} y={py(p.y)} t={t} g={g} />)}
+        : <Token key={a.id} a={a} x={px(p.x)} y={py(p.y)} t={t} g={g} art={a.card ? artFor(art, a.card) : undefined} />)}
 
       {poofs.map(({ a, dt }) => {
         const p = lastPos(a)
@@ -232,6 +234,14 @@ export function ArenaDefs({ g }: { g: (n: string) => string }) {
       <radialGradient id={g('spell')}>
         <stop offset="0" stopColor="#ffe08a" stopOpacity="0.55" />
         <stop offset="1" stopColor="#ffb347" stopOpacity="0.12" />
+      </radialGradient>
+      {/* Жетон юнита рисуется в масштабе радиуса: круг и скруглённый квадрат радиусом 1 */}
+      <clipPath id={g('tok')}><circle r="1" /></clipPath>
+      <clipPath id={g('tokSq')}><rect x="-1" y="-1" width="2" height="2" rx="0.28" /></clipPath>
+      <radialGradient id={g('fire')} cx="0.4" cy="0.38">
+        <stop offset="0" stopColor="#fff7c2" />
+        <stop offset="0.45" stopColor="#ffb020" />
+        <stop offset="1" stopColor="#e2401b" />
       </radialGradient>
       <filter id={g('glow')} x="-50%" y="-50%" width="200%" height="200%">
         <feGaussianBlur stdDeviation="2.2" result="b" />
@@ -337,6 +347,102 @@ export function Pill({ x, y, text, tone }: { x: number; y: number; text: string;
   )
 }
 
+/** Големит - кусок Голема: своей карты нет, берём арт Голема. */
+const ART_OF: Record<string, string> = { Golemite: 'Golem' }
+
+export const artFor = (art: Record<string, string>, card: string) => art[card] ?? art[ART_OF[card] ?? '']
+
+/**
+ * Портрет карты в жетоне, рисуется в масштабе радиуса r вокруг (0, 0): арт из
+ * каталога игры, обрезанный по кругу (здания - по квадрату) так, чтобы рамка карты
+ * ушла за край, а лицо осталось. Пока арт не загрузился - смайлик карты.
+ */
+export function UnitArt({ card, r, art, square = false, g }: {
+  card: string; r: number; art?: string; square?: boolean; g: (n: string) => string
+}) {
+  if (!art) return <text y={1} textAnchor="middle" dominantBaseline="central" fontSize={r * 1.35}>{emojiOf(card)}</text>
+  return (
+    <g transform={`scale(${r})`}>
+      <image href={art} x={-1.25} y={-1.3} width={2.5} height={3} clipPath={`url(#${g(square ? 'tokSq' : 'tok')})`} />
+    </g>
+  )
+}
+
+/** Огненный шар: раскалённое ядро и хвост пламени против хода. angle - куда летит, в градусах. */
+export function FireballIcon({ size, angle = -90, g }: { size: number; angle?: number; g: (n: string) => string }) {
+  return (
+    <g transform={`rotate(${angle}) scale(${size / 12})`}>
+      <path d="M-15 0 Q-8 -7 0 -6.5 A6.5 6.5 0 0 1 0 6.5 Q-8 7 -15 0 Z" fill="#ff8a1f" opacity="0.75" />
+      <path d="M-10 0 Q-5 -4 0 -4 A4 4 0 0 1 0 4 Q-5 4 -10 0 Z" fill="#ffd34d" opacity="0.8" />
+      <circle r="6" fill={`url(#${g('fire')})`} stroke="#b8360f" strokeWidth="0.8" />
+    </g>
+  )
+}
+
+/** Бочка гоблинов: деревянная, с обручами и гоблином, выглядывающим сверху. */
+export function BarrelIcon({ size }: { size: number }) {
+  return (
+    <g transform={`scale(${size / 20})`}>
+      <ellipse cx="0" cy="-9" rx="5" ry="4" fill="#5cbf3a" stroke="#2f6a1c" strokeWidth="1" />
+      <path d="M-5 -10 l-4 -3 l3 4 M5 -10 l4 -3 l-3 4" fill="#5cbf3a" stroke="#2f6a1c" strokeWidth="1" />
+      <rect x="-8" y="-8" width="16" height="18" rx="5" fill="#a5642f" stroke="#4a2a12" strokeWidth="1.4" />
+      {[-4.5, 4].map(by => <rect key={by} x="-8.4" y={by} width="16.8" height="2.6" rx="1" fill="#3b3f46" />)}
+      <line x1="-2.5" x2="-2.5" y1="-7" y2="9" stroke="#7d4a20" strokeWidth="1" />
+      <line x1="2.5" x2="2.5" y1="-7" y2="9" stroke="#7d4a20" strokeWidth="1" />
+    </g>
+  )
+}
+
+/** Бомба Шара: чёрное ядро с фитилём и искрой. */
+export function BombIcon({ size, spark }: { size: number; spark: number }) {
+  return (
+    <g transform={`scale(${size / 18})`}>
+      <circle r="7.5" fill="#23262e" stroke="#000" strokeWidth="1" />
+      <circle cx="-2.6" cy="-2.6" r="2.2" fill="#5b616e" />
+      <path d="M4.5 -5.5 q3 -4 6 -3" fill="none" stroke="#8a6a3a" strokeWidth="1.6" />
+      <circle cx="10.5" cy="-8.5" r={2 + spark * 1.6} fill="#ffb020" />
+      <circle cx="10.5" cy="-8.5" r={1 + spark * 0.6} fill="#fff3b0" />
+    </g>
+  )
+}
+
+/** Вспышка взрыва: звезда-всполох, k - время от 0 до 1. */
+export function Burst({ r, k }: { r: number; k: number }) {
+  const pts = Array.from({ length: 16 }, (_, i) => {
+    const a = (i / 16) * Math.PI * 2
+    const rr = (i % 2 ? 0.55 : 1) * r * (0.6 + 0.4 * k)
+    return `${(Math.cos(a) * rr).toFixed(1)},${(Math.sin(a) * rr * 0.8).toFixed(1)}`
+  }).join(' ')
+  return (
+    <g opacity={1 - k}>
+      <polygon points={pts} fill="#ffcc33" stroke="#ff7a1a" strokeWidth="2" />
+      <ellipse rx={r * 0.35} ry={r * 0.28} fill="#fff3b0" />
+    </g>
+  )
+}
+
+/**
+ * Хозяин башни: король с бородой и короной или принцесса с розовыми волосами и
+ * диадемой; одежда - цвета стороны.
+ */
+function Keeper({ king, color, size }: { king: boolean; color: string; size: number }) {
+  return (
+    <g transform={`scale(${size / 20})`}>
+      <path d="M-9 10 Q-9 2 0 2 Q9 2 9 10 Z" fill={color} stroke="#1b2440" strokeWidth="1" />
+      {!king && <ellipse cx="0" cy="-3" rx="8.6" ry="8.2" fill="#ff6fa8" stroke="#a8336a" strokeWidth="1" />}
+      <circle cx="0" cy="-2" r="6.4" fill="#f5c9a0" stroke="#8a5a3a" strokeWidth="0.8" />
+      {king && <path d="M-6.2 0 Q0 9 6.2 0 Q4 4.5 0 4.5 Q-4 4.5 -6.2 0 Z" fill="#7a4a25" />}
+      {king && <path d="M-3.4 1.2 Q0 0 3.4 1.2" fill="none" stroke="#5b3518" strokeWidth="1.4" />}
+      <circle cx="-2.3" cy="-2.6" r="0.9" fill="#2a1a10" />
+      <circle cx="2.3" cy="-2.6" r="0.9" fill="#2a1a10" />
+      {!king && <path d="M-6.5 -5 Q-3 -9.5 0 -6.5 Q3 -9.5 6.5 -5 Q4 -8 0 -9 Q-4 -8 -6.5 -5 Z" fill="#ff6fa8" />}
+      {king
+        ? <path d="M-6 -6 L-6.8 -12.5 L-3 -9 L0 -13.5 L3 -9 L6.8 -12.5 L6 -6 Z" fill="#ffd34d" stroke="#a8740f" strokeWidth="1" />
+        : <path d="M-3.5 -8.6 L-2.2 -11.2 L0 -9.4 L2.2 -11.2 L3.5 -8.6 Z" fill="#ffd34d" stroke="#a8740f" strokeWidth="0.8" />}
+    </g>
+  )
+}
+
 /**
  * Размеры башни в пикселях: фасад и площадка сверху - как башня в игре под тем же
  * углом, чуть уже своих клеток. bottom - низ фасада по нижнему краю клеток.
@@ -404,7 +510,7 @@ export function TowerArt({ x, y, size, king, enemy = false, dead = false }: {
       <rect x={l + 4} y={top + 3} width={w - 8} height={deck - 3} rx="2" fill="#b4bccb" />
       <rect x={l + 4} y={top + 3} width={w - 8} height={3} rx="1.5" fill="#9ca5b6" />
       {/* Хозяин башни на площадке; у короля сбоку пушка, ствол - в сторону соперника */}
-      <text x={king ? cx - 7 : cx} y={top + deck * 0.42} textAnchor="middle" dominantBaseline="central" fontSize={face}>{king ? '🤴' : '👸'}</text>
+      <g transform={`translate(${king ? cx - 7 : cx} ${top + deck * 0.4})`}><Keeper king={king} color={team.main} size={face} /></g>
       {king && (
         <g>
           <rect x={cx + 9} y={enemy ? top + deck * 0.5 : top + deck * 0.5 - 11} width={6} height={11} rx="2" fill="#2f333d" stroke="#14161c" strokeWidth="1" />
@@ -439,14 +545,13 @@ function FloatText({ a, x, y, k }: { a: Actor; x: number; y: number; k: number }
   )
 }
 
-function Token({ a, x, y, t, g }: { a: Actor; x: number; y: number; t: number; g: (n: string) => string }) {
+function Token({ a, x, y, t, g, art }: { a: Actor; x: number; y: number; t: number; g: (n: string) => string; art?: string }) {
   const r = (a.r ?? 0.7) * TILE
-  const emoji = a.card ? emojiOf(a.card) : ''
   if (a.kind === 'spell') {
     return (
       <g>
         <ellipse cx={x} cy={y} rx={r} ry={r * (TILE_H / TILE)} fill={`url(#${g('spell')})`} stroke="#ffd35a" strokeWidth="2" />
-        {emoji && <text x={x} y={y} textAnchor="middle" dominantBaseline="central" fontSize={Math.min(26, r)}>{emoji}</text>}
+        {a.card === 'Fireball' && <g transform={`translate(${x} ${y})`}><FireballIcon size={Math.min(22, r)} g={g} /></g>}
         {a.label && <Pill x={x} y={y + r * (TILE_H / TILE) + 10} text={a.label} tone="gold" />}
       </g>
     )
@@ -467,9 +572,7 @@ function Token({ a, x, y, t, g }: { a: Actor; x: number; y: number; t: number; g
     return (
       <g>
         <ellipse cx={x} cy={y + 16} rx={11} ry={4} fill="rgba(0,0,0,0.5)" />
-        <g transform={`rotate(${t * 400} ${x} ${y - 6})`}>
-          <text x={x} y={y - 6} textAnchor="middle" dominantBaseline="central" fontSize="22">{emoji || '🛢️'}</text>
-        </g>
+        <g transform={`translate(${x} ${y - 6}) rotate(${t * 400})`}><BarrelIcon size={22} /></g>
         {a.label && <Pill x={x} y={y - 30} text={a.label} tone="red" />}
       </g>
     )
@@ -481,16 +584,18 @@ function Token({ a, x, y, t, g }: { a: Actor; x: number; y: number; t: number; g
   return (
     <g transform={`translate(0 ${bob})`}>
       <ellipse cx={x} cy={y + r * 0.95} rx={r * 0.9} ry={r * 0.32} fill="rgba(0,0,0,0.4)" />
-      {box
-        ? <rect x={x - r - 2} y={y - r - 2} width={r * 2 + 4} height={r * 2 + 4} rx="7" fill={ring} filter={`url(#${g('glow')})`} />
-        : <circle cx={x} cy={y} r={r + 2.5} fill={ring} filter={`url(#${g('glow')})`} />}
-      {box
-        ? <rect x={x - r} y={y - r} width={r * 2} height={r * 2} rx="6" fill="#16204a" />
-        : <circle cx={x} cy={y} r={r} fill="#16204a" />}
-      {emoji
-        ? <text x={x} y={y + 1} textAnchor="middle" dominantBaseline="central" fontSize={r * 1.3}>{emoji}</text>
-        : <text x={x} y={y + 4} textAnchor="middle" fontSize="11" fontWeight="900" fill="#fff">{a.label.slice(0, 2)}</text>}
-      {a.label && <Pill x={x} y={y + r + 11} text={a.label} tone={enemy ? 'red' : 'blue'} />}
+      <g transform={`translate(${x} ${y})`}>
+        {box
+          ? <rect x={-r - 3} y={-r - 3} width={r * 2 + 6} height={r * 2 + 6} rx="7" fill={ring} stroke="#0d1430" strokeWidth="1.2" />
+          : <circle r={r + 3} fill={ring} stroke="#0d1430" strokeWidth="1.2" />}
+        {box
+          ? <rect x={-r} y={-r} width={r * 2} height={r * 2} rx="5.5" fill="#16204a" />
+          : <circle r={r} fill="#16204a" />}
+        {a.card
+          ? <UnitArt card={a.card} r={r} art={art} square={box} g={g} />
+          : <text y={4} textAnchor="middle" fontSize="11" fontWeight="900" fill="#fff">{a.label.slice(0, 2)}</text>}
+      </g>
+      {a.label && <Pill x={x} y={y + r + 12} text={a.label} tone={enemy ? 'red' : 'blue'} />}
     </g>
   )
 }
