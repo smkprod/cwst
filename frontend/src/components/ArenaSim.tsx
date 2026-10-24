@@ -26,13 +26,15 @@ const LOBS = new Set(['fireball', 'barrel', 'shell'])
 const ME = '#3d8bff'
 const FOE = '#ef4454'
 
-export function ArenaSim({ sim, running, speed = 1, onTick, onTap, ghost, ghostLabel, zone, names, camp }: {
+export function ArenaSim({ sim, running, speed = 1, onTick, onTap, ghost, ghostLabel, zone, names, camp, details = false }: {
   sim: Sim
   running: boolean
   speed?: number
   /** Имя карты на языке игрока - подпись под юнитом, пока он появляется. */
   names?: (card: string) => string
   camp?: Camp
+  /** Подробности боя: радиусы атаки и обзора, цели, прыжки, полёт снарядов, слепые зоны. */
+  details?: boolean
   /** После каждого шага боя; true - встать (пауза или конец). */
   onTick?: (sim: Sim) => boolean
   onTap?: (x: number, y: number) => void
@@ -122,6 +124,7 @@ export function ArenaSim({ sim, running, speed = 1, onTick, onTap, ghost, ghostL
       )}
 
       {zone && <Zone kind={zone} />}
+      {details && <Details sim={sim} names={names} />}
 
       {/* Радиус башни, которая сейчас стреляет */}
       {towers.filter(t => t.alive && t.team === 'me' && t.target && t.active).map(t => (
@@ -211,6 +214,76 @@ function Crowns({ x, y, n, color }: { x: number; y: number; n: number; color: st
       <rect x={-11} y={-15} width={22} height={30} rx="5" fill="rgba(13,20,48,0.78)" stroke="rgba(255,255,255,0.35)" />
       <path d="M-7 -2 L-8 -10 L-3.5 -6 L0 -12 L3.5 -6 L8 -10 L7 -2 Z" fill={color} stroke="#ffd34d" strokeWidth="1.3" />
       <text y={11} textAnchor="middle" fontSize="12" fontWeight="900" fill="#fff" stroke="#0d1430" strokeWidth="2.4" paintOrder="stroke">{n}</text>
+    </g>
+  )
+}
+
+const ell = (x: number, y: number, r: number) => ({ cx: px(x), cy: py(y), rx: r * TILE, ry: r * TILE_H })
+
+/**
+ * Подробности боя поверх поля - всё по тем же числам, что считает движок:
+ * радиус атаки (до края цели), обзор (кого замечает), линия к цели (пунктир - идёт,
+ * сплошная - бьёт), зона прыжка Мега-рыцаря, слепая зона Мортиры, радиусы башен
+ * (спящий король - серым), куда летит снаряд и какую площадь накроет, путь бревна.
+ */
+function Details({ sim, names }: { sim: Sim; names?: (card: string) => string }) {
+  const units = sim.entities.filter(e => e.alive && e.kind !== 'tower' && !e.tunnel)
+  const towers = sim.entities.filter(e => e.alive && e.kind === 'tower' && e.y + TOWER_SIZE[e.slot!] / 2 > VIEW_TOP)
+  // Подпись радиуса - одна на группу одинаковых карт стороны
+  const labeled = new Set<string>()
+  return (
+    <g pointerEvents="none">
+      {towers.map(t => {
+        const sleeping = t.slot === 'K' && !t.active
+        const c = t.team === 'me' ? '#7fb5ff' : '#ff8fa3'
+        return <ellipse key={`tr${t.id}`} {...ell(t.x, t.y, t.s.range + t.s.radius)} fill="none" stroke={sleeping ? '#9aa3b8' : c}
+          strokeOpacity={sleeping ? 0.45 : 0.55} strokeWidth="1.2" strokeDasharray={sleeping ? '2 6' : '6 4'} />
+      })}
+      {units.map(e => {
+        const c = e.team === 'me' ? '#7fb5ff' : '#ff8fa3'
+        const reach = e.s.range + e.s.radius
+        const key = `${e.team}:${e.card}`
+        const label = !labeled.has(key)
+        labeled.add(key)
+        const t = e.target && e.target.alive ? e.target : null
+        return (
+          <g key={`d${e.id}`}>
+            {e.s.sight > 0 && <ellipse {...ell(e.x, e.y, e.s.sight)} fill="none" stroke={c} strokeOpacity="0.18" strokeDasharray="2 5" />}
+            {reach > 0.2 && <ellipse {...ell(e.x, e.y, reach)} fill={c} fillOpacity="0.07" stroke={c} strokeOpacity="0.75" strokeWidth="1.3" />}
+            {e.s.minRange && <ellipse {...ell(e.x, e.y, e.s.minRange + e.s.radius)} fill="rgba(239,68,84,0.14)" stroke="#ff7a85" strokeDasharray="4 3" />}
+            {e.s.dashMin && e.s.dashMax && (
+              <g>
+                <ellipse {...ell(e.x, e.y, e.s.dashMin)} fill="none" stroke="#c9a6ff" strokeOpacity="0.8" strokeDasharray="5 4" />
+                <ellipse {...ell(e.x, e.y, e.s.dashMax)} fill="none" stroke="#c9a6ff" strokeOpacity="0.8" strokeDasharray="5 4" />
+              </g>
+            )}
+            {e.dash && <line x1={px(e.dash.fx)} y1={py(e.dash.fy)} x2={px(e.dash.tx)} y2={py(e.dash.ty)} stroke="#c9a6ff" strokeWidth="2" strokeDasharray="3 3" />}
+            {t && (
+              <g>
+                <line x1={px(e.x)} y1={py(e.y)} x2={px(t.x)} y2={py(t.y)} stroke={c} strokeWidth={e.locked ? 2 : 1.3}
+                  strokeOpacity="0.85" strokeDasharray={e.locked ? undefined : '4 4'} />
+                <circle cx={px(t.x)} cy={py(t.y)} r={3} fill={c} />
+              </g>
+            )}
+            {label && reach > 0.2 && (
+              <text x={px(e.x)} y={py(e.y) - reach * TILE_H - 3} textAnchor="middle" fontSize="8.5" fontWeight="800" fill="#fff"
+                stroke="#0d1430" strokeWidth="2.4" paintOrder="stroke">
+                {(names?.(e.card) ?? e.card)} · {e.s.range.toFixed(1)}{e.s.buildingsOnly ? ' 🏰' : e.s.air ? ' 🛩' : ''}
+              </text>
+            )}
+          </g>
+        )
+      })}
+      {sim.projectiles.map(p => (
+        <g key={`pp${p.id}`}>
+          <line x1={px(p.x)} y1={py(p.y)} x2={px(p.tx)} y2={py(p.ty)} stroke="#ffe08a" strokeOpacity="0.55" strokeDasharray="2 3" />
+          {p.splash > 0 && <ellipse {...ell(p.tx, p.ty, p.splash)} fill="rgba(255,180,60,0.12)" stroke="#ffb347" strokeOpacity="0.8" strokeDasharray="4 3" />}
+        </g>
+      ))}
+      {sim.rollers.map(r => (
+        <rect key={`rl${r.id}`} x={px(r.x - SPELLS['The Log'].width)} y={py(r.dir < 0 ? r.y - r.left : r.y)} width={SPELLS['The Log'].width * 2 * TILE}
+          height={r.left * TILE_H} fill="rgba(255,224,138,0.1)" stroke="#ffe08a" strokeOpacity="0.6" strokeDasharray="5 4" />
+      ))}
     </g>
   )
 }
