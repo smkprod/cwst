@@ -1,14 +1,18 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { DT, TOWER_SIZE, type Entity, type Projectile, type Sim } from '../lib/sim/engine'
 import { SPELLS, UNITS } from '../lib/sim/stats'
-import { emojiOf } from '../lib/sim/emoji'
-import { ArenaDefs, ArenaGround, H, TILE, TILE_H, TowerArt, VIEW_TOP, W, px, py, towerTop } from './ArenaAnim'
+import { useCardArt } from '../lib/cardArt'
+import {
+  ArenaDefs, ArenaGround, BarrelIcon, BombIcon, Burst, FireballIcon, H, Pill, TILE, TILE_H, TowerArt, UnitArt, VIEW_TOP, W,
+  artFor, px, py, towerTop,
+} from './ArenaAnim'
 
 /**
  * Живая арена тренажёра: рисует бой из движка (lib/sim) кадр за кадром. Юниты -
- * смайлики карт в кольце своей стороны, с полоской здоровья, выпадом при ударе,
- * вспышкой от урона, кольцом-таймером появления; летающие - над тенью. Снаряды
- * летят с той скоростью, что в игре; огненный шар и бочка - по дуге.
+ * жетоны с артом карты в кольце своей стороны, с полоской здоровья, выпадом при
+ * ударе, вспышкой от урона, кольцом-таймером появления и подписью имени, пока
+ * появляются; летающие - над тенью. Снаряды летят с той скоростью, что в игре;
+ * огненный шар и бочка - по дуге.
  */
 
 export interface SimGhost { card: string; x: number; y: number; ok: boolean }
@@ -16,10 +20,12 @@ export interface SimGhost { card: string; x: number; y: number; ok: boolean }
 const ME = '#3d8bff'
 const FOE = '#ef4454'
 
-export function ArenaSim({ sim, running, speed = 1, onTick, onTap, ghost, zone }: {
+export function ArenaSim({ sim, running, speed = 1, onTick, onTap, ghost, zone, names }: {
   sim: Sim
   running: boolean
   speed?: number
+  /** Имя карты на языке игрока - подпись под юнитом, пока он появляется. */
+  names?: (card: string) => string
   /** После каждого шага боя; true - встать (пауза или конец). */
   onTick?: (sim: Sim) => boolean
   onTap?: (x: number, y: number) => void
@@ -28,6 +34,7 @@ export function ArenaSim({ sim, running, speed = 1, onTick, onTap, ghost, zone }
   zone?: 'troop' | 'spell' | 'miner' | null
 }) {
   const [clock, setClock] = useState(0)
+  const art = useCardArt()
   const uid = useId().replace(/:/g, '')
   const g = (name: string) => `${name}-${uid}`
   const live = useRef({ running, speed, onTick, halted: false })
@@ -83,6 +90,18 @@ export function ArenaSim({ sim, running, speed = 1, onTick, onTap, ghost, zone }
   const units = sim.entities.filter(e => e.alive && e.kind !== 'tower').sort((a, b) => a.y - b.y)
   const ground = units.filter(e => !e.s.flying)
   const air = units.filter(e => e.s.flying)
+  // Подпись - одна на группу (три скелета появились разом - одно имя), первые 1,6 секунды
+  const labeled = new Set<number>()
+  if (names) {
+    const seen = new Set<string>()
+    for (const e of [...units].sort((a, b) => a.id - b.id)) {
+      const key = `${e.team}:${e.card}:${e.born.toFixed(2)}`
+      if (sim.t - e.born < 1.6 && !e.tunnel && !seen.has(key)) { seen.add(key); labeled.add(e.id) }
+    }
+  }
+  const unit = (e: Entity) => (
+    <Unit key={e.id} e={e} clock={clock} g={g} art={artFor(art, e.card)} label={labeled.has(e.id) ? names?.(e.card) : undefined} />
+  )
 
   return (
     <svg className={`arena ${onTap ? 'arena-tap' : ''}`} viewBox={`0 0 ${W} ${H}`} role="img" aria-label="arena" onPointerDown={tap}>
@@ -97,15 +116,15 @@ export function ArenaSim({ sim, running, speed = 1, onTick, onTap, ghost, zone }
           stroke="rgba(255,236,150,0.7)" strokeDasharray="3 7" />
       ))}
 
-      {sim.bombs.map(b => <Bomb key={b.id} b={b} now={sim.t} />)}
+      {sim.bombs.map(b => <Bomb key={b.id} b={b} now={sim.t} clock={clock} />)}
 
       {towers.map(t => <TowerSim key={t.id} e={t} now={sim.t} />)}
 
-      {ground.map(e => <Unit key={e.id} e={e} clock={clock} />)}
+      {ground.map(unit)}
       {sim.rollers.map(r => <Log key={r.id} x={px(r.x)} y={py(r.y)} clock={clock} fade={0.4 + Math.abs(r.y0 - r.y) / 0.6} />)}
       {sim.projectiles.filter(p => p.kind !== 'fireball' && p.kind !== 'barrel').map(p => <Shot key={p.id} p={p} />)}
-      {air.map(e => <Unit key={e.id} e={e} clock={clock} />)}
-      {sim.projectiles.filter(p => p.kind === 'fireball' || p.kind === 'barrel').map(p => <Lob key={p.id} p={p} clock={clock} />)}
+      {air.map(unit)}
+      {sim.projectiles.filter(p => p.kind === 'fireball' || p.kind === 'barrel').map(p => <Lob key={p.id} p={p} clock={clock} g={g} />)}
 
       {sim.effects.map(f => {
         const k = Math.min(1, (sim.t - f.t) / f.dur)
@@ -113,9 +132,9 @@ export function ArenaSim({ sim, running, speed = 1, onTick, onTap, ghost, zone }
         if (f.kind === 'boom') {
           const r = (f.r ?? 1.5) * TILE * (0.55 + 0.45 * k)
           return (
-            <g key={f.id} opacity={1 - k}>
-              <ellipse cx={x} cy={y} rx={r} ry={r * (TILE_H / TILE)} fill="rgba(255,140,40,0.35)" stroke="#ffb347" strokeWidth={3 * (1 - k) + 1} />
-              <text x={x} y={y} textAnchor="middle" dominantBaseline="central" fontSize={26 + 14 * k}>💥</text>
+            <g key={f.id}>
+              <ellipse cx={x} cy={y} rx={r} ry={r * (TILE_H / TILE)} fill="rgba(255,140,40,0.3)" stroke="#ffb347" strokeWidth={3 * (1 - k) + 1} opacity={1 - k} />
+              <g transform={`translate(${x} ${y})`}><Burst r={16} k={k} /></g>
             </g>
           )
         }
@@ -142,7 +161,7 @@ export function ArenaSim({ sim, running, speed = 1, onTick, onTap, ghost, zone }
         return null
       })}
 
-      {ghost && <GhostMark ghost={ghost} clock={clock} />}
+      {ghost && <GhostMark ghost={ghost} clock={clock} g={g} art={artFor(art, ghost.card)} />}
     </svg>
   )
 }
@@ -193,11 +212,11 @@ function TowerSim({ e, now }: { e: Entity; now: number }) {
 
 /** Размер жетона в пикселях: по радиусу юнита из игры, мелочь в группе чуть меньше. */
 function tokenR(e: Entity): number {
-  const base = e.s.radius * TILE * 1.1
-  return Math.max(8, (e.s.count ?? 1) > 1 || e.card === 'Goblins' ? base * 0.8 : base)
+  const base = Math.min(16, e.s.radius * TILE * 1.25)
+  return Math.max(9, (e.s.count ?? 1) > 1 || e.card === 'Goblins' ? base * 0.8 : base)
 }
 
-function Unit({ e, clock }: { e: Entity; clock: number }) {
+function Unit({ e, clock, g, art, label }: { e: Entity; clock: number; g: (n: string) => string; art?: string; label?: string }) {
   const r = tokenR(e)
   let x = px(e.x), y = py(e.y)
   const color = e.team === 'me' ? ME : FOE
@@ -249,12 +268,12 @@ function Unit({ e, clock }: { e: Entity; clock: number }) {
       <ellipse cx={x} cy={y + r * 0.85} rx={r * (e.s.flying ? 0.7 : 0.95)} ry={r * 0.3} fill="rgba(0,0,0,0.38)" />
       <g transform={`translate(${x} ${cy}) scale(${s})`}>
         {box
-          ? <rect x={-r - 2.5} y={-r - 2.5} width={2 * r + 5} height={2 * r + 5} rx="7" fill={color} />
-          : <circle r={r + 2.5} fill={color} />}
+          ? <rect x={-r - 3} y={-r - 3} width={2 * r + 6} height={2 * r + 6} rx="7" fill={color} stroke="#0d1430" strokeWidth="1.2" />
+          : <circle r={r + 3} fill={color} stroke="#0d1430" strokeWidth="1.2" />}
         {box
           ? <rect x={-r} y={-r} width={2 * r} height={2 * r} rx="5.5" fill="#16204a" />
           : <circle r={r} fill="#16204a" />}
-        <text y={1} textAnchor="middle" dominantBaseline="central" fontSize={r * 1.35}>{emojiOf(e.card)}</text>
+        <UnitArt card={e.card} r={r} art={art} square={box} g={g} />
         {hurt > 0 && (box
           ? <rect x={-r} y={-r} width={2 * r} height={2 * r} rx="5.5" fill="#fff" opacity={0.55 * hurt} />
           : <circle r={r} fill="#fff" opacity={0.55 * hurt} />)}
@@ -265,10 +284,11 @@ function Unit({ e, clock }: { e: Entity; clock: number }) {
       </g>
       {!deploying && e.hp < e.maxHp && (
         <g>
-          <rect x={x - r} y={cy - r * s - 9} width={2 * r} height={5} rx="2.5" fill="rgba(10,14,32,0.85)" />
-          <rect x={x - r + 1} y={cy - r * s - 8} width={(2 * r - 2) * Math.max(0, e.hp / e.maxHp)} height={3} rx="1.5" fill={color} />
+          <rect x={x - r} y={cy - r * s - 10} width={2 * r} height={5} rx="2.5" fill="rgba(10,14,32,0.85)" />
+          <rect x={x - r + 1} y={cy - r * s - 9} width={(2 * r - 2) * Math.max(0, e.hp / e.maxHp)} height={3} rx="1.5" fill={color} />
         </g>
       )}
+      {label && <Pill x={x} y={cy + r * s + 12} text={label} tone={e.team === 'me' ? 'blue' : 'red'} />}
     </g>
   )
 }
@@ -304,7 +324,7 @@ function Shot({ p }: { p: Projectile }) {
 }
 
 /** Огненный шар и бочка летят по дуге: высота - от доли пройденного пути, тень - на земле. */
-function Lob({ p, clock }: { p: Projectile; clock: number }) {
+function Lob({ p, clock, g }: { p: Projectile; clock: number; g: (n: string) => string }) {
   const all = Math.hypot(p.tx - p.sx, p.ty - p.sy) || 1
   const k = Math.min(1, 1 - Math.hypot(p.tx - p.x, p.ty - p.y) / all)
   const x = px(p.x), y = py(p.y)
@@ -315,9 +335,10 @@ function Lob({ p, clock }: { p: Projectile; clock: number }) {
   return (
     <g>
       <ellipse cx={x} cy={y} rx={9 - h / 14} ry={3.5 - h / 40} fill="rgba(0,0,0,0.35)" />
-      {fire && <circle cx={x} cy={y - h} r={12} fill="rgba(255,140,40,0.35)" />}
-      <text x={x} y={y - h} textAnchor="middle" dominantBaseline="central" fontSize={fire ? 24 : 22}
-        transform={fire ? `rotate(${angle - 45} ${x} ${y - h})` : `rotate(${clock * 400} ${x} ${y - h})`}>{fire ? '☄️' : '🛢️'}</text>
+      {fire && <circle cx={x} cy={y - h} r={13} fill="rgba(255,140,40,0.3)" />}
+      <g transform={`translate(${x} ${y - h})`}>
+        {fire ? <FireballIcon size={14} angle={angle} g={g} /> : <g transform={`rotate(${clock * 400})`}><BarrelIcon size={22} /></g>}
+      </g>
       {/* Куда упадёт - чтобы видеть угрозу заранее */}
       <ellipse cx={px(p.tx)} cy={py(p.ty)} rx={(fire ? SPELLS.Fireball.radius : SPELLS['Goblin Barrel'].radius) * TILE}
         ry={(fire ? SPELLS.Fireball.radius : SPELLS['Goblin Barrel'].radius) * TILE_H} fill="none"
@@ -344,20 +365,20 @@ function Log({ x, y, clock, fade }: { x: number; y: number; clock: number; fade:
 }
 
 /** Бомба Шара: падает и лежит с кругом урона, пока не взорвётся. */
-function Bomb({ b, now }: { b: Sim['bombs'][number]; now: number }) {
+function Bomb({ b, now, clock }: { b: Sim['bombs'][number]; now: number; clock: number }) {
   const k = Math.min(1, (now - b.t) / 0.5)
   const x = px(b.x), y = py(b.y)
   const blink = 0.35 + 0.35 * Math.abs(Math.sin(now * (4 + 10 * (1 - (b.at - now) / (b.at - b.t)))))
   return (
     <g>
       <ellipse cx={x} cy={y} rx={b.r * TILE} ry={b.r * TILE_H} fill={`rgba(239,68,84,${blink * 0.25})`} stroke="#ff7a85" strokeWidth="1.5" strokeDasharray="5 4" />
-      <text x={x} y={y - 18 * (1 - k)} textAnchor="middle" dominantBaseline="central" fontSize="18">💣</text>
+      <g transform={`translate(${x} ${y - 18 * (1 - k)})`}><BombIcon size={16} spark={Math.abs(Math.sin(clock * 14))} /></g>
     </g>
   )
 }
 
 /** «Призрак» карты, куда игрок собирается её поставить: с радиусом атаки, путём бревна, зоной шара. */
-function GhostMark({ ghost, clock }: { ghost: SimGhost; clock: number }) {
+function GhostMark({ ghost, clock, g, art }: { ghost: SimGhost; clock: number; g: (n: string) => string; art?: string }) {
   const x = px(ghost.x), y = py(ghost.y)
   const bad = !ghost.ok
   const stroke = bad ? '#ef4454' : '#fff'
@@ -366,7 +387,7 @@ function GhostMark({ ghost, clock }: { ghost: SimGhost; clock: number }) {
     return (
       <g opacity={pulse} pointerEvents="none">
         <ellipse cx={x} cy={y} rx={SPELLS.Fireball.radius * TILE} ry={SPELLS.Fireball.radius * TILE_H} fill="rgba(255,140,40,0.18)" stroke={stroke} strokeWidth="2" strokeDasharray="5 4" />
-        <text x={x} y={y} textAnchor="middle" dominantBaseline="central" fontSize="22">☄️</text>
+        <g transform={`translate(${x} ${y})`}><FireballIcon size={16} g={g} /></g>
       </g>
     )
   }
@@ -382,7 +403,7 @@ function GhostMark({ ghost, clock }: { ghost: SimGhost; clock: number }) {
   }
   const s = UNITS[ghost.card]
   const building = !!s?.building
-  const r = Math.max(8, (s?.radius ?? 0.5) * TILE * 1.1)
+  const r = Math.max(9, Math.min(16, (s?.radius ?? 0.5) * TILE * 1.25))
   const range = s && s.range >= 2 ? s.range + s.radius : 0
   return (
     <g pointerEvents="none">
@@ -392,9 +413,9 @@ function GhostMark({ ghost, clock }: { ghost: SimGhost; clock: number }) {
         : <rect x={x - TILE / 2} y={y - TILE_H / 2} width={TILE} height={TILE_H} rx="2" fill="rgba(255,255,255,0.35)" stroke={stroke} strokeWidth="2" strokeDasharray="4 3" />}
       <g opacity={0.55 + 0.25 * pulse} transform={`translate(${x} ${y})`}>
         {building
-          ? <rect x={-r - 2.5} y={-r - 2.5} width={2 * r + 5} height={2 * r + 5} rx="7" fill={bad ? FOE : ME} />
-          : <circle r={r + 2.5} fill={bad ? FOE : ME} />}
-        <text y={1} textAnchor="middle" dominantBaseline="central" fontSize={r * 1.35}>{emojiOf(ghost.card)}</text>
+          ? <rect x={-r - 3} y={-r - 3} width={2 * r + 6} height={2 * r + 6} rx="7" fill={bad ? FOE : ME} />
+          : <circle r={r + 3} fill={bad ? FOE : ME} />}
+        <UnitArt card={ghost.card} r={r} art={art} square={building} g={g} />
       </g>
     </g>
   )

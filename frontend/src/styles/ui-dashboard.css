@@ -223,8 +223,7 @@
   border-radius: 50% 50% 50% 50% / 62% 62% 38% 38%; font-size: 12px; font-weight: 900; color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
   background: radial-gradient(circle at 38% 32%, #ffb6ff, #d64ce8 55%, #9b1fb5); border: 2px solid #3d1446; }
 .tr-emoji { font-size: 30px; line-height: 1; filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.45)); }
-.tr-card-emoji { position: absolute; top: -6px; right: -6px; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
-  font-size: 13px; background: #16204a; border: 1.5px solid #3d8bff; }
+.tr-place-art { width: 22px; height: 26px; object-fit: cover; object-position: top; border-radius: 5px; vertical-align: middle; margin: -4px 4px -4px -6px; }
 .tr-speed { position: absolute; right: 8px; bottom: 8px; padding: 5px 10px; border-radius: 999px; font: inherit; font-size: 12px; font-weight: 900;
   color: #fff; background: rgba(14, 22, 48, 0.75); border: 1px solid rgba(255, 255, 255, 0.35); cursor: pointer; backdrop-filter: blur(4px); }
 .tr-speed-on { color: #2a1400; background: linear-gradient(135deg, #ffe08a, #ff9c3a); border-color: transparent; }

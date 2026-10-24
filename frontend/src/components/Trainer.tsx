@@ -247,7 +247,7 @@ function TrainerGame({ puzzle, daily, onExit, onNext, onStars }: {
       <div className="tr-stage">
         <div className={`tr-board ${phase === 'choose' ? 'tr-board-live' : ''}`}>
           <ArenaSim key={round} sim={sim} running={phase === 'intro' || phase === 'battle'} speed={fast ? 2.5 : 1}
-            onTick={onTick} onTap={phase === 'choose' ? tap : undefined} ghost={ghost} zone={zone} />
+            onTick={onTick} onTap={phase === 'choose' ? tap : undefined} ghost={ghost} zone={zone} names={n} />
           {phase === 'choose' && !ghost?.ok && (
             <div className={`tr-turn ${hint && ghost ? 'tr-turn-bad' : ''}`}>
               {hint ?? (card ? (kind === 'spell' ? s.pickSpell : s.pickTile) : `${s.yourTurn} · ${s.pickCard}`)}
@@ -258,7 +258,7 @@ function TrainerGame({ puzzle, daily, onExit, onNext, onStars }: {
           )}
           {phase === 'choose' && ghost?.ok && card && (
             <button className="tr-place" onClick={() => place(card, ghost.x, ghost.y)}>
-              {emojiOf(card)} {s.place}
+              {art[card] ? <img className="tr-place-art" src={art[card]} alt="" /> : emojiOf(card)} {s.place}
             </button>
           )}
         </div>
@@ -277,7 +277,6 @@ function TrainerGame({ puzzle, daily, onExit, onNext, onStars }: {
                     setHint(info.kind === 'spell' ? s.pickSpell : s.pickTile)
                   }}>
                   <span className="tr-card-art">{art[c] ? <img src={art[c]} alt="" /> : <span className="tr-emoji">{emojiOf(c)}</span>}</span>
-                  {art[c] && <span className="tr-card-emoji">{emojiOf(c)}</span>}
                   <span className="tr-cost">{info.cost}</span>
                   <small>{n(c)}</small>
                 </button>
