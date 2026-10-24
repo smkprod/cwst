@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { DT, TOWER_SIZE, type Entity, type Projectile, type Sim } from '../lib/sim/engine'
 import { SPELLS, UNITS } from '../lib/sim/stats'
 import { emojiOf } from '../lib/sim/emoji'
-import { ArenaDefs, ArenaGround, H, TILE, TowerArt, VIEW_TOP, W, px, py, towerTop } from './ArenaAnim'
+import { ArenaDefs, ArenaGround, H, TILE, TILE_H, TowerArt, VIEW_TOP, W, px, py, towerTop } from './ArenaAnim'
 
 /**
  * Живая арена тренажёра: рисует бой из движка (lib/sim) кадр за кадром. Юниты -
@@ -71,8 +71,12 @@ export function ArenaSim({ sim, running, speed = 1, onTick, onTap, ghost, zone }
 
   const tap = (e: React.PointerEvent<SVGSVGElement>) => {
     if (!onTap) return
+    // Поле вписано в рамку с сохранением пропорций - считаем от самой картинки, а не от рамки
     const rect = e.currentTarget.getBoundingClientRect()
-    onTap(((e.clientX - rect.left) / rect.width) * (W / TILE), ((e.clientY - rect.top) / rect.height) * (H / TILE) + VIEW_TOP)
+    const k = Math.min(rect.width / W, rect.height / H)
+    const left = rect.left + (rect.width - W * k) / 2
+    const top = rect.top + (rect.height - H * k) / 2
+    onTap((e.clientX - left) / k / TILE, (e.clientY - top) / k / TILE_H + VIEW_TOP)
   }
 
   const towers = sim.entities.filter(e => e.kind === 'tower' && e.y + TOWER_SIZE[e.slot!] / 2 > VIEW_TOP)
@@ -89,8 +93,8 @@ export function ArenaSim({ sim, running, speed = 1, onTick, onTap, ghost, zone }
 
       {/* Радиус башни, которая сейчас стреляет */}
       {towers.filter(t => t.alive && t.team === 'me' && t.target && t.active).map(t => (
-        <circle key={`r${t.id}`} cx={px(t.x)} cy={py(t.y)} r={t.s.range * TILE + t.s.radius * TILE} fill="none"
-          stroke="rgba(255,211,90,0.4)" strokeDasharray="3 7" />
+        <ellipse key={`r${t.id}`} cx={px(t.x)} cy={py(t.y)} rx={(t.s.range + t.s.radius) * TILE} ry={(t.s.range + t.s.radius) * TILE_H} fill="none"
+          stroke="rgba(255,236,150,0.7)" strokeDasharray="3 7" />
       ))}
 
       {sim.bombs.map(b => <Bomb key={b.id} b={b} now={sim.t} />)}
@@ -110,13 +114,13 @@ export function ArenaSim({ sim, running, speed = 1, onTick, onTap, ghost, zone }
           const r = (f.r ?? 1.5) * TILE * (0.55 + 0.45 * k)
           return (
             <g key={f.id} opacity={1 - k}>
-              <circle cx={x} cy={y} r={r} fill="rgba(255,140,40,0.35)" stroke="#ffb347" strokeWidth={3 * (1 - k) + 1} />
+              <ellipse cx={x} cy={y} rx={r} ry={r * (TILE_H / TILE)} fill="rgba(255,140,40,0.35)" stroke="#ffb347" strokeWidth={3 * (1 - k) + 1} />
               <text x={x} y={y} textAnchor="middle" dominantBaseline="central" fontSize={26 + 14 * k}>💥</text>
             </g>
           )
         }
         if (f.kind === 'slam') {
-          return <circle key={f.id} cx={x} cy={y} r={(f.r ?? 2) * TILE * k} fill="rgba(255,230,190,0.15)" stroke="#ffe6be" strokeWidth={4 * (1 - k)} opacity={1 - k} />
+          return <ellipse key={f.id} cx={x} cy={y} rx={(f.r ?? 2) * TILE * k} ry={(f.r ?? 2) * TILE_H * k} fill="rgba(255,230,190,0.2)" stroke="#fff3dc" strokeWidth={4 * (1 - k)} opacity={1 - k} />
         }
         if (f.kind === 'poof') {
           return (
@@ -147,14 +151,15 @@ export function ArenaSim({ sim, running, speed = 1, onTick, onTap, ghost, zone }
 function Zone({ kind }: { kind: 'troop' | 'spell' | 'miner' }) {
   if (kind === 'spell') return null
   const boxes = [{ x: 3.5, y: 25.5, s: 3 }, { x: 14.5, y: 25.5, s: 3 }, { x: 9, y: 29, s: 4 }]
+  if (kind === 'miner') boxes.push({ x: 3.5, y: 6.5, s: 3 }, { x: 14.5, y: 6.5, s: 3 }, { x: 9, y: 3, s: 4 })
   return (
     <g pointerEvents="none">
       {kind === 'troop'
         ? <rect x={0} y={0} width={W} height={py(17)} fill="rgba(239,68,84,0.3)" />
-        : <rect x={0} y={py(15)} width={W} height={2 * TILE} fill="rgba(239,68,84,0.3)" />}
+        : <rect x={0} y={py(15)} width={W} height={2 * TILE_H} fill="rgba(239,68,84,0.3)" />}
       {kind === 'troop' && <line x1={0} x2={W} y1={py(17)} y2={py(17)} stroke="#ff7a85" strokeWidth="2" strokeDasharray="6 5" />}
       {boxes.map((b, i) => (
-        <rect key={i} x={px(b.x - b.s / 2)} y={py(b.y - b.s / 2)} width={b.s * TILE} height={b.s * TILE} fill="rgba(239,68,84,0.18)" />
+        <rect key={i} x={px(b.x - b.s / 2)} y={py(b.y - b.s / 2)} width={b.s * TILE} height={b.s * TILE_H} fill="rgba(239,68,84,0.25)" />
       ))}
     </g>
   )
@@ -165,12 +170,12 @@ function TowerSim({ e, now }: { e: Entity; now: number }) {
   const king = e.slot === 'K'
   const top = towerTop(e.y, size, king)
   const hurt = e.alive && e.sinceHurt < 0.12
-  const w = size * TILE * 0.8
+  const w = (king ? 3.2 : 2.4) * TILE
   const color = e.team === 'me' ? ME : FOE
   return (
     <g>
       <g transform={hurt ? `translate(${Math.sin(now * 90) * 1.5} 0)` : undefined}>
-        <TowerArt x={e.x} y={e.y} size={size} king={king} dead={!e.alive} />
+        <TowerArt x={e.x} y={e.y} size={size} king={king} enemy={e.team === 'enemy'} dead={!e.alive} />
       </g>
       {e.alive && (
         <g>
@@ -188,8 +193,8 @@ function TowerSim({ e, now }: { e: Entity; now: number }) {
 
 /** Размер жетона в пикселях: по радиусу юнита из игры, мелочь в группе чуть меньше. */
 function tokenR(e: Entity): number {
-  const base = e.s.radius * TILE * 1.2
-  return Math.max(9, (e.s.count ?? 1) > 1 || e.card === 'Goblins' ? base * 0.8 : base)
+  const base = e.s.radius * TILE * 1.1
+  return Math.max(8, (e.s.count ?? 1) > 1 || e.card === 'Goblins' ? base * 0.8 : base)
 }
 
 function Unit({ e, clock }: { e: Entity; clock: number }) {
@@ -314,7 +319,8 @@ function Lob({ p, clock }: { p: Projectile; clock: number }) {
       <text x={x} y={y - h} textAnchor="middle" dominantBaseline="central" fontSize={fire ? 24 : 22}
         transform={fire ? `rotate(${angle - 45} ${x} ${y - h})` : `rotate(${clock * 400} ${x} ${y - h})`}>{fire ? '☄️' : '🛢️'}</text>
       {/* Куда упадёт - чтобы видеть угрозу заранее */}
-      <circle cx={px(p.tx)} cy={py(p.ty)} r={(fire ? SPELLS.Fireball.radius : SPELLS['Goblin Barrel'].radius) * TILE} fill="none"
+      <ellipse cx={px(p.tx)} cy={py(p.ty)} rx={(fire ? SPELLS.Fireball.radius : SPELLS['Goblin Barrel'].radius) * TILE}
+        ry={(fire ? SPELLS.Fireball.radius : SPELLS['Goblin Barrel'].radius) * TILE_H} fill="none"
         stroke={p.team === 'me' ? 'rgba(127,181,255,0.6)' : 'rgba(255,122,133,0.7)'} strokeWidth="1.5" strokeDasharray="4 4" />
     </g>
   )
@@ -344,7 +350,7 @@ function Bomb({ b, now }: { b: Sim['bombs'][number]; now: number }) {
   const blink = 0.35 + 0.35 * Math.abs(Math.sin(now * (4 + 10 * (1 - (b.at - now) / (b.at - b.t)))))
   return (
     <g>
-      <circle cx={x} cy={y} r={b.r * TILE} fill={`rgba(239,68,84,${blink * 0.25})`} stroke="#ff7a85" strokeWidth="1.5" strokeDasharray="5 4" />
+      <ellipse cx={x} cy={y} rx={b.r * TILE} ry={b.r * TILE_H} fill={`rgba(239,68,84,${blink * 0.25})`} stroke="#ff7a85" strokeWidth="1.5" strokeDasharray="5 4" />
       <text x={x} y={y - 18 * (1 - k)} textAnchor="middle" dominantBaseline="central" fontSize="18">💣</text>
     </g>
   )
@@ -354,12 +360,12 @@ function Bomb({ b, now }: { b: Sim['bombs'][number]; now: number }) {
 function GhostMark({ ghost, clock }: { ghost: SimGhost; clock: number }) {
   const x = px(ghost.x), y = py(ghost.y)
   const bad = !ghost.ok
-  const stroke = bad ? '#ef4454' : '#ffe08a'
+  const stroke = bad ? '#ef4454' : '#fff'
   const pulse = 0.6 + 0.4 * Math.sin(clock * 8)
   if (ghost.card === 'Fireball') {
     return (
       <g opacity={pulse} pointerEvents="none">
-        <circle cx={x} cy={y} r={SPELLS.Fireball.radius * TILE} fill="rgba(255,140,40,0.18)" stroke={stroke} strokeWidth="2" strokeDasharray="5 4" />
+        <ellipse cx={x} cy={y} rx={SPELLS.Fireball.radius * TILE} ry={SPELLS.Fireball.radius * TILE_H} fill="rgba(255,140,40,0.18)" stroke={stroke} strokeWidth="2" strokeDasharray="5 4" />
         <text x={x} y={y} textAnchor="middle" dominantBaseline="central" fontSize="22">☄️</text>
       </g>
     )
@@ -369,21 +375,21 @@ function GhostMark({ ghost, clock }: { ghost: SimGhost; clock: number }) {
     const w = lg.width * 2 * TILE
     return (
       <g pointerEvents="none">
-        <rect x={x - w / 2} y={y - lg.range * TILE} width={w} height={lg.range * TILE} fill="rgba(255,224,138,0.12)" stroke={stroke} strokeWidth="1.5" strokeDasharray="5 4" />
+        <rect x={x - w / 2} y={y - lg.range * TILE_H} width={w} height={lg.range * TILE_H} fill="rgba(255,224,138,0.18)" stroke={stroke} strokeWidth="1.5" strokeDasharray="5 4" />
         <g opacity={pulse}><Log x={x} y={y} clock={0} fade={1} /></g>
       </g>
     )
   }
   const s = UNITS[ghost.card]
   const building = !!s?.building
-  const r = Math.max(9, (s?.radius ?? 0.5) * TILE * 1.2)
-  const range = s && s.range >= 2 ? (s.range + s.radius) * TILE : 0
+  const r = Math.max(8, (s?.radius ?? 0.5) * TILE * 1.1)
+  const range = s && s.range >= 2 ? s.range + s.radius : 0
   return (
     <g pointerEvents="none">
-      {range > 0 && <circle cx={x} cy={y} r={range} fill="rgba(127,181,255,0.08)" stroke={bad ? stroke : '#7fb5ff'} strokeWidth="1.5" strokeDasharray="5 5" />}
+      {range > 0 && <ellipse cx={x} cy={y} rx={range * TILE} ry={range * TILE_H} fill="rgba(61,139,255,0.12)" stroke={bad ? stroke : '#1f5fd1'} strokeWidth="1.5" strokeDasharray="5 5" />}
       {building
-        ? <rect x={x - TILE} y={y - TILE} width={2 * TILE} height={2 * TILE} rx="4" fill="rgba(255,224,138,0.15)" stroke={stroke} strokeWidth="2" strokeDasharray="4 3" />
-        : <rect x={x - TILE / 2} y={y - TILE / 2} width={TILE} height={TILE} rx="3" fill="rgba(255,224,138,0.15)" stroke={stroke} strokeWidth="2" strokeDasharray="4 3" />}
+        ? <rect x={x - TILE} y={y - TILE_H} width={2 * TILE} height={2 * TILE_H} rx="3" fill="rgba(255,255,255,0.35)" stroke={stroke} strokeWidth="2" strokeDasharray="4 3" />
+        : <rect x={x - TILE / 2} y={y - TILE_H / 2} width={TILE} height={TILE_H} rx="2" fill="rgba(255,255,255,0.35)" stroke={stroke} strokeWidth="2" strokeDasharray="4 3" />}
       <g opacity={0.55 + 0.25 * pulse} transform={`translate(${x} ${y})`}>
         {building
           ? <rect x={-r - 2.5} y={-r - 2.5} width={2 * r + 5} height={2 * r + 5} rx="7" fill={bad ? FOE : ME} />
