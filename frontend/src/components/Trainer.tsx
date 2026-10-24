@@ -7,7 +7,7 @@ import { openTip } from '../lib/tipSheet'
 import { useCardArt } from '../lib/cardArt'
 import {
   CARD_NAMES, FREE_PUZZLES, HINTS, PUZZLES, PUZZLE_TEXT, RESULT_TEXT, cardInfo, dailyIndex, explain, loadStars,
-  loadStreak, markDailySolved, saveStars, snap, takePendingPuzzle, type Puzzle,
+  loadStreak, markDailySolved, markSandboxUsed, sandboxUsedToday, saveStars, snap, takePendingPuzzle, type Puzzle,
 } from '../lib/trainer'
 import { canDeploy, sideOf, type Entity, type Sim } from '../lib/sim/engine'
 import { emojiOf } from '../lib/sim/emoji'
@@ -32,7 +32,8 @@ export function TrainerView() {
   const [current, setCurrent] = useState<number | null>(() => {
     const id = takePendingPuzzle()
     const i = id ? PUZZLES.findIndex(p => p.id === id) : -1
-    return i >= 0 && (i < FREE_PUZZLES || i === daily) ? i : null
+    // Закрытая задача тоже откроется - только показом решения
+    return i >= 0 ? i : null
   })
   const streak = loadStreak()
   const openPlus = usePlusSheet()
@@ -50,14 +51,22 @@ export function TrainerView() {
 
   if (sandbox) return <Sandbox onExit={() => setSandbox(false)} details={details} onDetails={toggleDetails} />
 
+  // Песочница без Плюса - один запуск в день
+  const openSandbox = () => {
+    haptic('medium')
+    if (!unlocked && sandboxUsedToday()) { openPlus('plus'); return }
+    if (!unlocked) markSandboxUsed()
+    setSandbox(true)
+  }
+
   if (current !== null) {
     const next = () => {
       const after = PUZZLES.findIndex((_, i) => i > current && isOpen(i))
       setCurrent(after >= 0 ? after : null)
     }
     return (
-      <TrainerGame key={current} puzzle={PUZZLES[current]} daily={current === daily}
-        details={details} onDetails={toggleDetails}
+      <TrainerGame key={current} puzzle={PUZZLES[current]} daily={current === daily} locked={!isOpen(current)}
+        details={details} onDetails={toggleDetails} onPlus={() => openPlus('plus')}
         onExit={() => setCurrent(null)} onNext={next}
         onStars={n => {
           setStars(saveStars(PUZZLES[current].id, n))
@@ -82,9 +91,12 @@ export function TrainerView() {
         </div>
       </div>
 
-      <button className="tr-sandbox" onClick={() => { haptic('medium'); setSandbox(true) }}>
+      <button className="tr-sandbox" onClick={openSandbox}>
         <span>🧪</span>
-        <div><b>{s.sandbox}</b><small>{s.sandboxLead}</small></div>
+        <div>
+          <b>{s.sandbox}</b><small>{s.sandboxLead}</small>
+          {!unlocked && <small className="tr-sandbox-free">{sandboxUsedToday() ? `🔒 ${s.sandboxUsed}` : `🎁 ${s.sandboxFree}`}</small>}
+        </div>
         <Icon name="chevronRight" size={18} />
       </button>
 
@@ -103,7 +115,7 @@ export function TrainerView() {
           const ok = isOpen(i)
           return (
             <button key={p.id} className={`tr-tile ${ok ? '' : 'tr-locked'}`}
-              onClick={() => { haptic('light'); if (ok) setCurrent(i); else openPlus('plus') }}>
+              onClick={() => { haptic('light'); setCurrent(i) }}>
               <TargetArt card={p.icon ?? p.enemyCard} />
               <b>{PUZZLE_TEXT[lang][p.id]?.title}</b>
               {ok ? <Stars n={stars[p.id] ?? 0} /> : <span className="tr-lock"><GameIcon name="lock" size={16} /> {s.locked}</span>}
@@ -163,8 +175,12 @@ function useDetails(): [boolean, () => void] {
   return [on, toggle]
 }
 
-function TrainerGame({ puzzle, daily, details, onDetails, onExit, onNext, onStars }: {
-  puzzle: Puzzle; daily: boolean; details: boolean; onDetails: () => void; onExit: () => void; onNext: () => void; onStars: (n: number) => void
+/**
+ * @param locked Задача в Плюсе: показ решения - бесплатно, а вместо своей попытки - покупка.
+ */
+function TrainerGame({ puzzle, daily, locked, details, onDetails, onPlus, onExit, onNext, onStars }: {
+  puzzle: Puzzle; daily: boolean; locked: boolean; details: boolean; onDetails: () => void; onPlus: () => void
+  onExit: () => void; onNext: () => void; onStars: (n: number) => void
 }) {
   const { t, lang } = useT()
   const s = t.trainer
@@ -316,7 +332,7 @@ function TrainerGame({ puzzle, daily, details, onDetails, onExit, onNext, onStar
             onTick={onTick} onTap={phase === 'choose' ? tap : undefined} ghost={ghost} zone={zone} names={n}
             ghostLabel={phase === 'demo-show' ? s.demoHere.replace('{card}', n(sol.card)) : undefined}
             camp={{ name: s.campName, clan: s.campClan, you: s.you }} details={details} />
-          {demo && phase !== 'demo-done' && <div className="tr-turn tr-turn-demo">🎬 {s.demo}</div>}
+          {demo && phase !== 'demo-done' && <div className="tr-turn tr-turn-demo">🎬 {locked ? s.lockedDemo : s.demo}</div>}
           {phase === 'choose' && !ghost?.ok && (
             <div className={`tr-turn ${hint && ghost ? 'tr-turn-bad' : ''}`}>
               {hint ?? (card ? (kind === 'spell' ? s.pickSpell : s.pickTile) : `${s.yourTurn} · ${s.pickCard}`)}
@@ -325,7 +341,7 @@ function TrainerGame({ puzzle, daily, details, onDetails, onExit, onNext, onStar
           {running && (
             <button className={`tr-speed ${fast ? 'tr-speed-on' : ''}`} onClick={toggleFast}>⏩ {fast ? '×2.5' : '×1'}</button>
           )}
-          {demo && phase !== 'demo-done' && <button className="tr-skip" onClick={play}>{s.skip} ›</button>}
+          {demo && phase !== 'demo-done' && !locked && <button className="tr-skip" onClick={play}>{s.skip} ›</button>}
           {phase === 'choose' && ghost?.ok && card && (
             <button className="tr-place" onClick={() => place(card, ghost.x, ghost.y)}>
               {art[card] ? <img className="tr-place-art" src={art[card]} alt="" /> : emojiOf(card)} {s.place}
@@ -334,7 +350,9 @@ function TrainerGame({ puzzle, daily, details, onDetails, onExit, onNext, onStar
           {phase === 'demo-done' && (
             <div className="tr-demo-done fade-up">
               <b>✓ {demoNote}</b>
-              <button className="tr-go" onClick={play}>{s.nowYou} <Icon name="chevronRight" size={16} /></button>
+              {locked
+                ? <button className="tr-go tr-go-plus" onClick={() => { haptic('medium'); onPlus() }}>🔒 {s.tryPlus}</button>
+                : <button className="tr-go" onClick={play}>{s.nowYou} <Icon name="chevronRight" size={16} /></button>}
               <button className="tr-again" onClick={showAgain}><Icon name="refresh" size={14} /> {s.showAgain}</button>
             </div>
           )}

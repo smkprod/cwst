@@ -134,7 +134,19 @@ export const PUZZLES: Puzzle[] = [
   },
 ]
 
-export const FREE_PUZZLES = 3
+/** Сколько задач открыто целиком без Плюса (плюс задача дня); в остальных бесплатно только показ решения. */
+export const FREE_PUZZLES = 1
+
+const SANDBOX_KEY = 'cwst_sandbox_day'
+
+/** Бесплатная песочница - раз в день: был ли уже сегодня запуск. */
+export function sandboxUsedToday(now = new Date()): boolean {
+  try { return localStorage.getItem(SANDBOX_KEY) === now.toISOString().slice(0, 10) } catch { return false }
+}
+
+export function markSandboxUsed(now = new Date()) {
+  try { localStorage.setItem(SANDBOX_KEY, now.toISOString().slice(0, 10)) } catch { /* без памяти - не считаем */ }
+}
 
 /** Задача дня - по кругу, одна на всех: можно сравнить с кланом. */
 export function dailyIndex(now = new Date()): number {
