@@ -14,7 +14,7 @@ export interface UnitStats {
   splash: number; projSpeed: number; jumpsRiver: boolean; crownPct: number; lifetime: number; mass: number
   count?: number; building?: boolean; deathDmg?: number; deathRadius?: number; deathDelay?: number
   dashDmg?: number; dashRadius?: number; dashMin?: number; dashMax?: number
-  tunnelSpeed?: number; deathSpawn?: string; deathSpawnCount?: number
+  tunnelSpeed?: number; deathSpawn?: string; deathSpawnCount?: number; minRange?: number
 }
 
 export const UNITS: Record<string, UnitStats> = {
@@ -329,6 +329,52 @@ export const UNITS: Record<string, UnitStats> = {
     "lifetime": 30.0,
     "mass": 0,
     "building": true
+  },
+  "Ice Golem": {
+    "hp": 1197,
+    "dmg": 84,
+    "hitSpeed": 2.5,
+    "load": 1.5,
+    "speed": 0.75,
+    "range": 0.75,
+    "sight": 7.0,
+    "radius": 0.7,
+    "deploy": 1.0,
+    "air": true,
+    "ground": true,
+    "buildingsOnly": true,
+    "flying": false,
+    "splash": 0.0,
+    "projSpeed": 0,
+    "jumpsRiver": false,
+    "crownPct": 0,
+    "lifetime": 0.0,
+    "mass": 6,
+    "deathDmg": 84,
+    "deathRadius": 2.0
+  },
+  "Mortar": {
+    "hp": 1369,
+    "dmg": 266,
+    "hitSpeed": 5.0,
+    "load": 4.0,
+    "speed": 0.0,
+    "range": 11.5,
+    "sight": 11.5,
+    "radius": 0.6,
+    "deploy": 3.5,
+    "air": false,
+    "ground": true,
+    "buildingsOnly": false,
+    "flying": false,
+    "splash": 2.0,
+    "projSpeed": 5.0,
+    "jumpsRiver": false,
+    "crownPct": 0,
+    "lifetime": 30.0,
+    "mass": 0,
+    "minRange": 3.5,
+    "building": true
   }
 }
 
@@ -429,5 +475,7 @@ export const COST: Record<string, number> = {
   "Fireball": 4,
   "The Log": 2,
   "Goblin Barrel": 3,
-  "Tornado": 3
+  "Tornado": 3,
+  "Ice Golem": 2,
+  "Mortar": 4
 }

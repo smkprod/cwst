@@ -54,7 +54,7 @@ export interface Entity {
   tunnel?: { fx: number; fy: number; t: number; dur: number }
 }
 
-export type ProjectileKind = 'arrow' | 'bullet' | 'cannonball' | 'bolt' | 'fireball' | 'barrel' | 'king'
+export type ProjectileKind = 'arrow' | 'bullet' | 'cannonball' | 'bolt' | 'shell' | 'fireball' | 'barrel' | 'king'
 
 export interface Projectile {
   id: number
@@ -283,7 +283,7 @@ export class Sim {
     const t = e.target
     if (!t) return
 
-    const inRange = this.gap(e, t) <= e.s.range
+    const inRange = this.gap(e, t) <= e.s.range && this.gap(e, t) >= (e.s.minRange ?? 0)
     if (!inRange) {
       e.locked = false
       if (e.kind !== 'troop') return
@@ -311,7 +311,7 @@ export class Sim {
     e.sinceHit = 0
     if (e.s.projSpeed > 0 || e.kind === 'tower') {
       const kind: ProjectileKind = e.kind === 'tower' ? (e.slot === 'K' ? 'king' : 'arrow')
-        : e.card === 'Cannon' ? 'cannonball' : e.card === 'X-Bow' ? 'bolt' : 'bullet'
+        : e.card === 'Cannon' ? 'cannonball' : e.card === 'X-Bow' ? 'bolt' : e.card === 'Mortar' ? 'shell' : 'bullet'
       this.projectiles.push(this.proj(e.team, e.card, kind, e.x, e.y - (e.kind === 'tower' ? 0.6 : 0), t, t.x, t.y,
         e.s.projSpeed || 10, e.s.dmg, e.s.splash, e.s.crownPct, e.s.air, e.s.ground))
     } else if (e.s.splash > 0) {
@@ -328,6 +328,8 @@ export class Sim {
     for (const c of this.entities) {
       if (!this.canHit(e, c)) continue
       const d = this.gap(e, c)
+      // Мортира не видит тех, кто подошёл вплотную: слепая зона ближе minRange
+      if (d < (e.s.minRange ?? 0)) continue
       if (d <= sight && d < bestD) { best = c; bestD = d }
     }
     if (best || e.kind !== 'troop') return best

@@ -4,7 +4,6 @@ import { emojiOf } from '../lib/sim/emoji'
 import kingMe from '../assets/keepers/king-me.webp'
 import kingFoe from '../assets/keepers/king-foe.webp'
 import princessArt from '../assets/keepers/princess.webp'
-import emblem from '../assets/clanify-emblem.webp'
 
 /**
  * Схема арены с анимацией: куда и когда ставить карту.
@@ -270,7 +269,7 @@ const LANES = [3.5, 14.5]
  * Тренировочная арена Clanify: раскладка как в игре (дорожки от мостов к башням и
  * петля за королями, площадки под башнями, река в 2 ряда, мосты над линиями), а
  * цвета - фирменные: индиго-поле, светящиеся дорожки, неоновая река, фиолетовые
- * мосты, эмблема Clanify в центре и световые барьеры в углах за королями.
+ * мосты и световые барьеры в углах за королями.
  */
 export function ArenaGround({ t, g }: { t: number; g: (n: string) => string }) {
   // Дорожка - полоса в 1 клетку: вдоль линий от петли за королём до моста и поперёк за королями
@@ -313,13 +312,6 @@ export function ArenaGround({ t, g }: { t: number; g: (n: string) => string }) {
         return <path key={`st${i}`} d={`M${cx - 7} ${cy} L${cx - 2} ${cy - 4} L${cx + 6} ${cy - 2} L${cx + 7} ${cy + 2} L${cx} ${cy + 4} Z`}
           fill="#3c4596" stroke="#7b8cff" strokeWidth="1" />
       })}
-
-      {/* Эмблема Clanify посреди поля - как герб арены в игре */}
-      <g opacity="0.95">
-        <ellipse cx={px(9)} cy={py(16)} rx={2.1 * TILE} ry={2.1 * TILE_H + 4} fill="#141a45" stroke={`url(#${g('trackH')})`} strokeWidth="2" />
-        <ellipse cx={px(9)} cy={py(16)} rx={2.1 * TILE} ry={2.1 * TILE_H + 4} fill="none" stroke="#9c6bff" strokeWidth="2" opacity={0.4 + 0.4 * pulse} />
-        <image href={emblem} x={px(9) - 26} y={py(16) - 27} width={52} height={53} />
-      </g>
 
       {/* Мосты: фиолетовый металл с настилом, в 2 клетки шириной над каждой линией */}
       {LANES.map(lx => (

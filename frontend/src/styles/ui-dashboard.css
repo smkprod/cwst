@@ -192,8 +192,12 @@
 /* Арена и рука - одна «доска», как экран боя в игре: поле сверху, деревянная панель с картами снизу */
 .tr-stage { border-radius: 18px; overflow: hidden; border: 1.5px solid rgba(156, 107, 255, 0.55); background: #141a45;
   box-shadow: 0 0 0 1px rgba(63, 198, 242, 0.15), 0 14px 34px rgba(0, 0, 0, 0.5), 0 0 28px rgba(156, 107, 255, 0.18); }
+.tr-stage-head { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 6px 10px; background: linear-gradient(90deg, #1f2560, #2a2f78 50%, #1f2560);
+  border-bottom: 1px solid rgba(156, 107, 255, 0.45); }
+.tr-stage-head img { width: 24px; height: 24px; object-fit: contain; }
+.tr-stage-head b { font-size: 12.5px; font-weight: 900; letter-spacing: 0.4px; background: linear-gradient(90deg, #c9b6ff, #8fd8ff); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .tr-board { position: relative; display: flex; justify-content: center; background: radial-gradient(circle at 50% 45%, #2c3574, #121638); }
-.tr-board .arena { border-radius: 0; max-height: calc(100vh - 330px); max-height: max(360px, calc(100dvh - 330px)); }
+.tr-board .arena { border-radius: 0; max-height: calc(100vh - 366px); max-height: max(360px, calc(100dvh - 366px)); }
 .tr-board-live .arena { box-shadow: inset 0 0 0 2px rgba(255, 236, 150, 0.7); }
 .tr-turn { position: absolute; top: 44px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 24px); padding: 7px 14px; border-radius: 999px;
   pointer-events: none; text-align: center; font-size: 12.5px; font-weight: 900; color: #fff; line-height: 1.25;

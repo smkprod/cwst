@@ -6,11 +6,12 @@ import { haptic, hapticNotify } from '../lib/telegram'
 import { openTip } from '../lib/tipSheet'
 import { useCardArt } from '../lib/cardArt'
 import {
-  CARD_NAMES, FREE_PUZZLES, HINTS, PUZZLES, PUZZLE_TEXT, REASONS, RESULT_TEXT, cardInfo, dailyIndex, explain, loadStars,
-  loadStreak, markDailySolved, saveStars, snap, takePendingPuzzle, type Puzzle, type Verdict,
+  CARD_NAMES, FREE_PUZZLES, HINTS, PUZZLES, PUZZLE_TEXT, RESULT_TEXT, cardInfo, dailyIndex, explain, loadStars,
+  loadStreak, markDailySolved, saveStars, snap, takePendingPuzzle, type Puzzle,
 } from '../lib/trainer'
 import { canDeploy, sideOf, type Entity, type Sim } from '../lib/sim/engine'
 import { emojiOf } from '../lib/sim/emoji'
+import emblem from '../assets/clanify-emblem.webp'
 import { Watch, atPause, baseline, introSim, judge, pauseTime, playMine, type Outcome } from '../lib/sim/scenario'
 import { ArenaSim, type SimGhost } from './ArenaSim'
 import { GameIcon } from './GameIcon'
@@ -146,7 +147,7 @@ function TrainerGame({ puzzle, daily, onExit, onNext, onStars }: {
   const sc = puzzle.sc
   const at = useMemo(() => pauseTime(sc), [sc])
   // Тот же бой без защиты - с ним сравниваем урон по башне
-  const base = useMemo(() => (puzzle.custom ? 0 : baseline(sc)), [puzzle, sc])
+  const base = useMemo(() => baseline(sc), [sc])
   const [round, setRound] = useState(0)
   const sim = useMemo(() => introSim(sc, at), [sc, at, round])
   const [phase, setPhase] = useState<Phase>('demo-intro')
@@ -155,10 +156,9 @@ function TrainerGame({ puzzle, daily, onExit, onNext, onStars }: {
   const [hint, setHint] = useState<string | null>(null)
   const [fast, setFast] = useState(loadFast)
   const [outcome, setOutcome] = useState<Outcome | null>(null)
-  const [verdict, setVerdict] = useState<Verdict | null>(null)
   const [demoNote, setDemoNote] = useState<string | null>(null)
   const [lines, setLines] = useState<string[]>([])
-  const battle = useRef<{ watch: Watch; mine: Entity[]; card: string; custom: Verdict | null } | null>(null)
+  const battle = useRef<{ watch: Watch; mine: Entity[]; card: string } | null>(null)
   const resultRef = useRef<HTMLDivElement>(null)
   const demo = DEMO.has(phase)
   const sol = puzzle.solution
@@ -178,7 +178,7 @@ function TrainerGame({ puzzle, daily, onExit, onNext, onStars }: {
 
   const restart = (next: Phase) => {
     battle.current = null
-    setPhase(next); setCard(null); setGhost(null); setHint(null); setOutcome(null); setVerdict(null); setLines([]); setDemoNote(null)
+    setPhase(next); setCard(null); setGhost(null); setHint(null); setOutcome(null); setLines([]); setDemoNote(null)
     setRound(r => r + 1)
   }
   const play = () => { haptic('medium'); restart('intro') }
@@ -187,17 +187,10 @@ function TrainerGame({ puzzle, daily, onExit, onNext, onStars }: {
   const finish = (sim: Sim) => {
     const b = battle.current
     if (!b) return
-    let grade: Verdict['grade']
-    if (b.custom) {
-      setVerdict(b.custom)
-      grade = b.custom.grade
-    } else {
-      const o = judge(sc, sim, b.watch, b.card, base, b.mine)
-      setOutcome(o)
-      setLines(explain(puzzle, o, b.card, sim.dealt[`me:${b.card}`] ?? 0, lang))
-      grade = o.grade
-    }
-    const stars = grade === 'perfect' ? 3 : grade === 'ok' ? 2 : 0
+    const o = judge(sc, sim, b.watch, b.card, base, b.mine)
+    setOutcome(o)
+    setLines(explain(puzzle, o, b.card, sim.dealt[`me:${b.card}`] ?? 0, lang))
+    const stars = o.grade === 'perfect' ? 3 : o.grade === 'ok' ? 2 : 0
     setPhase('result')
     onStars(stars)
     hapticNotify(stars > 0 ? 'success' : 'error')
@@ -209,15 +202,11 @@ function TrainerGame({ puzzle, daily, onExit, onNext, onStars }: {
     const b = battle.current
     if (!b) return
     const rt = RESULT_TEXT[lang]
-    if (b.custom) {
-      setDemoNote(REASONS[lang][b.custom.reason] ?? '')
-    } else {
-      const o = judge(sc, sim, b.watch, b.card, base, b.mine)
-      const parts = [o.dmg === 0 ? rt.tower0 : rt.tower.replace('{n}', String(o.dmg))]
-      if (o.killed && o.killIn !== null) parts.push(rt.stopped.replace('{s}', o.killIn.toFixed(1)))
-      if (sc.goal === 'king' && o.kingAwake) parts.push(rt.kingAwake)
-      setDemoNote(parts.join(' · '))
-    }
+    const o = judge(sc, sim, b.watch, b.card, base, b.mine)
+    const parts = [o.dmg === 0 ? rt.tower0 : rt.tower.replace('{n}', String(o.dmg))]
+    if (o.killed && o.killIn !== null) parts.push(rt.stopped.replace('{s}', o.killIn.toFixed(1)))
+    if (sc.goal === 'king' && o.kingAwake) parts.push(rt.kingAwake)
+    setDemoNote(parts.join(' · '))
     setPhase('demo-done')
     hapticNotify('success')
   }
@@ -246,7 +235,7 @@ function TrainerGame({ puzzle, daily, onExit, onNext, onStars }: {
   const place = (c: string, x: number, y: number, next: Phase = 'battle') => {
     const mine = playMine(sim, c, x, y)
     if (!mine) return
-    battle.current = { watch: new Watch(sc, sim), mine, card: c, custom: puzzle.custom?.(c, x, y) ?? null }
+    battle.current = { watch: new Watch(sc, sim), mine, card: c }
     setGhost(null)
     setPhase(next)
     haptic('heavy')
@@ -274,7 +263,7 @@ function TrainerGame({ puzzle, daily, onExit, onNext, onStars }: {
 
   const kind = card ? cardInfo(card).kind : null
   const zone = phase === 'choose' && card ? (kind === 'spell' ? 'spell' : card === 'Miner' ? 'miner' : 'troop') : null
-  const grade = verdict?.grade ?? outcome?.grade ?? 'fail'
+  const grade = outcome?.grade ?? 'fail'
   const stars = grade === 'perfect' ? 3 : grade === 'ok' ? 2 : 0
   const rt = RESULT_TEXT[lang]
   const running = phase === 'intro' || phase === 'battle' || phase === 'demo-intro' || phase === 'demo-battle'
@@ -291,6 +280,7 @@ function TrainerGame({ puzzle, daily, onExit, onNext, onStars }: {
       </div>
 
       <div className="tr-stage">
+        <div className="tr-stage-head"><img src={emblem} alt="" /><b>{s.arena}</b></div>
         <div className={`tr-board ${phase === 'choose' ? 'tr-board-live' : ''} ${demo ? 'tr-board-demo' : ''}`}>
           <ArenaSim key={round} sim={sim} running={running} speed={fast ? 2.5 : 1}
             onTick={onTick} onTap={phase === 'choose' ? tap : undefined} ghost={ghost} zone={zone} names={n}
@@ -370,7 +360,6 @@ function TrainerGame({ puzzle, daily, onExit, onNext, onStars }: {
               </span>
             </div>
           )}
-          {verdict && <p>{REASONS[lang][verdict.reason] ?? ''}</p>}
           {lines.map((l, i) => <p key={i}>{l}</p>)}
           {HINTS[lang][puzzle.id] && <p className="tr-trick"><b>💡 {s.trick}:</b> {HINTS[lang][puzzle.id]}</p>}
           <div className="tr-result-btns">

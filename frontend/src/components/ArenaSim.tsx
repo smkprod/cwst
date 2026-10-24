@@ -20,6 +20,9 @@ export interface SimGhost { card: string; x: number; y: number; ok: boolean }
 /** Подписи тренировочного лагеря, как в игре: соперник-тренер, его клан, «Ты» на своей половине. */
 export interface Camp { name: string; clan: string; you: string }
 
+/** Что летит по дуге: заклинания от короля и снаряд Мортиры. */
+const LOBS = new Set(['fireball', 'barrel', 'shell'])
+
 const ME = '#3d8bff'
 const FOE = '#ef4454'
 
@@ -138,9 +141,9 @@ export function ArenaSim({ sim, running, speed = 1, onTick, onTap, ghost, ghostL
 
       {ground.map(unit)}
       {sim.rollers.map(r => <Log key={r.id} x={px(r.x)} y={py(r.y)} clock={clock} fade={0.4 + Math.abs(r.y0 - r.y) / 0.6} />)}
-      {sim.projectiles.filter(p => p.kind !== 'fireball' && p.kind !== 'barrel').map(p => <Shot key={p.id} p={p} />)}
+      {sim.projectiles.filter(p => !LOBS.has(p.kind)).map(p => <Shot key={p.id} p={p} />)}
       {air.map(unit)}
-      {sim.projectiles.filter(p => p.kind === 'fireball' || p.kind === 'barrel').map(p => <Lob key={p.id} p={p} clock={clock} g={g} />)}
+      {sim.projectiles.filter(p => LOBS.has(p.kind)).map(p => <Lob key={p.id} p={p} clock={clock} g={g} />)}
 
       {sim.effects.map(f => {
         const k = Math.min(1, (sim.t - f.t) / f.dur)
@@ -369,12 +372,12 @@ function Shot({ p }: { p: Projectile }) {
   )
 }
 
-/** Огненный шар и бочка летят по дуге: высота - от доли пройденного пути, тень - на земле. */
+/** Огненный шар, бочка и снаряд Мортиры летят по дуге: высота - от доли пройденного пути, тень - на земле. */
 function Lob({ p, clock, g }: { p: Projectile; clock: number; g: (n: string) => string }) {
   const all = Math.hypot(p.tx - p.sx, p.ty - p.sy) || 1
   const k = Math.min(1, 1 - Math.hypot(p.tx - p.x, p.ty - p.y) / all)
   const x = px(p.x), y = py(p.y)
-  const h = Math.sin(Math.PI * k) * (p.kind === 'barrel' ? 70 : 50)
+  const h = Math.sin(Math.PI * k) * (p.kind === 'fireball' ? 50 : 70)
   const d = dir(p)
   const fire = p.kind === 'fireball'
   const angle = (Math.atan2(d.y, d.x) * 180) / Math.PI
@@ -383,11 +386,13 @@ function Lob({ p, clock, g }: { p: Projectile; clock: number; g: (n: string) => 
       <ellipse cx={x} cy={y} rx={9 - h / 14} ry={3.5 - h / 40} fill="rgba(0,0,0,0.35)" />
       {fire && <circle cx={x} cy={y - h} r={13} fill="rgba(255,140,40,0.3)" />}
       <g transform={`translate(${x} ${y - h})`}>
-        {fire ? <FireballIcon size={14} angle={angle} g={g} /> : <g transform={`rotate(${clock * 400})`}><BarrelIcon size={22} /></g>}
+        {fire ? <FireballIcon size={14} angle={angle} g={g} />
+          : p.kind === 'shell' ? <circle r={5} fill="#2b2f3a" stroke="#0c0d10" strokeWidth="1.4" />
+          : <g transform={`rotate(${clock * 400})`}><BarrelIcon size={22} /></g>}
       </g>
       {/* Куда упадёт - чтобы видеть угрозу заранее */}
-      <ellipse cx={px(p.tx)} cy={py(p.ty)} rx={(fire ? SPELLS.Fireball.radius : SPELLS['Goblin Barrel'].radius) * TILE}
-        ry={(fire ? SPELLS.Fireball.radius : SPELLS['Goblin Barrel'].radius) * TILE_H} fill="none"
+      <ellipse cx={px(p.tx)} cy={py(p.ty)} rx={(fire ? SPELLS.Fireball.radius : p.kind === 'shell' ? p.splash : SPELLS['Goblin Barrel'].radius) * TILE}
+        ry={(fire ? SPELLS.Fireball.radius : p.kind === 'shell' ? p.splash : SPELLS['Goblin Barrel'].radius) * TILE_H} fill="none"
         stroke={p.team === 'me' ? 'rgba(127,181,255,0.6)' : 'rgba(255,122,133,0.7)'} strokeWidth="1.5" strokeDasharray="4 4" />
     </g>
   )
