@@ -14,6 +14,7 @@ import { emojiOf } from '../lib/sim/emoji'
 import emblem from '../assets/clanify-emblem.webp'
 import { Watch, atPause, baseline, introSim, judge, pauseTime, playMine, type Outcome } from '../lib/sim/scenario'
 import { ArenaSim, type SimGhost } from './ArenaSim'
+import { Sandbox } from './Sandbox'
 import { GameIcon } from './GameIcon'
 import { Icon } from './ui/Icon'
 
@@ -35,6 +36,8 @@ export function TrainerView() {
   })
   const streak = loadStreak()
   const openPlus = usePlusSheet()
+  const [sandbox, setSandbox] = useState(false)
+  const [details, toggleDetails] = useDetails()
 
   useEffect(() => {
     const load = () => api.getPlus().then(p => setUnlocked(p.unlocked)).catch(() => { /* без статуса - как без Плюса */ })
@@ -45,6 +48,8 @@ export function TrainerView() {
 
   const isOpen = (i: number) => unlocked || i < FREE_PUZZLES || i === daily
 
+  if (sandbox) return <Sandbox onExit={() => setSandbox(false)} details={details} onDetails={toggleDetails} />
+
   if (current !== null) {
     const next = () => {
       const after = PUZZLES.findIndex((_, i) => i > current && isOpen(i))
@@ -52,6 +57,7 @@ export function TrainerView() {
     }
     return (
       <TrainerGame key={current} puzzle={PUZZLES[current]} daily={current === daily}
+        details={details} onDetails={toggleDetails}
         onExit={() => setCurrent(null)} onNext={next}
         onStars={n => {
           setStars(saveStars(PUZZLES[current].id, n))
@@ -75,6 +81,12 @@ export function TrainerView() {
           {streak.days > 0 && <span><GameIcon name="flame" size={20} /> {s.streak.replace('{n}', String(streak.days))}</span>}
         </div>
       </div>
+
+      <button className="tr-sandbox" onClick={() => { haptic('medium'); setSandbox(true) }}>
+        <span>🧪</span>
+        <div><b>{s.sandbox}</b><small>{s.sandboxLead}</small></div>
+        <Icon name="chevronRight" size={18} />
+      </button>
 
       <button className="tr-daily" onClick={() => { haptic('medium'); setCurrent(daily) }}>
         <TargetArt card={PUZZLES[daily].icon ?? PUZZLES[daily].enemyCard} />
@@ -136,8 +148,23 @@ function loadFast(): boolean {
   try { return localStorage.getItem(FAST_KEY) === '1' } catch { return false }
 }
 
-function TrainerGame({ puzzle, daily, onExit, onNext, onStars }: {
-  puzzle: Puzzle; daily: boolean; onExit: () => void; onNext: () => void; onStars: (n: number) => void
+const DETAILS_KEY = 'cwst_trainer_details'
+
+/** Показ радиусов и целей - общий для задач и песочницы, запоминается. */
+function useDetails(): [boolean, () => void] {
+  const [on, setOn] = useState(() => { try { return localStorage.getItem(DETAILS_KEY) === '1' } catch { return false } })
+  const toggle = () => {
+    haptic('light')
+    setOn(v => {
+      try { localStorage.setItem(DETAILS_KEY, v ? '0' : '1') } catch { /* без памяти - до перезапуска */ }
+      return !v
+    })
+  }
+  return [on, toggle]
+}
+
+function TrainerGame({ puzzle, daily, details, onDetails, onExit, onNext, onStars }: {
+  puzzle: Puzzle; daily: boolean; details: boolean; onDetails: () => void; onExit: () => void; onNext: () => void; onStars: (n: number) => void
 }) {
   const { t, lang } = useT()
   const s = t.trainer
@@ -272,7 +299,10 @@ function TrainerGame({ puzzle, daily, onExit, onNext, onStars }: {
     <div className="tr-game fade-in">
       <div className="tr-top">
         <button className="btn-mini" onClick={() => { haptic('light'); onExit() }}><Icon name="chevronLeft" size={15} /> {s.back}</button>
-        {daily && <span className="tr-badge">{s.daily}</span>}
+        <span className="tr-top-right">
+          {daily && <span className="tr-badge">{s.daily}</span>}
+          <button className={`tr-toggle ${details ? 'tr-toggle-on' : ''}`} onClick={onDetails}>📐 {s.details}</button>
+        </span>
       </div>
       <div className="tr-head">
         <h2 className="tr-title">{text.title}</h2>
@@ -285,7 +315,7 @@ function TrainerGame({ puzzle, daily, onExit, onNext, onStars }: {
           <ArenaSim key={round} sim={sim} running={running} speed={fast ? 2.5 : 1}
             onTick={onTick} onTap={phase === 'choose' ? tap : undefined} ghost={ghost} zone={zone} names={n}
             ghostLabel={phase === 'demo-show' ? s.demoHere.replace('{card}', n(sol.card)) : undefined}
-            camp={{ name: s.campName, clan: s.campClan, you: s.you }} />
+            camp={{ name: s.campName, clan: s.campClan, you: s.you }} details={details} />
           {demo && phase !== 'demo-done' && <div className="tr-turn tr-turn-demo">🎬 {s.demo}</div>}
           {phase === 'choose' && !ghost?.ok && (
             <div className={`tr-turn ${hint && ghost ? 'tr-turn-bad' : ''}`}>
