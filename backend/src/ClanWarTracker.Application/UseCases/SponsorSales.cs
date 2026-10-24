@@ -17,6 +17,9 @@ public static class SponsorSales
 
     public const int DefaultDays = 30;
 
+    /// <summary>Цена кланового тарифа, пока в панели не задана своя.</summary>
+    public const int DefaultStars = 350;
+
     /// <summary>Потолок цены — защита от лишнего нуля, набранного в панели.</summary>
     public const int MaxStars = 100_000;
     public const int MaxDays = 366;
@@ -31,7 +34,7 @@ public static class SponsorSales
 
     public static async Task<Offer> ReadAsync(IServiceSettingRepository settings, CancellationToken ct)
     {
-        var stars = int.TryParse(await settings.GetAsync(PriceKey, ct), out var s) ? s : 0;
+        var stars = int.TryParse(await settings.GetAsync(PriceKey, ct), out var s) ? s : DefaultStars;
         var days = int.TryParse(await settings.GetAsync(DaysKey, ct), out var d) ? d : DefaultDays;
         return new Offer(Math.Clamp(stars, 0, MaxStars), Math.Clamp(days, 1, MaxDays));
     }

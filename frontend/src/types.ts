@@ -761,6 +761,8 @@ export interface PlusStatus {
   paywall: boolean
   active: boolean
   unlocked: boolean
+  /** В клане есть спонсор - тренажёр открыт всему клану. */
+  clanPro?: boolean
   until: string | null
   /** purchase / gift / grant / sponsor */
   source: string | null
@@ -1343,6 +1345,8 @@ export type BackgroundKey =
 export type AppTab = 'clan' | 'me' | 'hall' | 'tournament' | 'search' | 'more' | 'challenge' | 'duel' | 'plus'
 
 export interface AppConfig {
+  /** Своё оформление (фон игрока) открыто: Плюс или спонсорство. */
+  canLooks?: boolean
   botUsername: string
   /** Идущий ивент: пока он идёт, у него своя вкладка в нижнем меню. */
   event?: 'halloween' | null

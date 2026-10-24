@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { api } from '../lib/api'
 import type { Achievement, AppConfig, BackgroundKey } from '../types'
 import { haptic, hapticNotify } from '../lib/telegram'
+import { usePlusSheet } from '../lib/plusSheet'
 import { useT } from '../lib/i18n'
 import { BadgeIcon } from '../lib/sponsorMarks'
 import { Icon } from './ui/Icon'
@@ -10,7 +11,7 @@ import { IconTile } from './ui/Section'
 import { SponsorBuyButton } from './SponsorBuyButton'
 
 /**
- * Оформление себя: значок напоказ и фоны спонсора.
+ * Оформление себя: значок напоказ, свой фон (Плюс) и фон клана (спонсор).
  *
  * Живёт на вкладке «Я», а не только на Аллее, по двум причинам. Значок может
  * выставить любой, и искать эту возможность на витрине чужих достижений
@@ -73,6 +74,9 @@ export function PlayerLooksCard() {
   }
 
   const isSponsor = config?.isSponsor ?? false
+  // Свой фон - в Плюсе (и у спонсора), фон клана - только у спонсора
+  const canLooks = config?.canLooks ?? isSponsor
+  const openPlus = usePlusSheet()
 
   return (
     <section className="card">
@@ -81,7 +85,7 @@ export function PlayerLooksCard() {
         <span className="looks-head-right">
           {/* Что выбрано сейчас — видно, не разворачивая */}
           {showcase && <span className="looks-head-badge"><BadgeIcon badge={showcase} size={18} /></span>}
-          {isSponsor && config?.myBackground && (
+          {canLooks && config?.myBackground && (
             <span
               className="looks-head-bg"
               style={{ backgroundImage: `url(/bg/${config.myBackground}.webp)` }}
@@ -121,18 +125,17 @@ export function PlayerLooksCard() {
       )}
 
       <p className="adm-block-title">{t.looks.bgTitle}</p>
-      {isSponsor && config ? (
+      {isSponsor && config?.sponsorUntil && (
+        // Срок раньше не показывался нигде: спонсорство кончалось молча, и продлевать было не с чего
+        <div className="looks-until">
+          <span className="looks-until-text">
+            {t.sponsor.until.replace('{date}', new Date(config.sponsorUntil).toLocaleDateString())}
+          </span>
+          <SponsorBuyButton config={config} onBought={loadConfig} className="btn-mini" />
+        </div>
+      )}
+      {canLooks && config ? (
         <>
-          {/* Срок раньше не показывался нигде: сервер его отдавал, а спонсорство
-              кончалось молча, и продлевать было не с чего. */}
-          {config.sponsorUntil && (
-            <div className="looks-until">
-              <span className="looks-until-text">
-                {t.sponsor.until.replace('{date}', new Date(config.sponsorUntil).toLocaleDateString())}
-              </span>
-              <SponsorBuyButton config={config} onBought={loadConfig} className="btn-mini" />
-            </div>
-          )}
           <p className="muted small">{t.looks.bgMine}</p>
           <div className="bg-grid">
             {config.playerBackgrounds.map(k => (
@@ -146,7 +149,15 @@ export function PlayerLooksCard() {
               />
             ))}
           </div>
-
+        </>
+      ) : (
+        <>
+          <p className="muted small">{t.looks.notSponsor}</p>
+          <button className="btn" onClick={() => { haptic('medium'); openPlus('plus') }}>{t.plus.plusCardTitle}</button>
+        </>
+      )}
+      {isSponsor && config ? (
+        <>
           <p className="muted small">{t.looks.bgClan}</p>
           <div className="bg-grid">
             {config.clanBackgrounds.map(k => (
@@ -161,12 +172,9 @@ export function PlayerLooksCard() {
             ))}
           </div>
         </>
-      ) : (
-        <>
-          <p className="muted small">{t.looks.notSponsor}</p>
-          {config && <SponsorBuyButton config={config} onBought={loadConfig} />}
-        </>
-      )}
+      ) : canLooks && config ? (
+        <SponsorBuyButton config={config} onBought={loadConfig} />
+      ) : null}
       </>
       )}
     </section>

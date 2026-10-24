@@ -14,6 +14,7 @@ public class AppController(
     IMemoryCache cache,
     IServiceSettingRepository settings,
     IPlayerRepository players,
+    PlusAccess plusAccess,
     IConfiguration config) : ControllerBase
 {
     /// <summary>
@@ -53,6 +54,8 @@ public class AppController(
         var userId = (long)HttpContext.Items["TelegramUserId"]!;
         var me = await players.GetByTelegramIdAsync(userId, ct);
         var isSponsor = me?.IsSponsor(DateTime.UtcNow) == true;
+        // Своё оформление (фон, ★ в строке) - в Плюсе; оформление клана - у спонсора
+        var canLooks = isSponsor || (await plusAccess.GetAsync(userId, ct)).Active;
 
         // Цена продажи: ноль - продажа выключена, и фронт оставляет кнопку «написать».
         var offer = await SponsorSales.ReadAsync(settings, ct);
@@ -71,7 +74,8 @@ public class AppController(
             clanBackgrounds = SponsorBackground.ForClans,
             isSponsor,
             sponsorUntil = isSponsor ? me!.SponsorUntilUtc : null,
-            myBackground = isSponsor ? SponsorBackground.NormalizePlayer(me!.SponsorBackgroundKey) : null,
+            canLooks,
+            myBackground = canLooks && me is not null ? SponsorBackground.NormalizePlayer(me.SponsorBackgroundKey) : null,
             myClanBackground = isSponsor ? SponsorBackground.NormalizeClan(me!.SponsorClanBackgroundKey) : null,
             // Кому писать за спонсорством. Пусто — кнопку не рисуем: ссылка в никуда
             // хуже отсутствующей кнопки.

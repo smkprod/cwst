@@ -258,8 +258,8 @@ public class PlayerController(
     }
 
     /// <summary>
-    /// POST /api/players/me/background — выбрать фон. Только действующему спонсору:
-    /// фон и есть то, за что платят, и раздавать его бесплатно значит обнулить смысл.
+    /// POST /api/players/me/background — выбрать фон. Свой фон - с Плюсом (или у
+    /// спонсора), фон клана - только спонсору: оформление клана и есть клановый тариф.
     /// </summary>
     [HttpPost("me/background")]
     public async Task<IActionResult> SetBackground([FromBody] BackgroundRequest req, CancellationToken ct)
@@ -267,9 +267,10 @@ public class PlayerController(
         var userId = (long)HttpContext.Items["TelegramUserId"]!;
         var player = await players.GetByTelegramIdAsync(userId, ct);
         if (player is null) return NotFound(new { error = "player_not_linked" });
-        if (!player.IsSponsor(DateTime.UtcNow)) return StatusCode(403, new { error = "not_sponsor" });
-
         var forClan = string.Equals(req.Scope, "clan", StringComparison.OrdinalIgnoreCase);
+        var sponsor = player.IsSponsor(DateTime.UtcNow);
+        if (forClan && !sponsor) return StatusCode(403, new { error = "not_sponsor" });
+        if (!forClan && !sponsor && !(await plusAccess.GetAsync(userId, ct)).Active) return StatusCode(403, new { error = "not_plus" });
 
         // Пустой ключ — сознательный отказ от фона, а не ошибка.
         if (string.IsNullOrWhiteSpace(req.Key))

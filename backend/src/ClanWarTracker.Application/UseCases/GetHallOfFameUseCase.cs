@@ -148,7 +148,7 @@ public class GetHallOfFameUseCase(
                     IsSponsor: sponsor,
                     // Фон показываем только действующему спонсору: истёкшее
                     // спонсорство не должно продолжать красить строку.
-                    BackgroundKey: sponsor ? SponsorBackground.NormalizePlayer(player?.SponsorBackgroundKey) : null,
+                    BackgroundKey: sponsor || withPlus ? SponsorBackground.NormalizePlayer(player?.SponsorBackgroundKey) : null,
                     IsPlus: withPlus);
             })
             .ToList();

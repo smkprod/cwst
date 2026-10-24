@@ -51,12 +51,15 @@ public class PlusController(
         var me = await players.GetByTelegramIdAsync(UserId, ct);
         var now = DateTime.UtcNow;
         var isSponsor = me?.IsSponsor(now) == true;
+        // Клановый тариф: в клане есть спонсор - тренажёр открыт всему клану
+        var clanPro = isSponsor || (me?.ClanId is int clanId && (await players.GetByClanIdAsync(clanId, ct)).Any(p => p.IsSponsor(now)));
 
         return Ok(new
         {
             paywall = status.Paywall,
             active = status.Active,
             unlocked = status.Unlocked,
+            clanPro,
             until = status.Until,
             source = status.Source,
             price7 = offer.Price7,

@@ -41,7 +41,7 @@ export function TrainerView() {
   const [details, toggleDetails] = useDetails()
 
   useEffect(() => {
-    const load = () => api.getPlus().then(p => setUnlocked(p.unlocked)).catch(() => { /* без статуса - как без Плюса */ })
+    const load = () => api.getPlus().then(p => setUnlocked(p.unlocked || Boolean(p.clanPro))).catch(() => { /* без статуса - как без Плюса */ })
     load()
     window.addEventListener(PLUS_CHANGED, load)
     return () => window.removeEventListener(PLUS_CHANGED, load)

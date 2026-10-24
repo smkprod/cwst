@@ -102,7 +102,7 @@ export function HallOfFame({ config, onConfigChanged }: {
   const rows: (HallPlayer | HallClan)[] = board === 'players' ? data.players : data.clans
   const top3 = rows.slice(0, 3)
   const rest = rows.slice(3)
-  const isSponsor = config?.isSponsor ?? false
+  const isSponsor = config?.canLooks ?? config?.isSponsor ?? false
 
   return (
     <div className="fade-in">
