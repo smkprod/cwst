@@ -15,6 +15,7 @@ export interface UnitStats {
   count?: number; building?: boolean; deathDmg?: number; deathRadius?: number; deathDelay?: number
   dashDmg?: number; dashRadius?: number; dashMin?: number; dashMax?: number
   tunnelSpeed?: number; deathSpawn?: string; deathSpawnCount?: number; minRange?: number
+  kamikaze?: boolean; freeze?: number
 }
 
 export const UNITS: Record<string, UnitStats> = {
@@ -353,6 +354,50 @@ export const UNITS: Record<string, UnitStats> = {
     "deathDmg": 84,
     "deathRadius": 2.0
   },
+  "P.E.K.K.A": {
+    "hp": 3760,
+    "dmg": 816,
+    "hitSpeed": 1.8,
+    "load": 1.3,
+    "speed": 0.75,
+    "range": 1.2,
+    "sight": 5.0,
+    "radius": 0.75,
+    "deploy": 1.0,
+    "air": false,
+    "ground": true,
+    "buildingsOnly": false,
+    "flying": false,
+    "splash": 0.0,
+    "projSpeed": 0,
+    "jumpsRiver": false,
+    "crownPct": 0,
+    "lifetime": 0.0,
+    "mass": 18
+  },
+  "Ice Spirit": {
+    "hp": 230,
+    "dmg": 110,
+    "hitSpeed": 0.3,
+    "load": 0.1,
+    "speed": 2.0,
+    "range": 2.5,
+    "sight": 5.5,
+    "radius": 0.4,
+    "deploy": 1.0,
+    "air": true,
+    "ground": true,
+    "buildingsOnly": false,
+    "flying": false,
+    "splash": 1.5,
+    "projSpeed": 6.67,
+    "jumpsRiver": false,
+    "crownPct": 0,
+    "lifetime": 0.0,
+    "mass": 1,
+    "kamikaze": true,
+    "freeze": 1.2
+  },
   "Mortar": {
     "hp": 1369,
     "dmg": 266,
@@ -477,5 +522,7 @@ export const COST: Record<string, number> = {
   "Goblin Barrel": 3,
   "Tornado": 3,
   "Ice Golem": 2,
-  "Mortar": 4
+  "Mortar": 4,
+  "P.E.K.K.A": 7,
+  "Ice Spirit": 1
 }

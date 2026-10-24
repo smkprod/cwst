@@ -19,6 +19,9 @@ export const EMOJI: Record<string, string> = {
   'Goblin Barrel': '🛢️',
   'Tornado': '🌪️',
   'Mortar': '🎯',
+  'P.E.K.K.A': '🦿',
+  'Ice Golem': '🧊',
+  'Ice Spirit': '❄️',
 }
 
 export const emojiOf = (card: string) => EMOJI[card] ?? '⚔️'
