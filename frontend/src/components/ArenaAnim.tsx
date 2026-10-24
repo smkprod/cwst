@@ -337,21 +337,36 @@ export function Pill({ x, y, text, tone }: { x: number; y: number; text: string;
   )
 }
 
-/** Ширина картинки башни в клетках: как в игре, башня чуть уже своих клеток. */
-const ART: Record<'king' | 'princess', number> = { king: 3.4, princess: 2.8 }
-
-/** Верх картинки башни в пикселях - над ним рисуется полоска здоровья. */
-export function towerTop(y: number, size: number, king: boolean): number {
-  return py(y + size / 2) + 2 - ART[king ? 'king' : 'princess'] * TILE
+/**
+ * Размеры башни в пикселях: фасад и площадка сверху - как башня в игре под тем же
+ * углом, чуть уже своих клеток. bottom - низ фасада по нижнему краю клеток.
+ */
+function towerBox(y: number, size: number, king: boolean) {
+  const bottom = py(y + size / 2) - 1
+  const w = size * TILE * (king ? 0.84 : 0.86)
+  const front = size * TILE_H * (king ? 0.62 : 0.64)
+  const deck = size * TILE_H * (king ? 0.5 : 0.52)
+  return { bottom, w, front, deck, top: bottom - front - deck, face: king ? 22 : 18 }
 }
 
+/** Верх башни над флажками - над ним рисуется полоска здоровья. */
+export function towerTop(y: number, size: number, king: boolean): number {
+  return towerBox(y, size, king).top - 20
+}
+
+const TEAM = {
+  me: { main: '#3d7be0', dark: '#1f4fa8' },
+  enemy: { main: '#e04848', dark: '#9c2323' },
+}
+
+/**
+ * Башня в духе игры: каменный фасад с кладкой и зубцами, полоса и флажки цвета
+ * стороны, золотая корона на гербе, деревянная площадка, на ней хозяин - принцесса
+ * или король с пушкой. Всё рисуется здесь же, без картинок.
+ */
 export function TowerArt({ x, y, size, king, enemy = false, dead = false }: {
   x: number; y: number; size: number; king: boolean; enemy?: boolean; dead?: boolean
 }) {
-  // Картинка башни сбоку: низ - по нижнему краю её клеток, ширина - как у башни в игре
-  const w = ART[king ? 'king' : 'princess'] * TILE
-  const h = w
-  const bottom = py(y + size / 2) + 2
   if (dead) {
     // Развалины: груда камней на площадке башни
     return (
@@ -362,11 +377,56 @@ export function TowerArt({ x, y, size, king, enemy = false, dead = false }: {
       </g>
     )
   }
-  const art = `/arena/${king ? 'king' : 'princess'}${enemy ? '-red' : ''}.webp`
+  const { bottom, w, front, deck, top, face } = towerBox(y, size, king)
+  const cx = px(x)
+  const team = TEAM[enemy ? 'enemy' : 'me']
+  const l = cx - w / 2
+  const ft = bottom - front
+  const merlons = king ? 6 : 5
+  const mw = w / (merlons * 2 - 1)
+  const k = king ? 1.25 : 1
+  const pcy = ft + front * 0.58
   return (
     <g>
-      <ellipse cx={px(x)} cy={bottom - 3} rx={w * 0.46} ry={5} fill="rgba(0,0,0,0.3)" />
-      <image href={art} x={px(x) - w / 2} y={bottom - h} width={w} height={h} />
+      <ellipse cx={cx} cy={bottom} rx={w * 0.56} ry={5} fill="rgba(0,0,0,0.28)" />
+      {/* Флажки по задним углам */}
+      {[-1, 1].map(sd => {
+        const fx = cx + sd * (w / 2 - 3)
+        return (
+          <g key={sd}>
+            <line x1={fx} y1={top + 3} x2={fx} y2={top - 13} stroke="#5b3a1e" strokeWidth="1.6" />
+            <path d={`M${fx} ${top - 13} l${sd * 10} 3.2 l${-sd * 10} 3.2 z`} fill={team.main} stroke={team.dark} strokeWidth="0.8" />
+          </g>
+        )
+      })}
+      {/* Площадка: каменный борт и пол в тени борта */}
+      <rect x={l} y={top} width={w} height={deck + 2} rx="3" fill="#d6dbe4" stroke="#4f5768" strokeWidth="1.2" />
+      <rect x={l + 4} y={top + 3} width={w - 8} height={deck - 3} rx="2" fill="#b4bccb" />
+      <rect x={l + 4} y={top + 3} width={w - 8} height={3} rx="1.5" fill="#9ca5b6" />
+      {/* Хозяин башни на площадке; у короля сбоку пушка, ствол - в сторону соперника */}
+      <text x={king ? cx - 7 : cx} y={top + deck * 0.42} textAnchor="middle" dominantBaseline="central" fontSize={face}>{king ? '🤴' : '👸'}</text>
+      {king && (
+        <g>
+          <rect x={cx + 9} y={enemy ? top + deck * 0.5 : top + deck * 0.5 - 11} width={6} height={11} rx="2" fill="#2f333d" stroke="#14161c" strokeWidth="1" />
+          <circle cx={cx + 12} cy={top + deck * 0.5} r={5.5} fill="#3a3e4a" stroke="#14161c" strokeWidth="1.2" />
+          <circle cx={cx + 12} cy={enemy ? top + deck * 0.5 + 10 : top + deck * 0.5 - 10} r={2.2} fill="#0c0d10" />
+        </g>
+      )}
+      {/* Фасад: кладка, полоса цвета стороны, зубцы по краю, герб с короной */}
+      <rect x={l} y={ft} width={w} height={front} rx="2" fill="#aab2c1" stroke="#4f5768" strokeWidth="1.2" />
+      <rect x={l + 1} y={bottom - front * 0.3} width={w - 2} height={front * 0.3 - 1} fill="#8f98aa" />
+      {[0.42, 0.7].map(f => <line key={f} x1={l + 2} x2={l + w - 2} y1={ft + front * f} y2={ft + front * f} stroke="#7d8698" strokeWidth="1" />)}
+      {Array.from({ length: Math.floor(w / 12) }, (_, i) => (
+        <line key={i} x1={l + 6 + i * 12 + (i % 2) * 3} x2={l + 6 + i * 12 + (i % 2) * 3} y1={ft + front * 0.42} y2={ft + front * 0.7} stroke="#7d8698" strokeWidth="1" />
+      ))}
+      <rect x={l} y={ft} width={w} height={5} fill={team.main} />
+      <rect x={l} y={ft + 5} width={w} height={1.5} fill={team.dark} />
+      {Array.from({ length: merlons }, (_, i) => (
+        <rect key={i} x={l + i * 2 * mw} y={ft - 5} width={mw} height={7} rx="1" fill="#dde2ea" stroke="#4f5768" strokeWidth="1" />
+      ))}
+      <rect x={cx - 9 * k} y={pcy - 6.5 * k} width={18 * k} height={13 * k} rx={3 * k} fill={team.main} stroke={team.dark} strokeWidth="1" />
+      <path d={`M${cx - 6 * k} ${pcy + 3.5 * k} L${cx - 7 * k} ${pcy - 3 * k} L${cx - 3.5 * k} ${pcy} L${cx} ${pcy - 4.5 * k} L${cx + 3.5 * k} ${pcy} L${cx + 7 * k} ${pcy - 3 * k} L${cx + 6 * k} ${pcy + 3.5 * k} Z`}
+        fill="#ffd34d" stroke="#a8740f" strokeWidth="1" />
     </g>
   )
 }
