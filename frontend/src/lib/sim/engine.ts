@@ -51,10 +51,12 @@ export interface Entity {
   sinceHurt: number
   dash?: { fx: number; fy: number; tx: number; ty: number; t: number; dur: number }
   dashCd: number
+  /** До какой секунды заморожен (Ледяной дух): ни шага, ни удара. */
+  frozenUntil: number
   tunnel?: { fx: number; fy: number; t: number; dur: number }
 }
 
-export type ProjectileKind = 'arrow' | 'bullet' | 'cannonball' | 'bolt' | 'shell' | 'fireball' | 'barrel' | 'king'
+export type ProjectileKind = 'arrow' | 'bullet' | 'cannonball' | 'bolt' | 'shell' | 'ice' | 'fireball' | 'barrel' | 'king'
 
 export interface Projectile {
   id: number
@@ -76,6 +78,8 @@ export interface Projectile {
   air: boolean
   ground: boolean
   spawn?: { card: string; count: number; deploy: number }
+  /** Заморозка всех задетых на столько секунд. */
+  freeze?: number
   alive: boolean
 }
 
@@ -84,7 +88,7 @@ export interface Roller { id: number; team: Team; x: number; y: number; y0: numb
 /** Торнадо на поле: тянет чужие войска к центру и бьёт раз в hitEvery секунд. */
 export interface Vortex { id: number; team: Team; x: number; y: number; t0: number; nextHit: number; alive: boolean }
 
-export interface Effect { id: number; kind: 'boom' | 'dmg' | 'poof' | 'slam' | 'heal'; x: number; y: number; t: number; dur: number; text?: string; r?: number; team?: Team }
+export interface Effect { id: number; kind: 'boom' | 'dmg' | 'poof' | 'slam' | 'heal' | 'frost'; x: number; y: number; t: number; dur: number; text?: string; r?: number; team?: Team }
 
 export interface Pending { at: number; team: Team; card: string; x: number; y: number }
 
@@ -134,7 +138,7 @@ export class Sim {
   private make(team: Team, card: string, s: UnitStats, kind: Entity['kind'], x: number, y: number, deploy: number, slot?: TowerSlot): Entity {
     return {
       id: this.nextId++, team, card, s, kind, slot, x, y, hp: s.hp, maxHp: s.hp, deploy, deploy0: deploy, born: this.t,
-      moving: false, cooldown: 0, target: null, locked: false, alive: true, active: slot !== 'K', sinceHit: 9, sinceHurt: 9, dashCd: 0,
+      moving: false, cooldown: 0, target: null, locked: false, alive: true, active: slot !== 'K', sinceHit: 9, sinceHurt: 9, dashCd: 0, frozenUntil: 0,
     }
   }
 
@@ -233,6 +237,7 @@ export class Sim {
         if (e.hp <= 0) { this.kill(e); continue }
       }
       if (e.kind === 'tower' && !e.active) continue
+      if (e.frozenUntil > this.t) continue
       this.think(e, dt)
     }
 
@@ -311,9 +316,13 @@ export class Sim {
     e.sinceHit = 0
     if (e.s.projSpeed > 0 || e.kind === 'tower') {
       const kind: ProjectileKind = e.kind === 'tower' ? (e.slot === 'K' ? 'king' : 'arrow')
-        : e.card === 'Cannon' ? 'cannonball' : e.card === 'X-Bow' ? 'bolt' : e.card === 'Mortar' ? 'shell' : 'bullet'
-      this.projectiles.push(this.proj(e.team, e.card, kind, e.x, e.y - (e.kind === 'tower' ? 0.6 : 0), t, t.x, t.y,
-        e.s.projSpeed || 10, e.s.dmg, e.s.splash, e.s.crownPct, e.s.air, e.s.ground))
+        : e.card === 'Cannon' ? 'cannonball' : e.card === 'X-Bow' ? 'bolt' : e.card === 'Mortar' ? 'shell' : e.s.freeze ? 'ice' : 'bullet'
+      const shot = this.proj(e.team, e.card, kind, e.x, e.y - (e.kind === 'tower' ? 0.6 : 0), t, t.x, t.y,
+        e.s.projSpeed || 10, e.s.dmg, e.s.splash, e.s.crownPct, e.s.air, e.s.ground)
+      if (e.s.freeze) shot.freeze = e.s.freeze
+      this.projectiles.push(shot)
+      // Ледяной дух бросается сам - после броска его нет
+      if (e.s.kamikaze) this.kill(e)
     } else if (e.s.splash > 0) {
       this.areaDamage(e, t.x, t.y, e.s.splash, e.s.dmg, e.s.ground, e.s.air)
     } else {
@@ -415,7 +424,7 @@ export class Sim {
         continue
       }
       if (p.splash > 0) {
-        this.areaDamage(null, p.x, p.y, p.splash, p.dmg, p.ground, p.air, p.kind === 'fireball' ? 'boom' : undefined, p.team, p.crownPct, p.card)
+        this.areaDamage(null, p.x, p.y, p.splash, p.dmg, p.ground, p.air, p.kind === 'fireball' ? 'boom' : p.freeze ? 'frost' : undefined, p.team, p.crownPct, p.card, p.freeze)
       } else if (p.target && p.target.alive) {
         this.damage(p.target, p.dmg, p.crownPct, p.team, p.card)
       }
@@ -476,13 +485,14 @@ export class Sim {
   }
 
   private areaDamage(src: Entity | null, x: number, y: number, radius: number, dmg: number, ground: boolean, air: boolean,
-    fx?: Effect['kind'], team?: Team, crownPct = 0, card?: string) {
+    fx?: Effect['kind'], team?: Team, crownPct = 0, card?: string, freeze = 0) {
     const side = team ?? src!.team
     if (fx) this.effects.push({ id: this.nextId++, kind: fx, x, y, t: this.t, dur: 0.6, r: radius })
     for (const e of this.entities) {
       if (!e.alive || e.team === side || e.tunnel) continue
       if (e.s.flying ? !air : !ground) continue
       if (Math.hypot(e.x - x, e.y - y) - e.s.radius > radius) continue
+      if (freeze > 0) e.frozenUntil = Math.max(e.frozenUntil, this.t + freeze)
       this.damage(e, dmg, src ? src.s.crownPct : crownPct, side, card ?? src?.card ?? '')
     }
   }

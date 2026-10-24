@@ -29,13 +29,13 @@ export function cardInfo(card: string): HandCard {
 export const CARD_NAMES: Record<Lang, Record<string, string>> = {
   ru: { 'Cannon': 'Пушка', 'Knight': 'Рыцарь', 'Skeletons': 'Скелеты', 'Fireball': 'Огн. шар', 'The Log': 'Бревно', 'Musketeer': 'Мушкетёр',
     'Mini P.E.K.K.A': 'Мини-ПЕККА', 'Golem': 'Голем', 'Golemite': 'Големит', 'Hog Rider': 'Хог', 'Mega Knight': 'Мега-рыцарь', 'Goblin Barrel': 'Бочка',
-    'Goblins': 'Гоблины', 'Balloon': 'Шар', 'Giant': 'Гигант', 'X-Bow': 'Икс-лук', 'Miner': 'Шахтёр', 'Tornado': 'Торнадо', 'Mortar': 'Мортира' },
+    'Goblins': 'Гоблины', 'Balloon': 'Шар', 'Giant': 'Гигант', 'X-Bow': 'Икс-лук', 'Miner': 'Шахтёр', 'Tornado': 'Торнадо', 'Mortar': 'Мортира', 'P.E.K.K.A': 'ПЕККА', 'Ice Golem': 'Лед. голем', 'Ice Spirit': 'Лед. дух' },
   uk: { 'Cannon': 'Гармата', 'Knight': 'Лицар', 'Skeletons': 'Скелети', 'Fireball': 'Вогн. куля', 'The Log': 'Колода', 'Musketeer': 'Мушкетерка',
     'Mini P.E.K.K.A': 'Міні-ПЕККА', 'Golem': 'Голем', 'Golemite': 'Големіт', 'Hog Rider': 'Хог', 'Mega Knight': 'Мега-лицар', 'Goblin Barrel': 'Бочка',
-    'Goblins': 'Гобліни', 'Balloon': 'Куля', 'Giant': 'Гігант', 'X-Bow': 'Ікс-лук', 'Miner': 'Шахтар', 'Tornado': 'Торнадо', 'Mortar': 'Мортира' },
+    'Goblins': 'Гобліни', 'Balloon': 'Куля', 'Giant': 'Гігант', 'X-Bow': 'Ікс-лук', 'Miner': 'Шахтар', 'Tornado': 'Торнадо', 'Mortar': 'Мортира', 'P.E.K.K.A': 'ПЕККА', 'Ice Golem': 'Криж. голем', 'Ice Spirit': 'Криж. дух' },
   en: { 'Cannon': 'Cannon', 'Knight': 'Knight', 'Skeletons': 'Skeletons', 'Fireball': 'Fireball', 'The Log': 'Log', 'Musketeer': 'Musketeer',
     'Mini P.E.K.K.A': 'Mini PEKKA', 'Golem': 'Golem', 'Golemite': 'Golemite', 'Hog Rider': 'Hog', 'Mega Knight': 'Mega Knight', 'Goblin Barrel': 'Barrel',
-    'Goblins': 'Goblins', 'Balloon': 'Balloon', 'Giant': 'Giant', 'X-Bow': 'X-Bow', 'Miner': 'Miner', 'Tornado': 'Tornado', 'Mortar': 'Mortar' },
+    'Goblins': 'Goblins', 'Balloon': 'Balloon', 'Giant': 'Giant', 'X-Bow': 'X-Bow', 'Miner': 'Miner', 'Tornado': 'Tornado', 'Mortar': 'Mortar', 'P.E.K.K.A': 'P.E.K.K.A', 'Ice Golem': 'Ice Golem', 'Ice Spirit': 'Ice Spirit' },
 }
 
 export interface Puzzle {
@@ -102,6 +102,12 @@ export const PUZZLES: Puzzle[] = [
     id: 'balloon_edge', tip: 'anti_air', enemyCard: 'Balloon', hand: ['Cannon', 'Knight', 'Skeletons', 'Fireball'],
     solution: { card: 'Cannon', x: 10, y: 21 },
     sc: { elixir: 5, enemy: [{ at: 0, card: 'Balloon', x: 17.5, y: 13.5 }], pause: reach('Balloon', 18.5), horizon: 14, limits: [100, 450] },
+  },
+  {
+    // ПЕККА сносит башню целиком; Ледяной голем у середины реки, когда она перешла мост, уводит её в другую линию
+    id: 'pekka_kite', tip: 'kite', enemyCard: 'P.E.K.K.A', icon: 'Ice Golem', hand: ['Ice Golem', 'Knight', 'Skeletons', 'Mini P.E.K.K.A'],
+    solution: { card: 'Ice Golem', x: 9.5, y: 18.5 },
+    sc: { elixir: 5, enemy: [{ at: 0, card: 'P.E.K.K.A', x: 3.5, y: 13.5 }], pause: reach('P.E.K.K.A', 17.5), horizon: 30, limits: [100, 1200] },
   },
   {
     id: 'giant', tip: 'anti_tank', enemyCard: 'Giant', hand: ['Cannon', 'Mini P.E.K.K.A', 'Skeletons', 'Fireball'],
@@ -173,6 +179,7 @@ export const PUZZLE_TEXT: Record<Lang, Record<string, PuzzleText>> = {
     mk: { title: 'Мега-рыцарь у моста', task: 'Мега-рыцарь перешёл мост и идёт на левую башню. Останови его.' },
     hog_edge: { title: 'Хог с края моста', task: 'Хог прыгает с самого края. Пушка в центре его не дотянет — найди клетку, которая дотянет.' },
     balloon_edge: { title: 'Шар с края', task: 'Шар летит по самому краю. Перехвати его зданием, пока он не долетел до башни.' },
+    pekka_kite: { title: 'ПЕККА: уведи в другую линию', task: 'ПЕККА перешла мост — без защиты она снесёт башню. Уведи её туда, где её добьют.' },
     mortar: { title: 'Мортира у моста', task: 'Соперник поставил Мортиру. Сломай её, не подставляя свои карты под её выстрелы.' },
     giant: { title: 'Гигант в правой линии', task: 'Гигант перешёл мост. Защитись с минимумом урона.' },
     xbow: { title: 'Икс-лук у реки', task: 'Соперник поставил Икс-лук у реки. Не дай ему разбить башню.' },
@@ -184,6 +191,7 @@ export const PUZZLE_TEXT: Record<Lang, Record<string, PuzzleText>> = {
     mk: { title: 'Мега-лицар біля мосту', task: 'Мега-лицар перейшов міст і йде на ліву вежу. Зупини його.' },
     hog_edge: { title: 'Хог з краю мосту', task: 'Хог стрибає з самого краю. Гармата в центрі його не дотягне — знайди клітинку, яка дотягне.' },
     balloon_edge: { title: 'Куля з краю', task: 'Куля летить самим краєм. Перехопи її будівлею, поки вона не долетіла до вежі.' },
+    pekka_kite: { title: 'ПЕККА: відведи в іншу лінію', task: 'ПЕККА перейшла міст — без захисту вона знесе вежу. Відведи її туди, де її доб\'ють.' },
     mortar: { title: 'Мортира біля мосту', task: 'Суперник поставив Мортиру. Злам її, не підставляючи свої карти під її постріли.' },
     giant: { title: 'Гігант у правій лінії', task: 'Гігант перейшов міст. Захистися з мінімумом урону.' },
     xbow: { title: 'Ікс-лук біля річки', task: 'Суперник поставив Ікс-лук біля річки. Не дай йому розбити вежу.' },
@@ -195,6 +203,7 @@ export const PUZZLE_TEXT: Record<Lang, Record<string, PuzzleText>> = {
     mk: { title: 'Mega Knight at the bridge', task: 'The Mega Knight crossed the bridge toward your left tower. Stop it.' },
     hog_edge: { title: 'Hog from the edge', task: 'The Hog jumps from the very edge. A middle Cannon won\'t pull it — find the tile that will.' },
     balloon_edge: { title: 'Balloon on the edge', task: 'The Balloon flies along the edge. Catch it with a building before it reaches your tower.' },
+    pekka_kite: { title: 'P.E.K.K.A: pull to the other lane', task: 'P.E.K.K.A crossed the bridge — undefended it takes your tower. Pull it where it gets finished.' },
     mortar: { title: 'Mortar at the bridge', task: 'They placed a Mortar. Break it without putting your cards under its shots.' },
     giant: { title: 'Giant in the right lane', task: 'The Giant crossed the bridge. Defend with minimal damage.' },
     xbow: { title: 'X-Bow at the river', task: 'They placed an X-Bow at the river. Don\'t let it break your tower.' },
@@ -210,6 +219,7 @@ export const HINTS: Record<Lang, Record<string, string>> = {
     mk: 'Мега-рыцаря держит Мини-ПЕККА: 720 урона за удар. Дешёвых юнитов он давит прыжком.',
     hog_edge: 'Хог с края обходит пушку в «4-3» (центр, 4 клетки от реки). Сдвинь её на клетку к башне — «4-2»: так она в обзоре Хога с любого края.',
     balloon_edge: 'Шар с края не видит здание в центре. Ставь пушку ближе к его краю и к реке — правее центра на 3–4 клетки ниже реки.',
+    pekka_kite: 'Ледяной голем бьёт только здания и идёт по своей линии, а ПЕККА бьёт ближайшего и идёт за ним. Ставь его у середины реки, на клетку в другую линию, ровно когда ПЕККА перешла мост.',
     mortar: 'Мортира не стреляет ближе 3,5 клетки. Юнит, дошедший до неё вплотную, ломает её без потерь — она бьёт только по башне.',
     giant: 'Гигант бьёт только здания: пушка в центре уводит его, а Мини-ПЕККА разбирает его до башни.',
     xbow: 'Икс-лук бьёт ближайшего: здание у реки забирает огонь на себя и само достаёт до лука.',
@@ -221,6 +231,7 @@ export const HINTS: Record<Lang, Record<string, string>> = {
     mk: 'Мега-лицаря тримає Міні-ПЕККА: 720 урону за удар. Дешевих юнітів він тисне стрибком.',
     hog_edge: 'Хог з краю обходить гармату в «4-3» (центр, 4 клітинки від річки). Зсунь її на клітинку до вежі — «4-2»: так вона в огляді Хога з будь-якого краю.',
     balloon_edge: 'Куля з краю не бачить будівлю в центрі. Став гармату ближче до її краю й до річки — правіше від центру на 3–4 клітинки нижче річки.',
+    pekka_kite: 'Крижаний голем б\'є лише будівлі й іде своєю лінією, а ПЕККА б\'є найближчого й іде за ним. Став його біля середини річки, на клітинку в іншу лінію, саме коли ПЕККА перейшла міст.',
     mortar: 'Мортира не стріляє ближче 3,5 клітинки. Юніт, що дійшов до неї впритул, ламає її без втрат — вона б\'є лише по вежі.',
     giant: 'Гігант б\'є лише будівлі: гармата в центрі відводить його, а Міні-ПЕККА розбирає його до вежі.',
     xbow: 'Ікс-лук б\'є найближчого: будівля біля річки забирає вогонь на себе й сама дістає до лука.',
@@ -232,6 +243,7 @@ export const HINTS: Record<Lang, Record<string, string>> = {
     mk: 'Mini PEKKA holds the Mega Knight: 720 damage per hit. Cheap units get crushed by its jump.',
     hog_edge: 'An edge Hog bypasses a 4-3 Cannon (middle, 4 tiles from the river). Shift it one tile toward the tower — 4-2: then it\'s in the Hog\'s sight from any edge.',
     balloon_edge: 'An edge Balloon doesn\'t see a middle building. Place the Cannon closer to its side and to the river — right of center, 3–4 tiles below the river.',
+    pekka_kite: 'Ice Golem only hits buildings and walks its own lane, while P.E.K.K.A hits the closest target and follows it. Drop it at the middle of the river, one tile into the other lane, right as P.E.K.K.A crosses.',
     mortar: 'The Mortar can\'t shoot closer than 3.5 tiles. A unit that walks right up to it breaks it for free — it only hits your tower.',
     giant: 'The Giant only hits buildings: a middle Cannon pulls it, and Mini PEKKA takes it down before it reaches the tower.',
     xbow: 'The X-Bow hits the closest target: a building at the river takes its fire and reaches the X-Bow itself.',
