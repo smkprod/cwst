@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { useCardArt } from '../lib/cardArt'
+import { emojiOf } from '../lib/sim/emoji'
 
 /**
  * Схема арены с анимацией: куда и когда ставить карту.
@@ -9,7 +9,7 @@ import { useCardArt } from '../lib/cardArt'
  * 6,5 клетки от своего края, король 4×4 по центру в 3 клетках от края. Радиус
  * принцесс 7,5 клетки, короля 7. Показываем свою половину, реку и край чужой.
  *
- * Юниты - жетоны с артом карты и кольцом стороны (свои синие, чужие красные),
+ * Юниты - жетоны со смайликом карты и кольцом стороны (свои синие, чужие красные),
  * здания - квадратные жетоны, заклинания - зона. Сцена - таймлайн: ключевые точки
  * (секунда, клетка), между ними - линейно. Башни стреляют снарядами по чужим в радиусе.
  */
@@ -39,11 +39,11 @@ export interface Ruler { x: number; y1: number; y2: number; label: string; from:
 
 export interface Scene { duration: number; actors: Actor[]; marks?: Mark[]; rulers?: Ruler[]; noShots?: boolean }
 
-const TILE = 20
-const VIEW_TOP = 11
+export const TILE = 20
+export const VIEW_TOP = 11
 const VIEW_ROWS = 21
-const W = 18 * TILE
-const H = VIEW_ROWS * TILE
+export const W = 18 * TILE
+export const H = VIEW_ROWS * TILE
 const RIVER_TOP = 15
 const RIVER_BOTTOM = 17
 
@@ -53,8 +53,8 @@ export const TOWERS = [
   { id: 'k', x: 9, y: 29, size: 4, range: 7, king: true },
 ]
 
-const px = (x: number) => x * TILE
-const py = (y: number) => (y - VIEW_TOP) * TILE
+export const px = (x: number) => x * TILE
+export const py = (y: number) => (y - VIEW_TOP) * TILE
 
 function span(a: Actor) {
   return { from: a.from ?? a.keys[0].t, to: a.to ?? a.keys[a.keys.length - 1].t }
@@ -102,7 +102,6 @@ export function ArenaAnim({ scene, paused = false, at: frameAt, loop = true, onE
   const startRef = useRef<number | null>(null)
   const endRef = useRef(onEnd)
   endRef.current = onEnd
-  const art = useCardArt()
   const uid = useId().replace(/:/g, '')
 
   useEffect(() => {
@@ -156,67 +155,8 @@ export function ArenaAnim({ scene, paused = false, at: frameAt, loop = true, onE
 
   return (
     <svg className={`arena ${onTap ? 'arena-tap' : ''}`} viewBox={`0 0 ${W} ${H}`} role="img" aria-label="arena" onPointerDown={tap}>
-      <defs>
-        <pattern id={g('tiles')} width={TILE * 2} height={TILE * 2} patternUnits="userSpaceOnUse">
-          <rect width={TILE * 2} height={TILE * 2} fill="#2b3a6e" />
-          <rect width={TILE} height={TILE} fill="#2f4078" />
-          <rect x={TILE} y={TILE} width={TILE} height={TILE} fill="#2f4078" />
-        </pattern>
-        <pattern id={g('tilesE')} width={TILE * 2} height={TILE * 2} patternUnits="userSpaceOnUse">
-          <rect width={TILE * 2} height={TILE * 2} fill="#3b2c5e" />
-          <rect width={TILE} height={TILE} fill="#423266" />
-          <rect x={TILE} y={TILE} width={TILE} height={TILE} fill="#423266" />
-        </pattern>
-        <linearGradient id={g('river')} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#1b8fe0" />
-          <stop offset="0.5" stopColor="#3fc1ff" />
-          <stop offset="1" stopColor="#1b8fe0" />
-        </linearGradient>
-        <linearGradient id={g('stone')} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#c9d3ea" />
-          <stop offset="1" stopColor="#7d8bb0" />
-        </linearGradient>
-        <linearGradient id={g('roof')} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#5aa9ff" />
-          <stop offset="1" stopColor="#2c5fd6" />
-        </linearGradient>
-        <linearGradient id={g('gold')} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#ffe9a8" />
-          <stop offset="1" stopColor="#f2a922" />
-        </linearGradient>
-        <radialGradient id={g('spell')}>
-          <stop offset="0" stopColor="#ffe08a" stopOpacity="0.55" />
-          <stop offset="1" stopColor="#ffb347" stopOpacity="0.12" />
-        </radialGradient>
-        <filter id={g('glow')} x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="2.2" result="b" />
-          <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
-        </filter>
-        <clipPath id={g('tok')} clipPathUnits="objectBoundingBox"><circle cx="0.5" cy="0.5" r="0.5" /></clipPath>
-      </defs>
-
-      {/* Поле: клетки как в игре, чужая половина в тёплом тоне */}
-      <rect width={W} height={H} fill={`url(#${g('tiles')})`} />
-      <rect width={W} height={py(RIVER_TOP)} fill={`url(#${g('tilesE')})`} />
-      {/* Дорожки по линиям - туда идёт почти всё */}
-      {[3.5, 14.5].map(lx => (
-        <rect key={lx} x={px(lx - 0.5)} y={0} width={TILE} height={H} fill="rgba(255,255,255,0.035)" />
-      ))}
-
-      {/* Река с волнами */}
-      <rect y={py(RIVER_TOP)} width={W} height={(RIVER_BOTTOM - RIVER_TOP) * TILE} fill={`url(#${g('river')})`} />
-      {[0, 1].map(i => (
-        <path key={i} d={wave(py(RIVER_TOP) + 12 + i * 16, t * 30 + i * 40)} fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="1.5" />
-      ))}
-      {/* Мосты: доски поперёк реки */}
-      {[2, 13].map(bx => (
-        <g key={bx}>
-          <rect x={px(bx)} y={py(RIVER_TOP) - 4} width={3 * TILE} height={(RIVER_BOTTOM - RIVER_TOP) * TILE + 8} rx="4" fill="#8a5a33" stroke="#5c3a1f" strokeWidth="2" />
-          {Array.from({ length: 6 }, (_, i) => (
-            <line key={i} x1={px(bx) + 3} x2={px(bx + 3) - 3} y1={py(RIVER_TOP) + 2 + i * 7} y2={py(RIVER_TOP) + 2 + i * 7} stroke="#b07a48" strokeWidth="2" />
-          ))}
-        </g>
-      ))}
+      <ArenaDefs g={g} />
+      <ArenaGround t={t} g={g} />
 
       {/* Радиусы башен - едва заметно, ярче у той, что стреляет */}
       {TOWERS.map(tw => (
@@ -224,7 +164,7 @@ export function ArenaAnim({ scene, paused = false, at: frameAt, loop = true, onE
           stroke={shots.some(s => s.key === tw.id) ? 'rgba(255,211,90,0.45)' : 'rgba(150,190,255,0.14)'} strokeDasharray="3 7" />
       ))}
 
-      {TOWERS.map(tw => <Tower key={tw.id} tw={tw} g={g} />)}
+      {TOWERS.map(tw => <TowerArt key={tw.id} x={tw.x} y={tw.y} size={tw.size} king={tw.king} />)}
 
       {(scene.rulers ?? []).filter(r => t >= r.from && t <= r.to).map((r, i) => (
         <g key={`ru${i}`}>
@@ -257,14 +197,14 @@ export function ArenaAnim({ scene, paused = false, at: frameAt, loop = true, onE
 
       {live.map(({ a, p }) => a.kind === 'text'
         ? <FloatText key={a.id} a={a} x={px(p.x)} y={py(p.y)} k={(t - span(a).from) / Math.max(0.01, span(a).to - span(a).from)} />
-        : <Token key={a.id} a={a} x={px(p.x)} y={py(p.y)} t={t} art={art[a.card ?? '']} g={g} />)}
+        : <Token key={a.id} a={a} x={px(p.x)} y={py(p.y)} t={t} g={g} />)}
 
       {ghost && (
         <g opacity="0.75">
           <rect x={px(Math.floor(ghost.x))} y={py(Math.floor(ghost.y))} width={TILE} height={TILE}
             fill="none" stroke={ghost.ok === false ? '#ef4454' : '#ffe08a'} strokeWidth="2" strokeDasharray="3 3" />
           <Token a={{ id: 'ghost', kind: ghost.kind, label: '', card: ghost.card, r: ghost.r, keys: [{ t: 0, x: ghost.x, y: ghost.y }] }}
-            x={px(ghost.x)} y={py(ghost.y)} t={t} art={art[ghost.card]} g={g} />
+            x={px(ghost.x)} y={py(ghost.y)} t={t} g={g} />
         </g>
       )}
 
@@ -277,13 +217,86 @@ export function ArenaAnim({ scene, paused = false, at: frameAt, loop = true, onE
   )
 }
 
+/** Градиенты и узоры арены; g - имя с уникальным суффиксом, чтобы две арены на экране не путались. */
+export function ArenaDefs({ g }: { g: (n: string) => string }) {
+  return (
+    <defs>
+      <pattern id={g('tiles')} width={TILE * 2} height={TILE * 2} patternUnits="userSpaceOnUse">
+        <rect width={TILE * 2} height={TILE * 2} fill="#2b3a6e" />
+        <rect width={TILE} height={TILE} fill="#2f4078" />
+        <rect x={TILE} y={TILE} width={TILE} height={TILE} fill="#2f4078" />
+      </pattern>
+      <pattern id={g('tilesE')} width={TILE * 2} height={TILE * 2} patternUnits="userSpaceOnUse">
+        <rect width={TILE * 2} height={TILE * 2} fill="#3b2c5e" />
+        <rect width={TILE} height={TILE} fill="#423266" />
+        <rect x={TILE} y={TILE} width={TILE} height={TILE} fill="#423266" />
+      </pattern>
+      <linearGradient id={g('river')} x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stopColor="#1b8fe0" />
+        <stop offset="0.5" stopColor="#3fc1ff" />
+        <stop offset="1" stopColor="#1b8fe0" />
+      </linearGradient>
+      <linearGradient id={g('stone')} x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stopColor="#c9d3ea" />
+        <stop offset="1" stopColor="#7d8bb0" />
+      </linearGradient>
+      <linearGradient id={g('roof')} x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stopColor="#5aa9ff" />
+        <stop offset="1" stopColor="#2c5fd6" />
+      </linearGradient>
+      <linearGradient id={g('gold')} x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stopColor="#ffe9a8" />
+        <stop offset="1" stopColor="#f2a922" />
+      </linearGradient>
+      <radialGradient id={g('spell')}>
+        <stop offset="0" stopColor="#ffe08a" stopOpacity="0.55" />
+        <stop offset="1" stopColor="#ffb347" stopOpacity="0.12" />
+      </radialGradient>
+      <filter id={g('glow')} x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="2.2" result="b" />
+        <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+      </filter>
+    </defs>
+  )
+}
+
+/** Поле: клетки, дорожки, река с волнами и мосты. */
+export function ArenaGround({ t, g }: { t: number; g: (n: string) => string }) {
+  return (
+    <>
+      {/* Поле: клетки как в игре, чужая половина в тёплом тоне */}
+      <rect width={W} height={H} fill={`url(#${g('tiles')})`} />
+      <rect width={W} height={py(RIVER_TOP)} fill={`url(#${g('tilesE')})`} />
+      {/* Дорожки по линиям - туда идёт почти всё */}
+      {[3.5, 14.5].map(lx => (
+        <rect key={lx} x={px(lx - 0.5)} y={0} width={TILE} height={H} fill="rgba(255,255,255,0.035)" />
+      ))}
+
+      {/* Река с волнами */}
+      <rect y={py(RIVER_TOP)} width={W} height={(RIVER_BOTTOM - RIVER_TOP) * TILE} fill={`url(#${g('river')})`} />
+      {[0, 1].map(i => (
+        <path key={i} d={wave(py(RIVER_TOP) + 12 + i * 16, t * 30 + i * 40)} fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="1.5" />
+      ))}
+      {/* Мосты: доски поперёк реки */}
+      {[2, 13].map(bx => (
+        <g key={bx}>
+          <rect x={px(bx)} y={py(RIVER_TOP) - 4} width={3 * TILE} height={(RIVER_BOTTOM - RIVER_TOP) * TILE + 8} rx="4" fill="#8a5a33" stroke="#5c3a1f" strokeWidth="2" />
+          {Array.from({ length: 6 }, (_, i) => (
+            <line key={i} x1={px(bx) + 3} x2={px(bx + 3) - 3} y1={py(RIVER_TOP) + 2 + i * 7} y2={py(RIVER_TOP) + 2 + i * 7} stroke="#b07a48" strokeWidth="2" />
+          ))}
+        </g>
+      ))}
+    </>
+  )
+}
+
 function wave(y: number, phase: number): string {
   let d = `M0 ${y}`
   for (let x = 0; x <= W; x += 12) d += ` L${x} ${y + Math.sin((x + phase) / 14) * 2.2}`
   return d
 }
 
-function Pill({ x, y, text, tone }: { x: number; y: number; text: string; tone: 'gold' | 'red' | 'blue' }) {
+export function Pill({ x, y, text, tone }: { x: number; y: number; text: string; tone: 'gold' | 'red' | 'blue' }) {
   if (!text) return null
   const w = Math.max(30, text.length * 6.4 + 14)
   const fill = tone === 'gold' ? '#3a2a08' : tone === 'red' ? '#4a0f18' : '#0f2350'
@@ -296,16 +309,30 @@ function Pill({ x, y, text, tone }: { x: number; y: number; text: string; tone: 
   )
 }
 
-function Tower({ tw }: { tw: typeof TOWERS[number]; g: (n: string) => string }) {
+/** Верх картинки башни в пикселях - над ним рисуется полоска здоровья. */
+export function towerTop(y: number, size: number, king: boolean): number {
+  return py(y + size / 2) + 4 - size * TILE * (king ? 1.35 : 1.4)
+}
+
+export function TowerArt({ x, y, size, king, dead = false }: { x: number; y: number; size: number; king: boolean; dead?: boolean }) {
   // Картинка башни сбоку: низ - по нижнему краю клеток башни, ширина чуть больше
   // клеток - так башня читается объёмной, как в игре, а не плоским квадратом
-  const w = tw.size * TILE * (tw.king ? 1.35 : 1.4)
+  const w = size * TILE * (king ? 1.35 : 1.4)
   const h = w
-  const bottom = py(tw.y + tw.size / 2) + 4
+  const bottom = py(y + size / 2) + 4
+  if (dead) {
+    // Развалины: тёмная груда камней на месте башни
+    return (
+      <g opacity="0.85">
+        <ellipse cx={px(x)} cy={bottom - 8} rx={size * TILE * 0.5} ry={size * TILE * 0.28} fill="#3a3f55" stroke="#22263a" strokeWidth="2" />
+        <text x={px(x)} y={bottom - 6} textAnchor="middle" fontSize={size * 7}>🪨</text>
+      </g>
+    )
+  }
   return (
     <g>
-      <ellipse cx={px(tw.x)} cy={bottom - 2} rx={tw.size * TILE * 0.55} ry={6} fill="rgba(0,0,0,0.4)" />
-      <image href={tw.king ? '/arena/king.webp' : '/arena/princess.webp'} x={px(tw.x) - w / 2} y={bottom - h} width={w} height={h} />
+      <ellipse cx={px(x)} cy={bottom - 2} rx={size * TILE * 0.55} ry={6} fill="rgba(0,0,0,0.4)" />
+      <image href={king ? '/arena/king.webp' : '/arena/princess.webp'} x={px(x) - w / 2} y={bottom - h} width={w} height={h} />
     </g>
   )
 }
@@ -318,13 +345,14 @@ function FloatText({ a, x, y, k }: { a: Actor; x: number; y: number; k: number }
   )
 }
 
-function Token({ a, x, y, t, art, g }: { a: Actor; x: number; y: number; t: number; art?: string; g: (n: string) => string }) {
+function Token({ a, x, y, t, g }: { a: Actor; x: number; y: number; t: number; g: (n: string) => string }) {
   const r = (a.r ?? 0.7) * TILE
+  const emoji = a.card ? emojiOf(a.card) : ''
   if (a.kind === 'spell') {
     return (
       <g>
         <circle cx={x} cy={y} r={r} fill={`url(#${g('spell')})`} stroke="#ffd35a" strokeWidth="2" />
-        {art && <image href={art} x={x - 12} y={y - 15} width={24} height={29} />}
+        {emoji && <text x={x} y={y} textAnchor="middle" dominantBaseline="central" fontSize={Math.min(26, r)}>{emoji}</text>}
         {a.label && <Pill x={x} y={y + r + 10} text={a.label} tone="gold" />}
       </g>
     )
@@ -346,7 +374,7 @@ function Token({ a, x, y, t, art, g }: { a: Actor; x: number; y: number; t: numb
       <g>
         <ellipse cx={x} cy={y + 16} rx={11} ry={4} fill="rgba(0,0,0,0.5)" />
         <g transform={`rotate(${t * 400} ${x} ${y - 6})`}>
-          {art ? <image href={art} x={x - 13} y={y - 22} width={26} height={31} /> : <circle cx={x} cy={y - 6} r={10} fill="#c0662e" />}
+          <text x={x} y={y - 6} textAnchor="middle" dominantBaseline="central" fontSize="22">{emoji || '🛢️'}</text>
         </g>
         {a.label && <Pill x={x} y={y - 30} text={a.label} tone="red" />}
       </g>
@@ -365,13 +393,9 @@ function Token({ a, x, y, t, art, g }: { a: Actor; x: number; y: number; t: numb
       {box
         ? <rect x={x - r} y={y - r} width={r * 2} height={r * 2} rx="6" fill="#16204a" />
         : <circle cx={x} cy={y} r={r} fill="#16204a" />}
-      {art ? (
-        box
-          ? <image href={art} x={x - r} y={y - r * 1.15} width={r * 2} height={r * 2.4} preserveAspectRatio="xMidYMin slice" />
-          : <image href={art} x={x - r} y={y - r} width={r * 2} height={r * 2} preserveAspectRatio="xMidYMin slice" clipPath={`url(#${g('tok')})`} />
-      ) : (
-        <text x={x} y={y + 4} textAnchor="middle" fontSize="11" fontWeight="900" fill="#fff">{a.label.slice(0, 2)}</text>
-      )}
+      {emoji
+        ? <text x={x} y={y + 1} textAnchor="middle" dominantBaseline="central" fontSize={r * 1.3}>{emoji}</text>
+        : <text x={x} y={y + 4} textAnchor="middle" fontSize="11" fontWeight="900" fill="#fff">{a.label.slice(0, 2)}</text>}
       {a.label && <Pill x={x} y={y + r + 11} text={a.label} tone={enemy ? 'red' : 'blue'} />}
     </g>
   )
