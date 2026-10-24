@@ -151,6 +151,12 @@ function TrainerGame({ puzzle, daily, onExit, onNext, onStars }: {
   const [verdict, setVerdict] = useState<Verdict | null>(null)
   const [lines, setLines] = useState<string[]>([])
   const battle = useRef<{ watch: Watch; mine: Entity[]; card: string; custom: Verdict | null } | null>(null)
+  const resultRef = useRef<HTMLDivElement>(null)
+
+  // Итог под доской - докручиваем к нему, чтобы не искать
+  useEffect(() => {
+    if (phase === 'result') resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }, [phase])
 
   const reset = () => {
     haptic('light')
@@ -233,50 +239,57 @@ function TrainerGame({ puzzle, daily, onExit, onNext, onStars }: {
         <button className="btn-mini" onClick={() => { haptic('light'); onExit() }}><Icon name="chevronLeft" size={15} /> {s.back}</button>
         {daily && <span className="tr-badge">{s.daily}</span>}
       </div>
-      <h2 className="tr-title">{text.title}</h2>
-      <p className="tr-task">{text.task}</p>
-
-      <div className={`tr-board ${phase === 'choose' ? 'tr-board-live' : ''}`}>
-        <ArenaSim key={round} sim={sim} running={phase === 'intro' || phase === 'battle'} speed={fast ? 2.5 : 1}
-          onTick={onTick} onTap={phase === 'choose' ? tap : undefined} ghost={ghost} zone={zone} />
-        {phase === 'choose' && !ghost && <div className="tr-turn">{s.yourTurn}</div>}
-        {(phase === 'intro' || phase === 'battle') && (
-          <button className={`tr-speed ${fast ? 'tr-speed-on' : ''}`} onClick={toggleFast}>⏩ {fast ? '×2.5' : '×1'}</button>
-        )}
-        {phase === 'choose' && ghost?.ok && card && (
-          <button className="tr-place" onClick={() => place(card, ghost.x, ghost.y)}>
-            {emojiOf(card)} {s.place}
-          </button>
-        )}
+      <div className="tr-head">
+        <h2 className="tr-title">{text.title}</h2>
+        <p className="tr-task">{text.task}</p>
       </div>
 
-      <ElixirBar sim={sim} />
-
-      <div className="tr-hand">
-        {puzzle.hand.map(c => {
-          const info = cardInfo(c)
-          const tooDear = info.cost > sc.elixir
-          return (
-            <button key={c} className={`tr-card ${card === c ? 'tr-card-on' : ''}`} disabled={phase !== 'choose' || tooDear}
-              onClick={() => {
-                haptic('light')
-                setCard(c)
-                setGhost(g => (g ? { ...g, card: c, ...snap(c, g.x, g.y), ok: canDeploy('me', c, snap(c, g.x, g.y).x, snap(c, g.x, g.y).y) } : null))
-                setHint(info.kind === 'spell' ? s.pickSpell : s.pickTile)
-              }}>
-              <span className="tr-card-art">{art[c] ? <img src={art[c]} alt="" /> : <span className="tr-emoji">{emojiOf(c)}</span>}</span>
-              {art[c] && <span className="tr-card-emoji">{emojiOf(c)}</span>}
-              <span className="tr-cost">{info.cost}</span>
-              <small>{n(c)}</small>
+      <div className="tr-stage">
+        <div className={`tr-board ${phase === 'choose' ? 'tr-board-live' : ''}`}>
+          <ArenaSim key={round} sim={sim} running={phase === 'intro' || phase === 'battle'} speed={fast ? 2.5 : 1}
+            onTick={onTick} onTap={phase === 'choose' ? tap : undefined} ghost={ghost} zone={zone} />
+          {phase === 'choose' && !ghost?.ok && (
+            <div className={`tr-turn ${hint && ghost ? 'tr-turn-bad' : ''}`}>
+              {hint ?? (card ? (kind === 'spell' ? s.pickSpell : s.pickTile) : `${s.yourTurn} · ${s.pickCard}`)}
+            </div>
+          )}
+          {(phase === 'intro' || phase === 'battle') && (
+            <button className={`tr-speed ${fast ? 'tr-speed-on' : ''}`} onClick={toggleFast}>⏩ {fast ? '×2.5' : '×1'}</button>
+          )}
+          {phase === 'choose' && ghost?.ok && card && (
+            <button className="tr-place" onClick={() => place(card, ghost.x, ghost.y)}>
+              {emojiOf(card)} {s.place}
             </button>
-          )
-        })}
-      </div>
+          )}
+        </div>
 
-      {phase === 'choose' && <p className="tr-hint">{hint ?? (card ? (kind === 'spell' ? s.pickSpell : s.pickTile) : s.pickCard)}</p>}
+        <div className="tr-tray">
+          <div className="tr-hand">
+            {puzzle.hand.map(c => {
+              const info = cardInfo(c)
+              const tooDear = info.cost > sc.elixir
+              return (
+                <button key={c} className={`tr-card ${card === c ? 'tr-card-on' : ''}`} disabled={phase !== 'choose' || tooDear}
+                  onClick={() => {
+                    haptic('light')
+                    setCard(c)
+                    setGhost(g => (g ? { ...g, card: c, ...snap(c, g.x, g.y), ok: canDeploy('me', c, snap(c, g.x, g.y).x, snap(c, g.x, g.y).y) } : null))
+                    setHint(info.kind === 'spell' ? s.pickSpell : s.pickTile)
+                  }}>
+                  <span className="tr-card-art">{art[c] ? <img src={art[c]} alt="" /> : <span className="tr-emoji">{emojiOf(c)}</span>}</span>
+                  {art[c] && <span className="tr-card-emoji">{emojiOf(c)}</span>}
+                  <span className="tr-cost">{info.cost}</span>
+                  <small>{n(c)}</small>
+                </button>
+              )
+            })}
+          </div>
+          <ElixirBar sim={sim} />
+        </div>
+      </div>
 
       {phase === 'result' && (
-        <div className={`tr-result tr-result-${grade}`}>
+        <div ref={resultRef} className={`tr-result tr-result-${grade}`}>
           <div className="tr-result-head">
             <Stars n={stars} />
             <b>{grade === 'perfect' ? s.perfect : grade === 'ok' ? s.ok : s.fail}</b>
@@ -322,7 +335,7 @@ function ElixirBar({ sim }: { sim: Sim }) {
   const full = Math.floor(v)
   return (
     <div className="tr-elixir">
-      <GameIcon name="drop" size={18} />
+      <span className="tr-drop"><b>{full}</b></span>
       <div className="tr-elixir-bar">
         {Array.from({ length: 10 }, (_, i) => (
           <i key={i} className={i < full ? 'on' : ''}>
@@ -330,7 +343,6 @@ function ElixirBar({ sim }: { sim: Sim }) {
           </i>
         ))}
       </div>
-      <b>{full}</b>
     </div>
   )
 }

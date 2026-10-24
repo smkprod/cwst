@@ -4,10 +4,11 @@ import { emojiOf } from '../lib/sim/emoji'
 /**
  * Схема арены с анимацией: куда и когда ставить карту.
  *
- * Геометрия - как в игре: поле 18×32 клетки, река на рядах 15-16 (считая сверху),
- * мосты по 3 клетки над линиями, башни принцесс 3×3 с центром на 3,5 и 14,5 и в
- * 6,5 клетки от своего края, король 4×4 по центру в 3 клетках от края. Радиус
- * принцесс 7,5 клетки, короля 7. Показываем свою половину, реку и край чужой.
+ * Геометрия - как в игре: поле 18×32 клетки целиком, по 15 рядов на сторону и река
+ * в 2 ряда посередине; башни принцесс 3×3 с центром на 3,5 и 14,5 в 6,5 ряда от
+ * своего края, король 4×4 по центру в 3 рядах от края, за ним 1 свободный ряд.
+ * Радиус принцесс 7,5 клетки, короля 7. Как в игре, поле видно под углом: клетка
+ * сплюснута по высоте (TILE_H), поэтому радиусы рисуются эллипсами.
  *
  * Юниты - жетоны со смайликом карты и кольцом стороны (свои синие, чужие красные),
  * здания - квадратные жетоны, заклинания - зона. Сцена - таймлайн: ключевые точки
@@ -39,22 +40,28 @@ export interface Ruler { x: number; y1: number; y2: number; label: string; from:
 
 export interface Scene { duration: number; actors: Actor[]; marks?: Mark[]; rulers?: Ruler[]; noShots?: boolean }
 
+/** Ширина клетки в пикселях схемы. */
 export const TILE = 20
-export const VIEW_TOP = 11
-const VIEW_ROWS = 21
+/** Высота клетки: в игре поле видно под углом, клетка сплюснута примерно до 0,8. */
+export const TILE_H = 16
+export const VIEW_TOP = 0
+const VIEW_ROWS = 32
 export const W = 18 * TILE
-export const H = VIEW_ROWS * TILE
+export const H = VIEW_ROWS * TILE_H
 const RIVER_TOP = 15
 const RIVER_BOTTOM = 17
 
 export const TOWERS = [
-  { id: 'pl', x: 3.5, y: 25.5, size: 3, range: 7.5, king: false },
-  { id: 'pr', x: 14.5, y: 25.5, size: 3, range: 7.5, king: false },
-  { id: 'k', x: 9, y: 29, size: 4, range: 7, king: true },
+  { id: 'pl', x: 3.5, y: 25.5, size: 3, range: 7.5, king: false, enemy: false },
+  { id: 'pr', x: 14.5, y: 25.5, size: 3, range: 7.5, king: false, enemy: false },
+  { id: 'k', x: 9, y: 29, size: 4, range: 7, king: true, enemy: false },
+  { id: 'el', x: 3.5, y: 6.5, size: 3, range: 7.5, king: false, enemy: true },
+  { id: 'er', x: 14.5, y: 6.5, size: 3, range: 7.5, king: false, enemy: true },
+  { id: 'ek', x: 9, y: 3, size: 4, range: 7, king: true, enemy: true },
 ]
 
 export const px = (x: number) => x * TILE
-export const py = (y: number) => (y - VIEW_TOP) * TILE
+export const py = (y: number) => (y - VIEW_TOP) * TILE_H
 
 function span(a: Actor) {
   return { from: a.from ?? a.keys[0].t, to: a.to ?? a.keys[a.keys.length - 1].t }
@@ -80,22 +87,21 @@ function lastPos(a: Actor): { x: number; y: number } {
   return { x: k.x, y: k.y }
 }
 
-/** Жетон-«призрак» там, куда игрок собирается поставить карту (тренажёр). */
-export interface Ghost { x: number; y: number; card: string; kind: ActorKind; r?: number; ok?: boolean }
+/** Фишки - про свою половину: показываем ряды от края чужой половины до своего края. */
+const TIP_ROWS: [number, number] = [11, 32]
 
 /**
  * @param at Показать один кадр на этой секунде (без анимации).
  * @param loop false - сыграть сцену один раз и встать на последнем кадре, позвав onEnd.
- * @param onTap Тап по полю - в координатах клеток (тренажёр).
+ * @param rows Какие ряды поля показать - то же поле, просто кадр.
  */
-export function ArenaAnim({ scene, paused = false, at: frameAt, loop = true, onEnd, onTap, ghost }: {
+export function ArenaAnim({ scene, paused = false, at: frameAt, loop = true, onEnd, rows = TIP_ROWS }: {
   scene: Scene
   paused?: boolean
   at?: number
   loop?: boolean
   onEnd?: () => void
-  onTap?: (x: number, y: number) => void
-  ghost?: Ghost | null
+  rows?: [number, number]
 }) {
   const still = frameAt ?? (paused ? scene.duration * 0.35 : null)
   const [t, setT] = useState(still ?? 0)
@@ -124,19 +130,13 @@ export function ArenaAnim({ scene, paused = false, at: frameAt, loop = true, onE
     return () => cancelAnimationFrame(raf)
   }, [scene, still, loop])
 
-  const tap = (e: React.PointerEvent<SVGSVGElement>) => {
-    if (!onTap) return
-    const rect = e.currentTarget.getBoundingClientRect()
-    onTap(((e.clientX - rect.left) / rect.width) * (W / TILE), ((e.clientY - rect.top) / rect.height) * (H / TILE) + VIEW_TOP)
-  }
-
   const live = scene.actors.map(a => ({ a, p: at(a, t) })).filter(x => x.p) as { a: Actor; p: { x: number; y: number } }[]
   const enemies = live.filter(x => x.a.kind === 'enemy')
 
   // Снаряды: башня бьёт ближайшего чужого в радиусе (до края жетона)
   const shots: { from: { x: number; y: number }; to: { x: number; y: number }; key: string }[] = []
   if (!scene.noShots) {
-    for (const tw of TOWERS) {
+    for (const tw of TOWERS.filter(tw => !tw.enemy)) {
       const target = enemies
         .map(e => ({ e, d: Math.hypot(e.p.x - tw.x, e.p.y - tw.y) - (e.a.r ?? 0.6) }))
         .filter(x => x.d <= tw.range)
@@ -154,17 +154,17 @@ export function ArenaAnim({ scene, paused = false, at: frameAt, loop = true, onE
   const g = (name: string) => `${name}-${uid}`
 
   return (
-    <svg className={`arena ${onTap ? 'arena-tap' : ''}`} viewBox={`0 0 ${W} ${H}`} role="img" aria-label="arena" onPointerDown={tap}>
+    <svg className="arena" viewBox={`0 ${py(rows[0])} ${W} ${py(rows[1]) - py(rows[0])}`} role="img" aria-label="arena">
       <ArenaDefs g={g} />
       <ArenaGround t={t} g={g} />
 
-      {/* Радиусы башен - едва заметно, ярче у той, что стреляет */}
-      {TOWERS.map(tw => (
-        <circle key={`r${tw.id}`} cx={px(tw.x)} cy={py(tw.y)} r={tw.range * TILE} fill="none"
-          stroke={shots.some(s => s.key === tw.id) ? 'rgba(255,211,90,0.45)' : 'rgba(150,190,255,0.14)'} strokeDasharray="3 7" />
+      {/* Радиусы своих башен - едва заметно, ярче у той, что стреляет */}
+      {TOWERS.filter(tw => !tw.enemy).map(tw => (
+        <ellipse key={`r${tw.id}`} cx={px(tw.x)} cy={py(tw.y)} rx={tw.range * TILE} ry={tw.range * TILE_H} fill="none"
+          stroke={shots.some(s => s.key === tw.id) ? 'rgba(255,236,150,0.75)' : 'rgba(255,255,255,0.22)'} strokeDasharray="3 7" />
       ))}
 
-      {TOWERS.map(tw => <TowerArt key={tw.id} x={tw.x} y={tw.y} size={tw.size} king={tw.king} />)}
+      {TOWERS.map(tw => <TowerArt key={tw.id} x={tw.x} y={tw.y} size={tw.size} king={tw.king} enemy={tw.enemy} />)}
 
       {(scene.rulers ?? []).filter(r => t >= r.from && t <= r.to).map((r, i) => (
         <g key={`ru${i}`}>
@@ -178,12 +178,12 @@ export function ArenaAnim({ scene, paused = false, at: frameAt, loop = true, onE
 
       {(scene.marks ?? []).filter(m => t >= m.from && t <= m.to).map((m, i) => {
         const pulse = 0.5 + 0.5 * Math.sin(t * 9)
-        const size = (m.size ?? 1) * TILE
+        const sw = (m.size ?? 1) * TILE, sh = (m.size ?? 1) * TILE_H
         return (
           <g key={`m${i}`}>
-            <rect x={px(m.x) - size / 2 - 3} y={py(m.y) - size / 2 - 3} width={size + 6} height={size + 6} rx="5"
-              fill={`rgba(255,224,138,${0.18 + 0.3 * pulse})`} stroke="#ffe08a" strokeWidth="2.5" />
-            {m.label && <Pill x={px(m.x)} y={py(m.y) - size / 2 - 14} text={m.label} tone="gold" />}
+            <rect x={px(m.x) - sw / 2 - 2} y={py(m.y) - sh / 2 - 2} width={sw + 4} height={sh + 4} rx="4"
+              fill={`rgba(255,224,138,${0.25 + 0.35 * pulse})`} stroke="#fff3c4" strokeWidth="2.5" />
+            {m.label && <Pill x={px(m.x)} y={py(m.y) - sh / 2 - 13} text={m.label} tone="gold" />}
           </g>
         )
       })}
@@ -199,15 +199,6 @@ export function ArenaAnim({ scene, paused = false, at: frameAt, loop = true, onE
         ? <FloatText key={a.id} a={a} x={px(p.x)} y={py(p.y)} k={(t - span(a).from) / Math.max(0.01, span(a).to - span(a).from)} />
         : <Token key={a.id} a={a} x={px(p.x)} y={py(p.y)} t={t} g={g} />)}
 
-      {ghost && (
-        <g opacity="0.75">
-          <rect x={px(Math.floor(ghost.x))} y={py(Math.floor(ghost.y))} width={TILE} height={TILE}
-            fill="none" stroke={ghost.ok === false ? '#ef4454' : '#ffe08a'} strokeWidth="2" strokeDasharray="3 3" />
-          <Token a={{ id: 'ghost', kind: ghost.kind, label: '', card: ghost.card, r: ghost.r, keys: [{ t: 0, x: ghost.x, y: ghost.y }] }}
-            x={px(ghost.x)} y={py(ghost.y)} t={t} g={g} />
-        </g>
-      )}
-
       {poofs.map(({ a, dt }) => {
         const p = lastPos(a)
         const k = dt / 0.45
@@ -221,32 +212,22 @@ export function ArenaAnim({ scene, paused = false, at: frameAt, loop = true, onE
 export function ArenaDefs({ g }: { g: (n: string) => string }) {
   return (
     <defs>
-      <pattern id={g('tiles')} width={TILE * 2} height={TILE * 2} patternUnits="userSpaceOnUse">
-        <rect width={TILE * 2} height={TILE * 2} fill="#2b3a6e" />
-        <rect width={TILE} height={TILE} fill="#2f4078" />
-        <rect x={TILE} y={TILE} width={TILE} height={TILE} fill="#2f4078" />
-      </pattern>
-      <pattern id={g('tilesE')} width={TILE * 2} height={TILE * 2} patternUnits="userSpaceOnUse">
-        <rect width={TILE * 2} height={TILE * 2} fill="#3b2c5e" />
-        <rect width={TILE} height={TILE} fill="#423266" />
-        <rect x={TILE} y={TILE} width={TILE} height={TILE} fill="#423266" />
+      {/* Трава в шахматку, как в игре: клетка - TILE × TILE_H */}
+      <pattern id={g('tiles')} width={TILE * 2} height={TILE_H * 2} patternUnits="userSpaceOnUse">
+        <rect width={TILE * 2} height={TILE_H * 2} fill="#9cbf48" />
+        <rect width={TILE} height={TILE_H} fill="#a8c952" />
+        <rect x={TILE} y={TILE_H} width={TILE} height={TILE_H} fill="#a8c952" />
       </pattern>
       <linearGradient id={g('river')} x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stopColor="#1b8fe0" />
-        <stop offset="0.5" stopColor="#3fc1ff" />
-        <stop offset="1" stopColor="#1b8fe0" />
+        <stop offset="0" stopColor="#0d93c9" />
+        <stop offset="0.5" stopColor="#2cc2f0" />
+        <stop offset="1" stopColor="#0d93c9" />
       </linearGradient>
-      <linearGradient id={g('stone')} x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stopColor="#c9d3ea" />
-        <stop offset="1" stopColor="#7d8bb0" />
-      </linearGradient>
-      <linearGradient id={g('roof')} x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stopColor="#5aa9ff" />
-        <stop offset="1" stopColor="#2c5fd6" />
-      </linearGradient>
-      <linearGradient id={g('gold')} x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stopColor="#ffe9a8" />
-        <stop offset="1" stopColor="#f2a922" />
+      <linearGradient id={g('shade')} x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stopColor="#000" stopOpacity="0.18" />
+        <stop offset="0.12" stopColor="#000" stopOpacity="0" />
+        <stop offset="0.88" stopColor="#000" stopOpacity="0" />
+        <stop offset="1" stopColor="#000" stopOpacity="0.18" />
       </linearGradient>
       <radialGradient id={g('spell')}>
         <stop offset="0" stopColor="#ffe08a" stopOpacity="0.55" />
@@ -260,33 +241,80 @@ export function ArenaDefs({ g }: { g: (n: string) => string }) {
   )
 }
 
-/** Поле: клетки, дорожки, река с волнами и мосты. */
+const LANES = [3.5, 14.5]
+const PATH = '#d9b06b'
+const PATH_EDGE = '#b98c4f'
+
+/**
+ * Поле как в игре: трава в шахматку, дорожки от мостов к башням и петля за ними,
+ * площадки под башнями, река с земляными берегами и камнями, деревянные мосты,
+ * заборчики в углах за королями.
+ */
 export function ArenaGround({ t, g }: { t: number; g: (n: string) => string }) {
+  // Дорожка - полоса в 1 клетку: вдоль линий от петли за королём до моста и поперёк за королями
+  const paths: { x: number; y: number; w: number; h: number }[] = []
+  for (const lx of LANES) {
+    paths.push({ x: lx - 0.5, y: 3, w: 1, h: RIVER_TOP - 3 })
+    paths.push({ x: lx - 0.5, y: RIVER_BOTTOM, w: 1, h: 29 - RIVER_BOTTOM })
+  }
+  paths.push({ x: 3, y: 3, w: 12, h: 1 }, { x: 3, y: 28, w: 12, h: 1 })
+  const pads = TOWERS.map(tw => ({ x: tw.x - tw.size / 2, y: tw.y - tw.size / 2, s: tw.size }))
   return (
     <>
-      {/* Поле: клетки как в игре, чужая половина в тёплом тоне */}
       <rect width={W} height={H} fill={`url(#${g('tiles')})`} />
-      <rect width={W} height={py(RIVER_TOP)} fill={`url(#${g('tilesE')})`} />
-      {/* Дорожки по линиям - туда идёт почти всё */}
-      {[3.5, 14.5].map(lx => (
-        <rect key={lx} x={px(lx - 0.5)} y={0} width={TILE} height={H} fill="rgba(255,255,255,0.035)" />
+      <rect width={W} height={H} fill={`url(#${g('shade')})`} />
+
+      {paths.map((r, i) => (
+        <rect key={`p${i}`} x={px(r.x)} y={py(r.y)} width={r.w * TILE} height={r.h * TILE_H} fill={PATH} />
+      ))}
+      {/* Кромка дорожек - чуть темнее, чтобы читались на траве */}
+      {paths.map((r, i) => (
+        <rect key={`pe${i}`} x={px(r.x) + 0.5} y={py(r.y) + 0.5} width={r.w * TILE - 1} height={r.h * TILE_H - 1}
+          fill="none" stroke={PATH_EDGE} strokeOpacity="0.45" />
+      ))}
+      {/* Площадки под башнями - их клетки */}
+      {pads.map((p, i) => (
+        <rect key={`pad${i}`} x={px(p.x)} y={py(p.y)} width={p.s * TILE} height={p.s * TILE_H} rx="3"
+          fill="#cfa564" stroke={PATH_EDGE} strokeOpacity="0.6" />
       ))}
 
-      {/* Река с волнами */}
-      <rect y={py(RIVER_TOP)} width={W} height={(RIVER_BOTTOM - RIVER_TOP) * TILE} fill={`url(#${g('river')})`} />
+      {/* Река: берега из земли, вода по центру, камни у кромки */}
+      <rect y={py(RIVER_TOP)} width={W} height={(RIVER_BOTTOM - RIVER_TOP) * TILE_H} fill="#a9825c" />
+      <rect y={py(RIVER_TOP + 0.3)} width={W} height={(RIVER_BOTTOM - RIVER_TOP - 0.6) * TILE_H} fill={`url(#${g('river')})`} />
       {[0, 1].map(i => (
-        <path key={i} d={wave(py(RIVER_TOP) + 12 + i * 16, t * 30 + i * 40)} fill="none" stroke="rgba(255,255,255,0.45)" strokeWidth="1.5" />
+        <path key={i} d={wave(py(RIVER_TOP + 0.75 + i * 0.5), t * 30 + i * 40)} fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="1.3" />
       ))}
-      {/* Мосты: доски поперёк реки */}
-      {[2, 13].map(bx => (
-        <g key={bx}>
-          <rect x={px(bx)} y={py(RIVER_TOP) - 4} width={3 * TILE} height={(RIVER_BOTTOM - RIVER_TOP) * TILE + 8} rx="4" fill="#8a5a33" stroke="#5c3a1f" strokeWidth="2" />
-          {Array.from({ length: 6 }, (_, i) => (
-            <line key={i} x1={px(bx) + 3} x2={px(bx + 3) - 3} y1={py(RIVER_TOP) + 2 + i * 7} y2={py(RIVER_TOP) + 2 + i * 7} stroke="#b07a48" strokeWidth="2" />
+      {[1.2, 7.3, 10.4, 16.9].map((sx, i) => (
+        <ellipse key={`st${i}`} cx={px(sx)} cy={py(i % 2 ? RIVER_TOP + 0.22 : RIVER_BOTTOM - 0.22)} rx={9} ry={3.6}
+          fill="#8d97a3" stroke="#5e6670" strokeWidth="1" />
+      ))}
+
+      {/* Мосты: доски вдоль хода, в 2 клетки шириной над каждой линией */}
+      {LANES.map(lx => (
+        <g key={lx}>
+          <rect x={px(lx - 1)} y={py(RIVER_TOP - 0.45)} width={2 * TILE} height={(RIVER_BOTTOM - RIVER_TOP + 0.9) * TILE_H} rx="3"
+            fill="#cf8f6c" stroke="#7a4a32" strokeWidth="1.6" />
+          {[-0.5, 0, 0.5].map(k => (
+            <line key={k} x1={px(lx + k)} x2={px(lx + k)} y1={py(RIVER_TOP - 0.4)} y2={py(RIVER_BOTTOM + 0.4)} stroke="#a8654a" strokeWidth="1.4" />
           ))}
+          <rect x={px(lx - 1)} y={py(RIVER_TOP - 0.45)} width={2 * TILE} height={3} fill="#e3a684" />
         </g>
       ))}
+
+      {/* Заборчики в углах за королями */}
+      {[0.35, 31.65].map(fy => [1.5, 12.5].map(fx => <Fence key={`${fx}-${fy}`} x={fx} y={fy} />))}
     </>
+  )
+}
+
+function Fence({ x, y }: { x: number; y: number }) {
+  const x0 = px(x), x1 = px(x + 4), cy = py(y)
+  return (
+    <g opacity="0.9">
+      <rect x={x0} y={cy - 3} width={x1 - x0} height={2.2} rx="1" fill="#8a5a33" />
+      <rect x={x0} y={cy + 1} width={x1 - x0} height={2.2} rx="1" fill="#8a5a33" />
+      {[x0, (x0 + x1) / 2, x1 - 4].map(fx => <rect key={fx} x={fx} y={cy - 5} width={4} height={10} rx="1" fill="#6e4524" />)}
+    </g>
   )
 }
 
@@ -309,30 +337,96 @@ export function Pill({ x, y, text, tone }: { x: number; y: number; text: string;
   )
 }
 
-/** Верх картинки башни в пикселях - над ним рисуется полоска здоровья. */
-export function towerTop(y: number, size: number, king: boolean): number {
-  return py(y + size / 2) + 4 - size * TILE * (king ? 1.35 : 1.4)
+/**
+ * Размеры башни в пикселях: фасад и площадка сверху - как башня в игре под тем же
+ * углом, чуть уже своих клеток. bottom - низ фасада по нижнему краю клеток.
+ */
+function towerBox(y: number, size: number, king: boolean) {
+  const bottom = py(y + size / 2) - 1
+  const w = size * TILE * (king ? 0.84 : 0.86)
+  const front = size * TILE_H * (king ? 0.62 : 0.64)
+  const deck = size * TILE_H * (king ? 0.5 : 0.52)
+  return { bottom, w, front, deck, top: bottom - front - deck, face: king ? 22 : 18 }
 }
 
-export function TowerArt({ x, y, size, king, dead = false }: { x: number; y: number; size: number; king: boolean; dead?: boolean }) {
-  // Картинка башни сбоку: низ - по нижнему краю клеток башни, ширина чуть больше
-  // клеток - так башня читается объёмной, как в игре, а не плоским квадратом
-  const w = size * TILE * (king ? 1.35 : 1.4)
-  const h = w
-  const bottom = py(y + size / 2) + 4
+/** Верх башни над флажками - над ним рисуется полоска здоровья. */
+export function towerTop(y: number, size: number, king: boolean): number {
+  return towerBox(y, size, king).top - 20
+}
+
+const TEAM = {
+  me: { main: '#3d7be0', dark: '#1f4fa8' },
+  enemy: { main: '#e04848', dark: '#9c2323' },
+}
+
+/**
+ * Башня в духе игры: каменный фасад с кладкой и зубцами, полоса и флажки цвета
+ * стороны, золотая корона на гербе, деревянная площадка, на ней хозяин - принцесса
+ * или король с пушкой. Всё рисуется здесь же, без картинок.
+ */
+export function TowerArt({ x, y, size, king, enemy = false, dead = false }: {
+  x: number; y: number; size: number; king: boolean; enemy?: boolean; dead?: boolean
+}) {
   if (dead) {
-    // Развалины: тёмная груда камней на месте башни
+    // Развалины: груда камней на площадке башни
     return (
-      <g opacity="0.85">
-        <ellipse cx={px(x)} cy={bottom - 8} rx={size * TILE * 0.5} ry={size * TILE * 0.28} fill="#3a3f55" stroke="#22263a" strokeWidth="2" />
-        <text x={px(x)} y={bottom - 6} textAnchor="middle" fontSize={size * 7}>🪨</text>
+      <g>
+        {[[-0.7, 0.1, 9], [0.5, 0.25, 8], [0, -0.35, 10], [-0.2, 0.55, 7], [0.85, -0.3, 6]].map(([dx, dy, r], i) => (
+          <ellipse key={i} cx={px(x + dx)} cy={py(y + dy)} rx={r} ry={r * 0.7} fill={i % 2 ? '#9aa1ad' : '#b9c0cb'} stroke="#6b717d" strokeWidth="1" />
+        ))}
       </g>
     )
   }
+  const { bottom, w, front, deck, top, face } = towerBox(y, size, king)
+  const cx = px(x)
+  const team = TEAM[enemy ? 'enemy' : 'me']
+  const l = cx - w / 2
+  const ft = bottom - front
+  const merlons = king ? 6 : 5
+  const mw = w / (merlons * 2 - 1)
+  const k = king ? 1.25 : 1
+  const pcy = ft + front * 0.58
   return (
     <g>
-      <ellipse cx={px(x)} cy={bottom - 2} rx={size * TILE * 0.55} ry={6} fill="rgba(0,0,0,0.4)" />
-      <image href={king ? '/arena/king.webp' : '/arena/princess.webp'} x={px(x) - w / 2} y={bottom - h} width={w} height={h} />
+      <ellipse cx={cx} cy={bottom} rx={w * 0.56} ry={5} fill="rgba(0,0,0,0.28)" />
+      {/* Флажки по задним углам */}
+      {[-1, 1].map(sd => {
+        const fx = cx + sd * (w / 2 - 3)
+        return (
+          <g key={sd}>
+            <line x1={fx} y1={top + 3} x2={fx} y2={top - 13} stroke="#5b3a1e" strokeWidth="1.6" />
+            <path d={`M${fx} ${top - 13} l${sd * 10} 3.2 l${-sd * 10} 3.2 z`} fill={team.main} stroke={team.dark} strokeWidth="0.8" />
+          </g>
+        )
+      })}
+      {/* Площадка: каменный борт и пол в тени борта */}
+      <rect x={l} y={top} width={w} height={deck + 2} rx="3" fill="#d6dbe4" stroke="#4f5768" strokeWidth="1.2" />
+      <rect x={l + 4} y={top + 3} width={w - 8} height={deck - 3} rx="2" fill="#b4bccb" />
+      <rect x={l + 4} y={top + 3} width={w - 8} height={3} rx="1.5" fill="#9ca5b6" />
+      {/* Хозяин башни на площадке; у короля сбоку пушка, ствол - в сторону соперника */}
+      <text x={king ? cx - 7 : cx} y={top + deck * 0.42} textAnchor="middle" dominantBaseline="central" fontSize={face}>{king ? '🤴' : '👸'}</text>
+      {king && (
+        <g>
+          <rect x={cx + 9} y={enemy ? top + deck * 0.5 : top + deck * 0.5 - 11} width={6} height={11} rx="2" fill="#2f333d" stroke="#14161c" strokeWidth="1" />
+          <circle cx={cx + 12} cy={top + deck * 0.5} r={5.5} fill="#3a3e4a" stroke="#14161c" strokeWidth="1.2" />
+          <circle cx={cx + 12} cy={enemy ? top + deck * 0.5 + 10 : top + deck * 0.5 - 10} r={2.2} fill="#0c0d10" />
+        </g>
+      )}
+      {/* Фасад: кладка, полоса цвета стороны, зубцы по краю, герб с короной */}
+      <rect x={l} y={ft} width={w} height={front} rx="2" fill="#aab2c1" stroke="#4f5768" strokeWidth="1.2" />
+      <rect x={l + 1} y={bottom - front * 0.3} width={w - 2} height={front * 0.3 - 1} fill="#8f98aa" />
+      {[0.42, 0.7].map(f => <line key={f} x1={l + 2} x2={l + w - 2} y1={ft + front * f} y2={ft + front * f} stroke="#7d8698" strokeWidth="1" />)}
+      {Array.from({ length: Math.floor(w / 12) }, (_, i) => (
+        <line key={i} x1={l + 6 + i * 12 + (i % 2) * 3} x2={l + 6 + i * 12 + (i % 2) * 3} y1={ft + front * 0.42} y2={ft + front * 0.7} stroke="#7d8698" strokeWidth="1" />
+      ))}
+      <rect x={l} y={ft} width={w} height={5} fill={team.main} />
+      <rect x={l} y={ft + 5} width={w} height={1.5} fill={team.dark} />
+      {Array.from({ length: merlons }, (_, i) => (
+        <rect key={i} x={l + i * 2 * mw} y={ft - 5} width={mw} height={7} rx="1" fill="#dde2ea" stroke="#4f5768" strokeWidth="1" />
+      ))}
+      <rect x={cx - 9 * k} y={pcy - 6.5 * k} width={18 * k} height={13 * k} rx={3 * k} fill={team.main} stroke={team.dark} strokeWidth="1" />
+      <path d={`M${cx - 6 * k} ${pcy + 3.5 * k} L${cx - 7 * k} ${pcy - 3 * k} L${cx - 3.5 * k} ${pcy} L${cx} ${pcy - 4.5 * k} L${cx + 3.5 * k} ${pcy} L${cx + 7 * k} ${pcy - 3 * k} L${cx + 6 * k} ${pcy + 3.5 * k} Z`}
+        fill="#ffd34d" stroke="#a8740f" strokeWidth="1" />
     </g>
   )
 }
@@ -351,9 +445,9 @@ function Token({ a, x, y, t, g }: { a: Actor; x: number; y: number; t: number; g
   if (a.kind === 'spell') {
     return (
       <g>
-        <circle cx={x} cy={y} r={r} fill={`url(#${g('spell')})`} stroke="#ffd35a" strokeWidth="2" />
+        <ellipse cx={x} cy={y} rx={r} ry={r * (TILE_H / TILE)} fill={`url(#${g('spell')})`} stroke="#ffd35a" strokeWidth="2" />
         {emoji && <text x={x} y={y} textAnchor="middle" dominantBaseline="central" fontSize={Math.min(26, r)}>{emoji}</text>}
-        {a.label && <Pill x={x} y={y + r + 10} text={a.label} tone="gold" />}
+        {a.label && <Pill x={x} y={y + r * (TILE_H / TILE) + 10} text={a.label} tone="gold" />}
       </g>
     )
   }
@@ -362,9 +456,9 @@ function Token({ a, x, y, t, g }: { a: Actor; x: number; y: number; t: number; g
     const w = (a.r ?? 2) * TILE * 2
     return (
       <g>
-        <rect x={x - w / 2} y={y - 9} width={w} height={18} rx="9" fill="#9b6a3a" stroke="#5c3a1f" strokeWidth="2" />
-        {[-0.3, 0, 0.3].map(k => <line key={k} x1={x + k * w} x2={x + k * w} y1={y - 8} y2={y + 8} stroke="#6e4524" strokeWidth="2" />)}
-        <circle cx={x + w / 2 - 6} cy={y} r={6} fill="#c79060" stroke="#5c3a1f" strokeWidth="1.5" transform={`rotate(${t * 720} ${x + w / 2 - 6} ${y})`} />
+        <rect x={x - w / 2} y={y - 7} width={w} height={14} rx="7" fill="#9b6a3a" stroke="#5c3a1f" strokeWidth="2" />
+        {[-0.3, 0, 0.3].map(k => <line key={k} x1={x + k * w} x2={x + k * w} y1={y - 6} y2={y + 6} stroke="#6e4524" strokeWidth="2" />)}
+        <circle cx={x + w / 2 - 6} cy={y} r={5.5} fill="#c79060" stroke="#5c3a1f" strokeWidth="1.5" transform={`rotate(${t * 720} ${x + w / 2 - 6} ${y})`} />
         {a.label && <Pill x={x} y={y + 20} text={a.label} tone="gold" />}
       </g>
     )

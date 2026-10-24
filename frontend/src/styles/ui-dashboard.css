@@ -186,41 +186,51 @@
 
 .tr-top { display: flex; align-items: center; justify-content: space-between; }
 .tr-badge { padding: 4px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 900; color: #2a1400; background: linear-gradient(135deg, #ffe08a, #ff9c3a); }
-.tr-title { font-size: 20px; font-weight: 900; }
-.tr-task { font-size: 13.5px; color: #c8d2f0; margin-top: -6px; }
-.tr-board { position: relative; border-radius: 16px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45); }
-.tr-board-live { border-color: rgba(255, 224, 138, 0.6); box-shadow: 0 0 0 2px rgba(255, 224, 138, 0.2), 0 12px 30px rgba(0, 0, 0, 0.45); }
-.tr-turn { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); padding: 6px 14px; border-radius: 999px; pointer-events: none;
-  font-size: 13px; font-weight: 900; color: #2a1400; background: linear-gradient(135deg, #ffe08a, #ffb347); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
-  animation: pdPulse 1.2s ease-in-out infinite; }
-.tr-elixir { display: flex; align-items: center; gap: 8px; }
-.tr-elixir-bar { flex: 1; display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; }
-.tr-elixir-bar i { height: 12px; border-radius: 4px; background: rgba(255, 255, 255, 0.08); }
-.tr-elixir-bar i.on { background: linear-gradient(180deg, #f07bff, #b23ad6); box-shadow: 0 0 8px rgba(214, 90, 255, 0.6); }
-.tr-elixir-bar i { position: relative; overflow: hidden; }
-.tr-elixir-bar i span { position: absolute; inset: 0 auto 0 0; background: linear-gradient(180deg, rgba(240, 123, 255, 0.55), rgba(178, 58, 214, 0.55)); }
-.tr-elixir b { font-size: 16px; font-weight: 900; color: #f0b8ff; width: 20px; text-align: right; }
+.tr-head { display: grid; gap: 2px; }
+.tr-title { font-size: 19px; font-weight: 900; line-height: 1.2; }
+.tr-task { font-size: 13px; color: #c8d2f0; line-height: 1.35; }
+/* Арена и рука - одна «доска», как экран боя в игре: поле сверху, деревянная панель с картами снизу */
+.tr-stage { border-radius: 18px; overflow: hidden; border: 2px solid #2b1a0c; box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5); background: #3d6b1f; }
+.tr-board { position: relative; display: flex; justify-content: center; background: radial-gradient(circle at 50% 40%, #5f8f2c, #31561a); }
+.tr-board .arena { border-radius: 0; max-height: calc(100vh - 330px); max-height: max(360px, calc(100dvh - 330px)); }
+.tr-board-live .arena { box-shadow: inset 0 0 0 2px rgba(255, 236, 150, 0.7); }
+.tr-turn { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 24px); padding: 7px 14px; border-radius: 999px;
+  pointer-events: none; text-align: center; font-size: 12.5px; font-weight: 900; color: #fff; line-height: 1.25;
+  background: rgba(14, 22, 48, 0.82); border: 1px solid rgba(255, 236, 150, 0.6); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); backdrop-filter: blur(4px); }
+.tr-turn-bad { border-color: #ff7a85; background: rgba(90, 14, 26, 0.88); }
+.tr-tray { display: grid; gap: 9px; padding: 12px 10px 10px; background: linear-gradient(180deg, #7b4f2b, #573619);
+  border-top: 3px solid #2b1a0c; box-shadow: inset 0 2px 0 rgba(255, 220, 170, 0.18); }
+.tr-elixir { display: flex; align-items: center; gap: 6px; }
+.tr-drop { flex-shrink: 0; width: 30px; height: 34px; display: grid; place-items: center; margin-top: -4px;
+  border-radius: 50% 50% 50% 50% / 62% 62% 38% 38%; background: radial-gradient(circle at 38% 32%, #ffb6ff, #d64ce8 55%, #9b1fb5);
+  border: 2px solid #3d1446; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35); }
+.tr-drop b { font-size: 15px; font-weight: 900; color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+.tr-elixir-bar { flex: 1; display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; padding: 3px; border-radius: 8px; background: rgba(0, 0, 0, 0.35); }
+.tr-elixir-bar i { position: relative; overflow: hidden; height: 13px; border-radius: 4px; background: rgba(255, 255, 255, 0.07); }
+.tr-elixir-bar i.on { background: linear-gradient(180deg, #ff9cff, #c33ad9); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45); }
+.tr-elixir-bar i span { position: absolute; inset: 0 auto 0 0; background: linear-gradient(180deg, rgba(255, 156, 255, 0.55), rgba(195, 58, 217, 0.55)); }
 .tr-hand { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.tr-card { position: relative; display: grid; justify-items: center; gap: 3px; padding: 6px 4px 6px; border-radius: 14px; cursor: pointer;
-  color: var(--text); font: inherit; background: linear-gradient(180deg, rgba(90, 141, 255, 0.3), rgba(20, 28, 60, 0.9));
-  border: 2px solid rgba(140, 170, 255, 0.35); transition: transform 0.15s, border-color 0.15s; }
-.tr-card:disabled { opacity: 0.45; cursor: default; }
-.tr-card-on { transform: translateY(-6px); border-color: #ffe08a; box-shadow: 0 8px 20px rgba(255, 224, 138, 0.35); }
-.tr-card-art { width: 100%; aspect-ratio: 5 / 6; display: grid; place-items: center; }
+.tr-card { position: relative; display: grid; justify-items: center; gap: 2px; padding: 4px 3px 12px; border-radius: 10px; cursor: pointer;
+  color: #fff; font: inherit; background: linear-gradient(180deg, #5b8ad6, #2b4c8c); border: 2px solid #182a52;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.25), 0 3px 0 #1b2f5c; transition: transform 0.15s, box-shadow 0.15s; }
+.tr-card:disabled { cursor: default; filter: saturate(0.55) brightness(0.8); }
+.tr-card-on { transform: translateY(-7px); border-color: #ffe08a; box-shadow: 0 0 0 2px #ffe08a, 0 10px 20px rgba(0, 0, 0, 0.45); }
+.tr-card-art { width: 100%; aspect-ratio: 1 / 1; display: grid; place-items: center; border-radius: 7px; background: rgba(10, 20, 50, 0.35); }
 .tr-card-art img { width: 100%; height: 100%; object-fit: contain; }
-.tr-card small { font-size: 10.5px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-.tr-cost { position: absolute; top: -6px; left: -6px; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
-  font-size: 12.5px; font-weight: 900; color: #fff; background: radial-gradient(circle at 35% 30%, #f7a8ff, #b23ad6 70%); border: 2px solid #fff; }
-.tr-hint { text-align: center; font-size: 13px; color: #ffe08a; font-weight: 700; }
+.tr-card small { font-size: 10px; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+.tr-cost { position: absolute; bottom: -9px; left: 50%; transform: translateX(-50%); width: 22px; height: 25px; display: grid; place-items: center;
+  border-radius: 50% 50% 50% 50% / 62% 62% 38% 38%; font-size: 12px; font-weight: 900; color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  background: radial-gradient(circle at 38% 32%, #ffb6ff, #d64ce8 55%, #9b1fb5); border: 2px solid #3d1446; }
 .tr-emoji { font-size: 30px; line-height: 1; filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.45)); }
 .tr-card-emoji { position: absolute; top: -6px; right: -6px; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
   font-size: 13px; background: #16204a; border: 1.5px solid #3d8bff; }
 .tr-speed { position: absolute; right: 8px; bottom: 8px; padding: 5px 10px; border-radius: 999px; font: inherit; font-size: 12px; font-weight: 900;
-  color: #e2e8f8; background: rgba(10, 14, 32, 0.75); border: 1px solid rgba(255, 255, 255, 0.25); cursor: pointer; backdrop-filter: blur(4px); }
+  color: #fff; background: rgba(14, 22, 48, 0.75); border: 1px solid rgba(255, 255, 255, 0.35); cursor: pointer; backdrop-filter: blur(4px); }
 .tr-speed-on { color: #2a1400; background: linear-gradient(135deg, #ffe08a, #ff9c3a); border-color: transparent; }
-.tr-place { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); padding: 11px 22px; border-radius: 999px; font: inherit;
-  font-size: 15px; font-weight: 900; color: #0d2a12; cursor: pointer; border: none; white-space: nowrap;
-  background: linear-gradient(135deg, #7dffb0, #35d08a); box-shadow: 0 8px 22px rgba(53, 208, 138, 0.5); animation: trPop 1.3s ease-in-out infinite; }
+.tr-place { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); padding: 11px 22px; border-radius: 999px; font: inherit;
+  font-size: 15px; font-weight: 900; color: #0d2a12; cursor: pointer; border: 2px solid #0f5a2a; white-space: nowrap;
+  background: linear-gradient(180deg, #8dffbd, #2fc77d); box-shadow: 0 8px 22px rgba(0, 0, 0, 0.4); animation: trPop 1.3s ease-in-out infinite; }
 @keyframes trPop { 0%, 100% { transform: translateX(-50%) scale(1); } 50% { transform: translateX(-50%) scale(1.06); } }
 .tr-facts { display: grid; gap: 6px; margin-top: 10px; }
 .tr-facts span { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; padding: 8px 10px; border-radius: 12px; font-size: 13.5px; font-weight: 800;
