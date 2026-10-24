@@ -176,7 +176,7 @@ export const PUZZLE_TEXT: Record<Lang, Record<string, PuzzleText>> = {
     mortar: { title: 'Мортира у моста', task: 'Соперник поставил Мортиру. Сломай её, не подставляя свои карты под её выстрелы.' },
     giant: { title: 'Гигант в правой линии', task: 'Гигант перешёл мост. Защитись с минимумом урона.' },
     xbow: { title: 'Икс-лук у реки', task: 'Соперник поставил Икс-лук у реки. Не дай ему разбить башню.' },
-    tornado: { title: 'Торнадо будит короля', task: 'Хог подходит к левой башне. Разбуди короля Торнадо — и отбейся без потерь.' },
+    tornado: { title: 'Торнадо будит короля', task: 'Хог подходит к левой башне. Разбуди короля Торнадо — пусть башни вдвоём собьют Хога.' },
     barrel_tornado: { title: 'Бочка: Торнадо к королю', task: 'Бочка летит на правую башню. Затяни гоблинов к королю Торнадо — разбуди его.' },
   },
   uk: {
@@ -187,7 +187,7 @@ export const PUZZLE_TEXT: Record<Lang, Record<string, PuzzleText>> = {
     mortar: { title: 'Мортира біля мосту', task: 'Суперник поставив Мортиру. Злам її, не підставляючи свої карти під її постріли.' },
     giant: { title: 'Гігант у правій лінії', task: 'Гігант перейшов міст. Захистися з мінімумом урону.' },
     xbow: { title: 'Ікс-лук біля річки', task: 'Суперник поставив Ікс-лук біля річки. Не дай йому розбити вежу.' },
-    tornado: { title: 'Торнадо будить короля', task: 'Хог підходить до лівої вежі. Розбуди короля Торнадо — і відбийся без втрат.' },
+    tornado: { title: 'Торнадо будить короля', task: 'Хог підходить до лівої вежі. Розбуди короля Торнадо — хай вежі вдвох зіб\'ють Хога.' },
     barrel_tornado: { title: 'Бочка: Торнадо до короля', task: 'Бочка летить на праву вежу. Затягни гоблінів до короля Торнадо — розбуди його.' },
   },
   en: {
@@ -198,7 +198,7 @@ export const PUZZLE_TEXT: Record<Lang, Record<string, PuzzleText>> = {
     mortar: { title: 'Mortar at the bridge', task: 'They placed a Mortar. Break it without putting your cards under its shots.' },
     giant: { title: 'Giant in the right lane', task: 'The Giant crossed the bridge. Defend with minimal damage.' },
     xbow: { title: 'X-Bow at the river', task: 'They placed an X-Bow at the river. Don\'t let it break your tower.' },
-    tornado: { title: 'Tornado wakes the King', task: 'The Hog nears your left tower. Wake your King with Tornado — and defend clean.' },
+    tornado: { title: 'Tornado wakes the King', task: 'The Hog nears your left tower. Wake your King with Tornado — let both towers take the Hog down.' },
     barrel_tornado: { title: 'Barrel: Tornado to the King', task: 'A barrel flies at your right tower. Pull the goblins to your King with Tornado — wake him up.' },
   },
 }
@@ -213,8 +213,8 @@ export const HINTS: Record<Lang, Record<string, string>> = {
     mortar: 'Мортира не стреляет ближе 3,5 клетки. Юнит, дошедший до неё вплотную, ломает её без потерь — она бьёт только по башне.',
     giant: 'Гигант бьёт только здания: пушка в центре уводит его, а Мини-ПЕККА разбирает его до башни.',
     xbow: 'Икс-лук бьёт ближайшего: здание у реки забирает огонь на себя и само достаёт до лука.',
-    tornado: 'Когда Хог подходит к башне, кидай Торнадо на вторую клетку перед королём, на две клетки к этой башне: Хога затянет в радиус короля, и король проснётся до конца боя.',
-    barrel_tornado: 'Торнадо между башней и королём — за полсекунды до приземления бочки: гоблинов затянет в радиус короля, король проснётся, а башня останется целой. Раньше нельзя — вихрь кончится до приземления.',
+    tornado: 'Когда Хог подходит к башне, кидай Торнадо на вторую клетку перед королём, на две клетки к этой башне: Хога затянет вплотную к королю, и король проснётся до конца боя.',
+    barrel_tornado: 'Торнадо между башней и королём — за полсекунды до приземления бочки: гоблинов затянет вплотную к королю, король проснётся, а башня останется целой. Раньше нельзя — вихрь кончится до приземления.',
   },
   uk: {
     hog: 'Будівля на шляху Хога, краще в центрі за 3–4 клітинки від річки: він зверне до неї й загине під вежами.',
@@ -224,8 +224,8 @@ export const HINTS: Record<Lang, Record<string, string>> = {
     mortar: 'Мортира не стріляє ближче 3,5 клітинки. Юніт, що дійшов до неї впритул, ламає її без втрат — вона б\'є лише по вежі.',
     giant: 'Гігант б\'є лише будівлі: гармата в центрі відводить його, а Міні-ПЕККА розбирає його до вежі.',
     xbow: 'Ікс-лук б\'є найближчого: будівля біля річки забирає вогонь на себе й сама дістає до лука.',
-    tornado: 'Коли Хог підходить до вежі, кидай Торнадо на другу клітинку перед королем, на дві клітинки до цієї вежі: Хога затягне в радіус короля, і король прокинеться до кінця бою.',
-    barrel_tornado: 'Торнадо між вежею й королем — за пів секунди до приземлення бочки: гоблінів затягне в радіус короля, король прокинеться, а вежа залишиться цілою. Раніше не можна — вихор скінчиться до приземлення.',
+    tornado: 'Коли Хог підходить до вежі, кидай Торнадо на другу клітинку перед королем, на дві клітинки до цієї вежі: Хога затягне впритул до короля, і король прокинеться до кінця бою.',
+    barrel_tornado: 'Торнадо між вежею й королем — за пів секунди до приземлення бочки: гоблінів затягне впритул до короля, король прокинеться, а вежа залишиться цілою. Раніше не можна — вихор скінчиться до приземлення.',
   },
   en: {
     hog: 'A building in the Hog\'s path, best in the middle 3–4 tiles from the river: it turns to it and dies under your towers.',
@@ -235,8 +235,8 @@ export const HINTS: Record<Lang, Record<string, string>> = {
     mortar: 'The Mortar can\'t shoot closer than 3.5 tiles. A unit that walks right up to it breaks it for free — it only hits your tower.',
     giant: 'The Giant only hits buildings: a middle Cannon pulls it, and Mini PEKKA takes it down before it reaches the tower.',
     xbow: 'The X-Bow hits the closest target: a building at the river takes its fire and reaches the X-Bow itself.',
-    tornado: 'As the Hog nears your tower, drop Tornado on the second tile in front of your King, two tiles toward that tower: the Hog gets pulled into King range and your King wakes for the rest of the match.',
-    barrel_tornado: 'Tornado between the tower and your King, half a second before the barrel lands: the goblins get pulled into King range, the King wakes up and the tower stays clean. Not earlier — the Tornado ends before they land.',
+    tornado: 'As the Hog nears your tower, drop Tornado on the second tile in front of your King, two tiles toward that tower: the Hog gets pulled right up to your King and he wakes for the rest of the match.',
+    barrel_tornado: 'Tornado between the tower and your King, half a second before the barrel lands: the goblins get pulled right up to your King, he wakes up and the tower stays clean. Not earlier — the Tornado ends before they land.',
   },
 }
 
@@ -256,7 +256,7 @@ export const RESULT_TEXT: Record<Lang, ResultText> = {
     weak: 'Заклинание сняло {n} из {hp} здоровья — мало, чтобы убить.',
     lost: 'Твоя карта не пережила бой.',
     kingAwake: 'Король проснулся', kingAsleep: 'Король спит',
-    kingHint: 'Король так и не проснулся: врага нужно затянуть в его радиус — Торнадо ближе к королю и в момент, когда враг уже у башни.',
+    kingHint: 'Король так и не проснулся: врага нужно затянуть вплотную к королевской башне — Торнадо ближе к королю и в момент, когда враг уже у башни.',
   },
   uk: {
     tower0: 'Вежа ціла', tower: 'Вежа −{n}', base: 'без захисту: −{n}',
@@ -267,7 +267,7 @@ export const RESULT_TEXT: Record<Lang, ResultText> = {
     weak: 'Закляття зняло {n} з {hp} здоров\'я — замало, щоб убити.',
     lost: 'Твоя карта не пережила бій.',
     kingAwake: 'Король прокинувся', kingAsleep: 'Король спить',
-    kingHint: 'Король так і не прокинувся: ворога треба затягнути в його радіус — Торнадо ближче до короля й у момент, коли ворог уже біля вежі.',
+    kingHint: 'Король так і не прокинувся: ворога треба затягнути впритул до королівської вежі — Торнадо ближче до короля й у момент, коли ворог уже біля вежі.',
   },
   en: {
     tower0: 'Tower untouched', tower: 'Tower −{n}', base: 'undefended: −{n}',
@@ -278,7 +278,7 @@ export const RESULT_TEXT: Record<Lang, ResultText> = {
     weak: 'The spell dealt {n} of {hp} HP — not enough to kill.',
     lost: 'Your card didn\'t survive the fight.',
     kingAwake: 'King is awake', kingAsleep: 'King is asleep',
-    kingHint: 'Your King never woke up: pull the attacker into King range — Tornado closer to the King, right when they reach your tower.',
+    kingHint: 'Your King never woke up: pull the attacker right up to your King Tower — Tornado closer to the King, right when they reach your tower.',
   },
 }
 

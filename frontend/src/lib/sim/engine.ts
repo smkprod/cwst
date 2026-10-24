@@ -435,8 +435,11 @@ export class Sim {
       if (this.t - v.t0 > sp.duration) { v.alive = false; continue }
       const hit = this.t >= v.nextHit - 1e-6
       if (hit) v.nextHit += sp.hitEvery
+      // Удары в начале и раз в hitEvery; урон делим так, чтобы за всё время вышло dps × duration
+      const pulse = (sp.dps * sp.duration) / (Math.floor(sp.duration / sp.hitEvery) + 1)
       const king = this.tower(v.team, 'K')
-      for (const e of this.entities) {
+      // Копия списка: кто родился от этого удара (големиты), им же не задевается
+      for (const e of this.entities.slice()) {
         if (!e.alive || e.team === v.team || e.tunnel) continue
         const dx = v.x - e.x, dy = v.y - e.y
         const d = Math.hypot(dx, dy)
@@ -446,7 +449,7 @@ export class Sim {
           if (d > 0.01) { e.x += (dx / d) * step; e.y += (dy / d) * step }
           if (king.alive && !king.active && kingEdge(e, king) <= KING_PULL) king.active = true
         }
-        if (hit && e.kind !== 'building') this.damage(e, sp.dps * sp.hitEvery, sp.crownPct, v.team, 'Tornado')
+        if (hit && e.kind !== 'building') this.damage(e, pulse, sp.crownPct, v.team, 'Tornado')
       }
     }
     this.vortices = this.vortices.filter(v => v.alive)

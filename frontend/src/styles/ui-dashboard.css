@@ -198,7 +198,8 @@
 .tr-stage-head b { font-size: 12.5px; font-weight: 900; letter-spacing: 0.4px; background: linear-gradient(90deg, #c9b6ff, #8fd8ff); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .tr-board { position: relative; display: flex; justify-content: center; background: radial-gradient(circle at 50% 45%, #2c3574, #121638); }
 .tr-board .arena { border-radius: 0; max-height: calc(100vh - 366px); max-height: max(360px, calc(100dvh - 366px)); }
-.tr-board-live .arena { box-shadow: inset 0 0 0 2px rgba(255, 236, 150, 0.7); }
+/* Рамка поверх поля: на самом svg тень перекрывает фон арены */
+.tr-board-live::after, .tr-board-demo::after { content: ''; position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 0 2px rgba(255, 236, 150, 0.75); }
 .tr-turn { position: absolute; top: 44px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 24px); padding: 7px 14px; border-radius: 999px;
   pointer-events: none; text-align: center; font-size: 12.5px; font-weight: 900; color: #fff; line-height: 1.25;
   background: rgba(14, 22, 48, 0.82); border: 1px solid rgba(255, 236, 150, 0.6); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); backdrop-filter: blur(4px); }
@@ -245,14 +246,14 @@
 .tr-fact-good { color: #9ff0c4; }
 .tr-fact-bad { color: #ffb0b7; }
 /* Показ решения: золотая рамка поля, подсвеченная карта, итог показа и кнопка «Теперь ты» */
-.tr-board-demo .arena { box-shadow: inset 0 0 0 2px rgba(255, 211, 77, 0.75); }
 .tr-turn-demo { border-color: rgba(255, 211, 77, 0.8); background: rgba(48, 32, 6, 0.85); }
 .tr-skip { position: absolute; left: 8px; bottom: 8px; padding: 5px 11px; border-radius: 999px; font: inherit; font-size: 12px; font-weight: 900;
   color: #fff; background: rgba(14, 22, 48, 0.75); border: 1px solid rgba(255, 255, 255, 0.35); cursor: pointer; backdrop-filter: blur(4px); }
+.tr-card-demo, .tr-card-demo:disabled { filter: none; }
 .tr-card-demo { transform: translateY(-7px); border-color: #ffd34d; box-shadow: 0 0 0 2px #ffd34d, 0 0 18px rgba(255, 211, 77, 0.6);
   animation: trGlow 1s ease-in-out infinite; }
 @keyframes trGlow { 0%, 100% { box-shadow: 0 0 0 2px #ffd34d, 0 0 10px rgba(255, 211, 77, 0.4); } 50% { box-shadow: 0 0 0 2px #ffd34d, 0 0 22px rgba(255, 211, 77, 0.8); } }
-.tr-demo-done { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(300px, calc(100% - 32px)); display: grid; gap: 10px;
+.tr-demo-done { position: absolute; inset: 0; margin: auto; height: fit-content; width: min(300px, calc(100% - 32px)); display: grid; gap: 10px;
   padding: 16px; border-radius: 18px; text-align: center; background: rgba(16, 20, 52, 0.92); border: 1.5px solid rgba(156, 107, 255, 0.7);
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 30px rgba(156, 107, 255, 0.25); backdrop-filter: blur(6px); }
 .tr-demo-done b { font-size: 14px; line-height: 1.35; color: #9ff0c4; }
