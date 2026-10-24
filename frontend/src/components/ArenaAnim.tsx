@@ -217,23 +217,32 @@ export function ArenaAnim({ scene, paused = false, at: frameAt, loop = true, onE
 export function ArenaDefs({ g }: { g: (n: string) => string }) {
   return (
     <defs>
-      {/* Трава в шахматку, как в игре: клетка - TILE × TILE_H */}
+      {/* Поле в шахматку, как в игре (клетка - TILE × TILE_H), но в цветах Clanify: ночной индиго */}
       <pattern id={g('tiles')} width={TILE * 2} height={TILE_H * 2} patternUnits="userSpaceOnUse">
-        <rect width={TILE * 2} height={TILE_H * 2} fill="#9cbf48" />
-        <rect width={TILE} height={TILE_H} fill="#a8c952" />
-        <rect x={TILE} y={TILE_H} width={TILE} height={TILE_H} fill="#a8c952" />
+        <rect width={TILE * 2} height={TILE_H * 2} fill="#262e66" />
+        <rect width={TILE} height={TILE_H} fill="#2c3574" />
+        <rect x={TILE} y={TILE_H} width={TILE} height={TILE_H} fill="#2c3574" />
       </pattern>
       <linearGradient id={g('river')} x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stopColor="#0d93c9" />
-        <stop offset="0.5" stopColor="#2cc2f0" />
-        <stop offset="1" stopColor="#0d93c9" />
+        <stop offset="0" stopColor="#1a8fd0" />
+        <stop offset="0.5" stopColor="#4fd2ff" />
+        <stop offset="1" stopColor="#1a8fd0" />
       </linearGradient>
-      <linearGradient id={g('shade')} x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stopColor="#000" stopOpacity="0.18" />
-        <stop offset="0.12" stopColor="#000" stopOpacity="0" />
-        <stop offset="0.88" stopColor="#000" stopOpacity="0" />
-        <stop offset="1" stopColor="#000" stopOpacity="0.18" />
+      {/* Дорожки - светящиеся полосы в фирменном переходе фиолетовый → синий → голубой */}
+      <linearGradient id={g('track')} x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stopColor="#9c6bff" />
+        <stop offset="0.5" stopColor="#5b8cff" />
+        <stop offset="1" stopColor="#3fc6f2" />
       </linearGradient>
+      <linearGradient id={g('trackH')} x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stopColor="#9c6bff" />
+        <stop offset="0.5" stopColor="#5b8cff" />
+        <stop offset="1" stopColor="#9c6bff" />
+      </linearGradient>
+      <radialGradient id={g('shade')} cx="0.5" cy="0.5" r="0.75">
+        <stop offset="0.55" stopColor="#0b0f2a" stopOpacity="0" />
+        <stop offset="1" stopColor="#0b0f2a" stopOpacity="0.55" />
+      </radialGradient>
       <radialGradient id={g('spell')}>
         <stop offset="0" stopColor="#ffe08a" stopOpacity="0.55" />
         <stop offset="1" stopColor="#ffb347" stopOpacity="0.12" />
@@ -255,13 +264,12 @@ export function ArenaDefs({ g }: { g: (n: string) => string }) {
 }
 
 const LANES = [3.5, 14.5]
-const PATH = '#d9b06b'
-const PATH_EDGE = '#b98c4f'
 
 /**
- * Поле как в игре: трава в шахматку, дорожки от мостов к башням и петля за ними,
- * площадки под башнями, река с земляными берегами и камнями, деревянные мосты,
- * заборчики в углах за королями.
+ * Тренировочная арена Clanify: раскладка как в игре (дорожки от мостов к башням и
+ * петля за королями, площадки под башнями, река в 2 ряда, мосты над линиями), а
+ * цвета - фирменные: индиго-поле, светящиеся дорожки, неоновая река, фиолетовые
+ * мосты и световые барьеры в углах за королями.
  */
 export function ArenaGround({ t, g }: { t: number; g: (n: string) => string }) {
   // Дорожка - полоса в 1 клетку: вдоль линий от петли за королём до моста и поперёк за королями
@@ -271,62 +279,65 @@ export function ArenaGround({ t, g }: { t: number; g: (n: string) => string }) {
     paths.push({ x: lx - 0.5, y: RIVER_BOTTOM, w: 1, h: 29 - RIVER_BOTTOM })
   }
   paths.push({ x: 3, y: 3, w: 12, h: 1 }, { x: 3, y: 28, w: 12, h: 1 })
-  const pads = TOWERS.map(tw => ({ x: tw.x - tw.size / 2, y: tw.y - tw.size / 2, s: tw.size }))
+  const pads = TOWERS.map(tw => ({ x: tw.x - tw.size / 2, y: tw.y - tw.size / 2, s: tw.size, enemy: tw.enemy }))
+  const pulse = 0.5 + 0.5 * Math.sin(t * 2)
   return (
     <>
       <rect width={W} height={H} fill={`url(#${g('tiles')})`} />
-      <rect width={W} height={H} fill={`url(#${g('shade')})`} />
 
       {paths.map((r, i) => (
-        <rect key={`p${i}`} x={px(r.x)} y={py(r.y)} width={r.w * TILE} height={r.h * TILE_H} fill={PATH} />
+        <rect key={`p${i}`} x={px(r.x)} y={py(r.y)} width={r.w * TILE} height={r.h * TILE_H} rx="2"
+          fill={`url(#${g(r.w > r.h ? 'trackH' : 'track')})`} opacity="0.32" />
       ))}
-      {/* Кромка дорожек - чуть темнее, чтобы читались на траве */}
-      {paths.map((r, i) => (
-        <rect key={`pe${i}`} x={px(r.x) + 0.5} y={py(r.y) + 0.5} width={r.w * TILE - 1} height={r.h * TILE_H - 1}
-          fill="none" stroke={PATH_EDGE} strokeOpacity="0.45" />
-      ))}
-      {/* Площадки под башнями - их клетки */}
+      {/* Осевая линия дорожки - тонкий световой шов */}
+      {paths.map((r, i) => r.w > r.h
+        ? <line key={`pl${i}`} x1={px(r.x) + 4} x2={px(r.x + r.w) - 4} y1={py(r.y + 0.5)} y2={py(r.y + 0.5)} stroke="#b9a6ff" strokeOpacity="0.45" strokeDasharray="6 6" />
+        : <line key={`pl${i}`} x1={px(r.x + 0.5)} x2={px(r.x + 0.5)} y1={py(r.y) + 4} y2={py(r.y + r.h) - 4} stroke="#b9a6ff" strokeOpacity="0.45" strokeDasharray="6 6" />)}
+      {/* Площадки под башнями - их клетки, обведены цветом стороны */}
       {pads.map((p, i) => (
-        <rect key={`pad${i}`} x={px(p.x)} y={py(p.y)} width={p.s * TILE} height={p.s * TILE_H} rx="3"
-          fill="#cfa564" stroke={PATH_EDGE} strokeOpacity="0.6" />
+        <rect key={`pad${i}`} x={px(p.x)} y={py(p.y)} width={p.s * TILE} height={p.s * TILE_H} rx="4"
+          fill="#1a2050" stroke={p.enemy ? '#ff5d7a' : '#5b8cff'} strokeOpacity="0.7" strokeWidth="1.4" />
       ))}
 
-      {/* Река: берега из земли, вода по центру, камни у кромки */}
-      <rect y={py(RIVER_TOP)} width={W} height={(RIVER_BOTTOM - RIVER_TOP) * TILE_H} fill="#a9825c" />
+      {/* Река: тёмные берега, неоновая вода, кристаллы у кромки */}
+      <rect y={py(RIVER_TOP)} width={W} height={(RIVER_BOTTOM - RIVER_TOP) * TILE_H} fill="#161b46" />
       <rect y={py(RIVER_TOP + 0.3)} width={W} height={(RIVER_BOTTOM - RIVER_TOP - 0.6) * TILE_H} fill={`url(#${g('river')})`} />
+      <rect y={py(RIVER_TOP + 0.3)} width={W} height={1.5} fill="#bdf0ff" opacity={0.5 + 0.3 * pulse} />
+      <rect y={py(RIVER_BOTTOM - 0.3) - 1.5} width={W} height={1.5} fill="#bdf0ff" opacity={0.5 + 0.3 * pulse} />
       {[0, 1].map(i => (
-        <path key={i} d={wave(py(RIVER_TOP + 0.75 + i * 0.5), t * 30 + i * 40)} fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="1.3" />
+        <path key={i} d={wave(py(RIVER_TOP + 0.75 + i * 0.5), t * 30 + i * 40)} fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="1.3" />
       ))}
-      {[1.2, 7.3, 10.4, 16.9].map((sx, i) => (
-        <ellipse key={`st${i}`} cx={px(sx)} cy={py(i % 2 ? RIVER_TOP + 0.22 : RIVER_BOTTOM - 0.22)} rx={9} ry={3.6}
-          fill="#8d97a3" stroke="#5e6670" strokeWidth="1" />
-      ))}
+      {[1.2, 7.3, 10.4, 16.9].map((sx, i) => {
+        const cx = px(sx), cy = py(i % 2 ? RIVER_TOP + 0.2 : RIVER_BOTTOM - 0.2)
+        return <path key={`st${i}`} d={`M${cx - 7} ${cy} L${cx - 2} ${cy - 4} L${cx + 6} ${cy - 2} L${cx + 7} ${cy + 2} L${cx} ${cy + 4} Z`}
+          fill="#3c4596" stroke="#7b8cff" strokeWidth="1" />
+      })}
 
-      {/* Мосты: доски вдоль хода, в 2 клетки шириной над каждой линией */}
+      {/* Мосты: фиолетовый металл с настилом, в 2 клетки шириной над каждой линией */}
       {LANES.map(lx => (
         <g key={lx}>
           <rect x={px(lx - 1)} y={py(RIVER_TOP - 0.45)} width={2 * TILE} height={(RIVER_BOTTOM - RIVER_TOP + 0.9) * TILE_H} rx="3"
-            fill="#cf8f6c" stroke="#7a4a32" strokeWidth="1.6" />
+            fill="#5a45c9" stroke="#2a1d73" strokeWidth="1.6" />
           {[-0.5, 0, 0.5].map(k => (
-            <line key={k} x1={px(lx + k)} x2={px(lx + k)} y1={py(RIVER_TOP - 0.4)} y2={py(RIVER_BOTTOM + 0.4)} stroke="#a8654a" strokeWidth="1.4" />
+            <line key={k} x1={px(lx + k)} x2={px(lx + k)} y1={py(RIVER_TOP - 0.4)} y2={py(RIVER_BOTTOM + 0.4)} stroke="#8f75ff" strokeWidth="1.4" />
           ))}
-          <rect x={px(lx - 1)} y={py(RIVER_TOP - 0.45)} width={2 * TILE} height={3} fill="#e3a684" />
+          <rect x={px(lx - 1)} y={py(RIVER_TOP - 0.45)} width={2 * TILE} height={3} fill="#b6a3ff" />
         </g>
       ))}
 
-      {/* Заборчики в углах за королями */}
-      {[0.35, 31.65].map(fy => [1.5, 12.5].map(fx => <Fence key={`${fx}-${fy}`} x={fx} y={fy} />))}
+      {/* Световые барьеры в углах за королями */}
+      {[0.35, 31.65].map(fy => [1.5, 12.5].map(fx => <Fence key={`${fx}-${fy}`} x={fx} y={fy} pulse={pulse} />))}
+      <rect width={W} height={H} fill={`url(#${g('shade')})`} pointerEvents="none" />
     </>
   )
 }
 
-function Fence({ x, y }: { x: number; y: number }) {
+function Fence({ x, y, pulse }: { x: number; y: number; pulse: number }) {
   const x0 = px(x), x1 = px(x + 4), cy = py(y)
   return (
-    <g opacity="0.9">
-      <rect x={x0} y={cy - 3} width={x1 - x0} height={2.2} rx="1" fill="#8a5a33" />
-      <rect x={x0} y={cy + 1} width={x1 - x0} height={2.2} rx="1" fill="#8a5a33" />
-      {[x0, (x0 + x1) / 2, x1 - 4].map(fx => <rect key={fx} x={fx} y={cy - 5} width={4} height={10} rx="1" fill="#6e4524" />)}
+    <g>
+      <rect x={x0} y={cy - 1.5} width={x1 - x0} height={3} rx="1.5" fill="#3fc6f2" opacity={0.35 + 0.35 * pulse} />
+      {[x0, (x0 + x1) / 2, x1 - 4].map(fx => <rect key={fx} x={fx} y={cy - 5} width={4} height={10} rx="1.5" fill="#2a3070" stroke="#7b8cff" strokeWidth="1" />)}
     </g>
   )
 }
@@ -378,6 +389,29 @@ export function FireballIcon({ size, angle = -90, g }: { size: number; angle?: n
       <path d="M-15 0 Q-8 -7 0 -6.5 A6.5 6.5 0 0 1 0 6.5 Q-8 7 -15 0 Z" fill="#ff8a1f" opacity="0.75" />
       <path d="M-10 0 Q-5 -4 0 -4 A4 4 0 0 1 0 4 Q-5 4 -10 0 Z" fill="#ffd34d" opacity="0.8" />
       <circle r="6" fill={`url(#${g('fire')})`} stroke="#b8360f" strokeWidth="0.8" />
+    </g>
+  )
+}
+
+/**
+ * Вихрь Торнадо на земле: круг действия (эллипс - поле видно под углом) и закрученные
+ * рукава, вращаются; k - сколько осталось от действия (0..1), гаснет к концу.
+ */
+export function TornadoSwirl({ rx, ry, t, k = 1 }: { rx: number; ry: number; t: number; k?: number }) {
+  const arms = [0, 1, 2, 3].map(i => {
+    const a0 = t * 7 + (i * Math.PI) / 2
+    const pts = Array.from({ length: 14 }, (_, j) => {
+      const f = j / 13
+      const a = a0 + f * 2.6
+      return `${(Math.cos(a) * rx * (1 - f * 0.85)).toFixed(1)},${(Math.sin(a) * ry * (1 - f * 0.85)).toFixed(1)}`
+    })
+    return `M${pts.join(' L')}`
+  })
+  return (
+    <g opacity={0.35 + 0.65 * k}>
+      <ellipse rx={rx} ry={ry} fill="rgba(63,198,242,0.10)" stroke="#9fe6ff" strokeWidth="1.5" strokeDasharray="6 5" />
+      {arms.map((d, i) => <path key={i} d={d} fill="none" stroke={i % 2 ? '#b9a6ff' : '#9fe6ff'} strokeWidth="2.2" strokeLinecap="round" opacity="0.8" />)}
+      <ellipse rx={rx * 0.16} ry={ry * 0.16} fill="#dff7ff" opacity="0.7" />
     </g>
   )
 }
@@ -542,6 +576,7 @@ function Token({ a, x, y, t, g, art }: { a: Actor; x: number; y: number; t: numb
       <g>
         <ellipse cx={x} cy={y} rx={r} ry={r * (TILE_H / TILE)} fill={`url(#${g('spell')})`} stroke="#ffd35a" strokeWidth="2" />
         {a.card === 'Fireball' && <g transform={`translate(${x} ${y})`}><FireballIcon size={Math.min(22, r)} g={g} /></g>}
+        {a.card === 'Tornado' && <g transform={`translate(${x} ${y})`}><TornadoSwirl rx={r} ry={r * (TILE_H / TILE)} t={t} /></g>}
         {a.label && <Pill x={x} y={y + r * (TILE_H / TILE) + 10} text={a.label} tone="gold" />}
       </g>
     )

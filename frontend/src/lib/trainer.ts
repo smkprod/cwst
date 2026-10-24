@@ -19,7 +19,7 @@ export type CardKind = 'troop' | 'building' | 'spell'
 
 export interface HandCard { card: string; cost: number; kind: CardKind }
 
-const SPELL_CARDS = new Set(['Fireball', 'The Log', 'Goblin Barrel'])
+const SPELL_CARDS = new Set(['Fireball', 'The Log', 'Goblin Barrel', 'Tornado'])
 
 export function cardInfo(card: string): HandCard {
   const kind: CardKind = SPELL_CARDS.has(card) ? 'spell' : UNITS[card]?.building ? 'building' : 'troop'
@@ -29,26 +29,26 @@ export function cardInfo(card: string): HandCard {
 export const CARD_NAMES: Record<Lang, Record<string, string>> = {
   ru: { 'Cannon': 'Пушка', 'Knight': 'Рыцарь', 'Skeletons': 'Скелеты', 'Fireball': 'Огн. шар', 'The Log': 'Бревно', 'Musketeer': 'Мушкетёр',
     'Mini P.E.K.K.A': 'Мини-ПЕККА', 'Golem': 'Голем', 'Golemite': 'Големит', 'Hog Rider': 'Хог', 'Mega Knight': 'Мега-рыцарь', 'Goblin Barrel': 'Бочка',
-    'Goblins': 'Гоблины', 'Balloon': 'Шар', 'Giant': 'Гигант', 'X-Bow': 'Икс-лук', 'Miner': 'Шахтёр' },
+    'Goblins': 'Гоблины', 'Balloon': 'Шар', 'Giant': 'Гигант', 'X-Bow': 'Икс-лук', 'Miner': 'Шахтёр', 'Tornado': 'Торнадо', 'Mortar': 'Мортира' },
   uk: { 'Cannon': 'Гармата', 'Knight': 'Лицар', 'Skeletons': 'Скелети', 'Fireball': 'Вогн. куля', 'The Log': 'Колода', 'Musketeer': 'Мушкетерка',
     'Mini P.E.K.K.A': 'Міні-ПЕККА', 'Golem': 'Голем', 'Golemite': 'Големіт', 'Hog Rider': 'Хог', 'Mega Knight': 'Мега-лицар', 'Goblin Barrel': 'Бочка',
-    'Goblins': 'Гобліни', 'Balloon': 'Куля', 'Giant': 'Гігант', 'X-Bow': 'Ікс-лук', 'Miner': 'Шахтар' },
+    'Goblins': 'Гобліни', 'Balloon': 'Куля', 'Giant': 'Гігант', 'X-Bow': 'Ікс-лук', 'Miner': 'Шахтар', 'Tornado': 'Торнадо', 'Mortar': 'Мортира' },
   en: { 'Cannon': 'Cannon', 'Knight': 'Knight', 'Skeletons': 'Skeletons', 'Fireball': 'Fireball', 'The Log': 'Log', 'Musketeer': 'Musketeer',
     'Mini P.E.K.K.A': 'Mini PEKKA', 'Golem': 'Golem', 'Golemite': 'Golemite', 'Hog Rider': 'Hog', 'Mega Knight': 'Mega Knight', 'Goblin Barrel': 'Barrel',
-    'Goblins': 'Goblins', 'Balloon': 'Balloon', 'Giant': 'Giant', 'X-Bow': 'X-Bow', 'Miner': 'Miner' },
+    'Goblins': 'Goblins', 'Balloon': 'Balloon', 'Giant': 'Giant', 'X-Bow': 'X-Bow', 'Miner': 'Miner', 'Tornado': 'Tornado', 'Mortar': 'Mortar' },
 }
-
-export interface Verdict { grade: 'perfect' | 'ok' | 'fail'; reason: string }
 
 export interface Puzzle {
   id: string
   tip: TipId
   /** Чем атакует соперник - для иконки и объяснений. */
   enemyCard: string
+  /** Карта на плитке задачи, если не карта соперника (задача про приём). */
+  icon?: string
   hand: string[]
   sc: Scenario
-  /** Своя оценка по месту вместо урона по башне (задача про эликсир). */
-  custom?: (card: string, x: number, y: number) => Verdict
+  /** Эталонный ход на три звезды - его показываем перед попыткой (проверен прогоном боя). */
+  solution: { card: string; x: number; y: number }
 }
 
 /** Куда встаёт карта: здание 2×2 - на угол клеток, войско - в центр клетки, заклинание - куда тапнули. */
@@ -76,41 +76,55 @@ const surfaced = (sim: Sim) => sim.entities.some(e => e.alive && e.team === 'ene
 export const PUZZLES: Puzzle[] = [
   {
     id: 'hog', tip: 'anti_hog', enemyCard: 'Hog Rider', hand: ['Cannon', 'Knight', 'Skeletons', 'Fireball'],
+    solution: { card: 'Cannon', x: 9, y: 22 },
     sc: { elixir: 6, enemy: [{ at: 0, card: 'Hog Rider', x: 3.5, y: 14 }], pause: reach('Hog Rider', 17.2), horizon: 14, limits: [100, 400] },
   },
   {
+    // Торнадо на вторую клетку перед королём со сдвигом к башне принцессы, когда Хог подходит к ней:
+    // Хога затягивает в радиус короля - король просыпается и вместе с принцессой сбивает его
+    id: 'tornado', tip: 'king_tornado', enemyCard: 'Hog Rider', icon: 'Tornado', hand: ['Tornado', 'Cannon', 'Skeletons', 'Fireball'],
+    solution: { card: 'Tornado', x: 7.5, y: 26 },
+    sc: { elixir: 6, enemy: [{ at: 0, card: 'Hog Rider', x: 3.5, y: 14 }], pause: reach('Hog Rider', 21.5), horizon: 14, limits: [350, 700], goal: 'king' },
+  },
+  {
     id: 'mk', tip: 'kite', enemyCard: 'Mega Knight', hand: ['Skeletons', 'Mini P.E.K.K.A', 'Musketeer', 'Fireball'],
+    solution: { card: 'Mini P.E.K.K.A', x: 3.5, y: 18.5 },
     sc: { elixir: 5, enemy: [{ at: 0, card: 'Mega Knight', x: 3.5, y: 13.5 }], pause: reach('Mega Knight', 17.6), horizon: 16, limits: [100, 600] },
   },
   {
-    id: 'barrel', tip: 'log_barrel', enemyCard: 'Goblin Barrel', hand: ['The Log', 'Fireball', 'Skeletons', 'Knight'],
-    sc: { elixir: 4, enemy: [{ at: 0, card: 'Goblin Barrel', x: 3.5, y: 23.4 }], pause: flown(0.86), horizon: 10, limits: [60, 130] },
+    // Хог с самого края моста обходит пушку в «4-3» (центр); пушка на клетку ближе к башне - «4-2» - его тянет
+    id: 'hog_edge', tip: 'anti_hog', enemyCard: 'Hog Rider', hand: ['Cannon', 'Knight', 'Skeletons', 'Fireball'],
+    solution: { card: 'Cannon', x: 7, y: 21 },
+    sc: { elixir: 6, enemy: [{ at: 0, card: 'Hog Rider', x: 0.5, y: 14 }], pause: reach('Hog Rider', 17.2), horizon: 14, limits: [100, 400] },
   },
   {
-    id: 'balloon', tip: 'anti_air', enemyCard: 'Balloon', hand: ['Musketeer', 'Cannon', 'Knight', 'Skeletons'],
-    sc: { elixir: 5, enemy: [{ at: 0, card: 'Balloon', x: 14.5, y: 13.5 }], pause: reach('Balloon', 18.5), horizon: 14, limits: [250, 450] },
+    // Шар с края обходит центральное здание; пушка правее центра у реки перехватывает его
+    id: 'balloon_edge', tip: 'anti_air', enemyCard: 'Balloon', hand: ['Cannon', 'Knight', 'Skeletons', 'Fireball'],
+    solution: { card: 'Cannon', x: 10, y: 21 },
+    sc: { elixir: 5, enemy: [{ at: 0, card: 'Balloon', x: 17.5, y: 13.5 }], pause: reach('Balloon', 18.5), horizon: 14, limits: [100, 450] },
   },
   {
     id: 'giant', tip: 'anti_tank', enemyCard: 'Giant', hand: ['Cannon', 'Mini P.E.K.K.A', 'Skeletons', 'Fireball'],
+    solution: { card: 'Cannon', x: 9, y: 22 },
     sc: { elixir: 7, enemy: [{ at: 0, card: 'Giant', x: 14.5, y: 13.5 }], pause: reach('Giant', 17.4), horizon: 18, limits: [100, 600] },
   },
   {
     id: 'xbow', tip: 'anti_siege', enemyCard: 'X-Bow', hand: ['Knight', 'Fireball', 'Skeletons', 'Cannon'],
+    solution: { card: 'Cannon', x: 14, y: 18 },
     sc: { elixir: 6, enemy: [{ at: 0, card: 'X-Bow', x: 14.5, y: 13 }], pause: 0.6, horizon: 16, limits: [150, 450] },
   },
   {
-    id: 'miner', tip: 'anti_miner', enemyCard: 'Miner', hand: ['Skeletons', 'Knight', 'The Log', 'Fireball'],
-    sc: { elixir: 4, enemy: [{ at: 0, card: 'Miner', x: 3.5, y: 23.3 }], pause: surfaced, horizon: 10, limits: [100, 150] },
+    // Мортира не стреляет ближе 3,5 клетки: юнит вплотную ломает её, а она бьёт только по башне
+    id: 'mortar', tip: 'anti_siege', enemyCard: 'Mortar', hand: ['Knight', 'Skeletons', 'Fireball', 'Cannon'],
+    solution: { card: 'Knight', x: 14.5, y: 17.5 },
+    sc: { elixir: 5, enemy: [{ at: 0, card: 'Mortar', x: 14.5, y: 12.5 }], pause: 0.6, horizon: 18, limits: [300, 600] },
   },
   {
-    id: 'elixir', tip: 'elixir', enemyCard: 'Golem', hand: ['Golem', 'Hog Rider', 'Musketeer', 'Skeletons'],
-    sc: { elixir: 10, enemy: [], pause: 0.3, horizon: 6, limits: [0, 0] },
-    custom: (card, _x, y) => {
-      if (card === 'Golem') return y >= 30 ? { grade: 'perfect', reason: 'elixir_perfect' } : y >= 26 ? { grade: 'ok', reason: 'elixir_golem_mid' } : { grade: 'fail', reason: 'elixir_golem_bridge' }
-      if (card === 'Hog Rider') return { grade: 'ok', reason: 'elixir_hog' }
-      if (card === 'Musketeer') return y >= 26 ? { grade: 'ok', reason: 'elixir_musk' } : { grade: 'fail', reason: 'elixir_musk_front' }
-      return { grade: 'fail', reason: 'elixir_skel' }
-    },
+    // Бочка в центр правой башни; Торнадо между башней и королём за полсекунды до приземления
+    // затягивает гоблинов в радиус короля: король просыпается, башня цела
+    id: 'barrel_tornado', tip: 'king_tornado', enemyCard: 'Goblin Barrel', hand: ['Tornado', 'The Log', 'Skeletons', 'Fireball'],
+    solution: { card: 'Tornado', x: 11.5, y: 26.5 },
+    sc: { elixir: 4, enemy: [{ at: 0, card: 'Goblin Barrel', x: 14.5, y: 25.5 }], pause: flown(0.86), horizon: 10, limits: [60, 130], goal: 'king' },
   },
 ]
 
@@ -157,99 +171,79 @@ export const PUZZLE_TEXT: Record<Lang, Record<string, PuzzleText>> = {
   ru: {
     hog: { title: 'Хог в левой линии', task: 'Хог перешёл мост. Отбейся так, чтобы башня не пострадала.' },
     mk: { title: 'Мега-рыцарь у моста', task: 'Мега-рыцарь перешёл мост и идёт на левую башню. Останови его.' },
-    barrel: { title: 'Гоблинская бочка', task: 'Бочка летит на левую башню. Сбей гоблинов при приземлении.' },
-    balloon: { title: 'Шар над рекой', task: 'Шар летит на правую башню. Встреть его, пока он не начал бить.' },
+    hog_edge: { title: 'Хог с края моста', task: 'Хог прыгает с самого края. Пушка в центре его не дотянет — найди клетку, которая дотянет.' },
+    balloon_edge: { title: 'Шар с края', task: 'Шар летит по самому краю. Перехвати его зданием, пока он не долетел до башни.' },
+    mortar: { title: 'Мортира у моста', task: 'Соперник поставил Мортиру. Сломай её, не подставляя свои карты под её выстрелы.' },
     giant: { title: 'Гигант в правой линии', task: 'Гигант перешёл мост. Защитись с минимумом урона.' },
     xbow: { title: 'Икс-лук у реки', task: 'Соперник поставил Икс-лук у реки. Не дай ему разбить башню.' },
-    miner: { title: 'Шахтёр у башни', task: 'Шахтёр вылез у левой башни. Убери его дешевле.' },
-    elixir: { title: '10 эликсира', task: 'У тебя 10 эликсира, соперник молчит. Начни атаку правильно.' },
+    tornado: { title: 'Торнадо будит короля', task: 'Хог подходит к левой башне. Разбуди короля Торнадо — пусть башни вдвоём собьют Хога.' },
+    barrel_tornado: { title: 'Бочка: Торнадо к королю', task: 'Бочка летит на правую башню. Затяни гоблинов к королю Торнадо — разбуди его.' },
   },
   uk: {
     hog: { title: 'Хог у лівій лінії', task: 'Хог перейшов міст. Відбийся так, щоб вежа не постраждала.' },
     mk: { title: 'Мега-лицар біля мосту', task: 'Мега-лицар перейшов міст і йде на ліву вежу. Зупини його.' },
-    barrel: { title: 'Гоблінська бочка', task: 'Бочка летить на ліву вежу. Збий гоблінів під час приземлення.' },
-    balloon: { title: 'Куля над річкою', task: 'Куля летить на праву вежу. Зустрінь її, поки вона не почала бити.' },
+    hog_edge: { title: 'Хог з краю мосту', task: 'Хог стрибає з самого краю. Гармата в центрі його не дотягне — знайди клітинку, яка дотягне.' },
+    balloon_edge: { title: 'Куля з краю', task: 'Куля летить самим краєм. Перехопи її будівлею, поки вона не долетіла до вежі.' },
+    mortar: { title: 'Мортира біля мосту', task: 'Суперник поставив Мортиру. Злам її, не підставляючи свої карти під її постріли.' },
     giant: { title: 'Гігант у правій лінії', task: 'Гігант перейшов міст. Захистися з мінімумом урону.' },
     xbow: { title: 'Ікс-лук біля річки', task: 'Суперник поставив Ікс-лук біля річки. Не дай йому розбити вежу.' },
-    miner: { title: 'Шахтар біля вежі', task: 'Шахтар виліз біля лівої вежі. Прибери його дешевше.' },
-    elixir: { title: '10 еліксиру', task: 'У тебе 10 еліксиру, суперник мовчить. Почни атаку правильно.' },
+    tornado: { title: 'Торнадо будить короля', task: 'Хог підходить до лівої вежі. Розбуди короля Торнадо — хай вежі вдвох зіб\'ють Хога.' },
+    barrel_tornado: { title: 'Бочка: Торнадо до короля', task: 'Бочка летить на праву вежу. Затягни гоблінів до короля Торнадо — розбуди його.' },
   },
   en: {
     hog: { title: 'Hog in the left lane', task: 'The Hog crossed the bridge. Defend without tower damage.' },
     mk: { title: 'Mega Knight at the bridge', task: 'The Mega Knight crossed the bridge toward your left tower. Stop it.' },
-    barrel: { title: 'Goblin Barrel', task: 'A barrel flies at your left tower. Kill the goblins as they land.' },
-    balloon: { title: 'Balloon over the river', task: 'A Balloon heads for your right tower. Meet it before it hits.' },
+    hog_edge: { title: 'Hog from the edge', task: 'The Hog jumps from the very edge. A middle Cannon won\'t pull it — find the tile that will.' },
+    balloon_edge: { title: 'Balloon on the edge', task: 'The Balloon flies along the edge. Catch it with a building before it reaches your tower.' },
+    mortar: { title: 'Mortar at the bridge', task: 'They placed a Mortar. Break it without putting your cards under its shots.' },
     giant: { title: 'Giant in the right lane', task: 'The Giant crossed the bridge. Defend with minimal damage.' },
     xbow: { title: 'X-Bow at the river', task: 'They placed an X-Bow at the river. Don\'t let it break your tower.' },
-    miner: { title: 'Miner at the tower', task: 'A Miner popped up at your left tower. Deal with it cheaply.' },
-    elixir: { title: '10 elixir', task: 'You have 10 elixir and the field is quiet. Start your push right.' },
+    tornado: { title: 'Tornado wakes the King', task: 'The Hog nears your left tower. Wake your King with Tornado — let both towers take the Hog down.' },
+    barrel_tornado: { title: 'Barrel: Tornado to the King', task: 'A barrel flies at your right tower. Pull the goblins to your King with Tornado — wake him up.' },
   },
 }
 
-/** Задача про эликсир оценивается по месту, а не по урону. */
-export const REASONS: Record<Lang, Record<string, string>> = {
-  ru: {
-    elixir_perfect: 'Голем из тыла — пока дойдёт, наберёшь эликсир на поддержку.',
-    elixir_golem_mid: 'Неплохо, но из самого тыла дольше идти — успеешь собрать пуш.',
-    elixir_golem_bridge: 'Голем у моста — соперник разменяет его до подхода поддержки.',
-    elixir_hog: 'Тоже вариант: эликсир не сгорает. Но тяж из тыла даёт пуш сильнее.',
-    elixir_musk: 'Сработало: эликсир не сгорает, а мушкетёр поддержит следующую атаку.',
-    elixir_musk_front: 'Мушкетёр у моста — лёгкая цель для заклинания.',
-    elixir_skel: '1 эликсир не решает: 9 так и копятся и сгорают.',
-  },
-  uk: {
-    elixir_perfect: 'Голем із тилу — поки дійде, набереш еліксир на підтримку.',
-    elixir_golem_mid: 'Непогано, але із самого тилу довше йти — встигнеш зібрати пуш.',
-    elixir_golem_bridge: 'Голем біля мосту — суперник розміняє його до підходу підтримки.',
-    elixir_hog: 'Теж варіант: еліксир не згорає. Але важкий із тилу дає пуш сильніший.',
-    elixir_musk: 'Спрацювало: еліксир не згорає, а мушкетерка підтримає наступну атаку.',
-    elixir_musk_front: 'Мушкетерка біля мосту — легка ціль для закляття.',
-    elixir_skel: '1 еліксир не вирішує: 9 так і накопичуються й згорають.',
-  },
-  en: {
-    elixir_perfect: 'Golem from the back — by the time it walks you have elixir for support.',
-    elixir_golem_mid: 'Not bad, but from the very back it walks longer — more time to build the push.',
-    elixir_golem_bridge: 'Golem at the bridge — they\'ll trade it before support arrives.',
-    elixir_hog: 'Also an option: no elixir wasted. But a tank from the back makes a stronger push.',
-    elixir_musk: 'It worked: no elixir wasted, and the Musketeer supports your next push.',
-    elixir_musk_front: 'A Musketeer at the bridge is an easy spell target.',
-    elixir_skel: '1 elixir doesn\'t solve it: 9 more keep piling up and burning.',
-  },
-}
 /** Приём, который решает задачу, - показываем после боя. */
 export const HINTS: Record<Lang, Record<string, string>> = {
   ru: {
     hog: 'Здание на пути Хога, лучше в центре в 3–4 клетках от реки: он свернёт к нему и погибнет под башнями.',
     mk: 'Мега-рыцаря держит Мини-ПЕККА: 720 урона за удар. Дешёвых юнитов он давит прыжком.',
-    barrel: 'Бревно на свою башню: оно катится вперёд и сносит гоблинов при приземлении.',
-    balloon: 'Шар летит и бьёт только здания: нужен тот, кто бьёт по воздуху, или здание в центре — увести его под обе башни.',
+    hog_edge: 'Хог с края обходит пушку в «4-3» (центр, 4 клетки от реки). Сдвинь её на клетку к башне — «4-2»: так она в обзоре Хога с любого края.',
+    balloon_edge: 'Шар с края не видит здание в центре. Ставь пушку ближе к его краю и к реке — правее центра на 3–4 клетки ниже реки.',
+    mortar: 'Мортира не стреляет ближе 3,5 клетки. Юнит, дошедший до неё вплотную, ломает её без потерь — она бьёт только по башне.',
     giant: 'Гигант бьёт только здания: пушка в центре уводит его, а Мини-ПЕККА разбирает его до башни.',
     xbow: 'Икс-лук бьёт ближайшего: здание у реки забирает огонь на себя и само достаёт до лука.',
-    miner: 'Шахтёр бьёт ближайшего: юнит вплотную забирает удары на себя, башня добивает.',
+    tornado: 'Когда Хог подходит к башне, кидай Торнадо на вторую клетку перед королём, на две клетки к этой башне: Хога затянет вплотную к королю, и король проснётся до конца боя.',
+    barrel_tornado: 'Торнадо между башней и королём — за полсекунды до приземления бочки: гоблинов затянет вплотную к королю, король проснётся, а башня останется целой. Раньше нельзя — вихрь кончится до приземления.',
   },
   uk: {
     hog: 'Будівля на шляху Хога, краще в центрі за 3–4 клітинки від річки: він зверне до неї й загине під вежами.',
     mk: 'Мега-лицаря тримає Міні-ПЕККА: 720 урону за удар. Дешевих юнітів він тисне стрибком.',
-    barrel: 'Колода на свою вежу: вона котиться вперед і зносить гоблінів під час приземлення.',
-    balloon: 'Куля летить і б\'є лише будівлі: потрібен той, хто б\'є по повітрю, або будівля в центрі — відвести її під обидві вежі.',
+    hog_edge: 'Хог з краю обходить гармату в «4-3» (центр, 4 клітинки від річки). Зсунь її на клітинку до вежі — «4-2»: так вона в огляді Хога з будь-якого краю.',
+    balloon_edge: 'Куля з краю не бачить будівлю в центрі. Став гармату ближче до її краю й до річки — правіше від центру на 3–4 клітинки нижче річки.',
+    mortar: 'Мортира не стріляє ближче 3,5 клітинки. Юніт, що дійшов до неї впритул, ламає її без втрат — вона б\'є лише по вежі.',
     giant: 'Гігант б\'є лише будівлі: гармата в центрі відводить його, а Міні-ПЕККА розбирає його до вежі.',
     xbow: 'Ікс-лук б\'є найближчого: будівля біля річки забирає вогонь на себе й сама дістає до лука.',
-    miner: 'Шахтар б\'є найближчого: юніт впритул забирає удари на себе, вежа добиває.',
+    tornado: 'Коли Хог підходить до вежі, кидай Торнадо на другу клітинку перед королем, на дві клітинки до цієї вежі: Хога затягне впритул до короля, і король прокинеться до кінця бою.',
+    barrel_tornado: 'Торнадо між вежею й королем — за пів секунди до приземлення бочки: гоблінів затягне впритул до короля, король прокинеться, а вежа залишиться цілою. Раніше не можна — вихор скінчиться до приземлення.',
   },
   en: {
     hog: 'A building in the Hog\'s path, best in the middle 3–4 tiles from the river: it turns to it and dies under your towers.',
     mk: 'Mini PEKKA holds the Mega Knight: 720 damage per hit. Cheap units get crushed by its jump.',
-    barrel: 'Log onto your own tower: it rolls forward and sweeps the goblins as they land.',
-    balloon: 'The Balloon flies and only hits buildings: use something that hits air, or a middle building to pull it under both towers.',
+    hog_edge: 'An edge Hog bypasses a 4-3 Cannon (middle, 4 tiles from the river). Shift it one tile toward the tower — 4-2: then it\'s in the Hog\'s sight from any edge.',
+    balloon_edge: 'An edge Balloon doesn\'t see a middle building. Place the Cannon closer to its side and to the river — right of center, 3–4 tiles below the river.',
+    mortar: 'The Mortar can\'t shoot closer than 3.5 tiles. A unit that walks right up to it breaks it for free — it only hits your tower.',
     giant: 'The Giant only hits buildings: a middle Cannon pulls it, and Mini PEKKA takes it down before it reaches the tower.',
     xbow: 'The X-Bow hits the closest target: a building at the river takes its fire and reaches the X-Bow itself.',
-    miner: 'The Miner hits the closest target: a unit right next to it takes the hits, the tower finishes it.',
+    tornado: 'As the Hog nears your tower, drop Tornado on the second tile in front of your King, two tiles toward that tower: the Hog gets pulled right up to your King and he wakes for the rest of the match.',
+    barrel_tornado: 'Tornado between the tower and your King, half a second before the barrel lands: the goblins get pulled right up to your King, he wakes up and the tower stays clean. Not earlier — the Tornado ends before they land.',
   },
 }
 
 export interface ResultText {
   tower0: string; tower: string; base: string; stopped: string; notStopped: string; trade: string
   onlyBuildings: string; noAir: string; missed: string; weak: string; lost: string
+  kingAwake: string; kingAsleep: string; kingHint: string
 }
 
 export const RESULT_TEXT: Record<Lang, ResultText> = {
@@ -261,6 +255,8 @@ export const RESULT_TEXT: Record<Lang, ResultText> = {
     missed: 'Заклинание прилетело, когда там ещё никого не было.',
     weak: 'Заклинание сняло {n} из {hp} здоровья — мало, чтобы убить.',
     lost: 'Твоя карта не пережила бой.',
+    kingAwake: 'Король проснулся', kingAsleep: 'Король спит',
+    kingHint: 'Король так и не проснулся: врага нужно затянуть вплотную к королевской башне — Торнадо ближе к королю и в момент, когда враг уже у башни.',
   },
   uk: {
     tower0: 'Вежа ціла', tower: 'Вежа −{n}', base: 'без захисту: −{n}',
@@ -270,6 +266,8 @@ export const RESULT_TEXT: Record<Lang, ResultText> = {
     missed: 'Закляття прилетіло, коли там ще нікого не було.',
     weak: 'Закляття зняло {n} з {hp} здоров\'я — замало, щоб убити.',
     lost: 'Твоя карта не пережила бій.',
+    kingAwake: 'Король прокинувся', kingAsleep: 'Король спить',
+    kingHint: 'Король так і не прокинувся: ворога треба затягнути впритул до королівської вежі — Торнадо ближче до короля й у момент, коли ворог уже біля вежі.',
   },
   en: {
     tower0: 'Tower untouched', tower: 'Tower −{n}', base: 'undefended: −{n}',
@@ -279,6 +277,8 @@ export const RESULT_TEXT: Record<Lang, ResultText> = {
     missed: 'The spell landed before anyone was there.',
     weak: 'The spell dealt {n} of {hp} HP — not enough to kill.',
     lost: 'Your card didn\'t survive the fight.',
+    kingAwake: 'King is awake', kingAsleep: 'King is asleep',
+    kingHint: 'Your King never woke up: pull the attacker right up to your King Tower — Tornado closer to the King, right when they reach your tower.',
   },
 }
 
@@ -290,6 +290,7 @@ export function explain(p: Puzzle, o: Outcome, card: string, dealt: number, lang
   const fs = UNITS[foe]
   const kind = cardInfo(card).kind
   const lines: string[] = []
+  if (p.sc.goal === 'king' && !o.kingAwake) lines.push(tx.kingHint)
   if (o.grade !== 'perfect') {
     if (kind === 'spell' && dealt === 0) lines.push(tx.missed)
     else if (kind === 'spell' && !o.killed && fs) lines.push(tx.weak.replace('{n}', String(Math.round(dealt))).replace('{hp}', String(fs.hp)))

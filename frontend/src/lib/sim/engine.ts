@@ -12,7 +12,8 @@ import { COST, SPELLS, TOWER_STATS, UNITS, type UnitStats } from './stats'
  * король просыпается от урона или падения принцессы; здания разрушаются со временем;
  * Мега-рыцарь бьёт при появлении и прыгает; Шахтёр едет туннелем; Шар роняет бомбу;
  * Голем распадается на големитов; бревно катится и отбрасывает; огненный шар летит
- * от короля и бьёт по площади; бочка летит и выпускает гоблинов.
+ * от короля и бьёт по площади; бочка летит и выпускает гоблинов; торнадо тянет
+ * чужие войска к центру и будит своего короля, если затянуть врага в его радиус.
  *
  * Чего нет: точного обхода препятствий, разворотов, анимаций замаха из игры - юниты
  * считаются кругами со своим радиусом.
@@ -53,7 +54,7 @@ export interface Entity {
   tunnel?: { fx: number; fy: number; t: number; dur: number }
 }
 
-export type ProjectileKind = 'arrow' | 'bullet' | 'cannonball' | 'bolt' | 'fireball' | 'barrel' | 'king'
+export type ProjectileKind = 'arrow' | 'bullet' | 'cannonball' | 'bolt' | 'shell' | 'fireball' | 'barrel' | 'king'
 
 export interface Projectile {
   id: number
@@ -80,6 +81,9 @@ export interface Projectile {
 
 export interface Roller { id: number; team: Team; x: number; y: number; y0: number; dir: number; left: number; hit: Set<number>; alive: boolean }
 
+/** Торнадо на поле: тянет чужие войска к центру и бьёт раз в hitEvery секунд. */
+export interface Vortex { id: number; team: Team; x: number; y: number; t0: number; nextHit: number; alive: boolean }
+
 export interface Effect { id: number; kind: 'boom' | 'dmg' | 'poof' | 'slam' | 'heal'; x: number; y: number; t: number; dur: number; text?: string; r?: number; team?: Team }
 
 export interface Pending { at: number; team: Team; card: string; x: number; y: number }
@@ -102,6 +106,7 @@ export class Sim {
   entities: Entity[] = []
   projectiles: Projectile[] = []
   rollers: Roller[] = []
+  vortices: Vortex[] = []
   effects: Effect[] = []
   pending: Pending[] = []
   elixir: Record<Team, number>
@@ -154,6 +159,10 @@ export class Sim {
     if (card === 'The Log') {
       // Бревно катится вперёд - к сопернику
       this.rollers.push({ id: this.nextId++, team, x, y, y0: y, dir: team === 'me' ? -1 : 1, left: SPELLS['The Log'].range, hit: new Set(), alive: true })
+      return true
+    }
+    if (card === 'Tornado') {
+      this.vortices.push({ id: this.nextId++, team, x, y, t0: this.t, nextHit: this.t, alive: true })
       return true
     }
     if (card === 'Goblin Barrel') {
@@ -230,6 +239,7 @@ export class Sim {
     this.separate()
     this.moveProjectiles(dt)
     this.moveRollers(dt)
+    this.moveVortices(dt)
     this.effects = this.effects.filter(f => this.t - f.t < f.dur)
     this.bombs = this.bombs.filter(b => b.at > this.t)
     this.entities = this.entities.filter(e => e.alive || e.kind === 'tower')
@@ -273,7 +283,7 @@ export class Sim {
     const t = e.target
     if (!t) return
 
-    const inRange = this.gap(e, t) <= e.s.range
+    const inRange = this.gap(e, t) <= e.s.range && this.gap(e, t) >= (e.s.minRange ?? 0)
     if (!inRange) {
       e.locked = false
       if (e.kind !== 'troop') return
@@ -301,7 +311,7 @@ export class Sim {
     e.sinceHit = 0
     if (e.s.projSpeed > 0 || e.kind === 'tower') {
       const kind: ProjectileKind = e.kind === 'tower' ? (e.slot === 'K' ? 'king' : 'arrow')
-        : e.card === 'Cannon' ? 'cannonball' : e.card === 'X-Bow' ? 'bolt' : 'bullet'
+        : e.card === 'Cannon' ? 'cannonball' : e.card === 'X-Bow' ? 'bolt' : e.card === 'Mortar' ? 'shell' : 'bullet'
       this.projectiles.push(this.proj(e.team, e.card, kind, e.x, e.y - (e.kind === 'tower' ? 0.6 : 0), t, t.x, t.y,
         e.s.projSpeed || 10, e.s.dmg, e.s.splash, e.s.crownPct, e.s.air, e.s.ground))
     } else if (e.s.splash > 0) {
@@ -318,6 +328,8 @@ export class Sim {
     for (const c of this.entities) {
       if (!this.canHit(e, c)) continue
       const d = this.gap(e, c)
+      // Мортира не видит тех, кто подошёл вплотную: слепая зона ближе minRange
+      if (d < (e.s.minRange ?? 0)) continue
       if (d <= sight && d < bestD) { best = c; bestD = d }
     }
     if (best || e.kind !== 'troop') return best
@@ -411,6 +423,38 @@ export class Sim {
     this.projectiles = this.projectiles.filter(p => p.alive)
   }
 
+  /**
+   * Торнадо: войска соперника в круге тянет к центру со скоростью из игры, урон -
+   * раз в полсекунды (войскам полный, башням со своим процентом, зданиям никакого).
+   * Король своей стороны просыпается, если затянутый враг попал в его радиус.
+   */
+  private moveVortices(dt: number) {
+    const sp = SPELLS.Tornado
+    for (const v of this.vortices) {
+      if (!v.alive) continue
+      if (this.t - v.t0 > sp.duration) { v.alive = false; continue }
+      const hit = this.t >= v.nextHit - 1e-6
+      if (hit) v.nextHit += sp.hitEvery
+      // Удары в начале и раз в hitEvery; урон делим так, чтобы за всё время вышло dps × duration
+      const pulse = (sp.dps * sp.duration) / (Math.floor(sp.duration / sp.hitEvery) + 1)
+      const king = this.tower(v.team, 'K')
+      // Копия списка: кто родился от этого удара (големиты), им же не задевается
+      for (const e of this.entities.slice()) {
+        if (!e.alive || e.team === v.team || e.tunnel) continue
+        const dx = v.x - e.x, dy = v.y - e.y
+        const d = Math.hypot(dx, dy)
+        if (d - e.s.radius > sp.radius) continue
+        if (e.kind === 'troop') {
+          const step = Math.min(d, sp.pull * dt)
+          if (d > 0.01) { e.x += (dx / d) * step; e.y += (dy / d) * step }
+          if (king.alive && !king.active && kingEdge(e, king) <= KING_PULL) king.active = true
+        }
+        if (hit && e.kind !== 'building') this.damage(e, pulse, sp.crownPct, v.team, 'Tornado')
+      }
+    }
+    this.vortices = this.vortices.filter(v => v.alive)
+  }
+
   private moveRollers(dt: number) {
     const sp = SPELLS['The Log']
     for (const r of this.rollers) {
@@ -498,7 +542,7 @@ export class Sim {
 /** Можно ли поставить карту сюда: войска и здания - на свою половину и не в башню; заклинания - куда угодно. */
 export function canDeploy(team: Team, card: string, x: number, y: number): boolean {
   if (x < 0 || x > 18 || y < 0 || y > 32) return false
-  if (card === 'Fireball' || card === 'The Log' || card === 'Goblin Barrel') return true
+  if (card === 'Fireball' || card === 'The Log' || card === 'Goblin Barrel' || card === 'Tornado') return true
   if (card === 'Miner') return sideOf(y) !== 'river' && !onTower(x, y)
   const side = sideOf(y)
   if (side !== team) return false
@@ -517,3 +561,20 @@ function onTower(x: number, y: number): boolean {
 }
 
 export const TOWER_SIZE: Record<TowerSlot, number> = { L: 3, R: 3, K: 4 }
+
+/**
+ * Король просыпается от Торнадо, если врага затянуло вплотную к королевской башне:
+ * не дальше стольких клеток от края её клеток (до края самого юнита). Подобрано так,
+ * что срабатывают описанные игроками постановки (Хог - Торнадо на 2-ю клетку перед
+ * королём со сдвигом на 2 к башне; бочка - Торнадо между башней и королём), а
+ * вихрь, уводящий врага от короля, - нет.
+ */
+const KING_PULL = 1.0
+
+/** Расстояние от юнита до края клеток королевской башни (0 - касается). */
+function kingEdge(e: Entity, king: Entity): number {
+  const half = TOWER_SIZE.K / 2
+  const dx = Math.max(0, Math.abs(e.x - king.x) - half)
+  const dy = Math.max(0, Math.abs(e.y - king.y) - half)
+  return Math.max(0, Math.hypot(dx, dy) - e.s.radius)
+}

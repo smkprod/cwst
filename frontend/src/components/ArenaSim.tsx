@@ -3,8 +3,8 @@ import { DT, TOWER_SIZE, type Entity, type Projectile, type Sim } from '../lib/s
 import { SPELLS, UNITS } from '../lib/sim/stats'
 import { useCardArt } from '../lib/cardArt'
 import {
-  ArenaDefs, ArenaGround, BarrelIcon, BombIcon, Burst, FireballIcon, H, Medallion, Pill, TILE, TILE_H, TowerArt, UnitArt, VIEW_TOP, W,
-  artFor, keeperArt, px, py, towerTop,
+  ArenaDefs, ArenaGround, BarrelIcon, BombIcon, Burst, FireballIcon, H, Medallion, Pill, TILE, TILE_H, TornadoSwirl, TowerArt, UnitArt,
+  VIEW_TOP, W, artFor, keeperArt, px, py, towerTop,
 } from './ArenaAnim'
 
 /**
@@ -20,10 +20,13 @@ export interface SimGhost { card: string; x: number; y: number; ok: boolean }
 /** Подписи тренировочного лагеря, как в игре: соперник-тренер, его клан, «Ты» на своей половине. */
 export interface Camp { name: string; clan: string; you: string }
 
+/** Что летит по дуге: заклинания от короля и снаряд Мортиры. */
+const LOBS = new Set(['fireball', 'barrel', 'shell'])
+
 const ME = '#3d8bff'
 const FOE = '#ef4454'
 
-export function ArenaSim({ sim, running, speed = 1, onTick, onTap, ghost, zone, names, camp }: {
+export function ArenaSim({ sim, running, speed = 1, onTick, onTap, ghost, ghostLabel, zone, names, camp }: {
   sim: Sim
   running: boolean
   speed?: number
@@ -34,6 +37,8 @@ export function ArenaSim({ sim, running, speed = 1, onTick, onTap, ghost, zone, 
   onTick?: (sim: Sim) => boolean
   onTap?: (x: number, y: number) => void
   ghost?: SimGhost | null
+  /** Подпись над «призраком» - на показе решения: «Сюда - Пушка». */
+  ghostLabel?: string
   /** Подсветить, куда нельзя: войска - только своя половина, Шахтёр - везде, кроме реки. */
   zone?: 'troop' | 'spell' | 'miner' | null
 }) {
@@ -125,14 +130,20 @@ export function ArenaSim({ sim, running, speed = 1, onTick, onTap, ghost, zone, 
       ))}
 
       {sim.bombs.map(b => <Bomb key={b.id} b={b} now={sim.t} clock={clock} />)}
+      {sim.vortices.map(v => (
+        <g key={v.id} transform={`translate(${px(v.x)} ${py(v.y)})`}>
+          <TornadoSwirl rx={SPELLS.Tornado.radius * TILE} ry={SPELLS.Tornado.radius * TILE_H} t={clock}
+            k={1 - (sim.t - v.t0) / SPELLS.Tornado.duration} />
+        </g>
+      ))}
 
       {towers.map(t => <TowerSim key={t.id} e={t} now={sim.t} g={g} />)}
 
       {ground.map(unit)}
       {sim.rollers.map(r => <Log key={r.id} x={px(r.x)} y={py(r.y)} clock={clock} fade={0.4 + Math.abs(r.y0 - r.y) / 0.6} />)}
-      {sim.projectiles.filter(p => p.kind !== 'fireball' && p.kind !== 'barrel').map(p => <Shot key={p.id} p={p} />)}
+      {sim.projectiles.filter(p => !LOBS.has(p.kind)).map(p => <Shot key={p.id} p={p} />)}
       {air.map(unit)}
-      {sim.projectiles.filter(p => p.kind === 'fireball' || p.kind === 'barrel').map(p => <Lob key={p.id} p={p} clock={clock} g={g} />)}
+      {sim.projectiles.filter(p => LOBS.has(p.kind)).map(p => <Lob key={p.id} p={p} clock={clock} g={g} />)}
 
       {sim.effects.map(f => {
         const k = Math.min(1, (sim.t - f.t) / f.dur)
@@ -170,6 +181,7 @@ export function ArenaSim({ sim, running, speed = 1, onTick, onTap, ghost, zone, 
       })}
 
       {ghost && <GhostMark ghost={ghost} clock={clock} g={g} art={artFor(art, ghost.card)} />}
+      {ghost && ghostLabel && <Pill x={Math.min(W - 60, Math.max(60, px(ghost.x)))} y={py(ghost.y) - 30} text={ghostLabel} tone="gold" />}
 
       {camp && <CampHud camp={camp} sim={sim} g={g} />}
     </svg>
@@ -360,12 +372,12 @@ function Shot({ p }: { p: Projectile }) {
   )
 }
 
-/** Огненный шар и бочка летят по дуге: высота - от доли пройденного пути, тень - на земле. */
+/** Огненный шар, бочка и снаряд Мортиры летят по дуге: высота - от доли пройденного пути, тень - на земле. */
 function Lob({ p, clock, g }: { p: Projectile; clock: number; g: (n: string) => string }) {
   const all = Math.hypot(p.tx - p.sx, p.ty - p.sy) || 1
   const k = Math.min(1, 1 - Math.hypot(p.tx - p.x, p.ty - p.y) / all)
   const x = px(p.x), y = py(p.y)
-  const h = Math.sin(Math.PI * k) * (p.kind === 'barrel' ? 70 : 50)
+  const h = Math.sin(Math.PI * k) * (p.kind === 'fireball' ? 50 : 70)
   const d = dir(p)
   const fire = p.kind === 'fireball'
   const angle = (Math.atan2(d.y, d.x) * 180) / Math.PI
@@ -374,11 +386,13 @@ function Lob({ p, clock, g }: { p: Projectile; clock: number; g: (n: string) => 
       <ellipse cx={x} cy={y} rx={9 - h / 14} ry={3.5 - h / 40} fill="rgba(0,0,0,0.35)" />
       {fire && <circle cx={x} cy={y - h} r={13} fill="rgba(255,140,40,0.3)" />}
       <g transform={`translate(${x} ${y - h})`}>
-        {fire ? <FireballIcon size={14} angle={angle} g={g} /> : <g transform={`rotate(${clock * 400})`}><BarrelIcon size={22} /></g>}
+        {fire ? <FireballIcon size={14} angle={angle} g={g} />
+          : p.kind === 'shell' ? <circle r={5} fill="#2b2f3a" stroke="#0c0d10" strokeWidth="1.4" />
+          : <g transform={`rotate(${clock * 400})`}><BarrelIcon size={22} /></g>}
       </g>
       {/* Куда упадёт - чтобы видеть угрозу заранее */}
-      <ellipse cx={px(p.tx)} cy={py(p.ty)} rx={(fire ? SPELLS.Fireball.radius : SPELLS['Goblin Barrel'].radius) * TILE}
-        ry={(fire ? SPELLS.Fireball.radius : SPELLS['Goblin Barrel'].radius) * TILE_H} fill="none"
+      <ellipse cx={px(p.tx)} cy={py(p.ty)} rx={(fire ? SPELLS.Fireball.radius : p.kind === 'shell' ? p.splash : SPELLS['Goblin Barrel'].radius) * TILE}
+        ry={(fire ? SPELLS.Fireball.radius : p.kind === 'shell' ? p.splash : SPELLS['Goblin Barrel'].radius) * TILE_H} fill="none"
         stroke={p.team === 'me' ? 'rgba(127,181,255,0.6)' : 'rgba(255,122,133,0.7)'} strokeWidth="1.5" strokeDasharray="4 4" />
     </g>
   )
@@ -425,6 +439,14 @@ function GhostMark({ ghost, clock, g, art }: { ghost: SimGhost; clock: number; g
       <g opacity={pulse} pointerEvents="none">
         <ellipse cx={x} cy={y} rx={SPELLS.Fireball.radius * TILE} ry={SPELLS.Fireball.radius * TILE_H} fill="rgba(255,140,40,0.18)" stroke={stroke} strokeWidth="2" strokeDasharray="5 4" />
         <g transform={`translate(${x} ${y})`}><FireballIcon size={16} g={g} /></g>
+      </g>
+    )
+  }
+  if (ghost.card === 'Tornado') {
+    return (
+      <g pointerEvents="none" transform={`translate(${x} ${y})`} opacity={0.55 + 0.35 * pulse}>
+        <TornadoSwirl rx={SPELLS.Tornado.radius * TILE} ry={SPELLS.Tornado.radius * TILE_H} t={clock} />
+        {bad && <ellipse rx={SPELLS.Tornado.radius * TILE} ry={SPELLS.Tornado.radius * TILE_H} fill="none" stroke={stroke} strokeWidth="2" />}
       </g>
     )
   }
