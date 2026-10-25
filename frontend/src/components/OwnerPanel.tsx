@@ -89,7 +89,7 @@ export function OwnerPanel({ me }: { me: ServiceIdentity }) {
     ...(can('Broadcast') ? [{ key: 'broadcast', icon: 'megaphone', tone: 'orange', label: 'Рассылка', hint: 'Текст и скрины всем' } as Item] : []),
     ...(can('Broadcast') ? [{ key: 'channel', icon: 'send', tone: 'blue', label: 'Канал', hint: 'Автопосты, новости CR, черновики' } as Item] : []),
     ...(can('Sponsors') ? [{ key: 'plus', icon: 'gem', tone: 'violet', label: 'Плюс', hint: 'Цены, продажи, трекер' } as Item] : []),
-    ...(can('Sponsors') ? [{ key: 'sponsors', icon: 'star', tone: 'gold', label: 'Спонсоры', hint: 'Выдача и оплаты' } as Item] : []),
+    ...(can('Sponsors') ? [{ key: 'sponsors', icon: 'star', tone: 'gold', label: 'Клан Про', hint: 'Выдача и оплаты' } as Item] : []),
     ...(can('AppSettings') ? [{ key: 'settings', icon: 'gear', tone: 'gray', label: 'Вкладки', hint: 'Меню и челлендж' } as Item] : []),
     ...(can('AppSettings') ? [{ key: 'campaigns', icon: 'trendUp', tone: 'green', label: 'Кампании', hint: 'Реклама и ссылки' } as Item] : []),
     ...(can('Maintenance') ? [{ key: 'top', icon: 'globe', tone: 'blue', label: 'Топ', hint: 'Снимок и мета' } as Item] : []),
@@ -428,7 +428,7 @@ function EngagementBlock() {
 
 const FUNNEL_PRODUCTS: { key: 'plus' | 'sponsor'; label: string }[] = [
   { key: 'plus', label: 'Плюс' },
-  { key: 'sponsor', label: 'Спонсорство' },
+  { key: 'sponsor', label: 'Клан Про' },
 ]
 
 const FUNNEL_PLACES: Record<string, string> = {
@@ -508,7 +508,7 @@ function FunnelBlock() {
           <p className="muted small" style={{ margin: '12px 0 4px' }}>Где увидели, людей за 30 дней</p>
           {data.places.map(p => (
             <Row key={`${p.product}:${p.place}`}
-              label={`${p.product === 'plus' ? 'Плюс' : 'Спонсорство'} · ${FUNNEL_PLACES[p.place] ?? p.place}`} value={p.users30} />
+              label={`${p.product === 'plus' ? 'Плюс' : 'Клан Про'} · ${FUNNEL_PLACES[p.place] ?? p.place}`} value={p.users30} />
           ))}
         </>
       )}
@@ -1228,7 +1228,7 @@ const ALL_TABS: { key: AppTab; icon: IconName; label: string }[] = [
   { key: 'more', icon: 'gear', label: 'Ещё' },
   { key: 'challenge', icon: 'ticket', label: 'Челлендж' },
   { key: 'duel', icon: 'swords', label: 'Дуэли' },
-  { key: 'plus', icon: 'gem', label: 'Плюс — витрина Плюса и спонсорства' },
+  { key: 'plus', icon: 'gem', label: 'Плюс — витрина Плюса и Клан Про' },
 ]
 
 /**
@@ -2068,7 +2068,7 @@ function FindPlayerSection() {
               </span>
               {found.dmBlocked && <span className="muted small ow-meta-i ow-warn"><Icon name="alert" size={13} />Бот не может писать ему в личку</span>}
               {found.plusUntil && <span className="small ow-meta-i"><Icon name="gem" size={13} className="ow-violet" />Плюс до {fmt(found.plusUntil)}</span>}
-              {found.sponsorUntil && <span className="small ow-meta-i"><Icon name="star" size={13} className="ow-gold" />Спонсор до {fmt(found.sponsorUntil)}</span>}
+              {found.sponsorUntil && <span className="small ow-meta-i"><Icon name="star" size={13} className="ow-gold" />Клан Про до {fmt(found.sponsorUntil)}</span>}
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <button className="btn" onClick={write}><Icon name="send" size={16} />Написать</button>
                 <button className="btn btn-ghost" onClick={async () => {

@@ -44,14 +44,15 @@ public class SponsorController(
         try
         {
             var link = await bot.CreateInvoiceLink(
-                title: "★ Спонсорство Clanify",
-                description: $"{offer.Days} дней: звезда у имени, свои фоны, фон и оформление клана, достижения картинкой.",
+                title: "👑 Клан Про · Clanify",
+                description: $"{offer.Days} дн. для всего клана: тренажёр всем соклановцам, Разведка+, Штаб клана, " +
+                             "2 недели Плюса в подарок своим, весь Плюс себе, фон и оформление клана. Разовый пропуск, без автопродления.",
                 // Строка, а не тег: тег не уникален, и по нему выдача ушла бы в чужую
                 // старую строку того же игрока из другого клана.
                 payload: SponsorSales.Payload(me.Id, offer.Days, offer.Stars),
                 currency: SponsorSales.Currency,
                 // Для звёзд Telegram требует ровно одну позицию и пустой токен провайдера
-                prices: [new LabeledPrice($"Спонсорство на {offer.Days} дн.", offer.Stars)],
+                prices: [new LabeledPrice($"Клан Про на {offer.Days} дн.", offer.Stars)],
                 providerToken: "",
                 cancellationToken: ct);
             await PurchaseFunnel.MarkAsync(funnel, userId, FunnelEvent.Products.Sponsor, FunnelEvent.Steps.Buy, "invoice", ct);
