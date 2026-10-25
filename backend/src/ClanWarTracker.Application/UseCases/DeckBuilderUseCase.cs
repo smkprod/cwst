@@ -39,8 +39,9 @@ public partial class DeckBuilderUseCase(
 
     /// <param name="BaseIconUrl">Обычный арт карты - запасной, если арт эволюции не открылся.</param>
     /// <param name="HeroIconUrl">Арт Героя карты - для тренажёра; null - Героя у карты нет.</param>
+    /// <param name="EvoIconUrl">Арт эволюции карты - для тренажёра; null - эволюции нет.</param>
     public record CardDto(int CardId, string Name, string IconUrl, string BaseIconUrl, bool Evo, int Elixir, string Rarity,
-        int Level, int MaxLevel, bool Owned, bool EvoOwned, string? HeroIconUrl = null);
+        int Level, int MaxLevel, bool Owned, bool EvoOwned, string? HeroIconUrl = null, string? EvoIconUrl = null);
 
     /// <param name="Key">Ключ колоды в мете - по нему же отмечен выбор аналитика.</param>
     /// <param name="Owned">Сколько из восьми карт у игрока есть.</param>
@@ -232,7 +233,7 @@ public partial class DeckBuilderUseCase(
             (evo ? c?.EvoIconUrl : null) ?? c?.IconUrl ?? "",
             c?.IconUrl ?? "",
             evo, c?.ElixirCost ?? 0, c?.Rarity ?? "",
-            own?.Level ?? 0, own?.MaxLevel ?? 0, own is not null, own is { EvolutionLevel: > 0 }, c?.HeroIconUrl);
+            own?.Level ?? 0, own?.MaxLevel ?? 0, own is not null, own is { EvolutionLevel: > 0 }, c?.HeroIconUrl, c?.EvoIconUrl);
     }
 
     /* ---------------- Выбор аналитика ---------------- */

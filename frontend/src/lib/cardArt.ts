@@ -9,10 +9,11 @@ let cache: Promise<Record<string, string>> | null = null
 
 function load(): Promise<Record<string, string>> {
   cache ??= api.builderCards()
-    // Герой лежит под именем «Hero …» - как карта в тренажёре
+    // Герой и эволюция лежат под именами «Hero …» и «Evo …» - как карты в тренажёре
     .then(cards => Object.fromEntries(cards.flatMap(c => [
       [c.name, c.baseIconUrl || c.iconUrl] as [string, string],
       ...(c.heroIconUrl ? [[`Hero ${c.name}`, c.heroIconUrl] as [string, string]] : []),
+      ...(c.evoIconUrl ? [[`Evo ${c.name}`, c.evoIconUrl] as [string, string]] : []),
     ])))
     .catch(() => { cache = null; return {} })
   return cache

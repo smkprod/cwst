@@ -1,5 +1,6 @@
 import { COST, SPELLS, TOWER_STATS, UNITS, type UnitStats } from './stats'
 import { HEROES, LEVEL_STEP, TURRET } from './heroes'
+import { EVO_ARCHERS, EVO_BATS, EVO_ICE, EVO_KNIGHT_REDUCTION, EVO_MK, EVO_PEKKA, EVO_SKELETONS_MAX, EVO_TESLA, EVO_VALK } from './evos'
 
 /**
  * Движок боя для тренажёра: свой маленький Clash Royale на характеристиках из игры
@@ -16,7 +17,9 @@ import { HEROES, LEVEL_STEP, TURRET } from './heroes'
  * от короля и бьёт по площади; бочка летит и выпускает гоблинов; торнадо тянет
  * чужие войска к центру и будит своего короля, если затянуть врага в его радиус.
  * Герои: способность за эликсир по кнопке - насмешка со щитом, бросок в другую
- * линию, турель, блины Мини-ПЕККА (цифры и источники - в heroes.ts).
+ * линию, турель, блины Мини-ПЕККА (цифры и источники - в heroes.ts). Эволюции:
+ * свойство карты без кнопки - щит Рыцаря на ходу, копии Скелетов, вихрь Валькирии,
+ * апперкот Мега-рыцаря и другие (evos.ts).
  *
  * Чего нет: точного обхода препятствий, разворотов, анимаций замаха из игры - юниты
  * считаются кругами со своим радиусом.
@@ -106,7 +109,11 @@ export interface Projectile {
 export interface Roller { id: number; team: Team; x: number; y: number; y0: number; dir: number; left: number; hit: Set<number>; alive: boolean }
 
 /** Торнадо на поле: тянет чужие войска к центру и бьёт раз в hitEvery секунд. */
-export interface Vortex { id: number; team: Team; x: number; y: number; t0: number; nextHit: number; alive: boolean }
+export interface Vortex {
+  id: number; team: Team; x: number; y: number; t0: number; nextHit: number; alive: boolean
+  /** Вихрь эво-Валькирии: свой радиус и время, один удар, идёт вместе с ней. Нет - заклинание Торнадо. */
+  evo?: { radius: number; duration: number; dmg: number; pull: number; follow: Entity }
+}
 
 export interface Effect { id: number; kind: 'boom' | 'dmg' | 'poof' | 'slam' | 'heal' | 'frost'; x: number; y: number; t: number; dur: number; text?: string; r?: number; team?: Team }
 
@@ -253,6 +260,35 @@ export class Sim {
     }
   }
 
+  /** Свойство эволюции, срабатывающее после удара. */
+  private evoAfterHit(e: Entity, t: Entity) {
+    if (e.card === 'Evo Skeletons') {
+      // Каждый удар - копия рядом, пока скелетов этой стороны меньше восьми
+      const n = this.entities.filter(c => c.alive && c.team === e.team && c.card === 'Evo Skeletons').length
+      if (n < EVO_SKELETONS_MAX) {
+        const a = this.nextId * 1.7
+        this.entities.push(this.make(e.team, e.card, e.s, 'troop', e.x + Math.cos(a) * 0.5, e.y + Math.sin(a) * 0.5, 0.3))
+      }
+    } else if (e.card === 'Evo Valkyrie') {
+      this.vortices.push({ id: this.nextId++, team: e.team, x: e.x, y: e.y, t0: this.t, nextHit: this.t, alive: true,
+        evo: { ...EVO_VALK, follow: e } })
+    } else if (e.card === 'Evo Mega Knight' && t.alive && t.kind === 'troop' && !t.thrown) {
+      // Апперкот: цель отлетает от Мега-рыцаря - лёгкие на 4 клетки, тяжёлые на 2,5
+      const dx = t.x - e.x, dy = t.y - e.y
+      const len = Math.hypot(dx, dy) || 1
+      const dist = t.s.mass >= EVO_MK.heavyMass ? EVO_MK.knockHeavy : EVO_MK.knock
+      const tx = Math.min(17.5, Math.max(0.5, t.x + (dx / len) * dist))
+      const ty = Math.min(31.5, Math.max(0.5, t.y + (dy / len) * dist))
+      t.thrown = { fx: t.x, fy: t.y, tx, ty, t: 0, dur: 0.35, dmg: 0, stun: 0 }
+      t.target = null
+      t.locked = false
+    } else if (e.card === 'Evo Bats') {
+      // Вампиры: лечатся после удара и могут подняться до двойного здоровья
+      e.hp = Math.min(e.s.hp * EVO_BATS.overheal, e.hp + EVO_BATS.heal)
+      e.maxHp = Math.max(e.maxHp, e.hp)
+    }
+  }
+
   /** Поставить карту сейчас. Возвращает false, если сюда её не поставить. */
   play(team: Team, card: string, x: number, y: number): boolean {
     if (!canDeploy(team, card, x, y)) return false
@@ -273,11 +309,17 @@ export class Sim {
       this.vortices.push({ id: this.nextId++, team, x, y, t0: this.t, nextHit: this.t, alive: true })
       return true
     }
-    if (card === 'Goblin Barrel') {
+    if (card === 'Goblin Barrel' || card === 'Evo Goblin Barrel') {
       const sp = SPELLS['Goblin Barrel']
       const p = this.proj(team, card, 'barrel', king.x, king.y, null, x, y, sp.speed, 0, 0, 0, false, false)
       p.spawn = { card: 'Goblins', count: sp.count, deploy: sp.spawnDeploy }
       this.projectiles.push(p)
+      // Эво-Бочка: вторая бочка-приманка в другую линию, гоблины в ней слабее
+      if (card === 'Evo Goblin Barrel') {
+        const d = this.proj(team, card, 'barrel', king.x, king.y, null, 18 - x, y, sp.speed, 0, 0, 0, false, false)
+        d.spawn = { card: 'Decoy Goblins', count: sp.count, deploy: sp.spawnDeploy }
+        this.projectiles.push(d)
+      }
       return true
     }
     const s = UNITS[card]
@@ -348,6 +390,10 @@ export class Sim {
       if (e.deploy > 0) {
         e.deploy -= dt
         if (e.deploy <= 0 && e.s.dashDmg) this.areaDamage(e, e.x, e.y, e.s.dashRadius ?? 2, e.s.dashDmg, true, false, 'slam')
+        // Эво-Тесла: выходя из земли, бьёт импульсом и оглушает всех вокруг
+        if (e.deploy <= 0 && e.card === 'Evo Tesla') {
+          this.areaDamage(null, e.x, e.y, EVO_TESLA.radius, EVO_TESLA.dmg, true, true, 'slam', e.team, 0, e.card, EVO_TESLA.stun)
+        }
         continue
       }
       if (e.ability) this.heroTick(e, dt)
@@ -441,17 +487,22 @@ export class Sim {
     if (e.s.projSpeed > 0 || e.kind === 'tower') {
       const kind: ProjectileKind = e.kind === 'tower' ? (e.slot === 'K' ? 'king' : 'arrow')
         : e.card === 'Cannon' ? 'cannonball' : e.card === 'X-Bow' ? 'bolt' : e.card === 'Mortar' ? 'shell' : e.s.freeze ? 'ice' : 'bullet'
+      // Эво-Лучницы: по дальним целям - усиленный выстрел
+      const power = e.card === 'Evo Archers' && this.gap(e, t) > EVO_ARCHERS.from ? EVO_ARCHERS.mult : 1
       const shot = this.proj(e.team, e.card, kind, e.x, e.y - (e.kind === 'tower' ? 0.6 : 0), t, t.x, t.y,
-        e.s.projSpeed || 10, e.s.dmg * e.mult, e.s.splash, e.s.crownPct, e.s.air, e.s.ground)
+        e.s.projSpeed || 10, e.s.dmg * e.mult * power, e.s.splash, e.s.crownPct, e.s.air, e.s.ground)
       if (e.s.freeze) shot.freeze = e.s.freeze
+      // Эво-Мортира: из каждого снаряда выходит гоблин
+      if (e.card === 'Evo Mortar') shot.spawn = { card: 'Goblins', count: 1, deploy: 0.6 }
       this.projectiles.push(shot)
       // Ледяной дух бросается сам - после броска его нет
       if (e.s.kamikaze) this.kill(e)
     } else if (e.s.splash > 0) {
       this.areaDamage(e, t.x, t.y, e.s.splash, e.s.dmg * e.mult, e.s.ground, e.s.air)
     } else {
-      this.damage(t, e.s.dmg * e.mult, e.s.crownPct, e.team, e.card)
+      this.damage(t, e.s.dmg * e.mult, e.s.crownPct, e.team, e.card, e)
     }
+    this.evoAfterHit(e, t)
     // Блины Героя Мини-ПЕККА: каждый удар добавляет к полосе
     const h = HEROES[e.card]
     if (h?.kind === 'boost' && e.ability === 'ready') e.pancake = Math.min(3, e.pancake + h.perHit)
@@ -548,10 +599,19 @@ export class Sim {
           const g = this.make(p.team, p.spawn.card, s, 'troop', p.x + Math.cos(a) * 0.9, p.y + Math.sin(a) * 0.6, p.spawn.deploy)
           this.entities.push(g)
         }
-        continue
+        // Бочка только выпускает гоблинов; снаряд эво-Мортиры ещё и бьёт
+        if (p.dmg <= 0) continue
       }
       if (p.splash > 0) {
         this.areaDamage(null, p.x, p.y, p.splash, p.dmg, p.ground, p.air, p.kind === 'fireball' ? 'boom' : p.freeze ? 'frost' : undefined, p.team, p.crownPct, p.card, p.freeze)
+        // Эво-Ледяной дух: второй ледяной удар, когда спадает первая заморозка
+        if (p.card === 'Evo Ice Spirit') {
+          const { x, y, team, splash, dmg, ground, air, crownPct, card } = p
+          for (let i = 1; i < EVO_ICE.blasts; i++) {
+            this.later.push({ at: this.t + EVO_ICE.freeze * i, team, fn: () =>
+              this.areaDamage(null, x, y, splash, dmg, ground, air, 'frost', team, crownPct, card, EVO_ICE.freeze) })
+          }
+        }
       } else if (p.target && p.target.alive) {
         this.damage(p.target, p.dmg, p.crownPct, p.team, p.card)
       }
@@ -568,24 +628,29 @@ export class Sim {
     const sp = SPELLS.Tornado
     for (const v of this.vortices) {
       if (!v.alive) continue
-      if (this.t - v.t0 > sp.duration) { v.alive = false; continue }
+      const ev = v.evo
+      if (ev?.follow.alive) { v.x = ev.follow.x; v.y = ev.follow.y }
+      if (this.t - v.t0 > (ev?.duration ?? sp.duration)) { v.alive = false; continue }
       const hit = this.t >= v.nextHit - 1e-6
-      if (hit) v.nextHit += sp.hitEvery
+      if (hit) v.nextHit = ev ? Infinity : v.nextHit + sp.hitEvery
       // Удары в начале и раз в hitEvery; урон делим так, чтобы за всё время вышло dps × duration
-      const pulse = (sp.dps * sp.duration) / (Math.floor(sp.duration / sp.hitEvery) + 1)
+      const pulse = ev ? ev.dmg : (sp.dps * sp.duration) / (Math.floor(sp.duration / sp.hitEvery) + 1)
+      const radius = ev?.radius ?? sp.radius
+      const pull = ev?.pull ?? sp.pull
       const king = this.tower(v.team, 'K')
       // Копия списка: кто родился от этого удара (големиты), им же не задевается
       for (const e of this.entities.slice()) {
-        if (!e.alive || e.team === v.team || e.tunnel) continue
+        if (!e.alive || e.team === v.team || e.tunnel || e.thrown) continue
         const dx = v.x - e.x, dy = v.y - e.y
         const d = Math.hypot(dx, dy)
-        if (d - e.s.radius > sp.radius) continue
+        if (d - e.s.radius > radius) continue
         if (e.kind === 'troop') {
-          const step = Math.min(d, sp.pull * dt)
+          const step = Math.min(d, pull * dt)
           if (d > 0.01) { e.x += (dx / d) * step; e.y += (dy / d) * step }
-          if (king.alive && !king.active && kingEdge(e, king) <= KING_PULL) king.active = true
+          // Короля будит только заклинание Торнадо
+          if (!ev && king.alive && !king.active && kingEdge(e, king) <= KING_PULL) king.active = true
         }
-        if (hit && e.kind !== 'building') this.damage(e, pulse, sp.crownPct, v.team, 'Tornado')
+        if (hit && e.kind !== 'building' && !(ev && e.kind === 'tower')) this.damage(e, pulse, ev ? 0 : sp.crownPct, v.team, ev ? 'Evo Valkyrie' : 'Tornado')
       }
     }
     this.vortices = this.vortices.filter(v => v.alive)
@@ -620,13 +685,15 @@ export class Sim {
       if (e.s.flying ? !air : !ground) continue
       if (Math.hypot(e.x - x, e.y - y) - e.s.radius > radius) continue
       if (freeze > 0) e.frozenUntil = Math.max(e.frozenUntil, this.t + freeze)
-      this.damage(e, dmg, src ? src.s.crownPct : crownPct, side, card ?? src?.card ?? '')
+      this.damage(e, dmg, src ? src.s.crownPct : crownPct, side, card ?? src?.card ?? '', src ?? undefined)
     }
   }
 
-  private damage(e: Entity, dmg: number, crownPct: number, from: Team, card: string) {
+  private damage(e: Entity, dmg: number, crownPct: number, from: Team, card: string, src?: Entity) {
     if (!e.alive) return
     let real = Math.round(e.kind === 'tower' && crownPct ? dmg * (1 + crownPct / 100) : dmg)
+    // Эво-Рыцарь на ходу (и пока появляется) получает на 60% меньше
+    if (e.card === 'Evo Knight' && (e.moving || e.deploy > 0)) real = Math.round(real * (1 - EVO_KNIGHT_REDUCTION))
     if (e.shield > 0) {
       const took = Math.min(e.shield, real)
       e.shield -= took
@@ -645,7 +712,16 @@ export class Sim {
       if (e.slot === 'K') e.active = true
       this.effects.push({ id: this.nextId++, kind: 'dmg', x: e.x, y: e.y - 1.6, t: this.t, dur: 0.9, text: `−${real}`, team: e.team })
     }
-    if (e.hp <= 0) this.kill(e)
+    if (e.hp <= 0) {
+      this.kill(e)
+      // Эво-ПЕККА лечится за убийство: чем живучее убитый, тем больше, до +50% сверху
+      if (src?.alive && src.card === 'Evo P.E.K.K.A' && e.kind !== 'tower') {
+        const pct = Math.min(EVO_PEKKA.max, Math.max(EVO_PEKKA.min, e.maxHp * EVO_PEKKA.per))
+        src.hp = Math.min(src.s.hp * EVO_PEKKA.overheal, src.hp + src.s.hp * pct)
+        src.maxHp = Math.max(src.maxHp, src.hp)
+        this.effects.push({ id: this.nextId++, kind: 'heal', x: src.x, y: src.y, t: this.t, dur: 0.8, text: `+${Math.round(pct * 100)}%` })
+      }
+    }
   }
 
   private kill(e: Entity) {
@@ -688,7 +764,7 @@ export class Sim {
 /** Можно ли поставить карту сюда: войска и здания - на свою половину и не в башню; заклинания - куда угодно. */
 export function canDeploy(team: Team, card: string, x: number, y: number): boolean {
   if (x < 0 || x > 18 || y < 0 || y > 32) return false
-  if (card === 'Fireball' || card === 'The Log' || card === 'Goblin Barrel' || card === 'Tornado') return true
+  if (card === 'Fireball' || card === 'The Log' || card === 'Goblin Barrel' || card === 'Evo Goblin Barrel' || card === 'Tornado') return true
   if (card === 'Miner') return sideOf(y) !== 'river' && !onTower(x, y)
   const side = sideOf(y)
   if (side !== team) return false

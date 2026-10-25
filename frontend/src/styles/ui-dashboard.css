@@ -197,6 +197,10 @@
 /* Герои: золотая рамка у карты и кнопка способности в лотке */
 .tr-art-hero img, .tr-card-hero .tr-card-art img { box-shadow: 0 0 0 2px #ffd34d, 0 0 12px rgba(255, 211, 77, 0.45); border-radius: 8px; }
 .tr-card-hero { background: linear-gradient(180deg, rgba(255, 211, 77, 0.16), rgba(255, 211, 77, 0.03)); }
+/* Эволюции: фиолетовая рамка, как в игре */
+.tr-art-evo img, .tr-card-evo .tr-card-art img { box-shadow: 0 0 0 2px #c77dff, 0 0 12px rgba(199, 125, 255, 0.5); border-radius: 8px; }
+.tr-card-evo { background: linear-gradient(180deg, rgba(199, 125, 255, 0.18), rgba(199, 125, 255, 0.03)); }
+.tr-cat-evo .tr-cat-head { border-left-color: #c77dff; }
 .tr-ability {
   display: flex; align-items: center; gap: 10px; width: 100%; margin-bottom: 8px; padding: 8px 12px;
   border-radius: 14px; border: 1px solid rgba(255, 211, 77, 0.25); background: rgba(255, 255, 255, 0.04);
