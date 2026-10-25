@@ -11,11 +11,25 @@ namespace ClanWarTracker.Application.UseCases;
 public class CaptureWarSnapshotsUseCase(
     IClashRoyaleApi crApi,
     IClanRepository clans,
-    IWarSnapshotRepository snapshots)
+    IWarSnapshotRepository snapshots,
+    IPlayerRepository players,
+    IRaceTickRepository raceTicks)
 {
+    /// <summary>Сколько недель хода гонки храним: больше разведке не нужно.</summary>
+    private static readonly TimeSpan RaceTicksKeep = TimeSpan.FromDays(35);
+
     public async Task<int> ExecuteAsync(CancellationToken ct = default)
     {
         var captured = 0;
+        var now = DateTime.UtcNow;
+
+        // Ход гонки пишем только там, где куплен Клан Про: у остальных его никто не
+        // увидит, а строк на все кланы набегало бы сотни тысяч в неделю.
+        HashSet<int> sponsored;
+        try { sponsored = await players.SponsoredClanIdsAsync(now, ct); }
+        catch { sponsored = []; }
+        var racedTags = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var clan in await clans.GetAllAsync(ct))
         {
             // Сбой по одному клану (CR API недоступен/таймаут) не должен оставлять
@@ -30,6 +44,12 @@ public class CaptureWarSnapshotsUseCase(
 
                 var war = await crApi.GetCurrentWarAsync(clan.ClanTag, ct);
                 if (war is null || !war.IsWarDay) continue;
+
+                if (sponsored.Contains(clan.Id))
+                {
+                    try { await CaptureRaceAsync(war, racedTags, now, ct); }
+                    catch { /* разведка не должна мешать снимку своего клана */ }
+                }
 
                 // Сохраняем только текущих участников клана (из API, кэш 5 мин).
                 var memberTags = await crApi.GetClanMemberRolesAsync(clan.ClanTag, ct);
@@ -66,7 +86,38 @@ public class CaptureWarSnapshotsUseCase(
             }
             catch { /* этот клан попробуем снова в следующем тике */ }
         }
+
+        if (racedTags.Count > 0)
+        {
+            try { await raceTicks.PruneAsync(now - RaceTicksKeep, ct); }
+            catch { /* почистим в следующий раз */ }
+        }
         return captured;
+    }
+
+    /// <summary>
+    /// Полчаса гонки для каждого клана в ней, включая свой: медали, колоды и кто когда
+    /// играл. Два наших клана в одной гонке - не повод писать соперника дважды.
+    /// </summary>
+    private async Task CaptureRaceAsync(WarStatus war, HashSet<string> done, DateTime now, CancellationToken ct)
+    {
+        var slot = new DateTime(now.Year, now.Month, now.Day, now.Hour, now.Minute < 30 ? 0 : 30, 0, DateTimeKind.Utc);
+        foreach (var c in war.RaceClans)
+        {
+            if (!done.Add(c.Tag)) continue;
+            await raceTicks.UpsertTickAsync(new RaceTick
+            {
+                ClanTag = c.Tag,
+                SeasonId = war.SeasonId,
+                SectionIndex = war.SectionIndex,
+                DayIndex = war.PeriodIndex,
+                SlotUtc = slot,
+                Fame = c.Fame,
+                DecksUsedToday = c.DecksUsedToday,
+                ActiveToday = c.Players.Count(p => p.DecksUsedToday > 0),
+            }, ct);
+            await raceTicks.UpsertPlayerDaysAsync(c.Tag, war.SeasonId, war.SectionIndex, war.PeriodIndex, c.Players, now, ct);
+        }
     }
 
     /// <summary>

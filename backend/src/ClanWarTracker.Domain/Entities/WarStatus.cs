@@ -72,7 +72,12 @@ public class RaceClanStanding
     /// соперников выдыхается к третьему дню, а кто наоборот дожимает в конце.
     /// </summary>
     public List<int> DayPoints { get; set; } = [];
+
+    /// <summary>Участники клана в этой гонке - для «Разведки+»: кто у соперника тащит.</summary>
+    public List<RaceClanPlayer> Players { get; set; } = [];
 }
+
+public record RaceClanPlayer(string Tag, string Name, int Fame, int DecksUsed, int DecksUsedToday);
 
 public class WarParticipant
 {

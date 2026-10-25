@@ -116,6 +116,9 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
                         DecksUsed = c.Participants?.Sum(p => p.DecksUsed) ?? 0,
                         IsFinished = !string.IsNullOrEmpty(c.FinishTime),
                         DayPoints = BuildCurrentWeekPoints(race, c.Tag),
+                        Players = (c.Participants ?? [])
+                            .Select(p => new RaceClanPlayer(p.Tag, p.Name, p.Fame, p.DecksUsed, p.DecksUsedToday))
+                            .ToList(),
                     }).ToList(),
                 // Официальный по-дневный лог для нашего клана (periodLogs[].items[] где clan.tag == наш).
                 // ВАЖНО: periodIndex в логе сквозной за сезон и может включать ПРОШЛЫЕ недели.
