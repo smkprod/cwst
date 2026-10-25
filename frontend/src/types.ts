@@ -2102,3 +2102,81 @@ export interface Dashboard {
   paywall: boolean
   sinceUtc: string | null
 }
+
+/** «Разведка+» (Клан Про). Часы - от начала военного дня, переводит фронт. */
+export interface ScoutPlus {
+  isWarDay: boolean
+  dayIndex: number
+  dayStartUtc: string
+  hoursIntoDay: number
+  clans: ScoutPlusClan[]
+}
+
+export interface ScoutPlusClan {
+  tag: string
+  name: string
+  isOurClan: boolean
+  fame: number
+  decksToday: number
+  activeToday: number
+  fighters: number
+  top: ScoutPlusPlayer[]
+  timing: ScoutTiming | null
+}
+
+export interface ScoutPlusPlayer {
+  tag: string
+  name: string
+  fame: number
+  decks: number
+  famePerDeck: number
+  daysPlayed: number
+  daysObserved: number
+  usualHour: number | null
+}
+
+export interface ScoutTiming {
+  daysObserved: number
+  hourDecks: number[]
+  hourFame: number[]
+  peakHour: number
+  peakSharePercent: number
+  halfDoneHour: number | null
+  mostlyDoneHour: number | null
+  usualPercentNow: number | null
+  todayPercentNow: number | null
+}
+
+export interface ScoutPlayerPlay {
+  tag: string
+  name: string
+  warWins: number
+  warLosses: number
+  decks: { games: number; wins: number; cards: { name: string; iconUrl: string; level: number; evo: boolean }[] }[]
+}
+
+/** «Штаб клана» (Клан Про; глава, замы, спонсор). */
+export interface ClanHq {
+  weeksAnalyzed: number
+  clanFamePerDeck: number
+  attention: HqPlayer[]
+  pillars: HqPlayer[]
+  excluded: number
+  discipline: ClanDiscipline
+}
+
+export type HqReason = 'low_fame' | 'losing' | 'skips' | 'late' | 'falling'
+
+export interface HqPlayer {
+  tag: string
+  name: string
+  role: string | null
+  weeks: number
+  decks: number
+  decksPossible: number
+  famePerDeck: number
+  lastWeekFamePerDeck: number
+  winRate: number | null
+  lastMinute: number
+  reasons: HqReason[]
+}
