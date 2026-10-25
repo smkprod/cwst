@@ -116,7 +116,8 @@ public class ClanController(
         // Принимать ли сообщения от других кланов. Выключатель обязан быть заметным:
         // без него единственный способ прекратить нежелательные — жалоба на бота.
         bool AcceptsClanMail = true,
-        bool DayRecapEnabled = true);   // вечерние «Итоги дня клана» в чат
+        bool DayRecapEnabled = true,    // вечерние «Итоги дня клана» в чат
+        string ReminderTone = "push");  // тон напутствия в напоминаниях: calm | push | hard
 
     /// <summary>GET /api/clans/my/notification-settings — гибкие настройки уведомлений (админ/лидер).</summary>
     [HttpGet("my/notification-settings")]
@@ -157,6 +158,7 @@ public class ClanController(
             DailyReport = new Toggle { Enabled = dto.DailyReportEnabled },
             PerfectDay = new Toggle { Enabled = dto.PerfectDayEnabled },
             DayRecap = new Toggle { Enabled = dto.DayRecapEnabled },
+            ReminderTone = NotificationSettings.ParseTone(dto.ReminderTone),
             WarEndMinuteUtc = dto.WarEndMinuteUtc,
             // Нормализуем через разбор: незнакомый код языка станет русским, а не осядет
             // в базе мусором, который потом придётся чистить.
@@ -178,7 +180,8 @@ public class ClanController(
         s.PerfectDay.Enabled,
         BotText.ToWire(s.Lang),
         acceptsMail,
-        s.DayRecap.Enabled);
+        s.DayRecap.Enabled,
+        NotificationSettings.ParseTone(s.ReminderTone));
 
     /// <summary>Управлять настройками может админ группы или лидер/со-лидер клана.</summary>
     private async Task<bool> CanManageAsync(Clan clan, Player player, CancellationToken ct)

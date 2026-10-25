@@ -982,7 +982,10 @@ export interface NotificationSettings {
   perfectDayEnabled: boolean       // поздравление «900 за день» в чат
   acceptsClanMail: boolean         // принимать ли сообщения от других кланов
   dayRecapEnabled?: boolean        // вечерние «Итоги дня клана» в чат (нет в ответе старого сервера — считаем включёнными)
+  reminderTone?: ReminderTone      // тон напутствия от ИИ в напоминаниях; нет - «с напором»
 }
+
+export type ReminderTone = 'calm' | 'push' | 'hard'
 
 export type BroadcastTarget = 'dm' | 'chats' | 'both'
 
@@ -1849,7 +1852,7 @@ export interface CreatorChallengeCard {
 
 /* ---------- Канал бота ---------- */
 
-export type ChannelToggle = 'daily' | 'weekly' | 'challenge' | 'cards' | 'news' | 'newsauto' | 'recapai' | 'column' | 'columnauto'
+export type ChannelToggle = 'daily' | 'weekly' | 'challenge' | 'cards' | 'news' | 'newsauto' | 'recapai' | 'remindai' | 'column' | 'columnauto'
 
 export interface ChannelPost {
   id: number

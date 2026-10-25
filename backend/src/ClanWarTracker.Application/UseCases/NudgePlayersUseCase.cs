@@ -11,7 +11,8 @@ public class NudgePlayersUseCase(
     IClashRoyaleApi crApi,
     IClanRepository clans,
     IPlayerRepository players,
-    INotificationSender notifier)
+    INotificationSender notifier,
+    WarPepTalkUseCase pepTalk)
 {
     private static readonly TimeSpan NudgeCooldown = TimeSpan.FromMinutes(30);
 
@@ -26,7 +27,8 @@ public class NudgePlayersUseCase(
         var war = await crApi.GetCurrentWarAsync(clan.ClanTag, ct);
         if (war is null || !war.IsWarDay) return null;
 
-        var t = NotificationSettings.Parse(clan.NotificationSettingsJson).Text;
+        var ns = NotificationSettings.Parse(clan.NotificationSettingsJson);
+        var t = ns.Text;
 
         var now = DateTime.UtcNow;
         var timeLeft = war.TimeLeft(now);
@@ -92,10 +94,13 @@ public class NudgePlayersUseCase(
             var unlinkedNote = unlinkedCount > 0
                 ? "\n\n" + string.Format(t.NudgeUnlinked, unlinkedCount)
                 : "";
+            // Глава нажал «пнуть» - напутствие от нейросети над списком; не вышло - шаблон
+            var intro = await pepTalk.IntroAsync(clan, ns, war, roster, timeLeft, PepMoment.Nudge, ct);
+            var head = intro is null ? "" : intro + "\n\n";
             try
             {
                 await notifier.SendToChatAsync(clan.TelegramChatId,
-                    $"{t.NudgeChatTitle}\n\n{names}{unlinkedNote}",
+                    $"{head}{t.NudgeChatTitle}\n\n{names}{unlinkedNote}",
                     clan.TelegramMessageThreadId, html: true, ct: ct);
                 postedToChat = true;
             }
