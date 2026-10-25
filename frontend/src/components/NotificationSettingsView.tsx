@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
-import type { BotLang, NotificationSettings, NotifyChannel } from '../types'
+import type { BotLang, NotificationSettings, NotifyChannel, ReminderTone } from '../types'
 import { haptic, hapticNotify } from '../lib/telegram'
 import { useT, type Translations } from '../lib/i18n'
 import { Icon, type IconName } from './ui/Icon'
@@ -133,6 +133,7 @@ export function NotificationSettingsView({ onClose }: { onClose: () => void }) {
                       ))}
                     </div>
                   </div>
+                  <ToneRow value={state.s.reminderTone ?? 'push'} onChange={v => patch({ reminderTone: v })} t={t} />
                 </>
               )}
             </div>
@@ -264,6 +265,34 @@ function ToggleRow(
       >
         <span className="notif-switch-knob" />
       </button>
+    </div>
+  )
+}
+
+/**
+ * Тон напутствия, которое пишет нейросеть над списком недоигравших (напоминание,
+ * последний звонок, «пнуть»). Пример под кнопками - чтобы глава видел, что выбирает.
+ */
+function ToneRow({ value, onChange, t }: { value: ReminderTone; onChange: (v: ReminderTone) => void; t: Translations }) {
+  const opts: { key: ReminderTone; label: string }[] = [
+    { key: 'calm', label: t.notif.toneCalm },
+    { key: 'push', label: t.notif.tonePush },
+    { key: 'hard', label: t.notif.toneHard },
+  ]
+  const sample = value === 'calm' ? t.notif.toneCalmSample : value === 'hard' ? t.notif.toneHardSample : t.notif.tonePushSample
+  return (
+    <div className="notif-tone">
+      <span className="muted small">{t.notif.toneLabel}</span>
+      <div className="notif-channels">
+        {opts.map(o => (
+          <button key={o.key} className={`btn-mini ${value === o.key ? 'notif-on' : ''}`}
+            onClick={() => { haptic('light'); onChange(o.key) }}>
+            {o.label}
+          </button>
+        ))}
+      </div>
+      <p className="notif-tone-sample">{sample}</p>
+      <p className="muted small" style={{ margin: 0 }}>{t.notif.toneHint}</p>
     </div>
   )
 }

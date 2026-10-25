@@ -15,7 +15,8 @@ public class SendFinalCallUseCase(
     IClashRoyaleApi crApi,
     IClanRepository clans,
     IPlayerRepository players,
-    INotificationSender notifier)
+    INotificationSender notifier,
+    WarPepTalkUseCase pepTalk)
 {
     /// <param name="reportedKeys">Дедуп между тиками: "clanId:season:section:period".</param>
     /// <returns>Сколько финальных предупреждений отправлено.</returns>
@@ -76,10 +77,13 @@ public class SendFinalCallUseCase(
             var unlinked = slackers.Count - taggable.Count;
             var more = unlinked > 0 ? "\n\n" + string.Format(t.FinalCallUnlinked, unlinked) : "";
 
+            // Напутствие от нейросети над последним звонком; не вышло - только шаблон
+            var intro = await pepTalk.IntroAsync(clan, settings, war, roster, end - now, PepMoment.FinalCall, ct);
+            var head = intro is null ? "" : intro + "\n\n";
             try
             {
                 await notifier.SendToChatAsync(clan.TelegramChatId,
-                    $"{t.FinalCallTitle}\n\n{names}{more}",
+                    $"{head}{t.FinalCallTitle}\n\n{names}{more}",
                     clan.TelegramMessageThreadId, html: true, ct: ct);
                 sent++;
             }

@@ -9,7 +9,8 @@ public class SendRemindersUseCase(
     IClashRoyaleApi crApi,
     IClanRepository clans,
     IPlayerRepository players,
-    INotificationSender notifier)
+    INotificationSender notifier,
+    WarPepTalkUseCase pepTalk)
 {
     /// <summary>Минимальный интервал между напоминаниями одному игроку.</summary>
     private static readonly TimeSpan ReminderCooldown = TimeSpan.FromHours(6);
@@ -108,6 +109,9 @@ public class SendRemindersUseCase(
             if (parts.Count > 0 && clan.TelegramChatId != 0 && settings.Reminders.Channel.WantsChat()
                 && chatPostedKeys.Add(chatKey))
             {
+                // Напутствие от нейросети - над списком; не вышло - список как раньше
+                var intro = await pepTalk.IntroAsync(clan, settings, war, roster, timeLeft, PepMoment.Reminder, ct);
+                if (intro is not null) parts.Insert(0, intro);
                 try
                 {
                     await notifier.SendToChatAsync(clan.TelegramChatId, string.Join("\n\n", parts),

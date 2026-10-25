@@ -1110,6 +1110,12 @@ const ru = {
   },
 
   notif: {
+    toneLabel: 'Тон напоминаний в чате',
+    toneCalm: 'Спокойно', tonePush: 'С напором', toneHard: 'Жёстко',
+    toneCalmSample: '⏰ До конца дня 3 часа, 6 человек ещё не доиграли — 14 колод, около 2 000 медалей для клана. Успеем!',
+    tonePushSample: '😤 28 человек уже отыграли за себя и за клан. А 6 — нет: 14 колод и около 2 000 медалей висят в воздухе, пока второй клан дышит нам в спину.',
+    toneHardSample: '⚠️ Клан тянет войну, а 6 человек — нет. 14 колод не сыграно, глава видит, кто подводит команду. Три часа — время есть, оправданий нет.',
+    toneHint: 'Текст каждый раз пишет ИИ по цифрам дня: сколько отыграло, сколько медалей теряем, место в гонке. Никого не оскорбляет — список с тегами ниже, как раньше.',
     title: 'Уведомления',
     intro: 'Гибко настрой, что и куда шлёт бот. Действует на весь клан.',
     error: 'Не удалось загрузить настройки',
@@ -3389,6 +3395,12 @@ const uk: Translations = {
   },
 
   notif: {
+    toneLabel: 'Тон нагадувань у чаті',
+    toneCalm: 'Спокійно', tonePush: 'З натиском', toneHard: 'Жорстко',
+    toneCalmSample: '⏰ До кінця дня 3 години, 6 людей ще не дограли — 14 колод, близько 2 000 медалей для клану. Встигнемо!',
+    tonePushSample: '😤 28 людей уже відіграли за себе й за клан. А 6 — ні: 14 колод і близько 2 000 медалей висять у повітрі, поки другий клан дихає нам у спину.',
+    toneHardSample: '⚠️ Клан тягне війну, а 6 людей — ні. 14 колод не зіграно, глава бачить, хто підводить команду. Три години — час є, виправдань немає.',
+    toneHint: 'Текст щоразу пише ШІ за цифрами дня: скільки відіграло, скільки медалей втрачаємо, місце в гонці. Нікого не ображає — список із тегами нижче, як раніше.',
     title: 'Сповіщення',
     intro: 'Гнучко налаштуй, що і куди шле бот. Діє на весь клан.',
     error: 'Не вдалося завантажити налаштування',
@@ -5664,6 +5676,12 @@ const en: Translations = {
   },
 
   notif: {
+    toneLabel: 'Reminder tone in chat',
+    toneCalm: 'Calm', tonePush: 'Pushy', toneHard: 'Harsh',
+    toneCalmSample: '⏰ 3 hours left today, 6 players still have attacks — 14 decks, about 2,000 medals for the clan. We can make it!',
+    tonePushSample: '😤 28 players already did their part for themselves and the clan. 6 didn\'t: 14 decks and about 2,000 medals hang in the air while the 2nd clan breathes down our neck.',
+    toneHardSample: '⚠️ The clan carries the war, 6 players don\'t. 14 decks unplayed, and the leader sees who lets the team down. Three hours — there\'s time, no excuses.',
+    toneHint: 'AI writes the text each time from the day\'s numbers: who played, medals at stake, race position. It never insults anyone — the tagged list stays below as before.',
     title: 'Notifications',
     intro: 'Fine-tune what the bot sends and where. Applies to the whole clan.',
     error: 'Failed to load settings',

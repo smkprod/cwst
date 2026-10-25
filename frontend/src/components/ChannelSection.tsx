@@ -340,6 +340,10 @@ function NewsCard({ state, onState }: Props) {
           disabled={!state.ai.enabled}
           desc="«Итоги дня» в 21:00 пишет нейросеть - по тем же цифрам, но каждый вечер по-новому и на языке клана. Не ответила - уйдёт обычный шаблон. По умолчанию выключено."
           onToggle={() => flip('recapai')} />
+        <ToggleLine icon="bell" tone="orange" label="Напоминания с напором в чатах кланов" on={state.toggles.remindai !== false}
+          disabled={!state.ai.enabled}
+          desc="Напоминания, последний звонок и «пнуть» начинаются с пары фраз от нейросети по цифрам дня: сколько отыграли, сколько медалей теряем, место в гонке. Тон выбирает глава в настройках клана. Не ответила - обычный шаблон."
+          onToggle={() => flip('remindai')} />
       </div>
       <label className="small muted">Ленты - по одной в строке</label>
       <div className="owner-bc-targets ch-suggest">

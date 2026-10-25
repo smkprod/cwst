@@ -65,6 +65,7 @@ builder.Services.AddScoped<GetWhatsNewUseCase>();
 builder.Services.AddScoped<GiveRespectUseCase>();
 builder.Services.AddScoped<SuggestDecksUseCase>();
 builder.Services.AddScoped<NudgePlayersUseCase>();
+builder.Services.AddScoped<WarPepTalkUseCase>();
 builder.Services.AddScoped<InviteUnlinkedUseCase>();
 builder.Services.AddScoped<OwnerBroadcastUseCase>();
 builder.Services.AddScoped<GetOwnerDashboardUseCase>();

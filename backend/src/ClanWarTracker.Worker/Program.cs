@@ -31,6 +31,7 @@ builder.Services.AddScoped<SendRespectDigestUseCase>();
 builder.Services.AddScoped<SendMorningDigestUseCase>();
 builder.Services.AddScoped<SendClanDayRecapUseCase>();
 builder.Services.AddScoped<NudgePlayersUseCase>();
+builder.Services.AddScoped<WarPepTalkUseCase>();
 builder.Services.AddScoped<InviteUnlinkedUseCase>();
 builder.Services.AddScoped<ChatConnectReminderUseCase>();
 builder.Services.AddScoped<LinkPlayerUseCase>();

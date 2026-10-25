@@ -55,6 +55,20 @@ public class NotificationSettings
     public Toggle DayRecap { get; set; } = new();
 
     /// <summary>
+    /// Тон напутствия в напоминаниях (пишет нейросеть): "calm" - спокойно, "push" - с напором
+    /// и моралью, "hard" - жёстко. null - с напором: так просили главы, чей чат молчит.
+    /// </summary>
+    public string? ReminderTone { get; set; }
+
+    /// <summary>Тон к одному из трёх значений; незнакомое - «с напором».</summary>
+    public static string ParseTone(string? tone) => tone?.ToLowerInvariant() switch
+    {
+        "calm" => "calm",
+        "hard" => "hard",
+        _ => "push",
+    };
+
+    /// <summary>
     /// Язык, на котором бот пишет клану: "ru" | "uk" | "en". null/мусор — русский,
     /// то есть поведение кланов, заведённых до появления настройки, не меняется.
     /// Живёт здесь, а не отдельной колонкой, именно поэтому: JSON расширяется без миграции.
