@@ -8,6 +8,7 @@ import { Icon } from './ui/Icon'
 import { SectionHead } from './ui/Section'
 import { ScoutPlusCard } from './ScoutPlusCard'
 import { DisciplineCard } from './DisciplineCard'
+import { AiBox } from './AiBox'
 
 type Load<T> =
   | { kind: 'loading' }
@@ -136,11 +137,13 @@ function ProLock({ p }: { p: Translations['clanPro'] }) {
 
 function HqCard({ data, t }: { data: ClanHq; t: Translations }) {
   const p = t.clanPro
+  const { lang } = useT()
   return (
     <section className="card hq-card fade-in">
       <SectionHead icon="shieldCheck" tone="gold" title={p.hqTitle}
         aside={data.weeksAnalyzed > 0 ? fill(p.weeks, { n: data.weeksAnalyzed }) : undefined} />
       <p className="muted small sp-lead">{p.hqLead}</p>
+      {data.weeksAnalyzed >= 2 && <AiBox label={t.ai.hqBtn} hint={t.ai.hqHint} load={() => api.getHqBrief(lang)} />}
 
       {data.weeksAnalyzed < 2 && data.attention.length === 0 && data.pillars.length === 0
         ? <p className="muted small hq-empty">{p.noData}</p>
@@ -177,6 +180,7 @@ function HqCard({ data, t }: { data: ClanHq; t: Translations }) {
 
 function AttentionRow({ player, median, t }: { player: HqPlayer; median: number; t: Translations }) {
   const p = t.clanPro
+  const { lang } = useT()
   // Шкала «медалей за колоду» от 100 (одни поражения) до 200+ (одни победы), с меткой медианы клана
   const pos = (v: number) => Math.min(100, Math.max(0, ((v - 100) / 125) * 100))
   const role = player.role === 'leader' ? t.roles.leader : player.role === 'coLeader' ? t.roles.coleader : player.role === 'elder' ? t.roles.elder : undefined
@@ -199,6 +203,7 @@ function AttentionRow({ player, median, t }: { player: HqPlayer; median: number;
         {player.winRate != null && <span>{fill(p.winRate, { n: player.winRate })}</span>}
         {player.lastWeekFamePerDeck > 0 && <span>{fill(p.lastWeek, { n: player.lastWeekFamePerDeck })}</span>}
       </div>
+      <AiBox compact copy label={t.ai.talkBtn} load={() => api.getHqTalk(player.tag, lang)} />
     </li>
   )
 }

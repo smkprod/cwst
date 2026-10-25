@@ -27,6 +27,7 @@ public class PlusController(
     GetTiltProfileUseCase tiltProfile,
     INotificationSender sender,
     IFunnelRepository funnel,
+    TrainerAiUseCase trainerAi,
     ILogger<PlusController> logger) : ControllerBase
 {
     /// <param name="RecipientTag">Кому подарить. null - себе.</param>
@@ -39,6 +40,23 @@ public class PlusController(
     public record GiftRequest(string RecipientTag);
 
     private long UserId => (long)HttpContext.Items["TelegramUserId"]!;
+
+    /// <summary>
+    /// GET /api/plus/trainer-plan?lang=ru — против каких карт качаться в тренажёре (по журналу
+    /// боёв) и слово тренера от нейросети. Выбор карт - всем, слово тренера - с Плюсом.
+    /// </summary>
+    [HttpGet("trainer-plan")]
+    public async Task<IActionResult> TrainerPlan([FromQuery] string? lang, CancellationToken ct)
+    {
+        var me = await players.GetByTelegramIdAsync(UserId, ct);
+        if (me is null) return NotFound(new { error = "player_not_linked" });
+        var now = DateTime.UtcNow;
+        var clanPro = me.IsSponsor(now) || (me.ClanId is int clanId && (await players.GetByClanIdAsync(clanId, ct)).Any(p => p.IsSponsor(now)));
+        var plan = await trainerAi.ExecuteAsync(UserId, AiLang(lang), clanPro, ct);
+        return plan is null ? NotFound(new { error = "player_not_linked" }) : Ok(plan);
+    }
+
+    internal static string AiLang(string? lang) => lang is "uk" or "en" ? lang : "ru";
 
     /// <summary>GET /api/plus — Плюс, спонсорство, цены, подарки и состояние оповещений.</summary>
     [HttpGet]

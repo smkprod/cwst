@@ -3,12 +3,11 @@ import { Icon, type IconName } from './components/ui/Icon'
 import { IconTile } from './components/ui/Section'
 import { api, ApiError, adminClan } from './lib/api'
 import { askDmOnce, haptic, rawStartParam, startChallengeCode, startMatchId, startParam, startToMatches } from './lib/telegram'
-import { ChallengeView, CreatorChallengeScreen } from './components/ChallengeView'
-import { DuelView } from './components/DuelView'
+import { CreatorChallengeScreen } from './components/ChallengeView'
 import { afterPromo, OPEN_CHALLENGE } from './lib/promo'
 import { usePlusSheet } from './lib/plusSheet'
 import { useT, type Translations } from './lib/i18n'
-import type { AppConfig, AppTab, ClanStatus, ServiceIdentity } from './types'
+import type { AppConfig, ClanStatus, ServiceIdentity } from './types'
 import { WarHeader } from './components/WarHeader'
 import { ForecastCard } from './components/ForecastCard'
 import { InsightsCard } from './components/InsightsCard'
@@ -25,9 +24,7 @@ import { ClanWorldRankCard } from './components/ClanWorldRankCard'
 import { WarJournalCard } from './components/WarJournalCard'
 import { OwnerPanel } from './components/OwnerPanel'
 import { LinkPrompt } from './components/LinkPrompt'
-import { HallOfFame } from './components/HallOfFame'
 import { PlayerSearchView } from './components/PlayerSearchView'
-import { TournamentView } from './components/TournamentView'
 import { ClanlessView, type SoloReason } from './components/ClanlessView'
 import { GuestEntry } from './components/GuestEntry'
 import { GuestMyStats } from './components/GuestMyStats'
@@ -38,7 +35,6 @@ import { MoreView } from './components/MoreView'
 import { ConnectChatCard, InviteMomentCard, InviteUnlinkedCard } from './components/EngageCards'
 import { ChannelCard } from './components/ChannelCard'
 import { useShowcase } from './lib/showcase'
-import { Showcase } from './components/Showcase'
 import { HalloweenView } from './components/HalloweenView'
 import { HalloweenBanner } from './components/HalloweenBanner'
 import { FeedbackCard } from './components/FeedbackCard'
@@ -49,6 +45,9 @@ import { MenuChangedNotice } from './components/MenuChangedNotice'
 import { UpdateNotice } from './components/UpdateNotice'
 import { ScoutCard } from './components/ScoutCard'
 import { ClanHqView } from './components/ClanHqView'
+import { ModeHeader, TabBar, usePlusState, type BarTab } from './components/AppChrome'
+import { DecksHub, PlayHub, TrainerHub, type DecksSection, type PlaySection } from './components/PlayerHub'
+import { loadMode, saveMode, trainerSeenToday, type AppMode } from './lib/mode'
 import { WorldTopEntry } from './components/WorldTopEntry'
 import { weekKing } from './lib/king'
 import { canUseOwnerPanel, canUseStudio } from './lib/serviceAccess'
@@ -68,28 +67,19 @@ const RETRY_INTERVAL_MS = 15_000
 const TRANSIENT_TOLERANCE = 3
 
 /**
- * Вкладок было до семи: война, рейтинг, я, поиск, турнир, биржа, панель. Ежедневный
- * экран стоял в одном ряду с тем, что открывают раз в месяц. Осталось четыре, а всё
- * редкое собрано в «Ещё». Панель владельца — пятая и только у владельца: она невидима
- * для остальных, так что места в баре ни у кого не занимает.
+ * Вкладки двух режимов. Клан: война, штаб, состав, рейтинг. Игрок: профиль, колоды,
+ * тренажёр, турниры. «Ещё» и панель владельца - в обоих. Гость смотрит чужой клан
+ * со стороны и живёт в упрощённом наборе: война, его статистика, турнир, поиск.
  */
-type Tab = 'clan' | 'me' | 'hall' | 'tournament' | 'search' | 'more' | 'challenge' | 'duel' | 'plus' | 'halloween' | 'owner' | 'creatorChallenge'
+type Tab = 'war' | 'hq' | 'roster' | 'rating' | 'halloween'
+  | 'profile' | 'decks' | 'trainer' | 'play'
+  | 'tournament' | 'search' | 'more' | 'owner' | 'creatorChallenge'
 
-/** Набор вкладок, пока сервер не ответил. Совпадает с умолчанием на сервере. */
-const DEFAULT_TABS: AppTab[] = ['clan', 'me', 'hall', 'search', 'more']
+const CLAN_TABS: Tab[] = ['war', 'hq', 'roster', 'rating', 'halloween']
+const PLAYER_TABS: Tab[] = ['profile', 'decks', 'trainer', 'play']
 
-/** Как выглядит каждая вкладка. Ключи совпадают с теми, что присылает сервер. */
-const TAB_LOOKS = (t: Translations): Record<AppTab, { icon: IconName; label: string }> => ({
-  clan: { icon: 'castle', label: t.tabs.clan },
-  me: { icon: 'user', label: t.tabs.me },
-  hall: { icon: 'columns', label: t.tabs.hall },
-  tournament: { icon: 'trophy', label: t.tabs.tournament },
-  search: { icon: 'search', label: t.tabs.search },
-  more: { icon: 'gear', label: t.tabs.more },
-  challenge: { icon: 'ticket', label: t.tabs.challenge },
-  duel: { icon: 'swords', label: t.tabs.duel },
-  plus: { icon: 'gem', label: t.tabs.plus },
-})
+/** Что теперь живёт в нижнем меню режима игрока - в «Ещё» это не дублируем. */
+const IN_BAR: MoreSection[] = ['trainer', 'tips', 'builder', 'worldTop', 'challenge', 'duel', 'tournament']
 
 /**
  * Внутри «Клана»: война, состав и рейтинг — разные взгляды на один и тот же клан.
@@ -99,15 +89,13 @@ const TAB_LOOKS = (t: Translations): Record<AppTab, { icon: IconName; label: str
  * приходилось искать, пролистав полсотни карточек. Теперь аналитика войны помещается
  * на один экран, а состав открывается, когда он действительно нужен.
  */
-type ClanSection = 'war' | 'hq' | 'roster' | 'rating'
+type ClanSection = 'war' | 'roster' | 'rating'
 
 /** Переключатель «Война / Состав / Рейтинг» внутри вкладки клана. */
-function ClanSectionTabs({ value, onChange, t, showHq = true }: {
+function ClanSectionTabs({ value, onChange, t }: {
   value: ClanSection
   onChange: (next: ClanSection) => void
   t: Translations
-  /** Гость смотрит чужой клан со стороны: штаб - для своих. */
-  showHq?: boolean
 }) {
   return (
     <div className="clan-sections">
@@ -117,14 +105,6 @@ function ClanSectionTabs({ value, onChange, t, showHq = true }: {
       >
         <Icon name="swords" size={15} /> {t.tabs.war}
       </button>
-      {showHq && (
-        <button
-          className={`clan-section ${value === 'hq' ? 'clan-section-on' : ''}`}
-          onClick={() => onChange('hq')}
-        >
-          <Icon name="crown" size={15} /> {t.tabs.hq}
-        </button>
-      )}
       <button
         className={`clan-section ${value === 'roster' ? 'clan-section-on' : ''}`}
         onClick={() => onChange('roster')}
@@ -142,33 +122,25 @@ function ClanSectionTabs({ value, onChange, t, showHq = true }: {
 }
 
 /**
- * Куда вести по параметру запуска из бота: «Открыть разбор» — во вкладку «Я» на
- * разбор, «/meta» — в мировой топ, «/plus» — в окно Плюса, ch_<код> — в челлендж
- * блогера (отдельный экран вне бара). Без параметра — как раньше.
+ * Куда вести по параметру запуска из бота: «Открыть разбор» - в профиль игрока,
+ * «/meta» и билдер - в колоды, тренажёр, челлендж и дуэли - в режим игрока,
+ * ch_<код> - в челлендж блогера (отдельный экран вне бара). Без параметра - туда,
+ * где человек был в прошлый раз.
  */
-const START_TAB: Tab = startChallengeCode ? 'creatorChallenge' : startParam === 'halloween' ? 'halloween' : startParam === 'challenge' ? 'challenge' : startParam === 'duel' ? 'duel' : startParam === 'review' || startToMatches ? 'me' : startParam === 'meta' || startParam === 'builder' || startParam === 'invite' || startParam === 'trainer' ? 'more' : 'clan'
+const START_PLAYER_TAB: Tab | null = startParam === 'review' || startToMatches ? 'profile'
+  : startParam === 'meta' || startParam === 'builder' ? 'decks'
+  : startParam === 'trainer' ? 'trainer'
+  : startParam === 'challenge' || startParam === 'duel' ? 'play'
+  : null
+const START_DECKS: DecksSection | undefined = startParam === 'meta' ? 'meta' : startParam === 'builder' ? 'pick' : undefined
+const START_PLAY: PlaySection | undefined = startParam === 'duel' ? 'duel' : startParam === 'challenge' ? 'challenge' : undefined
+const START_MODE: AppMode = START_PLAYER_TAB ? 'player' : startParam === 'halloween' ? 'clan' : loadMode() ?? 'clan'
+const START_TAB: Tab = startChallengeCode ? 'creatorChallenge'
+  : startParam === 'halloween' ? 'halloween'
+  : START_PLAYER_TAB ?? (startParam === 'invite' ? 'more' : START_MODE === 'player' ? 'profile' : 'war')
 
 /** «Разбор» из бота — разбор за 30 дней, трекер и «Все бои» — история. */
 const START_BATTLES_VIEW = startParam === 'review' ? 'review' : 'history'
-
-type TabItem = { id: Tab; icon: IconName; label: string }
-
-/**
- * Пока идёт ивент, у него своя вкладка - третьей, чтобы её видели все, а не только
- * те, кто полезет в «Ещё». Больше пяти значков на телефоне не помещаются: на время
- * ивента уступает поиск (он остаётся в «Ещё»), затем остальное редкое.
- */
-function withEventTab(list: TabItem[], config: AppConfig | null, t: Translations): TabItem[] {
-  if (config?.event !== 'halloween') return list
-  const out = [...list]
-  out.splice(Math.min(2, out.length), 0, { id: 'halloween', icon: 'gift', label: t.tabs.halloween })
-  for (const drop of ['search', 'tournament', 'duel', 'challenge', 'plus', 'hall'] as Tab[]) {
-    if (out.length <= 5) break
-    const i = out.findIndex(x => x.id === drop)
-    if (i >= 0) out.splice(i, 1)
-  }
-  return out
-}
 
 export default function App() {
   const [state, setState] = useState<State>({ kind: 'loading' })
@@ -207,27 +179,35 @@ export default function App() {
     return () => window.clearTimeout(id)
   }, [state.kind])
   const [tab, setTab] = useState<Tab>(START_TAB)
+  const [mode, setMode] = useState<AppMode>(START_MODE)
+  // Где был в каждом режиме: переключатель возвращает туда же, а не на первую вкладку
+  const lastTab = useRef<Record<AppMode, Tab>>({ clan: 'war', player: 'profile' })
+  const goPlayer = useCallback((next: Tab) => {
+    setMode('player'); saveMode('player'); setTab(next); window.scrollTo(0, 0)
+  }, [])
+  // С какого раздела открыть колоды и турниры: по ссылке бота или по кнопке из приложения
+  const [decksInitial] = useState<DecksSection | undefined>(START_DECKS)
+  const [playInitial, setPlayInitial] = useState<PlaySection | undefined>(START_PLAY)
+  const [playKey, setPlayKey] = useState(0)
   // Кнопка «К челленджу» из окна-анонса
   useEffect(() => {
-    const go = () => setTab('challenge')
+    const go = () => { setPlayInitial('challenge'); setPlayKey(k => k + 1); goPlayer('play') }
     window.addEventListener(OPEN_CHALLENGE, go)
     return () => window.removeEventListener(OPEN_CHALLENGE, go)
-  }, [])
-  // Раздел «Ещё», с которого открыть вкладку: по ссылке бота или из вывода профиля
-  const [moreSection, setMoreSection] = useState<MoreSection | null>(
-    startParam === 'meta' ? 'worldTop' : startParam === 'builder' ? 'builder' : startParam === 'trainer' ? 'trainer' : null)
-  const [moreKey, setMoreKey] = useState(0)
+  }, [goPlayer])
+  // Вывод профиля «потренируй это» - в тренажёр режима игрока
   useEffect(() => {
-    const go = () => { setMoreSection('trainer'); setMoreKey(k => k + 1); setTab('more') }
+    const go = () => goPlayer('trainer')
     window.addEventListener(OPEN_TRAINER, go)
     return () => window.removeEventListener(OPEN_TRAINER, go)
-  }, [])
+  }, [goPlayer])
   // Заставка и баннер Хэллоуина ведут во вкладку босса
   useEffect(() => {
-    const go = () => setTab('halloween')
+    const go = () => { setMode('clan'); setTab('halloween') }
     window.addEventListener(OPEN_HALLOWEEN, go)
     return () => window.removeEventListener(OPEN_HALLOWEEN, go)
   }, [])
+  const plus = usePlusState()
   const openPlus = usePlusSheet()
 
   // Кнопка «💎 Открыть Плюс» в боте: окно Плюса сразу при запуске, один раз.
@@ -274,7 +254,7 @@ export default function App() {
 
   // Ивент кончился, а приложение открыли старой ссылкой startapp=halloween - на первый экран
   useEffect(() => {
-    if (config && config.event !== 'halloween' && tab === 'halloween') setTab('clan')
+    if (config && config.event !== 'halloween' && tab === 'halloween') setTab('war')
   }, [config, tab])
 
   // Сколько подряд неудачных обновлений терпим, прежде чем показать ошибку.
@@ -364,8 +344,18 @@ export default function App() {
   }, [load])
 
   const switchTab = (next: Tab) => {
-    haptic('light')
     setTab(next)
+    window.scrollTo(0, 0)
+  }
+
+  const toggleMode = () => {
+    const next: AppMode = mode === 'clan' ? 'player' : 'clan'
+    const own = mode === 'clan' ? CLAN_TABS : PLAYER_TABS
+    if (own.includes(tab)) lastTab.current[mode] = tab
+    setMode(next)
+    saveMode(next)
+    setTab(lastTab.current[next])
+    window.scrollTo(0, 0)
   }
 
   const exitGuest = () => {
@@ -396,7 +386,7 @@ export default function App() {
             setState({ kind: 'guest', data, myPlayerTag: playerTag })
             // Гость ввёл СВОЙ тег — первым делом показываем ЕГО статистику,
             // а не клан: личная ценность цепляет сильнее общей таблицы.
-            setTab('me')
+            setTab('profile')
           }}
         />
       )
@@ -408,12 +398,10 @@ export default function App() {
       return canUseOwnerPanel(me) && !startChallengeCode
         ? <OwnerPanel me={me} />
         : <ClanlessView reason={state.reason}
-            initialTab={startChallengeCode ? 'creatorChallenge' : startParam === 'meta' ? 'meta' : startParam === 'challenge' ? 'challenge' : startParam === 'duel' ? 'duel' : 'me'}
+            initialTab={startChallengeCode ? 'creatorChallenge' : START_PLAYER_TAB === 'decks' || START_PLAYER_TAB === 'trainer' || START_PLAYER_TAB === 'play' ? START_PLAYER_TAB : 'me'}
+            decksInitial={START_DECKS} playInitial={START_PLAY}
             challengeCode={startChallengeCode}
             battlesView={START_BATTLES_VIEW} openMatchId={startMatchId}
-            showChallenge={Boolean(config?.tabs.includes('challenge')) || startParam === 'challenge'}
-            showDuel={Boolean(config?.tabs.includes('duel')) || startParam === 'duel'}
-            showPlus={Boolean(config?.tabs.includes('plus'))}
             showStudio={canUseStudio(me)}
             config={config} onConfigChanged={loadConfig} />
     case 'notInTelegram':
@@ -438,22 +426,39 @@ export default function App() {
       const { data } = state
       const canManage = Boolean(data.isAdmin || data.isClanLeader)
       const notFinished = data.players.filter(p => p.status !== 'played').length
+      const myRow = data.players.find(p => p.playerTag === data.myPlayerTag)
       // Удачный момент позвать друга: сам только что отыграл все колоды дня
-      const iFinishedToday = data.periodType !== 'training'
-        && data.players.some(p => p.playerTag === data.myPlayerTag && p.decksUsedToday >= 4)
-
+      const iFinishedToday = data.periodType !== 'training' && (myRow?.decksUsedToday ?? 0) >= 4
 
       // Король недели считается один раз на оба экрана — иначе состав и рейтинг
       // однажды разойдутся в том, кого короновать.
       const king = weekKing(data.players, data.warLog, data.periodType)
 
-      // Панель владельца всегда последней и всегда вне настраиваемого набора:
-      // выключить её из панели значило бы потерять доступ к самой панели. Студии в
-      // баре больше нет: шесть-семь пунктов не помещались, и она переехала в «Ещё».
-      const tabs = [
-        ...withEventTab((config?.tabs ?? DEFAULT_TABS).map(id => ({ id: id as Tab, ...TAB_LOOKS(t)[id] })), config, t),
-        ...(canUseOwnerPanel(me) ? [{ id: 'owner' as Tab, icon: 'dashboard' as IconName, label: t.tabs.owner }] : []),
+      const hasPlus = Boolean(plus?.active || plus?.isSponsor || plus?.unlocked)
+      const hasPro = Boolean(plus?.clanPro || plus?.isSponsor)
+      const owner: BarTab<Tab>[] = canUseOwnerPanel(me) ? [{ id: 'owner', icon: 'dashboard', label: t.tabs.owner }] : []
+      const clanTabs: BarTab<Tab>[] = [
+        { id: 'war', icon: 'swords', label: t.tabs.war },
+        ...(config?.event === 'halloween' ? [{ id: 'halloween' as Tab, icon: 'gift' as IconName, label: t.tabs.halloween }] : []),
+        { id: 'hq', icon: 'crown', label: t.tabs.hq, badge: plus && !hasPro ? 'pro' : undefined },
+        { id: 'roster', icon: 'users', label: t.tabs.roster },
+        { id: 'rating', icon: 'trophy', label: t.tabs.rating },
+        { id: 'more', icon: 'gear', label: t.tabs.more },
+        ...owner,
       ]
+      const playerTabs: BarTab<Tab>[] = [
+        { id: 'profile', icon: 'user', label: t.tabs.profile },
+        { id: 'decks', icon: 'cards', label: t.tabs.decks },
+        { id: 'trainer', icon: 'target', label: t.tabs.trainer, badge: plus && !hasPlus ? 'plus' : undefined },
+        { id: 'play', icon: 'ticket', label: t.tabs.play },
+        { id: 'more', icon: 'gear', label: t.tabs.more },
+        ...owner,
+      ]
+      // Точка на переключателе - в другом режиме тебя ждут: в клане - твои атаки
+      // на сегодня, у игрока - тренажёр, который сегодня ещё не открывали
+      const modeDot = mode === 'player'
+        ? data.periodType !== 'training' && Boolean(myRow) && (myRow?.decksUsedToday ?? 0) < 4
+        : !trainerSeenToday()
 
       return (
         <>
@@ -474,15 +479,11 @@ export default function App() {
                 </button>
               </div>
             )}
-            {tab === 'clan' && (
+            {tab !== 'creatorChallenge' && tab !== 'owner' && <ModeHeader mode={mode} plus={plus} />}
+            {tab === 'war' && (
               <div className="fade-in">
                 <MenuChangedNotice />
                 <UpdateNotice />
-                <ClanSectionTabs value={clanSection} onChange={next => { haptic('light'); setClanSection(next) }} t={t} />
-              </div>
-            )}
-            {tab === 'clan' && clanSection === 'war' && (
-              <div className="fade-in">
                 <WarHeader status={data} canManage={canManage} onOpenSettings={() => { haptic('light'); setSettingsOpen(true) }} />
                 {config?.event === 'halloween' && <HalloweenBanner />}
                 {/* Бот не в чате клана - главный канал не работает: лидеру кнопка «добавить», остальным «попросить» */}
@@ -511,8 +512,8 @@ export default function App() {
                     там же вкл/выкл, канал, часы и время окончания КВ. */}
               </div>
             )}
-            {tab === 'clan' && clanSection === 'hq' && <ClanHqView />}
-            {tab === 'clan' && clanSection === 'roster' && (
+            {tab === 'hq' && <ClanHqView />}
+            {tab === 'roster' && (
               <div className="fade-in">
                 {canManage && (
                   <InviteUnlinkedCard unlinked={data.players.filter(p => !p.isLinked).length} hasChat={data.hasChat !== false} />
@@ -520,14 +521,15 @@ export default function App() {
                 <PlayerList players={data.players} myPlayerTag={data.myPlayerTag} kingTag={king?.playerTag} canManage={canManage} />
               </div>
             )}
-            {tab === 'clan' && clanSection === 'rating' && (
+            {tab === 'rating' && (
               <div className="fade-in">
                 <ClanWorldRankCard />
                 <Leaderboard players={data.players} myPlayerTag={data.myPlayerTag} periodType={data.periodType} warLog={data.warLog ?? []} canManage={canManage} />
                 <WorldTopEntry />
               </div>
             )}
-            {tab === 'me' && (
+            {tab === 'halloween' && <HalloweenView />}
+            {tab === 'profile' && (
               <div className="fade-in">
                 {/* Личное, что раньше стояло среди клановых карточек войны */}
                 <WhatsNewCard />
@@ -540,37 +542,22 @@ export default function App() {
                 <ChannelCard dismissKey="me" />
               </div>
             )}
-            {tab === 'tournament' && (
-              <div className="fade-in">
-                <TournamentView />
-              </div>
-            )}
-            {tab === 'search' && (
-              <div className="fade-in">
-                <PlayerSearchView />
-              </div>
-            )}
-            {tab === 'plus' && <Showcase embedded onClose={() => setTab('clan')} />}
-            {tab === 'halloween' && <HalloweenView />}
+            {tab === 'decks' && <DecksHub initial={decksInitial} />}
+            {tab === 'trainer' && <TrainerHub />}
+            {tab === 'play' && <PlayHub key={playKey} initial={playInitial} />}
             {tab === 'more' && (
               <MoreView
-                key={moreKey}
                 canManage={canManage}
                 isLeader={Boolean(data.isClanLeader)}
-                initialSection={moreSection}
                 onOpenNotifications={() => { haptic('light'); setSettingsOpen(true) }}
                 config={config}
                 onConfigChanged={loadConfig}
                 showStudio={canUseStudio(me)}
+                hide={IN_BAR}
               />
             )}
-            {tab === 'hall' && (
-              <HallOfFame config={config} onConfigChanged={loadConfig} />
-            )}
-            {tab === 'challenge' && <ChallengeView />}
-            {tab === 'duel' && <DuelView />}
             {tab === 'creatorChallenge' && startChallengeCode && (
-              <CreatorChallengeScreen code={startChallengeCode} onBack={() => setTab(tabs[0].id)} />
+              <CreatorChallengeScreen code={startChallengeCode} onBack={() => setTab(mode === 'player' ? 'profile' : 'war')} />
             )}
             {tab === 'owner' && canUseOwnerPanel(me) && (
               <div className="fade-in">
@@ -579,22 +566,8 @@ export default function App() {
             )}
           </main>
 
-          <nav className="tabbar" role="tablist">
-            {tabs.map(tb => (
-              <button
-                key={tb.id}
-                role="tab"
-                aria-selected={tab === tb.id}
-                className={`tab ${tab === tb.id ? 'tab-active' : ''}`}
-                onClick={() => switchTab(tb.id)}
-              >
-                <span className="tab-icon">{tb.id === 'halloween'
-                  ? <img className="tab-img" src="/hw/pumpkin-s.webp" alt="" />
-                  : <Icon name={tb.icon} size={20} />}</span>
-                <span className="tab-label">{tb.label}</span>
-              </button>
-            ))}
-          </nav>
+          <TabBar tabs={mode === 'clan' ? clanTabs : playerTabs} active={tab} onSelect={switchTab}
+            mode={mode} onToggleMode={toggleMode} modeDot={modeDot} />
 
           {settingsOpen && canManage && (
             <NotificationSettingsView onClose={() => setSettingsOpen(false)} />
@@ -606,13 +579,15 @@ export default function App() {
       const { data, myPlayerTag } = state
       const king = weekKing(data.players, data.warLog, data.periodType)
 
-      const tabs: { id: Tab; icon: IconName; label: string }[] = [
-        { id: 'clan', icon: 'castle', label: t.tabs.clan },
-        { id: 'me', icon: 'user', label: t.tabs.me },
-        { id: 'tournament', icon: 'trophy', label: t.tabs.tournament },
+      const tabs: BarTab<Tab>[] = [
+        { id: 'war', icon: 'castle', label: t.tabs.clan },
+        { id: 'profile', icon: 'user', label: t.tabs.me },
+        { id: 'play', icon: 'ticket', label: t.tabs.play },
         { id: 'search', icon: 'search', label: t.tabs.search },
         { id: 'more', icon: 'gear', label: t.tabs.more },
       ]
+      // Гость со ссылкой на вкладку режима игрока, которой у него нет, - на клан
+      const guestTab: Tab = tabs.some(x => x.id === tab) || tab === 'creatorChallenge' ? tab : 'war'
 
       return (
         <>
@@ -622,14 +597,13 @@ export default function App() {
               <button className="btn-mini" onClick={exitGuest}>{t.guest.exit}</button>
             </div>
 
-            {tab === 'clan' && (
+            {guestTab === 'war' && (
               <div className="fade-in">
-                <MenuChangedNotice />
                 <UpdateNotice />
-                <ClanSectionTabs value={clanSection} onChange={next => { haptic('light'); setClanSection(next) }} t={t} showHq={false} />
+                <ClanSectionTabs value={clanSection} onChange={next => { haptic('light'); setClanSection(next) }} t={t} />
               </div>
             )}
-            {tab === 'clan' && clanSection === 'war' && (
+            {guestTab === 'war' && clanSection === 'war' && (
               <div className="fade-in">
                 <WarHeader status={data} />
                 {/* Тот же порядок, что и у своих, за вычетом того, чего гостю не положено:
@@ -644,34 +618,29 @@ export default function App() {
                 <LeaderCtaCard />
               </div>
             )}
-            {tab === 'clan' && clanSection === 'roster' && (
+            {guestTab === 'war' && clanSection === 'roster' && (
               <div className="fade-in">
                 <PlayerList players={data.players} myPlayerTag={myPlayerTag} kingTag={king?.playerTag} />
               </div>
             )}
-            {tab === 'clan' && clanSection === 'rating' && (
+            {guestTab === 'war' && clanSection === 'rating' && (
               <div className="fade-in">
                 <Leaderboard players={data.players} myPlayerTag={myPlayerTag} periodType={data.periodType} warLog={data.warLog ?? []} />
                 <WorldTopEntry />
               </div>
             )}
-            {tab === 'me' && (
+            {guestTab === 'profile' && (
               <div className="fade-in">
                 <GuestMyStats data={data} myPlayerTag={myPlayerTag} />
               </div>
             )}
-            {tab === 'tournament' && (
-              <div className="fade-in">
-                <TournamentView />
-              </div>
-            )}
-            {tab === 'search' && (
+            {guestTab === 'play' && <PlayHub key={playKey} initial={playInitial} />}
+            {guestTab === 'search' && (
               <div className="fade-in">
                 <PlayerSearchView />
               </div>
             )}
-            {tab === 'plus' && <Showcase embedded onClose={() => setTab('clan')} />}
-            {tab === 'more' && (
+            {guestTab === 'more' && (
               // Гость клан не настраивает: уведомления и биржа лидера ему недоступны
               <MoreView
                 canManage={false}
@@ -682,25 +651,12 @@ export default function App() {
                 showStudio={canUseStudio(me)}
               />
             )}
-            {tab === 'creatorChallenge' && startChallengeCode && (
-              <CreatorChallengeScreen code={startChallengeCode} onBack={() => setTab('clan')} />
+            {guestTab === 'creatorChallenge' && startChallengeCode && (
+              <CreatorChallengeScreen code={startChallengeCode} onBack={() => setTab('war')} />
             )}
           </main>
 
-          <nav className="tabbar" role="tablist">
-            {tabs.map(tb => (
-              <button
-                key={tb.id}
-                role="tab"
-                aria-selected={tab === tb.id}
-                className={`tab ${tab === tb.id ? 'tab-active' : ''}`}
-                onClick={() => switchTab(tb.id)}
-              >
-                <span className="tab-icon"><Icon name={tb.icon} size={20} /></span>
-                <span className="tab-label">{tb.label}</span>
-              </button>
-            ))}
-          </nav>
+          <TabBar tabs={tabs} active={guestTab} onSelect={switchTab} />
         </>
       )
     }

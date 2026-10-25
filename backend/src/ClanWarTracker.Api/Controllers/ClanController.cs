@@ -20,6 +20,7 @@ public class ClanController(
     GetRaceScoutUseCase getScout,
     GetScoutPlusUseCase getScoutPlus,
     GetClanHqUseCase getHq,
+    ClanAiUseCase clanAi,
     GetClanHistoryUseCase getHistory,
     GetSeasonStatsUseCase getSeason,
     GetSeasonBreakdownUseCase getSeasonBreakdown,
@@ -495,20 +496,68 @@ public class ClanController(
         if (error is not null) return error;
         if (!await IsClanProAsync(clan!, ct)) return StatusCode(403, new { error = "not_pro" });
 
-        if (Acting is null && !IsOwner((long)HttpContext.Items["TelegramUserId"]!))
-        {
-            var sponsor = player!.ClanId == clan!.Id && player.IsSponsor(DateTime.UtcNow);
-            string? role = null;
-            try { role = await crApi.GetPlayerClanRoleAsync(clan.ClanTag, player.PlayerTag, ct); }
-            catch { /* роль не узнали - пустим только спонсора */ }
-            if (!sponsor && role is not ("leader" or "coLeader")) return StatusCode(403, new { error = "not_leader" });
-        }
+        if (!await CanSeeHqAsync(player!, clan!, ct)) return StatusCode(403, new { error = "not_leader" });
 
         try { return Ok(await getHq.ExecuteAsync(clan!, ct)); }
         catch (HttpRequestException ex) when ((int)(ex.StatusCode ?? 0) is >= 500 or 429)
             { return StatusCode(503, new { error = "cr_api_unavailable", message = ex.Message }); }
         catch (InvalidOperationException ex) when (ex.Message.Contains("CR API"))
             { return StatusCode(503, new { error = "cr_api_token_invalid", message = ex.Message }); }
+    }
+
+    /// <summary>
+    /// GET /api/clans/my/scoutplus/brief?tag=…&amp;lang=ru&amp;tz=180 — сводка разведчика от нейросети
+    /// по сопернику. 204 - нейросеть не подключена или нечего сказать.
+    /// </summary>
+    [HttpGet("my/scoutplus/brief")]
+    public async Task<IActionResult> GetScoutBrief([FromQuery] string tag, [FromQuery] string? lang, [FromQuery] int tz, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(tag) || tag.Length > 16) return BadRequest(new { error = "bad_tag" });
+        var (_, clan, error) = await ResolvePlayerClanAsync(ct);
+        if (error is not null) return error;
+        if (!await IsClanProAsync(clan!, ct)) return StatusCode(403, new { error = "not_pro" });
+        if (!clanAi.Enabled) return StatusCode(503, new { error = "ai_off" });
+
+        var text = await clanAi.ScoutBriefAsync(clan!, tag.Trim(), PlusController.AiLang(lang), Math.Clamp(tz, -720, 840), ct);
+        return text is null ? NoContent() : Ok(text);
+    }
+
+    /// <summary>GET /api/clans/my/hq/brief?lang=ru — сводка штаба от нейросети.</summary>
+    [HttpGet("my/hq/brief")]
+    public async Task<IActionResult> GetHqBrief([FromQuery] string? lang, CancellationToken ct)
+    {
+        var (player, clan, error) = await ResolvePlayerClanAsync(ct);
+        if (error is not null) return error;
+        if (!await IsClanProAsync(clan!, ct)) return StatusCode(403, new { error = "not_pro" });
+        if (!await CanSeeHqAsync(player!, clan!, ct)) return StatusCode(403, new { error = "not_leader" });
+        if (!clanAi.Enabled) return StatusCode(503, new { error = "ai_off" });
+
+        var text = await clanAi.HqBriefAsync(clan!, PlusController.AiLang(lang), ct);
+        return text is null ? NoContent() : Ok(text);
+    }
+
+    /// <summary>GET /api/clans/my/hq/talk?tag=…&amp;lang=ru — черновик сообщения главы игроку.</summary>
+    [HttpGet("my/hq/talk")]
+    public async Task<IActionResult> GetHqTalk([FromQuery] string tag, [FromQuery] string? lang, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(tag) || tag.Length > 16) return BadRequest(new { error = "bad_tag" });
+        var (player, clan, error) = await ResolvePlayerClanAsync(ct);
+        if (error is not null) return error;
+        if (!await IsClanProAsync(clan!, ct)) return StatusCode(403, new { error = "not_pro" });
+        if (!await CanSeeHqAsync(player!, clan!, ct)) return StatusCode(403, new { error = "not_leader" });
+        if (!clanAi.Enabled) return StatusCode(503, new { error = "ai_off" });
+
+        var text = await clanAi.PlayerTalkAsync(clan!, tag.Trim(), PlusController.AiLang(lang), ct);
+        return text is null ? NoContent() : Ok(text);
+    }
+
+    /// <summary>Штаб видят глава, замы и спонсор клана; владелец и зашедший из панели - всегда.</summary>
+    private async Task<bool> CanSeeHqAsync(Player player, Clan clan, CancellationToken ct)
+    {
+        if (Acting is not null || IsOwner((long)HttpContext.Items["TelegramUserId"]!)) return true;
+        if (player.ClanId == clan.Id && player.IsSponsor(DateTime.UtcNow)) return true;
+        try { return await crApi.GetPlayerClanRoleAsync(clan.ClanTag, player.PlayerTag, ct) is "leader" or "coLeader"; }
+        catch { return false; }
     }
 
     /// <summary>

@@ -24,6 +24,8 @@ import './styles/ui-halloween.css'
 import './styles/ui-feedback.css'
 import './styles/ui-dashboard.css'
 import './styles/ui-clanpro.css'
+import './styles/ui-modes.css'
+import './styles/ui-ai.css'
 
 initTelegram()
 

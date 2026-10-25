@@ -1,0 +1,87 @@
+/* Тексты нейросети: сводки разведчика и штаба, черновик сообщения, слово тренера. */
+
+.ai-ask {
+  display: flex; align-items: center; gap: 10px; width: 100%; margin: 10px 0 2px; padding: 10px 12px;
+  border-radius: 14px; cursor: pointer; text-align: left; color: var(--text); font: inherit;
+  background: linear-gradient(135deg, rgba(156, 107, 255, 0.16), rgba(63, 198, 242, 0.08));
+  border: 1px solid rgba(156, 107, 255, 0.35);
+  transition: transform 0.1s ease, border-color 0.15s ease;
+}
+.ai-ask:active { transform: scale(0.985); }
+.ai-ask-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ai-ask-text b { font-size: 14px; }
+.ai-err { color: #ff8a84; }
+.ai-spark {
+  flex: 0 0 auto; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 11px; color: #fff;
+  background: var(--ui-grad, linear-gradient(135deg, #9c6bff, #3fc6f2));
+  box-shadow: 0 4px 14px rgba(91, 140, 255, 0.35);
+}
+.ai-ask-compact { margin: 8px 0 0; padding: 6px 10px; border-radius: 11px; width: auto; display: inline-flex; }
+.ai-ask-compact .ai-spark { width: 22px; height: 22px; border-radius: 7px; box-shadow: none; }
+.ai-ask-compact b { font-size: 12.5px; }
+
+.ai-badge {
+  display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px; border-radius: var(--r-chip);
+  font-size: 10px; font-weight: 800; letter-spacing: 0.04em; color: #fff;
+  background: var(--ui-grad, linear-gradient(135deg, #9c6bff, #3fc6f2));
+}
+
+.ai-box {
+  position: relative; margin: 10px 0 2px; padding: 11px 12px; border-radius: 14px;
+  background: linear-gradient(180deg, rgba(156, 107, 255, 0.10), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(156, 107, 255, 0.28);
+}
+.ai-box-compact { margin-top: 8px; padding: 9px 10px; }
+.ai-box-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.ai-line {
+  margin: 0 0 6px; font-size: 13.5px; line-height: 1.45;
+  animation: ai-in 0.4s ease-out both;
+}
+.ai-line:last-child { margin-bottom: 0; }
+@keyframes ai-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.ai-box-draft { background: rgba(255, 255, 255, 0.04); border-style: dashed; }
+.ai-draft { margin: 0 0 8px; font-size: 13.5px; line-height: 1.45; white-space: pre-wrap; user-select: text; -webkit-user-select: text; }
+.ai-copy { padding: 6px 10px; font-size: 12px; }
+
+.ai-box-loading { display: flex; align-items: center; gap: 8px; }
+.ai-dots { display: inline-flex; gap: 4px; }
+.ai-dots i {
+  width: 7px; height: 7px; border-radius: 50%; background: #9c6bff; display: block;
+  animation: ai-dot 1s ease-in-out infinite;
+}
+.ai-dots i:nth-child(2) { animation-delay: 0.15s; background: #6f8cff; }
+.ai-dots i:nth-child(3) { animation-delay: 0.3s; background: #3fc6f2; }
+@keyframes ai-dot { 0%, 100% { transform: translateY(0); opacity: 0.5; } 50% { transform: translateY(-4px); opacity: 1; } }
+
+/* «Тренер подобрал задачи» */
+.tp-card { border: 1px solid rgba(156, 107, 255, 0.25); }
+.tp-head { display: flex; align-items: center; gap: 10px; }
+.tp-head > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.tp-icon {
+  flex: 0 0 36px; height: 36px; display: grid; place-items: center; border-radius: 12px; color: #fff;
+  background: linear-gradient(135deg, #ff7a24, #ff3d6e);
+}
+.tp-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+.tp-item {
+  display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 9px 4px 8px;
+  border-radius: 13px; cursor: pointer; color: var(--text); font: inherit;
+  background: rgba(255, 255, 255, 0.05); border: 1px solid var(--line);
+}
+.tp-item:active:not(:disabled) { transform: scale(0.97); }
+.tp-art { width: 44px; height: 52px; display: grid; place-items: center; }
+.tp-art img { width: 100%; height: 100%; object-fit: contain; }
+.tp-name { font-size: 12px; font-weight: 700; text-align: center; line-height: 1.15; }
+.tp-win { font-size: 11px; font-weight: 800; color: #ff8a65; }
+.tp-go {
+  display: inline-flex; align-items: center; gap: 3px; margin-top: 3px; padding: 3px 8px; border-radius: var(--r-chip);
+  font-size: 11px; font-weight: 800; color: #fff; background: var(--ui-grad, #7b5cff);
+}
+.tp-locked {
+  display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; margin-top: 10px; padding: 9px;
+  border-radius: 12px; border: 1px dashed rgba(156, 107, 255, 0.45); cursor: pointer;
+  background: rgba(156, 107, 255, 0.08); color: #d4c2ff; font: inherit; font-size: 12.5px; font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-line, .ai-dots i { animation: none; }
+}
