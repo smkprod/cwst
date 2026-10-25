@@ -362,7 +362,11 @@ export function Pill({ x, y, text, tone }: { x: number; y: number; text: string;
 }
 
 /** Големит - кусок Голема: своей карты нет, берём арт Голема. */
-const ART_OF: Record<string, string> = { Golemite: 'Golem' }
+const ART_OF: Record<string, string> = {
+  Golemite: 'Golem', 'Hero Turret': 'Cannon',
+  // Арт Героя может не прийти (старый каталог) - тогда обычная карта
+  'Hero Knight': 'Knight', 'Hero Giant': 'Giant', 'Hero Musketeer': 'Musketeer', 'Hero Mini P.E.K.K.A': 'Mini P.E.K.K.A',
+}
 
 export const artFor = (art: Record<string, string>, card: string) => art[card] ?? art[ART_OF[card] ?? '']
 

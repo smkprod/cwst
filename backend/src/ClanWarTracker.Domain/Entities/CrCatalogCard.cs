@@ -21,6 +21,9 @@ public class CrCatalogCard
     public string IconUrl { get; set; } = "";
     public string? EvoIconUrl { get; set; }
 
+    /// <summary>Арт Героя этой карты; null - Героя у карты нет.</summary>
+    public string? HeroIconUrl { get; set; }
+
     /// <summary>&gt;0 — у карты вообще существует эволюция.</summary>
     public int MaxEvolutionLevel { get; set; }
 }

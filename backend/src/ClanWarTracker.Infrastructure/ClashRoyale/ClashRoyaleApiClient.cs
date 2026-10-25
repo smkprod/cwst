@@ -494,6 +494,7 @@ public class ClashRoyaleApiClient(HttpClient http, IMemoryCache cache) : IClashR
                         Rarity = g.First().Rarity ?? "",
                         IconUrl = CardIcon(g.First().IconUrls),
                         EvoIconUrl = g.First().IconUrls?.EvolutionMedium,
+                        HeroIconUrl = g.First().IconUrls?.HeroMedium,
                         MaxEvolutionLevel = g.First().MaxEvolutionLevel,
                     },
                     StringComparer.OrdinalIgnoreCase);

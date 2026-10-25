@@ -9,7 +9,11 @@ let cache: Promise<Record<string, string>> | null = null
 
 function load(): Promise<Record<string, string>> {
   cache ??= api.builderCards()
-    .then(cards => Object.fromEntries(cards.map(c => [c.name, c.baseIconUrl || c.iconUrl])))
+    // Герой лежит под именем «Hero …» - как карта в тренажёре
+    .then(cards => Object.fromEntries(cards.flatMap(c => [
+      [c.name, c.baseIconUrl || c.iconUrl] as [string, string],
+      ...(c.heroIconUrl ? [[`Hero ${c.name}`, c.heroIconUrl] as [string, string]] : []),
+    ])))
     .catch(() => { cache = null; return {} })
   return cache
 }

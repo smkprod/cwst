@@ -1,4 +1,5 @@
 import { COST, SPELLS, TOWER_STATS, UNITS, type UnitStats } from './stats'
+import { HEROES, LEVEL_STEP, TURRET } from './heroes'
 
 /**
  * Движок боя для тренажёра: свой маленький Clash Royale на характеристиках из игры
@@ -14,6 +15,8 @@ import { COST, SPELLS, TOWER_STATS, UNITS, type UnitStats } from './stats'
  * Голем распадается на големитов; бревно катится и отбрасывает; огненный шар летит
  * от короля и бьёт по площади; бочка летит и выпускает гоблинов; торнадо тянет
  * чужие войска к центру и будит своего короля, если затянуть врага в его радиус.
+ * Герои: способность за эликсир по кнопке - насмешка со щитом, бросок в другую
+ * линию, турель, блины Мини-ПЕККА (цифры и источники - в heroes.ts).
  *
  * Чего нет: точного обхода препятствий, разворотов, анимаций замаха из игры - юниты
  * считаются кругами со своим радиусом.
@@ -54,6 +57,23 @@ export interface Entity {
   /** До какой секунды заморожен (Ледяной дух): ни шага, ни удара. */
   frozenUntil: number
   tunnel?: { fx: number; fy: number; t: number; dur: number }
+  /** Щит Героя Рыцаря: принимает урон раньше здоровья. */
+  shield: number
+  shieldMax: number
+  /** Насмешка: бьёт только этого врага до forcedUntil. */
+  forced?: Entity
+  forcedUntil: number
+  /** Брошен Героем Гигантом: летит поперёк поля, при падении - урон и оглушение. */
+  thrown?: { fx: number; fy: number; tx: number; ty: number; t: number; dur: number; dmg: number; stun: number }
+  /** Способность Героя: готова, кастуется, ждёт цель (бросок), использована. */
+  ability?: 'ready' | 'casting' | 'waiting' | 'used'
+  castAt: number
+  /** Когда сработала способность - для вспышки и ауры насмешки. */
+  abilityAt: number
+  /** Блины Героя Мини-ПЕККА: 0..3 полосы. */
+  pancake: number
+  /** Множитель урона от прокачки уровнем (блины). */
+  mult: number
 }
 
 export type ProjectileKind = 'arrow' | 'bullet' | 'cannonball' | 'bolt' | 'shell' | 'ice' | 'fireball' | 'barrel' | 'king'
@@ -139,6 +159,8 @@ export class Sim {
     return {
       id: this.nextId++, team, card, s, kind, slot, x, y, hp: s.hp, maxHp: s.hp, deploy, deploy0: deploy, born: this.t,
       moving: false, cooldown: 0, target: null, locked: false, alive: true, active: slot !== 'K', sinceHit: 9, sinceHurt: 9, dashCd: 0, frozenUntil: 0,
+      shield: 0, shieldMax: 0, forcedUntil: 0, castAt: 0, abilityAt: -9, pancake: 0, mult: 1,
+      ability: HEROES[card] ? 'ready' : undefined,
     }
   }
 
@@ -148,6 +170,88 @@ export class Sim {
 
   /** Запланировать постановку карты (сценарий соперника). */
   schedule(p: Pending) { this.pending.push(p) }
+
+  /**
+   * Способность Героя по кнопке: false - не Герой, уже использована или не хватает
+   * эликсира. Срабатывает после времени каста, как в игре.
+   */
+  useAbility(e: Entity): boolean {
+    const h = HEROES[e.card]
+    if (!h || !e.alive || e.ability !== 'ready' || e.deploy > 0) return false
+    if (this.elixir[e.team] < h.cost - 1e-6) return false
+    this.elixir[e.team] -= h.cost
+    this.spent[e.team] += h.cost
+    e.ability = 'casting'
+    e.castAt = this.t + h.cast
+    return true
+  }
+
+  /** Герои стороны, у которых способность ещё не нажата. */
+  heroesReady(team: Team): Entity[] {
+    return this.entities.filter(e => e.alive && e.team === team && e.ability === 'ready' && e.deploy <= 0)
+  }
+
+  private heroTick(e: Entity, dt: number) {
+    const h = HEROES[e.card]
+    if (!h) return
+    if (h.kind === 'boost' && e.ability === 'ready') e.pancake = Math.min(3, e.pancake + dt / h.cook)
+    if (e.ability === 'casting' && this.t >= e.castAt - 1e-6) {
+      e.abilityAt = this.t
+      if (h.kind === 'taunt') {
+        e.shield = e.shieldMax = h.shield
+        const until = this.t + h.duration
+        for (const c of this.entities) {
+          if (!c.alive || c.team === e.team || c.tunnel) continue
+          // Кто бьёт только здания, насмешку не слышит; башни и здания - слышат
+          if (c.kind === 'troop' && c.s.buildingsOnly) continue
+          if (Math.hypot(c.x - e.x, c.y - e.y) - c.s.radius > h.radius) continue
+          if (!this.canHit(c, e)) continue
+          c.forced = e
+          c.forcedUntil = until
+          c.target = e
+          c.locked = false
+        }
+        this.effects.push({ id: this.nextId++, kind: 'slam', x: e.x, y: e.y, t: this.t, dur: 0.7, r: h.radius })
+        e.ability = 'used'
+      } else if (h.kind === 'hurl') {
+        e.ability = 'waiting'
+      } else if (h.kind === 'turret') {
+        const dir = e.team === 'me' ? -1 : 1
+        const ty = e.y + dir * h.forward
+        const turret = this.make(e.team, 'Hero Turret', TURRET, 'building', e.x, ty, TURRET.deploy)
+        this.entities.push(turret)
+        this.areaDamage(null, e.x, ty, h.deployRadius, h.deployDmg, true, false, 'slam', e.team, 0, 'Hero Musketeer')
+        e.ability = 'used'
+      } else if (h.kind === 'boost') {
+        const bars = Math.min(3, Math.floor(e.pancake + 1e-6))
+        const m = Math.pow(LEVEL_STEP, h.levels[bars])
+        e.maxHp *= m
+        e.hp *= m
+        e.hp += (e.maxHp - e.hp) * h.heal
+        e.mult = m
+        this.effects.push({ id: this.nextId++, kind: 'heal', x: e.x, y: e.y, t: this.t, dur: 0.9, text: `+${h.levels[bars]}` })
+        e.ability = 'used'
+      }
+    }
+    // Бросок ждёт, пока рядом окажется враг: хватает самого живучего
+    if (e.ability === 'waiting' && h.kind === 'hurl') {
+      let best: Entity | null = null
+      for (const c of this.entities) {
+        if (!c.alive || c.team === e.team || c.kind !== 'troop' || c.tunnel || c.thrown) continue
+        if (Math.hypot(c.x - e.x, c.y - e.y) - c.s.radius - e.s.radius > h.radius) continue
+        if (!best || c.hp > best.hp) best = c
+      }
+      if (best) {
+        const tx = Math.min(17.5, Math.max(0.5, best.x < 9 ? best.x + h.distance : best.x - h.distance))
+        best.thrown = { fx: best.x, fy: best.y, tx, ty: best.y, t: 0, dur: h.flight, dmg: best.s.flying ? 0 : h.dmg, stun: h.stun }
+        best.target = null
+        best.locked = false
+        best.dash = undefined
+        e.abilityAt = this.t
+        e.ability = 'used'
+      }
+    }
+  }
 
   /** Поставить карту сейчас. Возвращает false, если сюда её не поставить. */
   play(team: Team, card: string, x: number, y: number): boolean {
@@ -227,11 +331,26 @@ export class Sim {
         e.tunnel.t += dt
         if (e.tunnel.t >= e.tunnel.dur) { e.tunnel = undefined } else continue
       }
+      if (e.thrown) {
+        const th = e.thrown
+        th.t += dt
+        const k = Math.min(1, th.t / th.dur)
+        e.x = th.fx + (th.tx - th.fx) * k
+        e.y = th.fy + (th.ty - th.fy) * k
+        if (k >= 1) {
+          e.thrown = undefined
+          if (th.dmg > 0) this.damage(e, th.dmg, 0, e.team === 'me' ? 'enemy' : 'me', 'Hero Giant')
+          e.frozenUntil = Math.max(e.frozenUntil, this.t + th.stun)
+          this.effects.push({ id: this.nextId++, kind: 'slam', x: e.x, y: e.y, t: this.t, dur: 0.5, r: 1.2 })
+        }
+        continue
+      }
       if (e.deploy > 0) {
         e.deploy -= dt
         if (e.deploy <= 0 && e.s.dashDmg) this.areaDamage(e, e.x, e.y, e.s.dashRadius ?? 2, e.s.dashDmg, true, false, 'slam')
         continue
       }
+      if (e.ability) this.heroTick(e, dt)
       if (e.kind === 'building' && e.s.lifetime > 0) {
         e.hp -= (e.maxHp / e.s.lifetime) * dt
         if (e.hp <= 0) { this.kill(e); continue }
@@ -276,8 +395,13 @@ export class Sim {
     }
     e.dashCd = Math.max(0, e.dashCd - dt)
 
+    // Насмешка Героя Рыцаря: пока она идёт, цель одна - он
+    if (e.forced) {
+      if (e.forced.alive && e.forcedUntil > this.t) { if (e.target !== e.forced) { e.target = e.forced; e.locked = false } }
+      else { e.forced = undefined; e.target = null; e.locked = false }
+    }
     // Цель: пока не начал бить - ближайшая в обзоре (так работают отвлечения)
-    if (!e.target || !e.target.alive || (!e.locked && e.kind !== 'tower')) {
+    if (e.forced) { /* цель уже назначена насмешкой */ } else if (!e.target || !e.target.alive || (!e.locked && e.kind !== 'tower')) {
       const prev = e.target
       e.target = this.acquire(e)
       if (e.target !== prev) e.locked = false
@@ -318,16 +442,19 @@ export class Sim {
       const kind: ProjectileKind = e.kind === 'tower' ? (e.slot === 'K' ? 'king' : 'arrow')
         : e.card === 'Cannon' ? 'cannonball' : e.card === 'X-Bow' ? 'bolt' : e.card === 'Mortar' ? 'shell' : e.s.freeze ? 'ice' : 'bullet'
       const shot = this.proj(e.team, e.card, kind, e.x, e.y - (e.kind === 'tower' ? 0.6 : 0), t, t.x, t.y,
-        e.s.projSpeed || 10, e.s.dmg, e.s.splash, e.s.crownPct, e.s.air, e.s.ground)
+        e.s.projSpeed || 10, e.s.dmg * e.mult, e.s.splash, e.s.crownPct, e.s.air, e.s.ground)
       if (e.s.freeze) shot.freeze = e.s.freeze
       this.projectiles.push(shot)
       // Ледяной дух бросается сам - после броска его нет
       if (e.s.kamikaze) this.kill(e)
     } else if (e.s.splash > 0) {
-      this.areaDamage(e, t.x, t.y, e.s.splash, e.s.dmg, e.s.ground, e.s.air)
+      this.areaDamage(e, t.x, t.y, e.s.splash, e.s.dmg * e.mult, e.s.ground, e.s.air)
     } else {
-      this.damage(t, e.s.dmg, e.s.crownPct, e.team, e.card)
+      this.damage(t, e.s.dmg * e.mult, e.s.crownPct, e.team, e.card)
     }
+    // Блины Героя Мини-ПЕККА: каждый удар добавляет к полосе
+    const h = HEROES[e.card]
+    if (h?.kind === 'boost' && e.ability === 'ready') e.pancake = Math.min(3, e.pancake + h.perHit)
   }
 
   private acquire(e: Entity): Entity | null {
@@ -499,7 +626,16 @@ export class Sim {
 
   private damage(e: Entity, dmg: number, crownPct: number, from: Team, card: string) {
     if (!e.alive) return
-    const real = Math.round(e.kind === 'tower' && crownPct ? dmg * (1 + crownPct / 100) : dmg)
+    let real = Math.round(e.kind === 'tower' && crownPct ? dmg * (1 + crownPct / 100) : dmg)
+    if (e.shield > 0) {
+      const took = Math.min(e.shield, real)
+      e.shield -= took
+      real -= took
+      e.sinceHurt = 0
+      const key0 = `${from}:${card}`
+      this.dealt[key0] = (this.dealt[key0] ?? 0) + took
+      if (real <= 0) return
+    }
     const key = `${from}:${card}`
     this.dealt[key] = (this.dealt[key] ?? 0) + Math.min(real, e.hp)
     e.hp -= real

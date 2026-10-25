@@ -29,4 +29,4 @@ export const EMOJI: Record<string, string> = {
   'Tesla': '⚡',
 }
 
-export const emojiOf = (card: string) => EMOJI[card] ?? '⚔️'
+export const emojiOf = (card: string) => EMOJI[card] ?? EMOJI[card.replace(/^Hero /, '')] ?? (card === 'Hero Turret' ? '🔫' : '⚔️')

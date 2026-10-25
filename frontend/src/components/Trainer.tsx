@@ -13,8 +13,10 @@ import { canDeploy, sideOf, type Entity, type Sim } from '../lib/sim/engine'
 import { emojiOf } from '../lib/sim/emoji'
 import { TOWER_STATS } from '../lib/sim/stats'
 import emblem from '../assets/clanify-emblem.webp'
-import { Watch, atPause, baseline, introSim, isAttack, judge, pauseTime, playMine, type Outcome } from '../lib/sim/scenario'
+import { Watch, atPause, baseline, introSim, isAttack, judge, myHero, pauseTime, playMine, type Outcome } from '../lib/sim/scenario'
+import { HEROES } from '../lib/sim/heroes'
 import { ArenaSim, type SimGhost } from './ArenaSim'
+import { artFor } from './ArenaAnim'
 import { Sandbox } from './Sandbox'
 import { GameIcon } from './GameIcon'
 import { Icon } from './ui/Icon'
@@ -148,11 +150,12 @@ export function TrainerView() {
 }
 
 /** Порядок разделов в списке задач: от основ к приёмам и атаке. */
-const CATS: PuzzleCat[] = ['defense', 'cheap', 'king', 'attack']
+const CATS: PuzzleCat[] = ['defense', 'cheap', 'king', 'hero', 'attack']
 
 function TargetArt({ card }: { card: string }) {
   const art = useCardArt()
-  return <span className="tr-art">{art[card] ? <img src={art[card]} alt="" /> : <span className="tr-emoji">{emojiOf(card)}</span>}</span>
+  const src = artFor(art, card)
+  return <span className={`tr-art ${HEROES[card] ? 'tr-art-hero' : ''}`}>{src ? <img src={src} alt="" /> : <span className="tr-emoji">{emojiOf(card)}</span>}</span>
 }
 
 function Stars({ n }: { n: number }) {
@@ -222,7 +225,10 @@ function TrainerGame({ puzzle, daily, locked, details, onDetails, onPlus, onExit
   const [outcome, setOutcome] = useState<Outcome | null>(null)
   const [demoNote, setDemoNote] = useState<string | null>(null)
   const [lines, setLines] = useState<string[]>([])
-  const battle = useRef<{ watch: Watch; mine: Entity[]; card: string } | null>(null)
+  const battle = useRef<{ watch: Watch; mine: Entity[]; card: string; t0: number; pressed: boolean } | null>(null)
+  // Показ решения нажал способность Героя - коротко подписать это на поле
+  const [flash, setFlash] = useState<string | null>(null)
+  const hasHero = Boolean(puzzle.abilityOnly || puzzle.hand.some(c => HEROES[c]))
   const resultRef = useRef<HTMLDivElement>(null)
   const demo = DEMO.has(phase)
   const sol = puzzle.solution
@@ -242,7 +248,7 @@ function TrainerGame({ puzzle, daily, locked, details, onDetails, onPlus, onExit
 
   const restart = (next: Phase) => {
     battle.current = null
-    setPhase(next); setCard(null); setGhost(null); setHint(null); setOutcome(null); setLines([]); setDemoNote(null)
+    setPhase(next); setCard(null); setGhost(null); setHint(null); setOutcome(null); setLines([]); setDemoNote(null); setFlash(null)
     setRound(r => r + 1)
   }
   const play = () => { haptic('medium'); restart('intro') }
@@ -277,11 +283,21 @@ function TrainerGame({ puzzle, daily, locked, details, onDetails, onPlus, onExit
     hapticNotify('success')
   }
 
+  /** Бой без своего хода картой: Герой уже на поле, ход - нажать способность. */
+  const startFight = (next: Phase) => {
+    battle.current = { watch: new Watch(sc, sim), mine: [], card: '', t0: sim.t, pressed: false }
+    setPhase(next)
+  }
+
   const onTick = (sim: Sim): boolean => {
     if (phase === 'intro' || phase === 'demo-intro') {
       if (!atPause(sc, sim, at)) return false
       if (phase === 'intro') {
         setPhase('choose')
+      } else if (puzzle.abilityOnly) {
+        // Показ задачи на способность: бой сразу идёт дальше, кнопку нажмёт показ
+        startFight('demo-battle')
+        return false
       } else {
         // Подсветить эталонный ход: карта в руке и клетка на поле
         setCard(sol.card)
@@ -291,9 +307,20 @@ function TrainerGame({ puzzle, daily, locked, details, onDetails, onPlus, onExit
       haptic('medium')
       return true
     }
-    if ((phase === 'battle' || phase === 'demo-battle') && battle.current?.watch.done(sim)) {
-      if (phase === 'battle') finish(sim); else finishDemo(sim)
-      return true
+    const b = battle.current
+    if ((phase === 'battle' || phase === 'demo-battle') && b) {
+      if (phase === 'demo-battle' && sol.ability !== undefined && !b.pressed && sim.t >= b.t0 + sol.ability - 1e-6) {
+        const h = myHero(sim)
+        if (h && h.ability === 'ready' && sim.useAbility(h)) {
+          b.pressed = true
+          setFlash(s.demoAbility.replace('{name}', s.abilities[HEROES[h.card].kind]))
+          haptic('heavy')
+        }
+      }
+      if (b.watch.done(sim)) {
+        if (phase === 'battle') finish(sim); else finishDemo(sim)
+        return true
+      }
     }
     return false
   }
@@ -301,7 +328,7 @@ function TrainerGame({ puzzle, daily, locked, details, onDetails, onPlus, onExit
   const place = (c: string, x: number, y: number, next: Phase = 'battle') => {
     const mine = playMine(sim, c, x, y)
     if (!mine) return
-    battle.current = { watch: new Watch(sc, sim), mine, card: c }
+    battle.current = { watch: new Watch(sc, sim), mine, card: c, t0: sim.t, pressed: false }
     setGhost(null)
     setPhase(next)
     haptic('heavy')
@@ -356,18 +383,25 @@ function TrainerGame({ puzzle, daily, locked, details, onDetails, onPlus, onExit
             ghostLabel={phase === 'demo-show' ? s.demoHere.replace('{card}', n(sol.card)) : undefined}
             camp={{ name: s.campName, clan: s.campClan, you: s.you }} details={details} />
           {demo && phase !== 'demo-done' && <div className="tr-turn tr-turn-demo">🎬 {locked ? s.lockedDemo : s.demo}</div>}
-          {phase === 'choose' && !ghost?.ok && (
+          {phase === 'choose' && puzzle.abilityOnly && (
+            <>
+              <div className="tr-turn">{s.abilityTask}</div>
+              <button className="tr-place" onClick={() => { haptic('heavy'); startFight('battle') }}>⚔️ {s.startBattle}</button>
+            </>
+          )}
+          {phase === 'choose' && !puzzle.abilityOnly && !ghost?.ok && (
             <div className={`tr-turn ${hint && ghost ? 'tr-turn-bad' : ''}`}>
               {hint ?? (card ? (kind === 'spell' ? s.pickSpell : s.pickTile) : `${s.yourTurn} · ${s.pickCard}`)}
             </div>
           )}
+          {flash && (phase === 'demo-battle' || phase === 'demo-done') && <div className="tr-flash fade-up">⚡ {flash}</div>}
           {running && (
             <button className={`tr-speed ${fast ? 'tr-speed-on' : ''}`} onClick={toggleFast}>⏩ {fast ? '×2.5' : '×1'}</button>
           )}
           {demo && phase !== 'demo-done' && !locked && <button className="tr-skip" onClick={play}>{s.skip} ›</button>}
           {phase === 'choose' && ghost?.ok && card && (
             <button className="tr-place" onClick={() => place(card, ghost.x, ghost.y)}>
-              {art[card] ? <img className="tr-place-art" src={art[card]} alt="" /> : emojiOf(card)} {s.place}
+              {artFor(art, card) ? <img className="tr-place-art" src={artFor(art, card)} alt="" /> : emojiOf(card)} {s.place}
             </button>
           )}
           {phase === 'demo-done' && (
@@ -382,13 +416,14 @@ function TrainerGame({ puzzle, daily, locked, details, onDetails, onPlus, onExit
         </div>
 
         <div className="tr-tray">
-          <div className="tr-hand">
+          {hasHero && <AbilityBar sim={sim} active={phase === 'battle'} />}
+          {puzzle.hand.length > 0 && <div className="tr-hand">
             {puzzle.hand.map(c => {
               const info = cardInfo(c)
               const tooDear = info.cost > sc.elixir
               const shown = demo && c === sol.card && (phase === 'demo-show' || phase === 'demo-done')
               return (
-                <button key={c} className={`tr-card ${card === c && !demo ? 'tr-card-on' : ''} ${shown ? 'tr-card-demo' : ''}`}
+                <button key={c} className={`tr-card ${card === c && !demo ? 'tr-card-on' : ''} ${shown ? 'tr-card-demo' : ''} ${HEROES[c] ? 'tr-card-hero' : ''}`}
                   disabled={phase !== 'choose' || tooDear}
                   onClick={() => {
                     haptic('light')
@@ -396,13 +431,13 @@ function TrainerGame({ puzzle, daily, locked, details, onDetails, onPlus, onExit
                     setGhost(g => (g ? { ...g, card: c, ...snap(c, g.x, g.y), ok: canDeploy('me', c, snap(c, g.x, g.y).x, snap(c, g.x, g.y).y) } : null))
                     setHint(info.kind === 'spell' ? s.pickSpell : s.pickTile)
                   }}>
-                  <span className="tr-card-art">{art[c] ? <img src={art[c]} alt="" /> : <span className="tr-emoji">{emojiOf(c)}</span>}</span>
+                  <span className="tr-card-art">{artFor(art, c) ? <img src={artFor(art, c)} alt="" /> : <span className="tr-emoji">{emojiOf(c)}</span>}</span>
                   <span className="tr-cost">{info.cost}</span>
                   <small>{n(c)}</small>
                 </button>
               )
             })}
-          </div>
+          </div>}
           <ElixirBar sim={sim} max={s.max} />
         </div>
       </div>
@@ -469,6 +504,41 @@ function celebrate() {
       confetti({ ...base, particleCount: 45, angle: 120, spread: 55, origin: { x: 1, y: 0.8 } })
     }, 220)
   }).catch(() => { /* без салюта - не страшно */ })
+}
+
+/**
+ * Кнопка способности Героя: появляется, когда свой Герой на поле. Нажать можно один
+ * раз за выход, если хватает эликсира; дальше показывает, что со способностью сейчас.
+ */
+function AbilityBar({ sim, active }: { sim: Sim; active: boolean }) {
+  const { t } = useT()
+  const s = t.trainer
+  const art = useCardArt()
+  const [, tick] = useState(0)
+  useEffect(() => {
+    const id = window.setInterval(() => tick(v => v + 1), 100)
+    return () => window.clearInterval(id)
+  }, [sim])
+  const hero = sim.entities.find(e => e.alive && e.team === 'me' && e.ability !== undefined)
+  // Был на поле и пропал - погиб; ещё не появлялся - выходит
+  const seen = useRef<Sim | null>(null)
+  if (hero) seen.current = sim
+  if (!hero) return <div className="tr-ability tr-ability-wait"><small>{seen.current === sim ? s.abilityDead : s.abilityWait}</small></div>
+  const h = HEROES[hero.card]
+  const state = hero.deploy > 0 ? null : hero.ability ?? 'used'
+  const can = active && state === 'ready' && sim.elixir.me >= h.cost - 1e-6
+  const src = artFor(art, hero.card)
+  return (
+    <button className={`tr-ability ${can ? 'on' : ''} tr-ability-${state ?? 'deploy'}`} disabled={!can}
+      onClick={() => { if (sim.useAbility(hero)) hapticNotify('success') }}>
+      <span className="tr-ability-art">{src ? <img src={src} alt="" /> : emojiOf(hero.card)}</span>
+      <span className="tr-ability-text">
+        <b>⚡ {s.abilities[h.kind]}</b>
+        <small>{state === null ? s.abilityWait : state === 'ready' ? (active ? s.abilityState.ready : '') : s.abilityState[state]}</small>
+      </span>
+      <span className="tr-ability-cost">{h.cost}</span>
+    </button>
+  )
 }
 
 /** Эликсир из боя: копится по 1 за 2,8 секунды, как в игре. */

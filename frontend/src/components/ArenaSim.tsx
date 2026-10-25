@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { DT, TOWER_SIZE, type Entity, type Projectile, type Sim } from '../lib/sim/engine'
 import { SPELLS, UNITS } from '../lib/sim/stats'
+import { HEROES, type Taunt } from '../lib/sim/heroes'
 import { useCardArt } from '../lib/cardArt'
 import {
   ArenaDefs, ArenaGround, BarrelIcon, BombIcon, Burst, FireballIcon, H, Medallion, Pill, TILE, TILE_H, TornadoSwirl, TowerArt, UnitArt,
@@ -111,7 +112,7 @@ export function ArenaSim({ sim, running, speed = 1, onTick, onTap, ghost, ghostL
     }
   }
   const unit = (e: Entity) => (
-    <Unit key={e.id} e={e} clock={clock} g={g} art={artFor(art, e.card)} label={labeled.has(e.id) ? names?.(e.card) : undefined} />
+    <Unit key={e.id} e={e} clock={clock} now={sim.t} g={g} art={artFor(art, e.card)} label={labeled.has(e.id) ? names?.(e.card) : undefined} />
   )
 
   return (
@@ -133,6 +134,15 @@ export function ArenaSim({ sim, running, speed = 1, onTick, onTap, ghost, ghostL
       ))}
 
       {sim.bombs.map(b => <Bomb key={b.id} b={b} now={sim.t} clock={clock} />)}
+      {/* Насмешка Героя Рыцаря: золотой круг, пока враги рядом обязаны бить его */}
+      {units.filter(e => e.card === 'Hero Knight' && sim.t - e.abilityAt < TAUNT_DUR).map(e => {
+        const k = (sim.t - e.abilityAt) / TAUNT_DUR
+        return (
+          <ellipse key={`ta${e.id}`} cx={px(e.x)} cy={py(e.y)} rx={TAUNT_R * TILE} ry={TAUNT_R * TILE_H}
+            fill="rgba(255,211,77,0.07)" stroke="#ffd34d" strokeWidth={2} strokeDasharray="6 6"
+            strokeDashoffset={clock * 30} opacity={1 - k * 0.6} />
+        )
+      })}
       {sim.vortices.map(v => (
         <g key={v.id} transform={`translate(${px(v.x)} ${py(v.y)})`}>
           <TornadoSwirl rx={SPELLS.Tornado.radius * TILE} ry={SPELLS.Tornado.radius * TILE_H} t={clock}
@@ -172,6 +182,12 @@ export function ArenaSim({ sim, running, speed = 1, onTick, onTap, ghost, ghostL
                 return <circle key={i} cx={x + Math.cos(a) * 18 * k} cy={y + Math.sin(a) * 18 * k} r={2.5 * (1 - k)} fill="#fff" />
               })}
             </g>
+          )
+        }
+        if (f.kind === 'heal') {
+          return (
+            <text key={f.id} x={x} y={y - 22 - 22 * k} textAnchor="middle" fontSize="15" fontWeight="900"
+              fill="#7dffb0" stroke="#0b3a1e" strokeWidth="3" paintOrder="stroke" opacity={Math.min(1, 2 * (1 - k))}>{`🥞 ${f.text ?? ''}`}</text>
           )
         }
         if (f.kind === 'dmg') {
@@ -333,13 +349,18 @@ function TowerSim({ e, now, g }: { e: Entity; now: number; g: (n: string) => str
 }
 
 /** Размер жетона в пикселях: по радиусу юнита из игры, мелочь в группе чуть меньше. */
+/** Насмешка Героя Рыцаря - для круга на поле. */
+const TAUNT_R = (HEROES['Hero Knight'] as Taunt).radius
+const TAUNT_DUR = (HEROES['Hero Knight'] as Taunt).duration
+
 function tokenR(e: Entity): number {
   const base = Math.min(16, e.s.radius * TILE * 1.25)
   return Math.max(9, (e.s.count ?? 1) > 1 || e.card === 'Goblins' ? base * 0.8 : base)
 }
 
-function Unit({ e, clock, g, art, label }: { e: Entity; clock: number; g: (n: string) => string; art?: string; label?: string }) {
+function Unit({ e, clock, now, g, art, label }: { e: Entity; clock: number; now: number; g: (n: string) => string; art?: string; label?: string }) {
   const r = tokenR(e)
+  const hero = e.ability !== undefined
   let x = px(e.x), y = py(e.y)
   const color = e.team === 'me' ? ME : FOE
   const box = e.kind === 'building'
@@ -376,6 +397,12 @@ function Unit({ e, clock, g, art, label }: { e: Entity; clock: number; g: (n: st
     lift = Math.sin(Math.PI * k) * 30
     scale = 1 + Math.sin(Math.PI * k) * 0.2
   }
+  // Брошен Героем Гигантом: высокая дуга поперёк поля
+  if (e.thrown) {
+    const k = Math.min(1, e.thrown.t / e.thrown.dur)
+    lift = Math.sin(Math.PI * k) * 46
+    scale = 1 + Math.sin(Math.PI * k) * 0.15
+  }
   if (e.s.flying) lift = 16 + Math.sin(clock * 3 + e.id) * 2
   const bob = e.moving && !e.s.flying && !e.dash ? Math.abs(Math.sin(clock * 11 + e.id)) * -2.2 : 0
 
@@ -389,6 +416,12 @@ function Unit({ e, clock, g, art, label }: { e: Entity; clock: number; g: (n: st
     <g opacity={deploying ? 0.72 : 1}>
       <ellipse cx={x} cy={y + r * 0.85} rx={r * (e.s.flying ? 0.7 : 0.95)} ry={r * 0.3} fill="rgba(0,0,0,0.38)" />
       <g transform={`translate(${x} ${cy}) scale(${s})`}>
+        {/* Герой - золотой ободок; после блинов Мини-ПЕККА светится */}
+        {hero && <circle r={r + 6} fill="none" stroke="#ffd34d" strokeWidth="2.5" opacity={0.9} />}
+        {e.mult > 1 && <circle r={r + 9 + Math.sin(clock * 8) * 1.5} fill="none" stroke="#ff9f43" strokeWidth="2" opacity={0.7} />}
+        {e.ability === 'casting' && (
+          <circle r={r + 10} fill="none" stroke="#fff" strokeWidth="2" strokeDasharray="4 4" transform={`rotate(${clock * 200})`} />
+        )}
         {box
           ? <rect x={-r - 3} y={-r - 3} width={2 * r + 6} height={2 * r + 6} rx="7" fill={color} stroke="#0d1430" strokeWidth="1.2" />
           : <circle r={r + 3} fill={color} stroke="#0d1430" strokeWidth="1.2" />}
@@ -409,6 +442,27 @@ function Unit({ e, clock, g, art, label }: { e: Entity; clock: number; g: (n: st
           <rect x={x - r} y={cy - r * s - 10} width={2 * r} height={5} rx="2.5" fill="rgba(10,14,32,0.85)" />
           <rect x={x - r + 1} y={cy - r * s - 9} width={(2 * r - 2) * Math.max(0, e.hp / e.maxHp)} height={3} rx="1.5" fill={color} />
         </g>
+      )}
+      {/* Щит Героя Рыцаря - голубая полоска над здоровьем */}
+      {e.shield > 0 && (
+        <g>
+          <rect x={x - r} y={cy - r * s - 17} width={2 * r} height={5} rx="2.5" fill="rgba(10,14,32,0.85)" />
+          <rect x={x - r + 1} y={cy - r * s - 16} width={(2 * r - 2) * (e.shield / (e.shieldMax || 1))} height={3} rx="1.5" fill="#7fd8ff" />
+        </g>
+      )}
+      {/* Блины Героя Мини-ПЕККА: три полосы под жетоном, пока способность не нажата */}
+      {e.card === 'Hero Mini P.E.K.K.A' && e.ability === 'ready' && !deploying && (
+        <g>
+          {[0, 1, 2].map(i => (
+            <g key={i}>
+              <rect x={x - r + i * ((2 * r) / 3)} y={y + r + 4} width={(2 * r) / 3 - 2} height={4} rx="2" fill="rgba(10,14,32,0.85)" />
+              <rect x={x - r + i * ((2 * r) / 3)} y={y + r + 4} width={((2 * r) / 3 - 2) * Math.max(0, Math.min(1, e.pancake - i))} height={4} rx="2" fill="#ffb347" />
+            </g>
+          ))}
+        </g>
+      )}
+      {now - e.abilityAt < 0.8 && e.card !== 'Hero Knight' && (
+        <circle cx={x} cy={cy} r={r + 6 + (now - e.abilityAt) * 30} fill="none" stroke="#ffd34d" strokeWidth={3 * (1 - (now - e.abilityAt) / 0.8)} />
       )}
       {label && <Pill x={x} y={cy + r * s + 12} text={label} tone={e.team === 'me' ? 'blue' : 'red'} />}
     </g>
