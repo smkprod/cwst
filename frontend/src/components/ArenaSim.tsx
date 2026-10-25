@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { DT, TOWER_SIZE, type Entity, type Projectile, type Sim } from '../lib/sim/engine'
 import { SPELLS, UNITS } from '../lib/sim/stats'
 import { HEROES, type Taunt } from '../lib/sim/heroes'
+import { EVOS } from '../lib/sim/evos'
 import { useCardArt } from '../lib/cardArt'
 import {
   ArenaDefs, ArenaGround, BarrelIcon, BombIcon, Burst, FireballIcon, H, Medallion, Pill, TILE, TILE_H, TornadoSwirl, TowerArt, UnitArt,
@@ -145,8 +146,8 @@ export function ArenaSim({ sim, running, speed = 1, onTick, onTap, ghost, ghostL
       })}
       {sim.vortices.map(v => (
         <g key={v.id} transform={`translate(${px(v.x)} ${py(v.y)})`}>
-          <TornadoSwirl rx={SPELLS.Tornado.radius * TILE} ry={SPELLS.Tornado.radius * TILE_H} t={clock}
-            k={1 - (sim.t - v.t0) / SPELLS.Tornado.duration} />
+          <TornadoSwirl rx={(v.evo?.radius ?? SPELLS.Tornado.radius) * TILE} ry={(v.evo?.radius ?? SPELLS.Tornado.radius) * TILE_H} t={clock}
+            k={1 - (sim.t - v.t0) / (v.evo?.duration ?? SPELLS.Tornado.duration)} />
         </g>
       ))}
 
@@ -418,6 +419,7 @@ function Unit({ e, clock, now, g, art, label }: { e: Entity; clock: number; now:
       <g transform={`translate(${x} ${cy}) scale(${s})`}>
         {/* Герой - золотой ободок; после блинов Мини-ПЕККА светится */}
         {hero && <circle r={r + 6} fill="none" stroke="#ffd34d" strokeWidth="2.5" opacity={0.9} />}
+        {EVOS[e.card] && <circle r={r + 6} fill="none" stroke="#c77dff" strokeWidth="2.5" opacity={0.9} />}
         {e.mult > 1 && <circle r={r + 9 + Math.sin(clock * 8) * 1.5} fill="none" stroke="#ff9f43" strokeWidth="2" opacity={0.7} />}
         {e.ability === 'casting' && (
           <circle r={r + 10} fill="none" stroke="#fff" strokeWidth="2" strokeDasharray="4 4" transform={`rotate(${clock * 200})`} />

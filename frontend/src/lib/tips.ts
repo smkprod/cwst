@@ -12,19 +12,19 @@ import type { Scene } from '../components/ArenaAnim'
  */
 
 export type TipId = 'anti_hog' | 'anti_tank' | 'kite' | 'log_barrel' | 'anti_air' | 'anti_siege' | 'anti_miner'
-  | 'elixir' | 'king_tornado' | 'cheap_def' | 'air_vs_ground' | 'tank_support' | 'clear_path' | 'siege_lock' | 'heroes'
+  | 'elixir' | 'king_tornado' | 'cheap_def' | 'air_vs_ground' | 'tank_support' | 'clear_path' | 'siege_lock' | 'heroes' | 'evos'
   | 'tilt' | 'levels' | 'deck'
 
 export const TIP_IDS: TipId[] = ['anti_hog', 'king_tornado', 'cheap_def', 'kite', 'log_barrel', 'anti_tank', 'air_vs_ground', 'anti_air',
-  'anti_siege', 'anti_miner', 'heroes', 'tank_support', 'clear_path', 'siege_lock', 'elixir', 'tilt', 'levels', 'deck']
+  'anti_siege', 'anti_miner', 'heroes', 'evos', 'tank_support', 'clear_path', 'siege_lock', 'elixir', 'tilt', 'levels', 'deck']
 
 /** Фишки, у которых есть схема арены. Остальные - советы без поля. */
 export const ARENA_TIPS: TipId[] = ['anti_hog', 'king_tornado', 'cheap_def', 'kite', 'log_barrel', 'anti_tank', 'air_vs_ground', 'anti_air',
-  'anti_siege', 'anti_miner', 'heroes', 'tank_support', 'clear_path', 'siege_lock', 'elixir']
+  'anti_siege', 'anti_miner', 'heroes', 'evos', 'tank_support', 'clear_path', 'siege_lock', 'elixir']
 
 type Units = Record<'hog' | 'cannon' | 'mk' | 'skeletons' | 'barrel' | 'log' | 'goblins' | 'giant' | 'minipekka'
   | 'counter' | 'balloon' | 'musk' | 'xbow' | 'knight' | 'miner' | 'golem' | 'here' | 'cells4' | 'tornado' | 'kingUp'
-  | 'minions' | 'oneVsFour' | 'noAir' | 'cells11' | 'towerHit' | 'yourGiant' | 'yourHog' | 'heroKnight' | 'taunt', string>
+  | 'minions' | 'oneVsFour' | 'noAir' | 'cells11' | 'towerHit' | 'yourGiant' | 'yourHog' | 'heroKnight' | 'taunt' | 'evoValk' | 'whirl', string>
 
 export interface TipText { title: string; when: string; steps: string[] }
 
@@ -33,17 +33,17 @@ const UNITS: Record<Lang, Units> = {
     giant: 'Гигант', minipekka: 'Мини-ПЕККА', counter: 'Контратака', balloon: 'Шар', musk: 'Мушкетёр', xbow: 'Икс-лук',
     knight: 'Рыцарь', miner: 'Шахтёр', golem: 'Голем', here: 'сюда', cells4: '4 клетки', tornado: 'Торнадо', kingUp: 'Король проснулся!',
     minions: 'Миньоны', oneVsFour: '1 против 4 эликсира', noAir: 'Не бьёт по воздуху', cells11: '11,5 клетки', towerHit: 'Бьёт башню!',
-    yourGiant: 'Твой Гигант', yourHog: 'Твой Хог', heroKnight: 'Герой Рыцарь', taunt: 'Насмешка!' },
+    yourGiant: 'Твой Гигант', yourHog: 'Твой Хог', heroKnight: 'Герой Рыцарь', taunt: 'Насмешка!', evoValk: 'Эво-Валькирия', whirl: 'Вихрь!' },
   uk: { hog: 'Хог', cannon: 'Гармата', mk: 'Мега-лицар', skeletons: 'Скелети', barrel: 'Бочка', log: 'Колода', goblins: 'Гобліни',
     giant: 'Гігант', minipekka: 'Міні-ПЕККА', counter: 'Контратака', balloon: 'Куля', musk: 'Мушкетерка', xbow: 'Ікс-лук',
     knight: 'Лицар', miner: 'Шахтар', golem: 'Голем', here: 'сюди', cells4: '4 клітинки', tornado: 'Торнадо', kingUp: 'Король прокинувся!',
     minions: 'Міньйони', oneVsFour: '1 проти 4 еліксиру', noAir: 'Не б\'є по повітрю', cells11: '11,5 клітинки', towerHit: 'Б\'є вежу!',
-    yourGiant: 'Твій Гігант', yourHog: 'Твій Хог', heroKnight: 'Герой Лицар', taunt: 'Глузування!' },
+    yourGiant: 'Твій Гігант', yourHog: 'Твій Хог', heroKnight: 'Герой Лицар', taunt: 'Глузування!', evoValk: 'Ево-Валькірія', whirl: 'Вихор!' },
   en: { hog: 'Hog', cannon: 'Cannon', mk: 'Mega Knight', skeletons: 'Skeletons', barrel: 'Barrel', log: 'Log', goblins: 'Goblins',
     giant: 'Giant', minipekka: 'Mini P.E.K.K.A', counter: 'Counter-push', balloon: 'Balloon', musk: 'Musketeer', xbow: 'X-Bow',
     knight: 'Knight', miner: 'Miner', golem: 'Golem', here: 'here', cells4: '4 tiles', tornado: 'Tornado', kingUp: 'King is awake!',
     minions: 'Minions', oneVsFour: '1 vs 4 elixir', noAir: 'Can\'t hit air', cells11: '11.5 tiles', towerHit: 'Hits the tower!',
-    yourGiant: 'Your Giant', yourHog: 'Your Hog', heroKnight: 'Hero Knight', taunt: 'Taunt!' },
+    yourGiant: 'Your Giant', yourHog: 'Your Hog', heroKnight: 'Hero Knight', taunt: 'Taunt!', evoValk: 'Evo Valkyrie', whirl: 'Whirlwind!' },
 }
 
 /** Сцены: (подписи юнитов на языке) → таймлайн. Клетки - как в игре, см. ArenaAnim. */
@@ -206,6 +206,20 @@ const SCENES: Partial<Record<TipId, (u: Units) => Scene>> = {
       { id: 'tt', kind: 'text', label: u.taunt, keys: [{ t: 2.0, x: 9.5, y: 19.4 }, { t: 4.4, x: 9.5, y: 19.4 }] },
     ],
   }),
+  // Эво-Валькирия на пути Хога: каждый её удар - вихрь, Хога и гоблинов тянет к ней
+  evos: u => ({
+    duration: 6.5,
+    marks: [{ x: 13.5, y: 20.5, from: 0.6, to: 1.4, label: u.here }],
+    actors: [
+      { id: 'hog', kind: 'enemy', card: 'Hog Rider', label: u.hog, r: 0.75, to: 4.4,
+        keys: [{ t: 0, x: 14.5, y: 11.5 }, { t: 1.1, x: 14.5, y: 17.3 }, { t: 1.8, x: 14.4, y: 19.4 }, { t: 2.4, x: 13.9, y: 20.2 }, { t: 4.4, x: 13.9, y: 20.2 }] },
+      { id: 'g1', kind: 'enemy', card: 'Goblins', label: u.goblins, r: 0.45, to: 3.2, keys: [{ t: 0.3, x: 15.5, y: 12 }, { t: 1.6, x: 15.4, y: 18.4 }, { t: 2.4, x: 14.3, y: 19.8 }, { t: 3.2, x: 14.3, y: 19.8 }] },
+      { id: 'ev', kind: 'mine', card: 'Evo Valkyrie', label: u.evoValk, r: 0.7, keys: [{ t: 1.3, x: 13.5, y: 20.6 }, { t: 6.5, x: 13.5, y: 20.6 }] },
+      { id: 'w1', kind: 'spell', card: 'Tornado', label: '', r: 5, keys: [{ t: 2.0, x: 13.5, y: 20.6 }, { t: 2.5, x: 13.5, y: 20.6 }] },
+      { id: 'w2', kind: 'spell', card: 'Tornado', label: '', r: 5, keys: [{ t: 3.5, x: 13.5, y: 20.6 }, { t: 4.0, x: 13.5, y: 20.6 }] },
+      { id: 'wt', kind: 'text', label: u.whirl, keys: [{ t: 2.0, x: 13.5, y: 18.2 }, { t: 3.8, x: 13.5, y: 18.2 }] },
+    ],
+  }),
   // За королём есть ряд: тяж оттуда идёт к мосту, а эликсир копится на поддержку (сбоку от короля - чтобы обойти его по своей линии)
   elixir: u => ({
     duration: 6.5,
@@ -288,6 +302,12 @@ const TEXT: Record<Lang, Record<TipId, TipText>> = {
         'Мини-ПЕККА — «Блинный завтрак» (1 💧): блины копятся от ударов. Жми после 2–3 ударов — +2–3 уровня и лечение.',
         'Мушкетёр — «Турель» (3 💧): ставит турель на 3 клетки вперёд, она бьёт по земле при установке и стреляет по воздуху.',
         'Гигант — «Бросок» (2 💧): хватает самого живучего врага рядом и кидает в другую линию. В защите смотри, куда полетит — не на свою башню ли.'] },
+    evos: { title: 'Эволюции: что умеет эво-карта', when: 'Когда у тебя в колоде эво-карта — она становится эволюцией после 1–3 кругов колоды.',
+      steps: ['Эво-карта стоит столько же, но у неё есть свойство, которого нет у обычной. Сыграй её туда, где это свойство решает.',
+        'Эво-Скелеты делают копию после каждого удара — до восьми: держат даже ПЕККУ за 1 эликсир.',
+        'Эво-Валькирия каждым ударом делает вихрь и затягивает всех вокруг — даже Хога.',
+        'Эво-Рыцарь на ходу получает на 60% меньше урона — ставь его так, чтобы он подходил к врагам.',
+        'Эво-Мега-рыцарь отшвыривает цель апперкотом, эво-ПЕККА лечится за убийства, эво-Тесла оглушает при появлении.'] },
     elixir: { title: 'Не держи 10 эликсира', when: 'Если в поражениях у тебя течёт эликсир.',
       steps: ['10 эликсира — это потеря: всё, что набирается сверх, сгорает.',
         'При 9+ и тишине на поле ставь дорогую карту в самый тыл, у задней стенки.',
@@ -375,6 +395,12 @@ const TEXT: Record<Lang, Record<TipId, TipText>> = {
         'Міні-ПЕККА — «Млинцевий сніданок» (1 💧): млинці копляться від ударів. Тисни після 2–3 ударів — +2–3 рівні й лікування.',
         'Мушкетерка — «Турель» (3 💧): ставить турель на 3 клітинки вперед, вона б\'є по землі при встановленні й стріляє по повітрю.',
         'Гігант — «Кидок» (2 💧): хапає найживучішого ворога поруч і кидає в іншу лінію. У захисті дивись, куди полетить — чи не на твою вежу.'] },
+    evos: { title: 'Еволюції: що вміє ево-карта', when: 'Коли в тебе в колоді ево-карта — вона стає еволюцією після 1–3 кіл колоди.',
+      steps: ['Ево-карта коштує стільки ж, але має властивість, якої немає у звичайної. Зіграй її туди, де ця властивість вирішує.',
+        'Ево-Скелети роблять копію після кожного удару — до восьми: тримають навіть ПЕККУ за 1 еліксир.',
+        'Ево-Валькірія кожним ударом робить вихор і затягує всіх довкола — навіть Хога.',
+        'Ево-Лицар на ходу отримує на 60% менше урону — став його так, щоб він підходив до ворогів.',
+        'Ево-Мега-лицар відкидає ціль апперкотом, ево-ПЕККА лікується за вбивства, ево-Тесла оглушує при появі.'] },
     elixir: { title: 'Не тримай 10 еліксиру', when: 'Якщо в поразках у тебе тече еліксир.',
       steps: ['10 еліксиру — це втрата: усе, що набирається понад, згорає.',
         'При 9+ і тиші на полі став дорогу карту в самий тил, біля задньої стінки.',
@@ -462,6 +488,12 @@ const TEXT: Record<Lang, Record<TipId, TipText>> = {
         'Mini PEKKA — Breakfast Boost (1 💧): pancakes fill with hits. Use it after 2–3 hits — +2–3 levels and a heal.',
         'Musketeer — Trusty Turret (3 💧): drops a turret 3 tiles ahead that hits the ground on deploy and shoots air.',
         'Giant — Heroic Hurl (2 💧): grabs the toughest enemy nearby and throws it to the other lane. On defense, check where it lands — not on your own tower.'] },
+    evos: { title: 'Evolutions: what the evo card does', when: 'When you have an evo card in your deck — it evolves after 1–3 cycles.',
+      steps: ['An evo card costs the same but has a property the normal one lacks. Play it where that property decides.',
+        'Evo Skeletons copy themselves after every hit — up to eight: they hold even a P.E.K.K.A for 1 elixir.',
+        'Evo Valkyrie makes a whirlwind with each swing and pulls everything in — even the Hog.',
+        'Evo Knight takes 60% less damage while walking — place him so he reaches the enemies on the move.',
+        'Evo Mega Knight knocks targets away with an uppercut, Evo P.E.K.K.A heals on kills, Evo Tesla stuns on deploy.'] },
     elixir: { title: 'Don\'t sit at 10 elixir', when: 'If you leak elixir in your losses.',
       steps: ['10 elixir is a loss: everything above it burns.',
         'At 9+ with a quiet field, place your expensive card at the very back.',

@@ -15,6 +15,7 @@ import { TOWER_STATS } from '../lib/sim/stats'
 import emblem from '../assets/clanify-emblem.webp'
 import { Watch, atPause, baseline, introSim, isAttack, judge, myHero, pauseTime, playMine, type Outcome } from '../lib/sim/scenario'
 import { HEROES } from '../lib/sim/heroes'
+import { EVOS } from '../lib/sim/evos'
 import { ArenaSim, type SimGhost } from './ArenaSim'
 import { artFor } from './ArenaAnim'
 import { Sandbox } from './Sandbox'
@@ -150,12 +151,12 @@ export function TrainerView() {
 }
 
 /** Порядок разделов в списке задач: от основ к приёмам и атаке. */
-const CATS: PuzzleCat[] = ['defense', 'cheap', 'king', 'hero', 'attack']
+const CATS: PuzzleCat[] = ['defense', 'cheap', 'king', 'hero', 'evo', 'attack']
 
 function TargetArt({ card }: { card: string }) {
   const art = useCardArt()
   const src = artFor(art, card)
-  return <span className={`tr-art ${HEROES[card] ? 'tr-art-hero' : ''}`}>{src ? <img src={src} alt="" /> : <span className="tr-emoji">{emojiOf(card)}</span>}</span>
+  return <span className={`tr-art ${HEROES[card] ? 'tr-art-hero' : EVOS[card] ? 'tr-art-evo' : ''}`}>{src ? <img src={src} alt="" /> : <span className="tr-emoji">{emojiOf(card)}</span>}</span>
 }
 
 function Stars({ n }: { n: number }) {
@@ -423,7 +424,7 @@ function TrainerGame({ puzzle, daily, locked, details, onDetails, onPlus, onExit
               const tooDear = info.cost > sc.elixir
               const shown = demo && c === sol.card && (phase === 'demo-show' || phase === 'demo-done')
               return (
-                <button key={c} className={`tr-card ${card === c && !demo ? 'tr-card-on' : ''} ${shown ? 'tr-card-demo' : ''} ${HEROES[c] ? 'tr-card-hero' : ''}`}
+                <button key={c} className={`tr-card ${card === c && !demo ? 'tr-card-on' : ''} ${shown ? 'tr-card-demo' : ''} ${HEROES[c] ? 'tr-card-hero' : EVOS[c] ? 'tr-card-evo' : ''}`}
                   disabled={phase !== 'choose' || tooDear}
                   onClick={() => {
                     haptic('light')

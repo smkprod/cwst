@@ -19,7 +19,7 @@ export type CardKind = 'troop' | 'building' | 'spell'
 
 export interface HandCard { card: string; cost: number; kind: CardKind }
 
-const SPELL_CARDS = new Set(['Fireball', 'The Log', 'Goblin Barrel', 'Tornado'])
+const SPELL_CARDS = new Set(['Fireball', 'The Log', 'Goblin Barrel', 'Evo Goblin Barrel', 'Tornado'])
 
 export function cardInfo(card: string): HandCard {
   const kind: CardKind = SPELL_CARDS.has(card) ? 'spell' : UNITS[card]?.building ? 'building' : 'troop'
@@ -31,21 +31,30 @@ export const CARD_NAMES: Record<Lang, Record<string, string>> = {
     'Mini P.E.K.K.A': 'Мини-ПЕККА', 'Golem': 'Голем', 'Golemite': 'Големит', 'Hog Rider': 'Хог', 'Mega Knight': 'Мега-рыцарь', 'Goblin Barrel': 'Бочка',
     'Goblins': 'Гоблины', 'Balloon': 'Шар', 'Giant': 'Гигант', 'X-Bow': 'Икс-лук', 'Miner': 'Шахтёр', 'Tornado': 'Торнадо', 'Mortar': 'Мортира', 'P.E.K.K.A': 'ПЕККА', 'Ice Golem': 'Лед. голем', 'Ice Spirit': 'Лед. дух',
     'Valkyrie': 'Валькирия', 'Archers': 'Лучницы', 'Minions': 'Миньоны', 'Bats': 'Мыши', 'Tesla': 'Тесла',
-    'Hero Knight': 'Герой Рыцарь', 'Hero Giant': 'Герой Гигант', 'Hero Musketeer': 'Герой Мушкетёр', 'Hero Mini P.E.K.K.A': 'Герой Мини-ПЕККА', 'Hero Turret': 'Турель' },
+    'Hero Knight': 'Герой Рыцарь', 'Hero Giant': 'Герой Гигант', 'Hero Musketeer': 'Герой Мушкетёр', 'Hero Mini P.E.K.K.A': 'Герой Мини-ПЕККА', 'Hero Turret': 'Турель',
+    'Evo Knight': 'Эво-Рыцарь', 'Evo Skeletons': 'Эво-Скелеты', 'Evo Valkyrie': 'Эво-Валькирия', 'Evo Ice Spirit': 'Эво-Лед. дух', 'Evo Tesla': 'Эво-Тесла',
+    'Evo Mega Knight': 'Эво-Мега-рыцарь', 'Evo P.E.K.K.A': 'Эво-ПЕККА', 'Evo Bats': 'Эво-Мыши', 'Evo Mortar': 'Эво-Мортира', 'Evo Archers': 'Эво-Лучницы',
+    'Evo Goblin Barrel': 'Эво-Бочка', 'Decoy Goblins': 'Гоблины-приманки' },
   uk: { 'Cannon': 'Гармата', 'Knight': 'Лицар', 'Skeletons': 'Скелети', 'Fireball': 'Вогн. куля', 'The Log': 'Колода', 'Musketeer': 'Мушкетерка',
     'Mini P.E.K.K.A': 'Міні-ПЕККА', 'Golem': 'Голем', 'Golemite': 'Големіт', 'Hog Rider': 'Хог', 'Mega Knight': 'Мега-лицар', 'Goblin Barrel': 'Бочка',
     'Goblins': 'Гобліни', 'Balloon': 'Куля', 'Giant': 'Гігант', 'X-Bow': 'Ікс-лук', 'Miner': 'Шахтар', 'Tornado': 'Торнадо', 'Mortar': 'Мортира', 'P.E.K.K.A': 'ПЕККА', 'Ice Golem': 'Криж. голем', 'Ice Spirit': 'Криж. дух',
     'Valkyrie': 'Валькірія', 'Archers': 'Лучниці', 'Minions': 'Міньйони', 'Bats': 'Кажани', 'Tesla': 'Тесла',
-    'Hero Knight': 'Герой Лицар', 'Hero Giant': 'Герой Гігант', 'Hero Musketeer': 'Герой Мушкетерка', 'Hero Mini P.E.K.K.A': 'Герой Міні-ПЕККА', 'Hero Turret': 'Турель' },
+    'Hero Knight': 'Герой Лицар', 'Hero Giant': 'Герой Гігант', 'Hero Musketeer': 'Герой Мушкетерка', 'Hero Mini P.E.K.K.A': 'Герой Міні-ПЕККА', 'Hero Turret': 'Турель',
+    'Evo Knight': 'Ево-Лицар', 'Evo Skeletons': 'Ево-Скелети', 'Evo Valkyrie': 'Ево-Валькірія', 'Evo Ice Spirit': 'Ево-Криж. дух', 'Evo Tesla': 'Ево-Тесла',
+    'Evo Mega Knight': 'Ево-Мега-лицар', 'Evo P.E.K.K.A': 'Ево-ПЕККА', 'Evo Bats': 'Ево-Кажани', 'Evo Mortar': 'Ево-Мортира', 'Evo Archers': 'Ево-Лучниці',
+    'Evo Goblin Barrel': 'Ево-Бочка', 'Decoy Goblins': 'Гобліни-приманки' },
   en: { 'Cannon': 'Cannon', 'Knight': 'Knight', 'Skeletons': 'Skeletons', 'Fireball': 'Fireball', 'The Log': 'Log', 'Musketeer': 'Musketeer',
     'Mini P.E.K.K.A': 'Mini PEKKA', 'Golem': 'Golem', 'Golemite': 'Golemite', 'Hog Rider': 'Hog', 'Mega Knight': 'Mega Knight', 'Goblin Barrel': 'Barrel',
     'Goblins': 'Goblins', 'Balloon': 'Balloon', 'Giant': 'Giant', 'X-Bow': 'X-Bow', 'Miner': 'Miner', 'Tornado': 'Tornado', 'Mortar': 'Mortar', 'P.E.K.K.A': 'P.E.K.K.A', 'Ice Golem': 'Ice Golem', 'Ice Spirit': 'Ice Spirit',
     'Valkyrie': 'Valkyrie', 'Archers': 'Archers', 'Minions': 'Minions', 'Bats': 'Bats', 'Tesla': 'Tesla',
-    'Hero Knight': 'Hero Knight', 'Hero Giant': 'Hero Giant', 'Hero Musketeer': 'Hero Musketeer', 'Hero Mini P.E.K.K.A': 'Hero Mini PEKKA', 'Hero Turret': 'Turret' },
+    'Hero Knight': 'Hero Knight', 'Hero Giant': 'Hero Giant', 'Hero Musketeer': 'Hero Musketeer', 'Hero Mini P.E.K.K.A': 'Hero Mini PEKKA', 'Hero Turret': 'Turret',
+    'Evo Knight': 'Evo Knight', 'Evo Skeletons': 'Evo Skeletons', 'Evo Valkyrie': 'Evo Valkyrie', 'Evo Ice Spirit': 'Evo Ice Spirit', 'Evo Tesla': 'Evo Tesla',
+    'Evo Mega Knight': 'Evo Mega Knight', 'Evo P.E.K.K.A': 'Evo P.E.K.K.A', 'Evo Bats': 'Evo Bats', 'Evo Mortar': 'Evo Mortar', 'Evo Archers': 'Evo Archers',
+    'Evo Goblin Barrel': 'Evo Barrel', 'Decoy Goblins': 'Decoy Goblins' },
 }
 
 /** Раздел списка задач: защита, «разбуди короля», «отбейся дёшево», атака. */
-export type PuzzleCat = 'defense' | 'king' | 'cheap' | 'hero' | 'attack'
+export type PuzzleCat = 'defense' | 'king' | 'cheap' | 'hero' | 'evo' | 'attack'
 
 export interface Puzzle {
   id: string
@@ -264,6 +273,37 @@ export const PUZZLES: Puzzle[] = [
     solution: { card: 'Hero Giant', x: 0, y: 0, ability: 2 },
     sc: { elixir: 3, mine: [{ at: 0, card: 'Hero Giant', x: 14.5, y: 18.5 }], enemy: [{ at: 4.8, card: 'Mega Knight', x: 14.5, y: 9 }], pause: 0.6, horizon: 26, limits: [2200, 1500], goal: 'attack' },
   },
+  // --- Эволюции: то, что обычная карта здесь не вытянет ---
+  {
+    // ПЕККА бьёт по одному, а эво-скелеты делают копию после каждого удара - она вязнет в них под башней
+    id: 'evo_skel_pekka', cat: 'evo', tip: 'evos', enemyCard: 'P.E.K.K.A', icon: 'Evo Skeletons', hand: ['Evo Skeletons', 'Skeletons', 'Knight', 'Fireball'],
+    solution: { card: 'Evo Skeletons', x: 3.5, y: 18.5 },
+    sc: { elixir: 4, enemy: [{ at: 0, card: 'P.E.K.K.A', x: 3.5, y: 13.5 }], pause: reach('P.E.K.K.A', 17.5), horizon: 30, limits: [300, 1500], cost: 2 },
+  },
+  {
+    // Каждый удар эво-Валькирии - вихрь: Хога и гоблинов затягивает к ней, и они не доходят до башни
+    id: 'evo_valk_hog', cat: 'evo', tip: 'evos', enemyCard: 'Hog Rider', icon: 'Evo Valkyrie', hand: ['Evo Valkyrie', 'Valkyrie', 'Knight', 'Fireball'],
+    solution: { card: 'Evo Valkyrie', x: 13.5, y: 20.5 },
+    sc: { elixir: 5, enemy: [{ at: 0, card: 'Hog Rider', x: 14.5, y: 14 }, { at: 0.2, card: 'Goblins', x: 15.5, y: 14 }], pause: reach('Hog Rider', 17.2), horizon: 14, limits: [150, 800] },
+  },
+  {
+    // Эво-Рыцарь на ходу получает на 60% меньше: он доходит до Мушкетёра почти целым и держит обоих
+    id: 'evo_knight_def', cat: 'evo', tip: 'evos', enemyCard: 'Mini P.E.K.K.A', icon: 'Evo Knight', hand: ['Evo Knight', 'Knight', 'Skeletons', 'Fireball'],
+    solution: { card: 'Evo Knight', x: 7.5, y: 24.5 },
+    sc: { elixir: 5, enemy: [{ at: 0, card: 'Mini P.E.K.K.A', x: 3.5, y: 13.5 }, { at: 0.8, card: 'Musketeer', x: 3.5, y: 11.5 }], pause: reach('Mini P.E.K.K.A', 17.4), horizon: 18, limits: [100, 1000] },
+  },
+  {
+    // Апперкот эво-Мега-рыцаря отшвыривает Мушкетёра на 4 клетки - Гигант остаётся без поддержки
+    id: 'evo_mk_uppercut', cat: 'evo', tip: 'evos', enemyCard: 'Giant', icon: 'Evo Mega Knight', hand: ['Evo Mega Knight', 'Mega Knight', 'Mini P.E.K.K.A', 'Fireball'],
+    solution: { card: 'Evo Mega Knight', x: 14.5, y: 17.5 },
+    sc: { elixir: 7, enemy: [{ at: 0, card: 'Giant', x: 14.5, y: 13.5 }, { at: 1.5, card: 'Musketeer', x: 14.5, y: 12.5 }], pause: reach('Giant', 17.4), horizon: 22, limits: [400, 1600] },
+  },
+  {
+    // Эво-ПЕККА лечится за каждое убийство: гоблины и Мушкетёр подлечивают её, и она дотягивает до Мега-рыцаря
+    id: 'evo_pekka_heal', cat: 'evo', tip: 'evos', enemyCard: 'Mega Knight', icon: 'Evo P.E.K.K.A', hand: ['Evo P.E.K.K.A', 'P.E.K.K.A', 'Knight', 'Fireball'],
+    solution: { card: 'Evo P.E.K.K.A', x: 3.5, y: 17.5 },
+    sc: { elixir: 7, enemy: [{ at: 0, card: 'Mega Knight', x: 3.5, y: 13.5 }, { at: 0.5, card: 'Musketeer', x: 3.5, y: 11.5 }, { at: 1.0, card: 'Goblins', x: 4.5, y: 13 }], pause: reach('Mega Knight', 17.6), horizon: 24, limits: [200, 2000] },
+  },
 ]
 
 /** Сколько задач открыто целиком без Плюса (плюс задача дня); в остальных бесплатно только показ решения. */
@@ -347,6 +387,11 @@ export const PUZZLE_TEXT: Record<Lang, Record<string, PuzzleText>> = {
     hero_mpk_boost: { title: 'Герой Мини-ПЕККА: блины', task: 'Твоя Мини-ПЕККА встречает ПЕККУ. Нажми блины в нужный момент — не раньше и не позже.' },
     hero_musk_turret: { title: 'Герой Мушкетёр: турель', task: 'Шар с Миньонами летят на правую башню. Поставь Героя Мушкетёра и турель.' },
     hero_giant_hurl: { title: 'Атака: бросок Гиганта', task: 'Твой Герой Гигант идёт на башню, его встретит Мега-рыцарь. Нажми бросок.' },
+    evo_skel_pekka: { title: 'Эво-Скелеты против ПЕККИ', task: 'ПЕККА перешла мост. Отбейся за 1 эликсир — у тебя эво-скелеты.' },
+    evo_valk_hog: { title: 'Эво-Валькирия: вихрь', task: 'Хог с гоблинами идут на правую башню. Поставь эво-Валькирию так, чтобы вихрь их затянул.' },
+    evo_knight_def: { title: 'Эво-Рыцарь: щит на ходу', task: 'Мини-ПЕККА с Мушкетёром идут на левую башню. Удержи их эво-Рыцарем.' },
+    evo_mk_uppercut: { title: 'Эво-Мега-рыцарь: апперкот', task: 'Гигант с Мушкетёром в правой линии. Встреть их эво-Мега-рыцарем.' },
+    evo_pekka_heal: { title: 'Эво-ПЕККА: лечение за убийства', task: 'Мега-рыцарь, Мушкетёр и гоблины — большой пуш. Выстой эво-ПЕККОЙ.' },
   },
   uk: {
     hog: { title: 'Хог у лівій лінії', task: 'Хог перейшов міст. Відбийся так, щоб вежа не постраждала.' },
@@ -377,6 +422,11 @@ export const PUZZLE_TEXT: Record<Lang, Record<string, PuzzleText>> = {
     hero_mpk_boost: { title: 'Герой Міні-ПЕККА: млинці', task: 'Твоя Міні-ПЕККА зустрічає ПЕККУ. Натисни млинці в потрібний момент — не раніше й не пізніше.' },
     hero_musk_turret: { title: 'Герой Мушкетерка: турель', task: 'Куля з Міньйонами летять на праву вежу. Постав Героя Мушкетерку й турель.' },
     hero_giant_hurl: { title: 'Атака: кидок Гіганта', task: 'Твій Герой Гігант іде на вежу, його зустріне Мега-лицар. Натисни кидок.' },
+    evo_skel_pekka: { title: 'Ево-Скелети проти ПЕККИ', task: 'ПЕККА перейшла міст. Відбийся за 1 еліксир — у тебе ево-скелети.' },
+    evo_valk_hog: { title: 'Ево-Валькірія: вихор', task: 'Хог із гоблінами йдуть на праву вежу. Постав ево-Валькірію так, щоб вихор їх затягнув.' },
+    evo_knight_def: { title: 'Ево-Лицар: щит на ходу', task: 'Міні-ПЕККА з Мушкетеркою йдуть на ліву вежу. Утримай їх ево-Лицарем.' },
+    evo_mk_uppercut: { title: 'Ево-Мега-лицар: апперкот', task: 'Гігант із Мушкетеркою в правій лінії. Зустрінь їх ево-Мега-лицарем.' },
+    evo_pekka_heal: { title: 'Ево-ПЕККА: лікування за вбивства', task: 'Мега-лицар, Мушкетерка й гобліни — великий пуш. Вистій ево-ПЕККОЮ.' },
   },
   en: {
     hog: { title: 'Hog in the left lane', task: 'The Hog crossed the bridge. Defend without tower damage.' },
@@ -407,6 +457,11 @@ export const PUZZLE_TEXT: Record<Lang, Record<string, PuzzleText>> = {
     hero_mpk_boost: { title: 'Hero Mini PEKKA: pancakes', task: 'Your Mini PEKKA meets a P.E.K.K.A. Hit Breakfast Boost at the right moment — not too early, not too late.' },
     hero_musk_turret: { title: 'Hero Musketeer: turret', task: 'Balloon and Minions fly at your right tower. Place the Hero Musketeer and her turret.' },
     hero_giant_hurl: { title: 'Attack: Giant\'s hurl', task: 'Your Hero Giant walks to the tower and a Mega Knight will meet him. Use the hurl.' },
+    evo_skel_pekka: { title: 'Evo Skeletons vs P.E.K.K.A', task: 'P.E.K.K.A crossed the bridge. Defend for 1 elixir — you have Evo Skeletons.' },
+    evo_valk_hog: { title: 'Evo Valkyrie: the whirlwind', task: 'Hog and Goblins go for your right tower. Place the Evo Valkyrie so her whirlwind pulls them in.' },
+    evo_knight_def: { title: 'Evo Knight: shield on the move', task: 'Mini PEKKA and Musketeer push your left tower. Hold them with the Evo Knight.' },
+    evo_mk_uppercut: { title: 'Evo Mega Knight: uppercut', task: 'Giant and Musketeer in the right lane. Meet them with the Evo Mega Knight.' },
+    evo_pekka_heal: { title: 'Evo P.E.K.K.A: heal on kills', task: 'Mega Knight, Musketeer and Goblins — a big push. Hold with the Evo P.E.K.K.A.' },
   },
 }
 
@@ -441,6 +496,11 @@ export const HINTS: Record<Lang, Record<string, string>> = {
     hero_mpk_boost: 'Блины копятся со временем и от ударов: каждый удар — почти полполосы. Жми после 2–3 ударов по ПЕККЕ: +2–3 уровня и лечение. Сразу — слабый буст, поздно — ПЕККА уже разменяла её.',
     hero_musk_turret: 'Турель встаёт на 3 клетки впереди и при установке бьёт по земле, а потом стреляет по воздуху. Ставь Мушкетёра у реки и турель сразу — рой не успеет долететь.',
     hero_giant_hurl: 'Бросок ждёт цель сам: нажми заранее, и Гигант схватит самого живучего врага рядом, кинет на 9 клеток в другую линию и оглушит на 2 секунды. В защите осторожно — можно бросить врага на свою вторую башню.',
+    evo_skel_pekka: 'ПЕККА бьёт по одному, а каждый эво-скелет после удара делает копию — до восьми. Она вязнет в них под башней. Обычные три скелета она снимает за три удара.',
+    evo_valk_hog: 'Каждый удар эво-Валькирии — вихрь радиусом 5: он затягивает к ней всех вокруг, даже Хога, который бьёт только здания. Ставь её на пути Хога, перед башней.',
+    evo_knight_def: 'Эво-Рыцарь, пока идёт, получает на 60% меньше урона. Поставь его подальше, чтобы он подходил к врагам на ходу, — он доберётся до Мушкетёра почти целым.',
+    evo_mk_uppercut: 'Каждый удар эво-Мега-рыцаря — апперкот: цель отлетает на 4 клетки (тяжёлые — на 2,5). Мушкетёра отбрасывает от Гиганта, и Гигант остаётся один под башней.',
+    evo_pekka_heal: 'Эво-ПЕККА лечится за каждое убийство — чем живучее убитый, тем больше, и может подняться на 50% выше полного. Пусть сначала добьёт мелочь: гоблины и Мушкетёр подлечат её к Мега-рыцарю.',
   },
   uk: {
     hog: 'Будівля на шляху Хога, краще в центрі за 3–4 клітинки від річки: він зверне до неї й загине під вежами.',
@@ -471,6 +531,11 @@ export const HINTS: Record<Lang, Record<string, string>> = {
     hero_mpk_boost: 'Млинці копляться з часом і від ударів: кожен удар — майже пів смуги. Тисни після 2–3 ударів по ПЕККІ: +2–3 рівні й лікування. Одразу — слабкий буст, пізно — ПЕККА вже розміняла її.',
     hero_musk_turret: 'Турель стає на 3 клітинки попереду й при встановленні б\'є по землі, а потім стріляє по повітрю. Став Мушкетерку біля річки й турель одразу — рій не встигне долетіти.',
     hero_giant_hurl: 'Кидок сам чекає ціль: натисни заздалегідь, і Гігант схопить найживучішого ворога поруч, кине на 9 клітинок в іншу лінію й оглушить на 2 секунди. У захисті обережно — можна кинути ворога на свою другу вежу.',
+    evo_skel_pekka: 'ПЕККА б\'є по одному, а кожен ево-скелет після удару робить копію — до восьми. Вона грузне в них під вежею. Звичайних трьох скелетів вона знімає за три удари.',
+    evo_valk_hog: 'Кожен удар ево-Валькірії — вихор радіусом 5: він затягує до неї всіх довкола, навіть Хога, який б\'є лише будівлі. Став її на шляху Хога, перед вежею.',
+    evo_knight_def: 'Ево-Лицар, поки йде, отримує на 60% менше урону. Постав його подалі, щоб він підходив до ворогів на ходу, — він дістанеться до Мушкетерки майже цілим.',
+    evo_mk_uppercut: 'Кожен удар ево-Мега-лицаря — апперкот: ціль відлітає на 4 клітинки (важкі — на 2,5). Мушкетерку відкидає від Гіганта, і Гігант лишається сам під вежею.',
+    evo_pekka_heal: 'Ево-ПЕККА лікується за кожне вбивство — що живучіший убитий, то більше, і може піднятися на 50% вище повного. Хай спершу доб\'є дрібноту: гобліни й Мушкетерка підлікують її до Мега-лицаря.',
   },
   en: {
     hog: 'A building in the Hog\'s path, best in the middle 3–4 tiles from the river: it turns to it and dies under your towers.',
@@ -501,6 +566,11 @@ export const HINTS: Record<Lang, Record<string, string>> = {
     hero_mpk_boost: 'Pancakes fill over time and with hits — each hit is almost half a bar. Use it after 2–3 hits on the P.E.K.K.A: +2–3 levels and a heal. Right away is a weak boost, too late and the P.E.K.K.A has already won the trade.',
     hero_musk_turret: 'The turret lands 3 tiles ahead and hits the ground on deploy, then shoots air. Place the Musketeer at the river and the turret right away — the swarm won\'t make it.',
     hero_giant_hurl: 'The hurl waits for a target by itself: use it early and the Giant grabs the toughest enemy nearby, throws it 9 tiles into the other lane and stuns it for 2 seconds. Careful on defense — you can throw the enemy onto your other tower.',
+    evo_skel_pekka: 'P.E.K.K.A kills one at a time, but each Evo Skeleton copies itself after a hit — up to eight. She gets stuck in them under your tower. Three normal Skeletons die in three hits.',
+    evo_valk_hog: 'Each Evo Valkyrie swing is a radius-5 whirlwind that pulls everything to her — even the Hog, which only hits buildings. Place her in the Hog\'s path in front of the tower.',
+    evo_knight_def: 'The Evo Knight takes 60% less damage while walking. Place him further back so he reaches them on the move — he gets to the Musketeer almost untouched.',
+    evo_mk_uppercut: 'Every Evo Mega Knight hit is an uppercut: the target flies 4 tiles (heavy ones 2.5). The Musketeer gets knocked off the Giant, leaving him alone under your tower.',
+    evo_pekka_heal: 'The Evo P.E.K.K.A heals on every kill — the tougher the victim, the more — and can go up to 50% over full HP. Let her clean up the small units first: Goblins and the Musketeer heal her for the Mega Knight.',
   },
 }
 

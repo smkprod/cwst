@@ -366,9 +366,11 @@ const ART_OF: Record<string, string> = {
   Golemite: 'Golem', 'Hero Turret': 'Cannon',
   // Арт Героя может не прийти (старый каталог) - тогда обычная карта
   'Hero Knight': 'Knight', 'Hero Giant': 'Giant', 'Hero Musketeer': 'Musketeer', 'Hero Mini P.E.K.K.A': 'Mini P.E.K.K.A',
+  'Decoy Goblins': 'Goblins',
 }
 
-export const artFor = (art: Record<string, string>, card: string) => art[card] ?? art[ART_OF[card] ?? '']
+export const artFor = (art: Record<string, string>, card: string) =>
+  art[card] ?? art[ART_OF[card] ?? ''] ?? (card.startsWith('Evo ') ? art[card.slice(4)] : undefined)
 
 /**
  * Портрет карты в жетоне, рисуется в масштабе радиуса r вокруг (0, 0): арт из
