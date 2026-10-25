@@ -240,7 +240,7 @@ function SponsorCard({ status, pay, onBuy, t }: {
   const busy = pay === 'opening' || pay === 'waiting'
   return (
     <section className="plus-card plus-card-sponsor">
-      <SectionHead icon="crown" tone="gold" title={p.sponsorCardTitle.replace(/^★\s*/, '')} aside={p.sponsorCardSub}
+      <SectionHead icon="crown" tone="gold" title={p.sponsorCardTitle.replace(/^(★|👑)\s*/u, '')} aside={p.sponsorCardSub}
         info={<p>{p.sponsorForLeader}</p>} />
       <ul className="plus-perks">
         {p.sponsorPerks.split('|').map(x => <li key={x}>{x}</li>)}

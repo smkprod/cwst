@@ -19,8 +19,11 @@ import { DecksHub, PlayHub, TrainerHub, type DecksSection, type PlaySection } fr
 import { OPEN_TRAINER } from '../lib/trainer'
 import { OPEN_DECKS, useQuestsSeen } from '../lib/quests'
 import { QuestsCard } from './QuestsCard'
+import { Showcase } from './Showcase'
+import { hiddenTabs, moreInBar, withShop } from '../lib/menu'
+import type { MenuTab } from '../types'
 
-export type SoloTab = 'me' | 'decks' | 'trainer' | 'play' | 'clan' | 'more' | 'creatorChallenge'
+export type SoloTab = 'me' | 'decks' | 'trainer' | 'play' | 'clan' | 'more' | 'creatorChallenge' | 'shop'
 
 /** Почему у игрока нет экрана войны: клан не подключён или у подключённого нет войны. */
 export type SoloReason = 'noClan' | 'noWar'
@@ -115,19 +118,27 @@ export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection =
 
   const hasPlus = Boolean(plus?.active || plus?.isSponsor || plus?.unlocked)
   // Без клана - тот же режим игрока, что и у всех, плюс вкладка «Клан» с подключением
-  const tabs: BarTab<SoloTab>[] = [
+  // Что владелец спрятал - в «Ещё»; «Донат» - яркой кнопкой посередине
+  const hidden = hiddenTabs(config)
+  const body: BarTab<SoloTab>[] = [
     { id: 'me', icon: 'user', label: t.tabs.profile, badge: questsSeen ? undefined : 'dot' },
     { id: 'decks', icon: 'cards', label: t.tabs.decks },
     { id: 'trainer', icon: 'target', label: t.tabs.trainer, badge: plus && !hasPlus ? 'plus' : undefined },
     { id: 'play', icon: 'ticket', label: t.tabs.play },
     { id: 'clan', icon: 'castle', label: t.clanless.tabClan },
+  ]
+  const shop: BarTab<SoloTab> | null = hidden.has('shop')
+    ? null : { id: 'shop', icon: 'gem', label: t.tabs.shop, shop: 'plus' }
+  const tabs: BarTab<SoloTab>[] = [
+    ...withShop(body.filter(x => !hidden.has(x.id as MenuTab)), shop),
     { id: 'more', icon: 'gear', label: t.tabs.more },
   ]
 
   return (
     <>
       <main className="with-tabbar fade-in">
-        {tab !== 'creatorChallenge' && <ModeHeader mode="player" plus={plus} />}
+        {tab !== 'creatorChallenge' && tab !== 'shop' && <ModeHeader mode="player" plus={plus} />}
+        {tab === 'shop' && <Showcase embedded initialTab="plus" onClose={() => setTab('me')} />}
         {tab === 'me' && (
           <div className="fade-in">
             <QuestsCard />
@@ -186,7 +197,7 @@ export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection =
         {tab === 'more' && (
           <MoreView canManage={false} isLeader={false} onOpenNotifications={() => { /* уведомления — у клана */ }}
             config={config} onConfigChanged={onConfigChanged} showStudio={showStudio}
-            hide={['trainer', 'tips', 'builder', 'worldTop', 'challenge', 'duel', 'tournament']} />
+            hide={moreInBar(hidden)} />
         )}
       </main>
 

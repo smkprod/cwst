@@ -173,7 +173,8 @@ public class OwnerController(
     public record BroadcastRequest(string Text, string Target);
     public record AddModeratorRequest(string Username, string? Note, string[]? Permissions);
     public record GrantSponsorRequest(string PlayerTag, int Days);
-    public record TabsRequest(string[] Tabs);
+    /// <param name="Hidden">Какие вкладки спрятать из нижнего меню (см. AppTabs.Optional).</param>
+    public record TabsRequest(string[]? Hidden);
     public record SetPermissionsRequest(string[] Permissions);
 
     /// <summary>GET /api/owner/me — кто я для сервиса. Фронт по этому решает, показывать ли панель.</summary>
@@ -733,26 +734,23 @@ public class OwnerController(
     }
 
     /// <summary>
-    /// POST /api/owner/tabs — какие вкладки показывать внизу. Body: { tabs: ["clan", …] }.
-    /// Порядок в списке — порядок на экране.
+    /// POST /api/owner/tabs — какие вкладки спрятать из нижнего меню. Body: { hidden: ["rating", …] }.
+    /// Пустой список - показывать всё. Война, профиль и «Ещё» не прячутся, а спрятанное
+    /// остаётся доступным из «Ещё».
     /// </summary>
     [HttpPost("tabs")]
     public async Task<IActionResult> SetTabs([FromBody] TabsRequest req, CancellationToken ct)
     {
         if (await DenyAsync(ServicePermission.AppSettings, ct) is { } deny) return deny;
 
-        var tabs = (req.Tabs ?? [])
+        var hidden = (req.Hidden ?? [])
             .Select(x => x?.Trim().ToLowerInvariant() ?? "")
-            .Where(AppTabs.IsKnown)
+            .Where(AppTabs.IsOptional)
             .Distinct()
             .ToArray();
 
-        // Пустой набор оставил бы приложение вообще без навигации, и починить это
-        // было бы уже нечем — панель сама живёт на вкладке.
-        if (tabs.Length == 0) return BadRequest(new { error = "no_tabs" });
-
-        await settings.SetAsync(AppTabs.SettingKey, string.Join(',', tabs), ct);
-        return Ok(new { tabs });
+        await settings.SetAsync(AppTabs.SettingKey, string.Join(',', hidden), ct);
+        return Ok(new { hidden });
     }
 
     /// <summary>GET /api/owner/moderators — список модераторов (видит только владелец).</summary>

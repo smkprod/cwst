@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, ApiError, adminClan } from '../lib/api'
-import type { OwnerEngagement, OwnerFeedback, OwnerFunnel, FunnelTotals, AppTab, BroadcastTarget, Moderator, OwnerClan, OwnerClanDetail, OwnerPlus, OwnerChallenge, OwnerFoundPlayer, OwnerSponsor, OwnerStats, ServiceIdentity, ServicePermission, SponsorSales, TopStatus, CampaignFunnel } from '../types'
+import type { OwnerEngagement, OwnerFeedback, OwnerFunnel, FunnelTotals, MenuTab, BroadcastTarget, Moderator, OwnerClan, OwnerClanDetail, OwnerPlus, OwnerChallenge, OwnerFoundPlayer, OwnerSponsor, OwnerStats, ServiceIdentity, ServicePermission, SponsorSales, TopStatus, CampaignFunnel } from '../types'
 
 /** «Можно ли мне вот это». Прокидывается вниз, чтобы правила жили в одном месте. */
 type Can = (p: ServicePermission) => boolean
@@ -12,6 +12,8 @@ import { ChannelSection } from './ChannelSection'
 import { CHALLENGE_RULES } from './StudioChallenges'
 import { Icon, type IconName } from './ui/Icon'
 import { IconTile, SectionHead, type Tone } from './ui/Section'
+import { TabBar, type BarTab } from './AppChrome'
+import { withShop } from '../lib/menu'
 
 type State =
   | { kind: 'loading' }
@@ -89,8 +91,8 @@ export function OwnerPanel({ me }: { me: ServiceIdentity }) {
     ...(can('Broadcast') ? [{ key: 'broadcast', icon: 'megaphone', tone: 'orange', label: 'Рассылка', hint: 'Текст и скрины всем' } as Item] : []),
     ...(can('Broadcast') ? [{ key: 'channel', icon: 'send', tone: 'blue', label: 'Канал', hint: 'Автопосты, новости CR, черновики' } as Item] : []),
     ...(can('Sponsors') ? [{ key: 'plus', icon: 'gem', tone: 'violet', label: 'Плюс', hint: 'Цены, продажи, трекер' } as Item] : []),
-    ...(can('Sponsors') ? [{ key: 'sponsors', icon: 'star', tone: 'gold', label: 'Клан Про', hint: 'Выдача и оплаты' } as Item] : []),
-    ...(can('AppSettings') ? [{ key: 'settings', icon: 'gear', tone: 'gray', label: 'Вкладки', hint: 'Меню и челлендж' } as Item] : []),
+    ...(can('Sponsors') ? [{ key: 'sponsors', icon: 'crown', tone: 'gold', label: 'Клан Про', hint: 'Выдача и оплаты' } as Item] : []),
+    ...(can('AppSettings') ? [{ key: 'settings', icon: 'menu', tone: 'gray', label: 'Меню', hint: 'Нижнее меню, «Донат», челлендж' } as Item] : []),
     ...(can('AppSettings') ? [{ key: 'campaigns', icon: 'trendUp', tone: 'green', label: 'Кампании', hint: 'Реклама и ссылки' } as Item] : []),
     ...(can('Maintenance') ? [{ key: 'top', icon: 'globe', tone: 'blue', label: 'Топ', hint: 'Снимок и мета' } as Item] : []),
     // Студия и здесь: владелец без клана попадает сразу в панель, и другого входа у него нет
@@ -434,7 +436,7 @@ const FUNNEL_PRODUCTS: { key: 'plus' | 'sponsor'; label: string }[] = [
 const FUNNEL_PLACES: Record<string, string> = {
   sheet: 'Окно покупки',
   showcase: 'Витрина',
-  tab: 'Витрина во вкладке',
+  tab: 'Вкладка «Донат»',
 }
 
 const pct = (part: number, whole: number) => (whole > 0 ? Math.round((100 * part) / whole) : 0)
@@ -1216,52 +1218,48 @@ function SponsorsSection({ t }: { t: Translations }) {
   )
 }
 
-/* ---------- Вкладки ---------- */
+/* ---------- Нижнее меню ---------- */
 
-/** Все вкладки, какие бывают. Ключи совпадают с теми, что понимает сервер. */
-const ALL_TABS: { key: AppTab; icon: IconName; label: string }[] = [
-  { key: 'clan', icon: 'castle', label: 'Клан' },
-  { key: 'me', icon: 'user', label: 'Я' },
-  { key: 'hall', icon: 'columns', label: 'Аллея' },
-  { key: 'tournament', icon: 'trophy', label: 'Турнир' },
-  { key: 'search', icon: 'search', label: 'Поиск' },
-  { key: 'more', icon: 'gear', label: 'Ещё' },
-  { key: 'challenge', icon: 'ticket', label: 'Челлендж' },
-  { key: 'duel', icon: 'swords', label: 'Дуэли' },
-  { key: 'plus', icon: 'gem', label: 'Плюс — витрина Плюса и Клан Про' },
-]
+/** Строка настройки: always - вкладка есть всегда, её не выключить. */
+type MenuRow = { key: MenuTab | null; icon: IconName; label: string; hint?: string }
 
 /**
- * Выбор нижних вкладок.
+ * Нижнее меню у всех: какие вкладки показывать в режимах «Клан» и «Игрок» и «Донат».
  *
- * Панель владельца в список не входит: выключив её, ты потерял бы доступ к этому
- * самому экрану, и включить обратно было бы уже нечем. Пустой набор сервер тоже
- * не примет — приложение осталось бы вообще без навигации.
+ * Хранится то, что спрятано: новая вкладка сразу появится у всех. Война, профиль и
+ * «Ещё» не выключаются - без них в режиме не остаётся главного экрана и настроек, а
+ * всё убранное остаётся доступным в «Ещё». Панели в списке нет: выключив её, ты
+ * потерял бы доступ к этому самому экрану.
  */
 function TabsSection({ t }: { t: Translations }) {
-  const [picked, setPicked] = useState<AppTab[] | null>(null)
+  const o = t.owner
+  const [hidden, setHidden] = useState<Set<MenuTab> | null>(null)
+  const [event, setEvent] = useState(false)
   const [busy, setBusy] = useState(false)
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
-    api.getAppConfig().then(c => setPicked(c.tabs)).catch(() => setPicked([]))
+    api.getAppConfig()
+      .then(c => { setHidden(new Set(c.hiddenTabs ?? [])); setEvent(c.event === 'halloween') })
+      .catch(() => setHidden(new Set()))
   }, [])
 
-  const toggle = (key: AppTab) => {
+  const toggle = (key: MenuTab) => {
     haptic('light')
     setSaved(false)
-    setPicked(prev => {
-      const cur = prev ?? []
-      return cur.includes(key) ? cur.filter(x => x !== key) : [...cur, key]
+    setHidden(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key); else next.add(key)
+      return next
     })
   }
 
   const save = async () => {
-    if (!picked || picked.length === 0) return
+    if (!hidden) return
     haptic('medium')
     setBusy(true)
     try {
-      await api.ownerSetTabs(picked)
+      await api.ownerSetTabs([...hidden])
       hapticNotify('success')
       setSaved(true)
     } catch {
@@ -1271,26 +1269,77 @@ function TabsSection({ t }: { t: Translations }) {
     }
   }
 
-  if (picked === null) return <div className="center"><div className="spinner" /></div>
+  if (hidden === null) return <div className="center"><div className="spinner" /></div>
 
-  return (
-    <div className="card">
-      <SectionHead icon="menu" tone="gray" title={t.owner.tabsTitle} info={<p>{t.owner.tabsHint}</p>} />
+  const clanRows: MenuRow[] = [
+    { key: null, icon: 'swords', label: t.tabs.war },
+    ...(event ? [{ key: 'halloween' as MenuTab, icon: 'gift' as IconName, label: t.tabs.halloween }] : []),
+    { key: 'hq', icon: 'crown', label: t.tabs.hq },
+    { key: 'roster', icon: 'users', label: t.tabs.roster },
+    { key: 'rating', icon: 'trophy', label: t.tabs.rating },
+    { key: null, icon: 'gear', label: t.tabs.more },
+  ]
+  const playerRows: MenuRow[] = [
+    { key: null, icon: 'user', label: t.tabs.profile },
+    { key: 'decks', icon: 'cards', label: t.tabs.decks },
+    { key: 'trainer', icon: 'target', label: t.tabs.trainer },
+    { key: 'play', icon: 'ticket', label: t.tabs.play },
+    { key: null, icon: 'gear', label: t.tabs.more },
+  ]
 
+  // Предпросмотр: то же меню, что увидят все, с «Донатом» посередине
+  type P = string
+  const bar = (rows: MenuRow[], kind: 'plus' | 'pro'): BarTab<P>[] => {
+    const body = rows.filter(r => r.key === null ? r.icon !== 'gear' : !hidden.has(r.key))
+      .map(r => ({ id: r.key ?? r.label, icon: r.icon, label: r.label }))
+    const shop: BarTab<P> | null = hidden.has('shop') ? null : { id: 'shop', icon: kind === 'pro' ? 'crown' : 'gem', label: t.tabs.shop, shop: kind }
+    return [...withShop<BarTab<P>>(body, shop), { id: 'more', icon: 'gear', label: t.tabs.more }]
+  }
+  const clanBar = bar(clanRows, 'pro')
+  const playerBar = bar(playerRows, 'plus')
+  // Переключатель режима - тоже значок
+  const crowded = clanBar.length + 1 > 7
+
+  const Group = ({ title, rows }: { title: string; rows: MenuRow[] }) => (
+    <>
+      <p className="adm-menu-group">{title}</p>
       <div className="adm-perms">
-        {ALL_TABS.map(tb => (
-          <label key={tb.key} className="adm-perm">
-            <input type="checkbox" checked={picked.includes(tb.key)} onChange={() => toggle(tb.key)} />
-            <span className="adm-perm-text"><span className="adm-perm-name ow-meta-i"><Icon name={tb.icon} size={15} />{tb.label}</span></span>
+        {rows.map(r => (
+          <label key={r.label + r.icon} className={`adm-perm ${r.key === null ? 'adm-perm-fixed' : ''}`}>
+            <input type="checkbox" checked={r.key === null || !hidden.has(r.key)} disabled={r.key === null}
+              onChange={() => r.key && toggle(r.key)} />
+            <span className="adm-perm-text">
+              <span className="adm-perm-name ow-meta-i"><Icon name={r.icon} size={15} />{r.label}</span>
+              {r.key === null && <span className="muted small">{o.tabsAlways}</span>}
+              {r.hint && <span className="muted small">{r.hint}</span>}
+            </span>
           </label>
         ))}
       </div>
+    </>
+  )
 
-      {picked.length === 0 && <p className="form-error small">{t.owner.tabsEmpty}</p>}
-      {saved && <p className="muted small ow-meta-i ow-good"><Icon name="checkCircle" size={13} />{t.owner.tabsSaved}</p>}
+  return (
+    <div className="card">
+      <SectionHead icon="menu" tone="gray" title={o.tabsTitle} info={<p>{o.tabsHint}</p>} />
 
-      <button className="btn" disabled={busy || picked.length === 0} onClick={save}>
-        {busy ? t.owner.saving : t.owner.tabsSave}
+      <Group title={o.tabsBoth} rows={[{ key: 'shop', icon: 'gem', label: t.tabs.shop, hint: o.tabsShopHint }]} />
+      <Group title={o.tabsClan} rows={clanRows} />
+      <Group title={o.tabsPlayer} rows={playerRows} />
+
+      <p className="adm-menu-group">{o.tabsPreview}</p>
+      <div className="menu-preview">
+        <TabBar tabs={clanBar} active="war" onSelect={() => {}} mode="clan" onToggleMode={() => {}} />
+      </div>
+      <div className="menu-preview">
+        <TabBar tabs={playerBar} active={t.tabs.profile} onSelect={() => {}} mode="player" onToggleMode={() => {}} />
+      </div>
+      {crowded && <p className="muted small ow-meta-i"><Icon name="info" size={13} />{o.tabsCrowded.replace('{n}', String(clanBar.length + 1))}</p>}
+
+      {saved && <p className="muted small ow-meta-i ow-good"><Icon name="checkCircle" size={13} />{o.tabsSaved}</p>}
+
+      <button className="btn" disabled={busy} onClick={save}>
+        {busy ? o.saving : o.tabsSave}
       </button>
 
       <ChallengeSettings t={t} />

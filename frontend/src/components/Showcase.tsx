@@ -58,7 +58,7 @@ export function Showcase({ initialTab = 'plus', onClose, embedded = false }: {
             <Icon name="gem" size={16} /> {s.tabPlus}
           </button>
           <button className={`sc-tab ${tab === 'sponsor' ? 'sc-tab-on sc-tab-sponsor' : ''}`} onClick={() => pick('sponsor')}>
-            <Icon name="star" size={16} /> {s.tabSponsor}
+            <Icon name="crown" size={16} /> {s.tabSponsor}
           </button>
         </div>
 
@@ -92,7 +92,7 @@ function Cta({ tab, t, onBuy, top = false }: { tab: ShowcaseTab; t: Translations
   return (
     <button className={`btn sc-cta ${top ? 'sc-cta-top' : 'sc-cta-bottom'} ${tab === 'plus' ? 'sc-cta-plus' : 'sc-cta-sponsor'}`}
       onClick={() => { haptic('medium'); onBuy() }}>
-      <Icon name={tab === 'plus' ? 'gem' : 'star'} size={18} /> {tab === 'plus' ? s.buyPlus : s.buySponsor}
+      <Icon name={tab === 'plus' ? 'gem' : 'crown'} size={18} /> {tab === 'plus' ? s.buyPlus : s.buySponsor}
     </button>
   )
 }
@@ -159,6 +159,48 @@ function SponsorPart({ t }: { t: Translations; onBuy: () => void }) {
 
   return (
     <>
+      {/* Сначала то, ради чего клан берёт Клан Про: разведка, штаб и тренажёр всем */}
+      <Block icon="radar" tone="blue" title={s.proScoutTitle} hint={s.proScoutHint} demo={s.demo}>
+        <div className="sc-mini">
+          <div className="sc-mini-head"><b>{s.proScoutRival}</b><span>{s.proScoutPeak}</span></div>
+          {s.proScoutRows.map(r => {
+            const [name, perDeck, hour] = r.split('|')
+            return (
+              <div key={name} className="sc-mini-row">
+                <span className="sc-mini-name">{name}</span>
+                <span className="sc-mini-stat"><b>{perDeck}</b> {s.proPerDeck}</span>
+                <span className="sc-mini-tag">{s.proUsual} {hour}</span>
+              </div>
+            )
+          })}
+        </div>
+      </Block>
+
+      <Block icon="crown" tone="gold" title={s.proHqTitle} hint={s.proHqHint} demo={s.demo}>
+        <div className="sc-mini">
+          {s.proHqRows.map(r => {
+            const [name, stat, reasons] = r.split('|')
+            return (
+              <div key={name} className="sc-mini-row sc-mini-warn">
+                <span className="sc-mini-name">{name}</span>
+                <span className="sc-mini-stat"><b>{stat}</b> {s.proPerDeck}</span>
+                <span className="sc-mini-chips">{reasons.split(',').map(x => <i key={x}>{x.trim()}</i>)}</span>
+              </div>
+            )
+          })}
+          <div className="sc-mini-foot"><Icon name="shieldCheck" size={14} /> {s.proHqPillars}</div>
+        </div>
+      </Block>
+
+      <Block icon="target" tone="green" title={s.proTrainerTitle} hint={s.proTrainerHint}>
+        <div className="sc-mini sc-mini-chipsrow">
+          {s.proTrainerRows.map(r => {
+            const [name, stars] = r.split('|')
+            return <span key={name} className="sc-mini-mate">{name} <b>{'★'.repeat(Number(stars))}</b></span>
+          })}
+        </div>
+      </Block>
+
       <Block icon="star" tone="gold" title={s.bgTitle} hint={s.bgHint}>
         <div className="sc-rows">
           <div className="sc-lrow sc-lrow-dim"><span className="sc-lrow-rank">1</span><span className="sc-lrow-name">ME!Narko?</span><span className="sc-lrow-val">3 300</span></div>

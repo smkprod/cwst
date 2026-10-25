@@ -93,3 +93,21 @@
   .buy-pill::after, .mode-dot { animation: none; }
   .mode-switch-knob { transition: none; }
 }
+
+/* «Донат» в нижнем меню: того же размера, что остальные вкладки, но всегда цветной -
+   плитка иконки залита градиентом, подпись тоже цветная. */
+.tab-shop .tab-icon { color: #fff; box-shadow: 0 3px 12px rgba(255, 79, 154, 0.45); }
+.tab-shop-plus .tab-icon { background: linear-gradient(135deg, #ff8a3d, #ff4f9a 55%, #9c6bff); }
+.tab-shop-pro .tab-icon { color: #3a1f00; background: linear-gradient(135deg, #ffe08a, #ffb347 55%, #ff8a3d); box-shadow: 0 3px 12px rgba(255, 170, 40, 0.45); }
+.tab-shop .tab-label { font-weight: 800; color: #ff8fb8; }
+.tab-shop-pro .tab-label { color: #ffc94d; }
+.tab-shop.tab-active .tab-icon { box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35), 0 3px 12px rgba(255, 79, 154, 0.5); }
+
+/* Панель владельца: настройка нижнего меню и его предпросмотр */
+.adm-menu-group { margin: 12px 0 4px; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+.adm-perm-fixed { opacity: 0.6; }
+.menu-preview { margin: 8px 0; border-radius: 14px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06); overflow: hidden; pointer-events: none; }
+.menu-preview .tabbar { position: static; max-width: none; border-top: none; background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; padding: 6px 4px 6px; }
+.menu-preview .tab { min-width: 0; }
+.menu-preview .tab-icon { width: 30px; }
+.menu-preview .tab-label { font-size: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
