@@ -1915,6 +1915,8 @@ export interface BuilderCard {
   cardId: number
   name: string
   iconUrl: string
+  /** Арт Героя карты (для тренажёра); нет - у карты нет Героя */
+  heroIconUrl?: string | null
   /** Обычный арт - запасной, если арт эволюции не открылся */
   baseIconUrl: string
   evo: boolean

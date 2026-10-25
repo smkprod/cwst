@@ -1,5 +1,6 @@
 import { COST, UNITS } from './stats'
 import { DT, Sim, canDeploy, type Entity } from './engine'
+import { HEROES } from './heroes'
 
 /**
  * Задача тренажёра поверх движка: соперник играет по сценарию, на решающем моменте
@@ -128,7 +129,11 @@ export function judge(sc: Scenario, sim: Sim, w: Watch, card: string, base: numb
   const dmg = Math.round(sim.towerDamage.me - w.dmg0)
   const dealt = Math.round(sim.towerDamage.enemy - w.dealt0)
   const killed = !sim.threat('enemy')
-  const myCost = COST[card] ?? 0
+  // Способности Героев тоже стоят эликсира: считаем те, что успели нажать
+  const abilities = sim.entities
+    .filter(e => e.team === 'me' && e.ability && e.ability !== 'ready')
+    .reduce((a, e) => a + (HEROES[e.card]?.cost ?? 0), 0)
+  const myCost = (COST[card] ?? 0) + abilities
   const enemyCost = sc.enemy.reduce((a, e) => a + (COST[e.card] ?? 0), 0)
   const [perfect, ok] = sc.limits
   const king = sim.tower('me', 'K')
@@ -143,6 +148,11 @@ export function judge(sc: Scenario, sim: Sim, w: Watch, card: string, base: numb
     grade, dmg, base: Math.round(base), killed, killIn: killed && w.clearAt !== null ? w.clearAt - w.start : null,
     myCost, enemyCost, survived: mine.some(e => e.alive), kingAwake, dealt,
   }
+}
+
+/** Свой Герой на поле со способностью наготове - для кнопки и показа решения. */
+export function myHero(sim: Sim): Entity | null {
+  return sim.entities.find(e => e.alive && e.team === 'me' && e.ability !== undefined && e.deploy <= 0) ?? null
 }
 
 /** Поставить карту игрока; вернёт его юнитов (для «выжил ли») или null, если сюда нельзя. */

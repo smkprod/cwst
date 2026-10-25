@@ -6,6 +6,8 @@ import { CARD_NAMES, cardInfo } from '../lib/trainer'
 import { Sim, canDeploy, sideOf, type Team } from '../lib/sim/engine'
 import { COST } from '../lib/sim/stats'
 import { emojiOf } from '../lib/sim/emoji'
+import { HEROES } from '../lib/sim/heroes'
+import { artFor } from './ArenaAnim'
 import emblem from '../assets/clanify-emblem.webp'
 import { ArenaSim } from './ArenaSim'
 import { Icon } from './ui/Icon'
@@ -19,7 +21,7 @@ import { Icon } from './ui/Icon'
 /** Все карты, которые умеет движок, - в порядке «войска, здания, заклинания». */
 const PALETTE = ['Knight', 'Hog Rider', 'Skeletons', 'Goblins', 'Ice Spirit', 'Bats', 'Mini P.E.K.K.A', 'Musketeer', 'Archers', 'Minions',
   'Valkyrie', 'Miner', 'Ice Golem', 'Giant', 'Balloon', 'Mega Knight', 'P.E.K.K.A', 'Golem', 'Cannon', 'Tesla', 'Mortar', 'X-Bow',
-  'The Log', 'Tornado', 'Fireball', 'Goblin Barrel']
+  'The Log', 'Tornado', 'Fireball', 'Goblin Barrel', 'Hero Knight', 'Hero Giant', 'Hero Musketeer', 'Hero Mini P.E.K.K.A']
 
 /** Куда встаёт карта стороны: здание 2×2 - на угол клеток, войско - в центр клетки, заклинание - на полклетки. */
 function snapFor(card: string, x: number, y: number): { x: number; y: number } {
@@ -98,10 +100,21 @@ export function Sandbox({ onExit, details, onDetails }: { onExit: () => void; de
             <button className={`sb-btn ${fast ? 'sb-fast' : ''}`} onClick={() => { haptic('light'); setFast(f => !f) }}>⏩</button>
             <button className="sb-btn" onClick={reset}><Icon name="refresh" size={16} /></button>
           </div>
+          {/* Способности Героев на поле - за обе стороны, эликсир не считается */}
+          {sim.entities.some(e => e.alive && e.ability === 'ready' && e.deploy <= 0) && (
+            <div className="sb-abilities">
+              {sim.entities.filter(e => e.alive && e.ability === 'ready' && e.deploy <= 0).map(e => (
+                <button key={e.id} className={`sb-ability ${e.team === 'me' ? 'sb-me' : 'sb-foe'}`}
+                  onClick={() => { sim.elixir[e.team] = Math.max(sim.elixir[e.team], 10); if (sim.useAbility(e)) haptic('heavy') }}>
+                  ⚡ {s.abilities[HEROES[e.card].kind]} · {e.team === 'me' ? s.sideMe : s.sideFoe}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="sb-palette">
             {PALETTE.map(c => (
               <button key={c} className={`sb-card ${card === c ? 'on' : ''}`} onClick={() => { haptic('light'); setCard(c) }}>
-                <span className="sb-card-art">{art[c] ? <img src={art[c]} alt="" /> : <span className="tr-emoji">{emojiOf(c)}</span>}</span>
+                <span className="sb-card-art">{artFor(art, c) ? <img src={artFor(art, c)} alt="" /> : <span className="tr-emoji">{emojiOf(c)}</span>}</span>
                 <span className="tr-cost">{COST[c] ?? ''}</span>
                 <small>{n(c)}</small>
               </button>

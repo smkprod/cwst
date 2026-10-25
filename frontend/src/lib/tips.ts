@@ -12,19 +12,19 @@ import type { Scene } from '../components/ArenaAnim'
  */
 
 export type TipId = 'anti_hog' | 'anti_tank' | 'kite' | 'log_barrel' | 'anti_air' | 'anti_siege' | 'anti_miner'
-  | 'elixir' | 'king_tornado' | 'cheap_def' | 'air_vs_ground' | 'tank_support' | 'clear_path' | 'siege_lock'
+  | 'elixir' | 'king_tornado' | 'cheap_def' | 'air_vs_ground' | 'tank_support' | 'clear_path' | 'siege_lock' | 'heroes'
   | 'tilt' | 'levels' | 'deck'
 
 export const TIP_IDS: TipId[] = ['anti_hog', 'king_tornado', 'cheap_def', 'kite', 'log_barrel', 'anti_tank', 'air_vs_ground', 'anti_air',
-  'anti_siege', 'anti_miner', 'tank_support', 'clear_path', 'siege_lock', 'elixir', 'tilt', 'levels', 'deck']
+  'anti_siege', 'anti_miner', 'heroes', 'tank_support', 'clear_path', 'siege_lock', 'elixir', 'tilt', 'levels', 'deck']
 
 /** Фишки, у которых есть схема арены. Остальные - советы без поля. */
 export const ARENA_TIPS: TipId[] = ['anti_hog', 'king_tornado', 'cheap_def', 'kite', 'log_barrel', 'anti_tank', 'air_vs_ground', 'anti_air',
-  'anti_siege', 'anti_miner', 'tank_support', 'clear_path', 'siege_lock', 'elixir']
+  'anti_siege', 'anti_miner', 'heroes', 'tank_support', 'clear_path', 'siege_lock', 'elixir']
 
 type Units = Record<'hog' | 'cannon' | 'mk' | 'skeletons' | 'barrel' | 'log' | 'goblins' | 'giant' | 'minipekka'
   | 'counter' | 'balloon' | 'musk' | 'xbow' | 'knight' | 'miner' | 'golem' | 'here' | 'cells4' | 'tornado' | 'kingUp'
-  | 'minions' | 'oneVsFour' | 'noAir' | 'cells11' | 'towerHit' | 'yourGiant' | 'yourHog', string>
+  | 'minions' | 'oneVsFour' | 'noAir' | 'cells11' | 'towerHit' | 'yourGiant' | 'yourHog' | 'heroKnight' | 'taunt', string>
 
 export interface TipText { title: string; when: string; steps: string[] }
 
@@ -33,17 +33,17 @@ const UNITS: Record<Lang, Units> = {
     giant: 'Гигант', minipekka: 'Мини-ПЕККА', counter: 'Контратака', balloon: 'Шар', musk: 'Мушкетёр', xbow: 'Икс-лук',
     knight: 'Рыцарь', miner: 'Шахтёр', golem: 'Голем', here: 'сюда', cells4: '4 клетки', tornado: 'Торнадо', kingUp: 'Король проснулся!',
     minions: 'Миньоны', oneVsFour: '1 против 4 эликсира', noAir: 'Не бьёт по воздуху', cells11: '11,5 клетки', towerHit: 'Бьёт башню!',
-    yourGiant: 'Твой Гигант', yourHog: 'Твой Хог' },
+    yourGiant: 'Твой Гигант', yourHog: 'Твой Хог', heroKnight: 'Герой Рыцарь', taunt: 'Насмешка!' },
   uk: { hog: 'Хог', cannon: 'Гармата', mk: 'Мега-лицар', skeletons: 'Скелети', barrel: 'Бочка', log: 'Колода', goblins: 'Гобліни',
     giant: 'Гігант', minipekka: 'Міні-ПЕККА', counter: 'Контратака', balloon: 'Куля', musk: 'Мушкетерка', xbow: 'Ікс-лук',
     knight: 'Лицар', miner: 'Шахтар', golem: 'Голем', here: 'сюди', cells4: '4 клітинки', tornado: 'Торнадо', kingUp: 'Король прокинувся!',
     minions: 'Міньйони', oneVsFour: '1 проти 4 еліксиру', noAir: 'Не б\'є по повітрю', cells11: '11,5 клітинки', towerHit: 'Б\'є вежу!',
-    yourGiant: 'Твій Гігант', yourHog: 'Твій Хог' },
+    yourGiant: 'Твій Гігант', yourHog: 'Твій Хог', heroKnight: 'Герой Лицар', taunt: 'Глузування!' },
   en: { hog: 'Hog', cannon: 'Cannon', mk: 'Mega Knight', skeletons: 'Skeletons', barrel: 'Barrel', log: 'Log', goblins: 'Goblins',
     giant: 'Giant', minipekka: 'Mini P.E.K.K.A', counter: 'Counter-push', balloon: 'Balloon', musk: 'Musketeer', xbow: 'X-Bow',
     knight: 'Knight', miner: 'Miner', golem: 'Golem', here: 'here', cells4: '4 tiles', tornado: 'Tornado', kingUp: 'King is awake!',
     minions: 'Minions', oneVsFour: '1 vs 4 elixir', noAir: 'Can\'t hit air', cells11: '11.5 tiles', towerHit: 'Hits the tower!',
-    yourGiant: 'Your Giant', yourHog: 'Your Hog' },
+    yourGiant: 'Your Giant', yourHog: 'Your Hog', heroKnight: 'Hero Knight', taunt: 'Taunt!' },
 }
 
 /** Сцены: (подписи юнитов на языке) → таймлайн. Клетки - как в игре, см. ArenaAnim. */
@@ -193,6 +193,19 @@ const SCENES: Partial<Record<TipId, (u: Units) => Scene>> = {
       { id: 'hit', kind: 'text', label: u.towerHit, keys: [{ t: 2.2, x: 3.5, y: 4.2 }, { t: 5.8, x: 3.5, y: 4.2 }] },
     ],
   }),
+  // Герой Рыцарь в центре и насмешка: Мини-ПЕККА и Мушкетёр идут к нему, под обе башни
+  heroes: u => ({
+    duration: 7,
+    marks: [{ x: 9.5, y: 21.5, from: 0.8, to: 1.6, label: u.here }],
+    actors: [
+      { id: 'mp', kind: 'enemy', card: 'Mini P.E.K.K.A', label: u.minipekka, r: 0.7, to: 5.2,
+        keys: [{ t: 0, x: 3.5, y: 12.5 }, { t: 1.5, x: 3.5, y: 17.6 }, { t: 2.6, x: 6.2, y: 20.2 }, { t: 3.4, x: 8.3, y: 21.2 }, { t: 5.2, x: 8.3, y: 21.2 }] },
+      { id: 'mu', kind: 'enemy', card: 'Musketeer', label: u.musk, r: 0.65, to: 5.8,
+        keys: [{ t: 0.4, x: 3.5, y: 11 }, { t: 2.2, x: 3.5, y: 17.4 }, { t: 3.4, x: 5.4, y: 18.6 }, { t: 5.8, x: 5.4, y: 18.6 }] },
+      { id: 'hk', kind: 'mine', card: 'Hero Knight', label: u.heroKnight, r: 0.75, keys: [{ t: 1.4, x: 9.5, y: 21.6 }, { t: 7, x: 9.5, y: 21.6 }] },
+      { id: 'tt', kind: 'text', label: u.taunt, keys: [{ t: 2.0, x: 9.5, y: 19.4 }, { t: 4.4, x: 9.5, y: 19.4 }] },
+    ],
+  }),
   // За королём есть ряд: тяж оттуда идёт к мосту, а эликсир копится на поддержку (сбоку от короля - чтобы обойти его по своей линии)
   elixir: u => ({
     duration: 6.5,
@@ -269,6 +282,12 @@ const TEXT: Record<Lang, Record<TipId, TipText>> = {
         'Ставь его в первый ряд у реки, в линии башни: тогда он сам бьёт по башне.',
         'На ряд ниже он уже не достаёт и бьёт только тех, кто подошёл.',
         'Прикрой лук: Рыцарь или Ледяной голем рядом, заклинание — на защитников.'] },
+    heroes: { title: 'Герои: способность вовремя', when: 'Когда играешь Героем Рыцарем, Гигантом, Мушкетёром или Мини-ПЕККА.',
+      steps: ['У Героя то же тело, что у обычной карты, а сила — в способности: её жмёшь сам, за эликсир, один раз за выход.',
+        'Рыцарь — «Насмешка» (2 💧): щит и все враги рядом, даже башни, бьют только его. Ставь его туда, где враги окажутся под твоими башнями.',
+        'Мини-ПЕККА — «Блинный завтрак» (1 💧): блины копятся от ударов. Жми после 2–3 ударов — +2–3 уровня и лечение.',
+        'Мушкетёр — «Турель» (3 💧): ставит турель на 3 клетки вперёд, она бьёт по земле при установке и стреляет по воздуху.',
+        'Гигант — «Бросок» (2 💧): хватает самого живучего врага рядом и кидает в другую линию. В защите смотри, куда полетит — не на свою башню ли.'] },
     elixir: { title: 'Не держи 10 эликсира', when: 'Если в поражениях у тебя течёт эликсир.',
       steps: ['10 эликсира — это потеря: всё, что набирается сверх, сгорает.',
         'При 9+ и тишине на поле ставь дорогую карту в самый тыл, у задней стенки.',
@@ -350,6 +369,12 @@ const TEXT: Record<Lang, Record<TipId, TipText>> = {
         'Став його в перший ряд біля річки, в лінії вежі: тоді він сам б\'є по вежі.',
         'На ряд нижче він уже не дістає й б\'є лише тих, хто підійшов.',
         'Прикрий лук: Лицар чи Крижаний голем поруч, закляття — на захисників.'] },
+    heroes: { title: 'Герої: здібність вчасно', when: 'Коли граєш Героєм Лицарем, Гігантом, Мушкетеркою чи Міні-ПЕККА.',
+      steps: ['У Героя те саме тіло, що й у звичайної карти, а сила — у здібності: тиснеш її сам, за еліксир, один раз за вихід.',
+        'Лицар — «Глузування» (2 💧): щит, і всі вороги поруч, навіть вежі, б\'ють лише його. Став його туди, де вороги опиняться під твоїми вежами.',
+        'Міні-ПЕККА — «Млинцевий сніданок» (1 💧): млинці копляться від ударів. Тисни після 2–3 ударів — +2–3 рівні й лікування.',
+        'Мушкетерка — «Турель» (3 💧): ставить турель на 3 клітинки вперед, вона б\'є по землі при встановленні й стріляє по повітрю.',
+        'Гігант — «Кидок» (2 💧): хапає найживучішого ворога поруч і кидає в іншу лінію. У захисті дивись, куди полетить — чи не на твою вежу.'] },
     elixir: { title: 'Не тримай 10 еліксиру', when: 'Якщо в поразках у тебе тече еліксир.',
       steps: ['10 еліксиру — це втрата: усе, що набирається понад, згорає.',
         'При 9+ і тиші на полі став дорогу карту в самий тил, біля задньої стінки.',
@@ -431,6 +456,12 @@ const TEXT: Record<Lang, Record<TipId, TipText>> = {
         'Place it in the first row at the river, in the tower\'s lane: then it hits the tower by itself.',
         'One row lower it can\'t reach and only shoots whatever comes close.',
         'Cover it: a Knight or Ice Golem nearby, a spell on the defenders.'] },
+    heroes: { title: 'Heroes: ability on time', when: 'When you play Hero Knight, Giant, Musketeer or Mini PEKKA.',
+      steps: ['A Hero has the same body as the normal card — the power is the ability: you trigger it yourself, for elixir, once per deploy.',
+        'Knight — Triumphant Taunt (2 💧): a shield, and every enemy nearby, towers included, hits only him. Place him where the enemies end up under your towers.',
+        'Mini PEKKA — Breakfast Boost (1 💧): pancakes fill with hits. Use it after 2–3 hits — +2–3 levels and a heal.',
+        'Musketeer — Trusty Turret (3 💧): drops a turret 3 tiles ahead that hits the ground on deploy and shoots air.',
+        'Giant — Heroic Hurl (2 💧): grabs the toughest enemy nearby and throws it to the other lane. On defense, check where it lands — not on your own tower.'] },
     elixir: { title: 'Don\'t sit at 10 elixir', when: 'If you leak elixir in your losses.',
       steps: ['10 elixir is a loss: everything above it burns.',
         'At 9+ with a quiet field, place your expensive card at the very back.',

@@ -30,19 +30,22 @@ export const CARD_NAMES: Record<Lang, Record<string, string>> = {
   ru: { 'Cannon': 'Пушка', 'Knight': 'Рыцарь', 'Skeletons': 'Скелеты', 'Fireball': 'Огн. шар', 'The Log': 'Бревно', 'Musketeer': 'Мушкетёр',
     'Mini P.E.K.K.A': 'Мини-ПЕККА', 'Golem': 'Голем', 'Golemite': 'Големит', 'Hog Rider': 'Хог', 'Mega Knight': 'Мега-рыцарь', 'Goblin Barrel': 'Бочка',
     'Goblins': 'Гоблины', 'Balloon': 'Шар', 'Giant': 'Гигант', 'X-Bow': 'Икс-лук', 'Miner': 'Шахтёр', 'Tornado': 'Торнадо', 'Mortar': 'Мортира', 'P.E.K.K.A': 'ПЕККА', 'Ice Golem': 'Лед. голем', 'Ice Spirit': 'Лед. дух',
-    'Valkyrie': 'Валькирия', 'Archers': 'Лучницы', 'Minions': 'Миньоны', 'Bats': 'Мыши', 'Tesla': 'Тесла' },
+    'Valkyrie': 'Валькирия', 'Archers': 'Лучницы', 'Minions': 'Миньоны', 'Bats': 'Мыши', 'Tesla': 'Тесла',
+    'Hero Knight': 'Герой Рыцарь', 'Hero Giant': 'Герой Гигант', 'Hero Musketeer': 'Герой Мушкетёр', 'Hero Mini P.E.K.K.A': 'Герой Мини-ПЕККА', 'Hero Turret': 'Турель' },
   uk: { 'Cannon': 'Гармата', 'Knight': 'Лицар', 'Skeletons': 'Скелети', 'Fireball': 'Вогн. куля', 'The Log': 'Колода', 'Musketeer': 'Мушкетерка',
     'Mini P.E.K.K.A': 'Міні-ПЕККА', 'Golem': 'Голем', 'Golemite': 'Големіт', 'Hog Rider': 'Хог', 'Mega Knight': 'Мега-лицар', 'Goblin Barrel': 'Бочка',
     'Goblins': 'Гобліни', 'Balloon': 'Куля', 'Giant': 'Гігант', 'X-Bow': 'Ікс-лук', 'Miner': 'Шахтар', 'Tornado': 'Торнадо', 'Mortar': 'Мортира', 'P.E.K.K.A': 'ПЕККА', 'Ice Golem': 'Криж. голем', 'Ice Spirit': 'Криж. дух',
-    'Valkyrie': 'Валькірія', 'Archers': 'Лучниці', 'Minions': 'Міньйони', 'Bats': 'Кажани', 'Tesla': 'Тесла' },
+    'Valkyrie': 'Валькірія', 'Archers': 'Лучниці', 'Minions': 'Міньйони', 'Bats': 'Кажани', 'Tesla': 'Тесла',
+    'Hero Knight': 'Герой Лицар', 'Hero Giant': 'Герой Гігант', 'Hero Musketeer': 'Герой Мушкетерка', 'Hero Mini P.E.K.K.A': 'Герой Міні-ПЕККА', 'Hero Turret': 'Турель' },
   en: { 'Cannon': 'Cannon', 'Knight': 'Knight', 'Skeletons': 'Skeletons', 'Fireball': 'Fireball', 'The Log': 'Log', 'Musketeer': 'Musketeer',
     'Mini P.E.K.K.A': 'Mini PEKKA', 'Golem': 'Golem', 'Golemite': 'Golemite', 'Hog Rider': 'Hog', 'Mega Knight': 'Mega Knight', 'Goblin Barrel': 'Barrel',
     'Goblins': 'Goblins', 'Balloon': 'Balloon', 'Giant': 'Giant', 'X-Bow': 'X-Bow', 'Miner': 'Miner', 'Tornado': 'Tornado', 'Mortar': 'Mortar', 'P.E.K.K.A': 'P.E.K.K.A', 'Ice Golem': 'Ice Golem', 'Ice Spirit': 'Ice Spirit',
-    'Valkyrie': 'Valkyrie', 'Archers': 'Archers', 'Minions': 'Minions', 'Bats': 'Bats', 'Tesla': 'Tesla' },
+    'Valkyrie': 'Valkyrie', 'Archers': 'Archers', 'Minions': 'Minions', 'Bats': 'Bats', 'Tesla': 'Tesla',
+    'Hero Knight': 'Hero Knight', 'Hero Giant': 'Hero Giant', 'Hero Musketeer': 'Hero Musketeer', 'Hero Mini P.E.K.K.A': 'Hero Mini PEKKA', 'Hero Turret': 'Turret' },
 }
 
 /** Раздел списка задач: защита, «разбуди короля», «отбейся дёшево», атака. */
-export type PuzzleCat = 'defense' | 'king' | 'cheap' | 'attack'
+export type PuzzleCat = 'defense' | 'king' | 'cheap' | 'hero' | 'attack'
 
 export interface Puzzle {
   id: string
@@ -54,8 +57,13 @@ export interface Puzzle {
   icon?: string
   hand: string[]
   sc: Scenario
-  /** Эталонный ход на три звезды - его показываем перед попыткой (проверен прогоном боя). */
-  solution: { card: string; x: number; y: number }
+  /**
+   * Эталонный ход на три звезды - его показываем перед попыткой (проверен прогоном боя).
+   * ability - через сколько секунд после хода нажать способность Героя.
+   */
+  solution: { card: string; x: number; y: number; ability?: number }
+  /** Герой уже на поле по условию: ход игрока - только вовремя нажать способность. */
+  abilityOnly?: boolean
 }
 
 /** Куда встаёт карта: здание 2×2 - на угол клеток, войско - в центр клетки, заклинание - куда тапнули. */
@@ -225,6 +233,37 @@ export const PUZZLES: Puzzle[] = [
     solution: { card: 'X-Bow', x: 3, y: 18 },
     sc: { elixir: 6, enemy: [], pause: 0.3, horizon: 14, limits: [1000, 400], goal: 'attack' },
   },
+  // --- Герои: поставить и вовремя нажать способность ---
+  {
+    // Мини-ПЕККА и Мушкетёр в одной линии: Герой Рыцарь в центре, насмешка - оба бьют его щит под двумя башнями
+    id: 'hero_knight_def', cat: 'hero', tip: 'heroes', enemyCard: 'Mini P.E.K.K.A', icon: 'Hero Knight', hand: ['Hero Knight', 'Knight', 'Skeletons', 'Fireball'],
+    solution: { card: 'Hero Knight', x: 9.5, y: 21.5, ability: 0.5 },
+    sc: { elixir: 7, enemy: [{ at: 0, card: 'Mini P.E.K.K.A', x: 3.5, y: 13.5 }, { at: 0.8, card: 'Musketeer', x: 3.5, y: 11.5 }], pause: reach('Mini P.E.K.K.A', 17.4), horizon: 18, limits: [100, 1000] },
+  },
+  {
+    // Твой Хог идёт на башню с Мушкетёром: Герой Рыцарь рядом, насмешка у башни - башня и Мушкетёр бьют щит, Хог ломает башню
+    id: 'hero_knight_atk', cat: 'hero', tip: 'heroes', enemyCard: 'Musketeer', icon: 'Hero Knight', hand: ['Hero Knight', 'Knight', 'Skeletons', 'Fireball'],
+    solution: { card: 'Hero Knight', x: 14.5, y: 17.5, ability: 2.5 },
+    sc: { elixir: 7, mine: [{ at: 0, card: 'Hog Rider', x: 14.5, y: 18.5 }], enemy: [{ at: 2.2, card: 'Musketeer', x: 12.5, y: 8.5 }], pause: 0.3, horizon: 16, limits: [1300, 700], goal: 'attack' },
+  },
+  {
+    // Герой Мини-ПЕККА против ПЕККИ: блины после двух-трёх ударов - +2-3 уровня и лечение, раньше мало, позже поздно
+    id: 'hero_mpk_boost', cat: 'hero', tip: 'heroes', enemyCard: 'P.E.K.K.A', icon: 'Hero Mini P.E.K.K.A', hand: [], abilityOnly: true,
+    solution: { card: 'Hero Mini P.E.K.K.A', x: 0, y: 0, ability: 4.25 },
+    sc: { elixir: 3, mine: [{ at: 0.2, card: 'Hero Mini P.E.K.K.A', x: 3.5, y: 19.5 }], enemy: [{ at: 0, card: 'P.E.K.K.A', x: 3.5, y: 13.5 }], pause: 0.3, horizon: 26, limits: [150, 1600] },
+  },
+  {
+    // Шар с Миньонами: Герой Мушкетёр у реки и турель сразу - вместе снимают и рой, и Шар
+    id: 'hero_musk_turret', cat: 'hero', tip: 'heroes', enemyCard: 'Balloon', icon: 'Hero Musketeer', hand: ['Hero Musketeer', 'Musketeer', 'Knight', 'Fireball'],
+    solution: { card: 'Hero Musketeer', x: 10.5, y: 17.5, ability: 0 },
+    sc: { elixir: 7, enemy: [{ at: 0, card: 'Balloon', x: 14.5, y: 13.5 }, { at: 0.5, card: 'Minions', x: 14.5, y: 12.5 }], pause: reach('Balloon', 17.5), horizon: 16, limits: [100, 1000] },
+  },
+  {
+    // Твой Герой Гигант идёт на башню, его встретит Мега-рыцарь: бросок заранее - схватит его и кинет в другую линию
+    id: 'hero_giant_hurl', cat: 'hero', tip: 'heroes', enemyCard: 'Mega Knight', icon: 'Hero Giant', hand: [], abilityOnly: true,
+    solution: { card: 'Hero Giant', x: 0, y: 0, ability: 2 },
+    sc: { elixir: 3, mine: [{ at: 0, card: 'Hero Giant', x: 14.5, y: 18.5 }], enemy: [{ at: 4.8, card: 'Mega Knight', x: 14.5, y: 9 }], pause: 0.6, horizon: 26, limits: [2200, 1500], goal: 'attack' },
+  },
 ]
 
 /** Сколько задач открыто целиком без Плюса (плюс задача дня); в остальных бесплатно только показ решения. */
@@ -303,6 +342,11 @@ export const PUZZLE_TEXT: Record<Lang, Record<string, PuzzleText>> = {
     atk_loon_giant: { title: 'Атака: Шар за Гигантом', task: 'Твой Гигант перешёл реку, соперник встретит его Мини-ПЕККА. Добавь карту так, чтобы снести башню.' },
     atk_hog_log: { title: 'Атака: расчисти дорогу Хогу', task: 'Твой Хог идёт на правую башню, а соперник ставит скелетов у неё. Расчисти Хогу путь.' },
     atk_xbow: { title: 'Атака: Икс-лук до башни', task: 'Поставь Икс-лук так, чтобы он сам бил по башне принцессы соперника.' },
+    hero_knight_def: { title: 'Герой Рыцарь: насмешка', task: 'Мини-ПЕККА с Мушкетёром идут на левую башню. Поставь Героя Рыцаря и вовремя включи насмешку.' },
+    hero_knight_atk: { title: 'Атака: насмешка на башню', task: 'Твой Хог идёт на правую башню, у соперника там Мушкетёр. Поставь Героя Рыцаря и забери огонь на него.' },
+    hero_mpk_boost: { title: 'Герой Мини-ПЕККА: блины', task: 'Твоя Мини-ПЕККА встречает ПЕККУ. Нажми блины в нужный момент — не раньше и не позже.' },
+    hero_musk_turret: { title: 'Герой Мушкетёр: турель', task: 'Шар с Миньонами летят на правую башню. Поставь Героя Мушкетёра и турель.' },
+    hero_giant_hurl: { title: 'Атака: бросок Гиганта', task: 'Твой Герой Гигант идёт на башню, его встретит Мега-рыцарь. Нажми бросок.' },
   },
   uk: {
     hog: { title: 'Хог у лівій лінії', task: 'Хог перейшов міст. Відбийся так, щоб вежа не постраждала.' },
@@ -328,6 +372,11 @@ export const PUZZLE_TEXT: Record<Lang, Record<string, PuzzleText>> = {
     atk_loon_giant: { title: 'Атака: Куля за Гігантом', task: 'Твій Гігант перейшов річку, суперник зустріне його Міні-ПЕККА. Додай карту так, щоб знести вежу.' },
     atk_hog_log: { title: 'Атака: розчисти шлях Хогу', task: 'Твій Хог іде на праву вежу, а суперник ставить скелетів біля неї. Розчисти Хогу шлях.' },
     atk_xbow: { title: 'Атака: Ікс-лук до вежі', task: 'Постав Ікс-лук так, щоб він сам бив по вежі принцеси суперника.' },
+    hero_knight_def: { title: 'Герой Лицар: глузування', task: 'Міні-ПЕККА з Мушкетеркою йдуть на ліву вежу. Постав Героя Лицаря й вчасно ввімкни глузування.' },
+    hero_knight_atk: { title: 'Атака: глузування на вежу', task: 'Твій Хог іде на праву вежу, у суперника там Мушкетерка. Постав Героя Лицаря й забери вогонь на нього.' },
+    hero_mpk_boost: { title: 'Герой Міні-ПЕККА: млинці', task: 'Твоя Міні-ПЕККА зустрічає ПЕККУ. Натисни млинці в потрібний момент — не раніше й не пізніше.' },
+    hero_musk_turret: { title: 'Герой Мушкетерка: турель', task: 'Куля з Міньйонами летять на праву вежу. Постав Героя Мушкетерку й турель.' },
+    hero_giant_hurl: { title: 'Атака: кидок Гіганта', task: 'Твій Герой Гігант іде на вежу, його зустріне Мега-лицар. Натисни кидок.' },
   },
   en: {
     hog: { title: 'Hog in the left lane', task: 'The Hog crossed the bridge. Defend without tower damage.' },
@@ -353,6 +402,11 @@ export const PUZZLE_TEXT: Record<Lang, Record<string, PuzzleText>> = {
     atk_loon_giant: { title: 'Attack: Balloon behind the Giant', task: 'Your Giant crossed the river and they\'ll meet it with Mini PEKKA. Add a card to take the tower.' },
     atk_hog_log: { title: 'Attack: clear the Hog\'s path', task: 'Your Hog goes for their right tower and they drop Skeletons there. Clear the way.' },
     atk_xbow: { title: 'Attack: X-Bow on the tower', task: 'Place the X-Bow so it hits their Princess Tower by itself.' },
+    hero_knight_def: { title: 'Hero Knight: taunt', task: 'Mini PEKKA and Musketeer push your left tower. Place the Hero Knight and taunt at the right time.' },
+    hero_knight_atk: { title: 'Attack: taunt the tower', task: 'Your Hog goes for their right tower, defended by a Musketeer. Place the Hero Knight and draw the fire.' },
+    hero_mpk_boost: { title: 'Hero Mini PEKKA: pancakes', task: 'Your Mini PEKKA meets a P.E.K.K.A. Hit Breakfast Boost at the right moment — not too early, not too late.' },
+    hero_musk_turret: { title: 'Hero Musketeer: turret', task: 'Balloon and Minions fly at your right tower. Place the Hero Musketeer and her turret.' },
+    hero_giant_hurl: { title: 'Attack: Giant\'s hurl', task: 'Your Hero Giant walks to the tower and a Mega Knight will meet him. Use the hurl.' },
   },
 }
 
@@ -382,6 +436,11 @@ export const HINTS: Record<Lang, Record<string, string>> = {
     atk_loon_giant: 'Танк впереди, урон сзади: башня бьёт ближайшего — Гиганта, а Шар в той же линии сразу за ним долетает целым. Мушкетёр сзади тоже работает: он снимает защитника.',
     atk_hog_log: 'Скелеты у башни съедают Хога. Бревно по его линии, впереди Хога, сметает их до встречи — и Хог бьёт башню.',
     atk_xbow: 'Икс-лук бьёт на 11,5 клетки — от твоего первого ряда у реки ровно до башни принцессы. На ряд ниже он уже не достаёт и будет бить только то, что подойдёт.',
+    hero_knight_def: 'Насмешка заставляет всех врагов рядом бить только Рыцаря — сначала его щит. Поставь его в центр, чтобы враги стояли под обеими башнями, и жми насмешку сразу, как он появился.',
+    hero_knight_atk: 'Насмешка работает и на башни: башня и Мушкетёр бьют щит Рыцаря, а Хог в это время ломает башню. Рыцарь идёт рядом с Хогом, жми, когда они подходят к башне.',
+    hero_mpk_boost: 'Блины копятся со временем и от ударов: каждый удар — почти полполосы. Жми после 2–3 ударов по ПЕККЕ: +2–3 уровня и лечение. Сразу — слабый буст, поздно — ПЕККА уже разменяла её.',
+    hero_musk_turret: 'Турель встаёт на 3 клетки впереди и при установке бьёт по земле, а потом стреляет по воздуху. Ставь Мушкетёра у реки и турель сразу — рой не успеет долететь.',
+    hero_giant_hurl: 'Бросок ждёт цель сам: нажми заранее, и Гигант схватит самого живучего врага рядом, кинет на 9 клеток в другую линию и оглушит на 2 секунды. В защите осторожно — можно бросить врага на свою вторую башню.',
   },
   uk: {
     hog: 'Будівля на шляху Хога, краще в центрі за 3–4 клітинки від річки: він зверне до неї й загине під вежами.',
@@ -407,6 +466,11 @@ export const HINTS: Record<Lang, Record<string, string>> = {
     atk_loon_giant: 'Танк попереду, урон ззаду: вежа б\'є найближчого — Гіганта, а Куля в тій самій лінії одразу за ним долітає цілою. Мушкетерка ззаду теж працює: вона знімає захисника.',
     atk_hog_log: 'Скелети біля вежі з\'їдають Хога. Колода по його лінії, попереду Хога, змітає їх до зустрічі — і Хог б\'є вежу.',
     atk_xbow: 'Ікс-лук б\'є на 11,5 клітинки — від твого першого ряду біля річки рівно до вежі принцеси. На ряд нижче він уже не дістає й битиме лише те, що підійде.',
+    hero_knight_def: 'Глузування змушує всіх ворогів поруч бити лише Лицаря — спершу його щит. Постав його в центр, щоб вороги стояли під обома вежами, і тисни глузування одразу, як він з\'явився.',
+    hero_knight_atk: 'Глузування діє й на вежі: вежа й Мушкетерка б\'ють щит Лицаря, а Хог тим часом ламає вежу. Лицар іде поруч із Хогом, тисни, коли вони підходять до вежі.',
+    hero_mpk_boost: 'Млинці копляться з часом і від ударів: кожен удар — майже пів смуги. Тисни після 2–3 ударів по ПЕККІ: +2–3 рівні й лікування. Одразу — слабкий буст, пізно — ПЕККА вже розміняла її.',
+    hero_musk_turret: 'Турель стає на 3 клітинки попереду й при встановленні б\'є по землі, а потім стріляє по повітрю. Став Мушкетерку біля річки й турель одразу — рій не встигне долетіти.',
+    hero_giant_hurl: 'Кидок сам чекає ціль: натисни заздалегідь, і Гігант схопить найживучішого ворога поруч, кине на 9 клітинок в іншу лінію й оглушить на 2 секунди. У захисті обережно — можна кинути ворога на свою другу вежу.',
   },
   en: {
     hog: 'A building in the Hog\'s path, best in the middle 3–4 tiles from the river: it turns to it and dies under your towers.',
@@ -432,6 +496,11 @@ export const HINTS: Record<Lang, Record<string, string>> = {
     atk_loon_giant: 'Tank in front, damage behind: the tower targets the closest — the Giant — so a Balloon right behind it in the same lane arrives intact. A Musketeer behind works too: it kills the defender.',
     atk_hog_log: 'Skeletons at the tower eat the Hog. A Log down its lane, ahead of the Hog, sweeps them before they meet — and the Hog hits the tower.',
     atk_xbow: 'The X-Bow hits 11.5 tiles — from your first row at the river exactly to their Princess Tower. One row lower it can\'t reach and only shoots whatever comes close.',
+    hero_knight_def: 'Taunt makes every enemy nearby hit only the Knight — his shield first. Place him in the middle so the enemies stand under both towers, and taunt as soon as he lands.',
+    hero_knight_atk: 'Taunt works on towers too: the tower and the Musketeer hit the Knight\'s shield while the Hog breaks the tower. The Knight walks next to the Hog — taunt as they reach the tower.',
+    hero_mpk_boost: 'Pancakes fill over time and with hits — each hit is almost half a bar. Use it after 2–3 hits on the P.E.K.K.A: +2–3 levels and a heal. Right away is a weak boost, too late and the P.E.K.K.A has already won the trade.',
+    hero_musk_turret: 'The turret lands 3 tiles ahead and hits the ground on deploy, then shoots air. Place the Musketeer at the river and the turret right away — the swarm won\'t make it.',
+    hero_giant_hurl: 'The hurl waits for a target by itself: use it early and the Giant grabs the toughest enemy nearby, throws it 9 tiles into the other lane and stuns it for 2 seconds. Careful on defense — you can throw the enemy onto your other tower.',
   },
 }
 
@@ -439,7 +508,7 @@ export interface ResultText {
   tower0: string; tower: string; base: string; stopped: string; notStopped: string; trade: string
   onlyBuildings: string; noAir: string; missed: string; weak: string; lost: string
   kingAwake: string; kingAsleep: string; kingHint: string
-  enemyTower: string; noMove: string; towerDown: string; attackShort: string
+  enemyTower: string; noMove: string; towerDown: string; attackShort: string; heroTiming: string
 }
 
 export const RESULT_TEXT: Record<Lang, ResultText> = {
@@ -455,6 +524,7 @@ export const RESULT_TEXT: Record<Lang, ResultText> = {
     kingHint: 'Король так и не проснулся: врага нужно затянуть вплотную к королевской башне — Торнадо ближе к королю и в момент, когда враг уже у башни.',
     enemyTower: 'Башня соперника −{n}', noMove: 'без хода: −{n}', towerDown: 'Башня снесена!',
     attackShort: 'Урона не хватило: {n} из {need}. Посмотри, кого бьёт башня и кто мешает твоей атаке.',
+    heroTiming: 'Здесь решает момент: посмотри показ решения — когда там нажата способность.',
   },
   uk: {
     tower0: 'Вежа ціла', tower: 'Вежа −{n}', base: 'без захисту: −{n}',
@@ -468,6 +538,7 @@ export const RESULT_TEXT: Record<Lang, ResultText> = {
     kingHint: 'Король так і не прокинувся: ворога треба затягнути впритул до королівської вежі — Торнадо ближче до короля й у момент, коли ворог уже біля вежі.',
     enemyTower: 'Вежа суперника −{n}', noMove: 'без ходу: −{n}', towerDown: 'Вежу знесено!',
     attackShort: 'Урону не вистачило: {n} з {need}. Подивись, кого б\'є вежа і хто заважає твоїй атаці.',
+    heroTiming: 'Тут вирішує момент: подивись показ рішення — коли там натиснуто здібність.',
   },
   en: {
     tower0: 'Tower untouched', tower: 'Tower −{n}', base: 'undefended: −{n}',
@@ -481,6 +552,7 @@ export const RESULT_TEXT: Record<Lang, ResultText> = {
     kingHint: 'Your King never woke up: pull the attacker right up to your King Tower — Tornado closer to the King, right when they reach your tower.',
     enemyTower: 'Their tower −{n}', noMove: 'without a move: −{n}', towerDown: 'Tower down!',
     attackShort: 'Not enough damage: {n} of {need}. Check what their tower shoots and what stops your push.',
+    heroTiming: 'Timing decides here: watch the solution — when the ability is used.',
   },
 }
 
@@ -492,6 +564,8 @@ export function explain(p: Puzzle, o: Outcome, card: string, dealt: number, lang
   const fs = UNITS[foe]
   const kind = cardInfo(card).kind
   const lines: string[] = []
+  if (p.solution.ability !== undefined && o.grade !== 'perfect') lines.push(tx.heroTiming)
+  if (p.abilityOnly) return lines
   if (p.sc.goal === 'attack') {
     if (o.grade !== 'perfect') lines.push(tx.attackShort.replace('{n}', String(o.dealt)).replace('{need}', String(p.sc.limits[0])))
     return lines

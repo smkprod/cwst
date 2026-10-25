@@ -32,7 +32,7 @@ export function TrainerPlanCard() {
 
   // Задача против карты: сначала ещё не решённая на три звезды
   const puzzleFor = (card: string) => {
-    const all = PUZZLES.filter(p => p.enemyCard === card && p.cat !== 'attack')
+    const all = PUZZLES.filter(p => p.enemyCard === card && p.cat !== 'attack' && p.cat !== 'hero')
     return all.find(p => (stars[p.id] ?? 0) < 3) ?? all[0]
   }
 
