@@ -47,8 +47,8 @@ import { OPEN_TRAINER } from './lib/trainer'
 import type { MoreSection } from './components/MoreView'
 import { MenuChangedNotice } from './components/MenuChangedNotice'
 import { UpdateNotice } from './components/UpdateNotice'
-import { DisciplineCard } from './components/DisciplineCard'
 import { ScoutCard } from './components/ScoutCard'
+import { ClanHqView } from './components/ClanHqView'
 import { WorldTopEntry } from './components/WorldTopEntry'
 import { weekKing } from './lib/king'
 import { canUseOwnerPanel, canUseStudio } from './lib/serviceAccess'
@@ -99,13 +99,15 @@ const TAB_LOOKS = (t: Translations): Record<AppTab, { icon: IconName; label: str
  * приходилось искать, пролистав полсотни карточек. Теперь аналитика войны помещается
  * на один экран, а состав открывается, когда он действительно нужен.
  */
-type ClanSection = 'war' | 'roster' | 'rating'
+type ClanSection = 'war' | 'hq' | 'roster' | 'rating'
 
 /** Переключатель «Война / Состав / Рейтинг» внутри вкладки клана. */
-function ClanSectionTabs({ value, onChange, t }: {
+function ClanSectionTabs({ value, onChange, t, showHq = true }: {
   value: ClanSection
   onChange: (next: ClanSection) => void
   t: Translations
+  /** Гость смотрит чужой клан со стороны: штаб - для своих. */
+  showHq?: boolean
 }) {
   return (
     <div className="clan-sections">
@@ -115,6 +117,14 @@ function ClanSectionTabs({ value, onChange, t }: {
       >
         <Icon name="swords" size={15} /> {t.tabs.war}
       </button>
+      {showHq && (
+        <button
+          className={`clan-section ${value === 'hq' ? 'clan-section-on' : ''}`}
+          onClick={() => onChange('hq')}
+        >
+          <Icon name="crown" size={15} /> {t.tabs.hq}
+        </button>
+      )}
       <button
         className={`clan-section ${value === 'roster' ? 'clan-section-on' : ''}`}
         onClick={() => onChange('roster')}
@@ -479,13 +489,11 @@ export default function App() {
                 {data.hasChat === false && !data.viewingAsAdmin && (
                   <ConnectChatCard clanTag={data.clanTag} isLeader={Boolean(data.isClanLeader)} />
                 )}
-                {/* Личный призыв — первым делом: «ты не доиграл» цепляет сильнее общих цифр */}
+                {/* Личный призыв — первым делом: «ты не доиграл» цепляет сильнее общих цифр.
+                    Остальное личное (что нового, опрос, «позови друга») живёт во вкладке «Я»:
+                    здесь только клан. */}
                 <MyActionBanner status={data} />
-                {/* Что изменилось лично у тебя с прошлого захода (сама решает, показываться ли) */}
-                <WhatsNewCard />
-                {!data.viewingAsAdmin && <FeedbackCard />}
                 <StatsStrip stats={data.stats} />
-                {iFinishedToday && !data.viewingAsAdmin && <InviteMomentCard />}
                 {/* Действие вперёд наблюдения: пока глава читает цифры, лентяи не отыграют.
                     Кнопка первой, чтобы пнуть можно было не пролистывая экран. */}
                 {canManage && data.periodType !== 'training' && (
@@ -496,7 +504,6 @@ export default function App() {
                 {/* Разведка стоит вплотную к таблице гонки: таблица говорит, кто впереди
                     сейчас, разведка — чего эти кланы стоят вообще. Порознь они не работают. */}
                 <ScoutCard />
-                <DisciplineCard />
                 <WarLogCard log={data.warLog} />
                 <WarJournalCard />
                 <InsightsCard insights={data.insights} players={data.players} dayLogs={data.dayLogs ?? []} warLog={data.warLog ?? []} race={data.race ?? []} periodType={data.periodType} periodIndex={data.periodIndex} hoursLeft={data.hoursLeft} />
@@ -504,6 +511,7 @@ export default function App() {
                     там же вкл/выкл, канал, часы и время окончания КВ. */}
               </div>
             )}
+            {tab === 'clan' && clanSection === 'hq' && <ClanHqView />}
             {tab === 'clan' && clanSection === 'roster' && (
               <div className="fade-in">
                 {canManage && (
@@ -521,6 +529,10 @@ export default function App() {
             )}
             {tab === 'me' && (
               <div className="fade-in">
+                {/* Личное, что раньше стояло среди клановых карточек войны */}
+                <WhatsNewCard />
+                {iFinishedToday && !data.viewingAsAdmin && <InviteMomentCard />}
+                {!data.viewingAsAdmin && <FeedbackCard />}
                 <MyStatsView defaultSection={startParam === 'review' || startToMatches ? 'battles' : 'clan'}
                   battlesView={START_BATTLES_VIEW} openMatchId={startMatchId} />
                 {/* Мягкая реклама - под своей статистикой, а не над ней: сначала то, ради чего пришёл */}
@@ -614,7 +626,7 @@ export default function App() {
               <div className="fade-in">
                 <MenuChangedNotice />
                 <UpdateNotice />
-                <ClanSectionTabs value={clanSection} onChange={next => { haptic('light'); setClanSection(next) }} t={t} />
+                <ClanSectionTabs value={clanSection} onChange={next => { haptic('light'); setClanSection(next) }} t={t} showHq={false} />
               </div>
             )}
             {tab === 'clan' && clanSection === 'war' && (

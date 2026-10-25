@@ -30,6 +30,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<AppOpen> AppOpens => Set<AppOpen>();
     public DbSet<FunnelEvent> FunnelEvents => Set<FunnelEvent>();
     public DbSet<FeedbackAnswer> FeedbackAnswers => Set<FeedbackAnswer>();
+    public DbSet<RaceTick> RaceTicks => Set<RaceTick>();
+    public DbSet<RacePlayerDay> RacePlayerDays => Set<RacePlayerDay>();
     public DbSet<PlayerBattle> PlayerBattles => Set<PlayerBattle>();
     public DbSet<Entitlement> Entitlements => Set<Entitlement>();
     public DbSet<PlayerAlertPrefs> PlayerAlertPrefs => Set<PlayerAlertPrefs>();
@@ -329,6 +331,22 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(f => f.Wants).HasMaxLength(200);
             e.Property(f => f.Reason).HasMaxLength(20);
             e.Property(f => f.Text).HasMaxLength(500);
+        });
+
+        mb.Entity<RaceTick>(e =>
+        {
+            e.HasIndex(t => new { t.ClanTag, t.SlotUtc }).IsUnique();
+            e.HasIndex(t => t.SlotUtc);
+            e.Property(t => t.ClanTag).HasMaxLength(16);
+        });
+
+        mb.Entity<RacePlayerDay>(e =>
+        {
+            e.HasIndex(d => new { d.ClanTag, d.SeasonId, d.SectionIndex, d.DayIndex, d.PlayerTag }).IsUnique();
+            e.HasIndex(d => d.UpdatedUtc);
+            e.Property(d => d.ClanTag).HasMaxLength(16);
+            e.Property(d => d.PlayerTag).HasMaxLength(16);
+            e.Property(d => d.Name).HasMaxLength(64);
         });
 
         mb.Entity<FunnelEvent>(e =>

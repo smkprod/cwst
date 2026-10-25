@@ -18,6 +18,8 @@ public class ClanController(
     GetClanStatusUseCase getStatus,
     GetClanDisciplineUseCase getDiscipline,
     GetRaceScoutUseCase getScout,
+    GetScoutPlusUseCase getScoutPlus,
+    GetClanHqUseCase getHq,
     GetClanHistoryUseCase getHistory,
     GetSeasonStatsUseCase getSeason,
     GetSeasonBreakdownUseCase getSeasonBreakdown,
@@ -439,6 +441,85 @@ public class ClanController(
             { return StatusCode(503, new { error = "cr_api_token_invalid", message = ex.Message }); }
 
         return scout is null ? NotFound(new { error = "war_not_found" }) : Ok(scout);
+    }
+
+    /// <summary>
+    /// GET /api/clans/my/scoutplus — «Разведка+» (Клан Про): лучшие игроки соперников и
+    /// распорядок их военного дня. Без спонсора в клане - 403 not_pro, фронт рисует замок.
+    /// </summary>
+    [HttpGet("my/scoutplus")]
+    public async Task<IActionResult> GetScoutPlus(CancellationToken ct)
+    {
+        var (_, clan, error) = await ResolvePlayerClanAsync(ct);
+        if (error is not null) return error;
+        if (!await IsClanProAsync(clan!, ct)) return StatusCode(403, new { error = "not_pro" });
+
+        ScoutPlusDto? scout;
+        try { scout = await getScoutPlus.ExecuteAsync(clan!.ClanTag, ct); }
+        catch (HttpRequestException ex) when ((int)(ex.StatusCode ?? 0) is >= 500 or 429)
+            { return StatusCode(503, new { error = "cr_api_unavailable", message = ex.Message }); }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("CR API"))
+            { return StatusCode(503, new { error = "cr_api_token_invalid", message = ex.Message }); }
+
+        return scout is null ? NotFound(new { error = "war_not_found" }) : Ok(scout);
+    }
+
+    /// <summary>GET /api/clans/my/scoutplus/player?tag=… — как играет игрок соперника.</summary>
+    [HttpGet("my/scoutplus/player")]
+    public async Task<IActionResult> GetScoutPlusPlayer([FromQuery] string tag, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(tag) || tag.Length > 16) return BadRequest(new { error = "bad_tag" });
+        var (_, clan, error) = await ResolvePlayerClanAsync(ct);
+        if (error is not null) return error;
+        if (!await IsClanProAsync(clan!, ct)) return StatusCode(403, new { error = "not_pro" });
+
+        ScoutPlayerPlayDto? play;
+        try { play = await getScoutPlus.PlayerAsync(clan!.ClanTag, tag.Trim().ToUpperInvariant(), ct); }
+        catch (HttpRequestException ex) when ((int)(ex.StatusCode ?? 0) is >= 500 or 429)
+            { return StatusCode(503, new { error = "cr_api_unavailable", message = ex.Message }); }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("CR API"))
+            { return StatusCode(503, new { error = "cr_api_token_invalid", message = ex.Message }); }
+
+        return play is null ? NotFound(new { error = "player_not_in_race" }) : Ok(play);
+    }
+
+    /// <summary>
+    /// GET /api/clans/my/hq — «Штаб клана» (Клан Про): худшие по войне среди реальных
+    /// игроков и дисциплина. Только глава, замы и спонсор: список «кто плохо играет»
+    /// в руках рядового игрока превращается в травлю, а не в работу с составом.
+    /// </summary>
+    [HttpGet("my/hq")]
+    public async Task<IActionResult> GetHq(CancellationToken ct)
+    {
+        var (player, clan, error) = await ResolvePlayerClanAsync(ct);
+        if (error is not null) return error;
+        if (!await IsClanProAsync(clan!, ct)) return StatusCode(403, new { error = "not_pro" });
+
+        if (Acting is null && !IsOwner((long)HttpContext.Items["TelegramUserId"]!))
+        {
+            var sponsor = player!.ClanId == clan!.Id && player.IsSponsor(DateTime.UtcNow);
+            string? role = null;
+            try { role = await crApi.GetPlayerClanRoleAsync(clan.ClanTag, player.PlayerTag, ct); }
+            catch { /* роль не узнали - пустим только спонсора */ }
+            if (!sponsor && role is not ("leader" or "coLeader")) return StatusCode(403, new { error = "not_leader" });
+        }
+
+        try { return Ok(await getHq.ExecuteAsync(clan!, ct)); }
+        catch (HttpRequestException ex) when ((int)(ex.StatusCode ?? 0) is >= 500 or 429)
+            { return StatusCode(503, new { error = "cr_api_unavailable", message = ex.Message }); }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("CR API"))
+            { return StatusCode(503, new { error = "cr_api_token_invalid", message = ex.Message }); }
+    }
+
+    /// <summary>
+    /// Клан Про: в клане есть действующий спонсор. Владелец и зашедший из панели админ
+    /// видят всё - им нужно проверять, как это выглядит у клиентов.
+    /// </summary>
+    private async Task<bool> IsClanProAsync(Clan clan, CancellationToken ct)
+    {
+        if (Acting is not null || IsOwner((long)HttpContext.Items["TelegramUserId"]!)) return true;
+        var now = DateTime.UtcNow;
+        return (await players.GetByClanIdAsync(clan.Id, ct)).Any(p => p.IsSponsor(now));
     }
 
     /// <summary>

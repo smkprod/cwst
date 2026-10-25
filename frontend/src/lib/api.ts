@@ -1,5 +1,5 @@
 import { initData } from './telegram'
-import type { Dashboard, HalloweenView, OwnerFunnel, FeedbackMine, OwnerFeedback, LinkCandidates, OwnerEngagement, AppConfig, AppTab, BackgroundKey, ClanDesignKey, ClanPage, PlayerPage, HallOfFame, OwnerSponsor, Moderator, ServiceIdentity, ServicePermission, BroadcastTarget, TopStatus, SponsorSales, CampaignFunnel, ClanDiscipline, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, MetaDecks, BattleAnalysis, PlayerSheet, PlusStatus, OwnerPlus, TiltProfile, Challenge, OwnerChallenge, OwnerFoundPlayer, TrackerState, MatchHistory, MatchReport, TopPlayerRow, TopPlayerDetail, DuelLeague, Tournament, TournamentSummary, WarJournal, Studio, StudioChallengeRequest, CreatorChallengeCard, ChannelState, ChannelToggle, BuilderCard, BuilderDecks, BuilderWar, BuilderQuery, DeckLab } from '../types'
+import type { Dashboard, HalloweenView, OwnerFunnel, FeedbackMine, OwnerFeedback, LinkCandidates, OwnerEngagement, AppConfig, AppTab, BackgroundKey, ClanDesignKey, ClanPage, PlayerPage, HallOfFame, OwnerSponsor, Moderator, ServiceIdentity, ServicePermission, BroadcastTarget, TopStatus, SponsorSales, CampaignFunnel, ClanDiscipline, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, ScoutPlus, ScoutPlayerPlay, ClanHq, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, MetaDecks, BattleAnalysis, PlayerSheet, PlusStatus, OwnerPlus, TiltProfile, Challenge, OwnerChallenge, OwnerFoundPlayer, TrackerState, MatchHistory, MatchReport, TopPlayerRow, TopPlayerDetail, DuelLeague, Tournament, TournamentSummary, WarJournal, Studio, StudioChallengeRequest, CreatorChallengeCard, ChannelState, ChannelToggle, BuilderCard, BuilderDecks, BuilderWar, BuilderQuery, DeckLab } from '../types'
 
 // Адрес API вынесен в отдельный модуль: им же пользуются виджеты OBS, которым
 // нельзя тянуть сюда Telegram (см. apiBase.ts).
@@ -349,6 +349,10 @@ export const api = {
   getClanRanking: () => request<ClanRanking>('/api/clans/my/ranking'),
   getClanDiscipline: () => request<ClanDiscipline>('/api/clans/my/discipline'),
   getRaceScout: () => request<RaceScout>('/api/clans/my/scout'),
+  getScoutPlus: () => request<ScoutPlus>('/api/clans/my/scoutplus'),
+  getScoutPlusPlayer: (tag: string) =>
+    request<ScoutPlayerPlay>(`/api/clans/my/scoutplus/player?tag=${encodeURIComponent(tag)}`),
+  getClanHq: () => request<ClanHq>('/api/clans/my/hq'),
   getWarJournal: () => request<WarJournal>('/api/clans/my/war-journal'),
   getNotificationSettings: () =>
     request<NotificationSettings>('/api/clans/my/notification-settings'),

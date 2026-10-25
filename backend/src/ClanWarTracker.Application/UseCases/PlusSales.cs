@@ -22,8 +22,8 @@ public static class PlusSales
     /// нельзя, и лишние звёзды на счету у школьника - это недоплаченная покупка.
     /// 149 для украинского подростка оказалось слишком много.
     /// </summary>
-    public const int DefaultPrice7 = 49;
-    public const int DefaultPrice30 = 99;
+    public const int DefaultPrice7 = 59;
+    public const int DefaultPrice30 = 120;
 
     /// <summary>Сколько бесплатных недель в месяц спонсор дарит соклановцам.</summary>
     public const int SponsorFreeGiftsPerMonth = 2;

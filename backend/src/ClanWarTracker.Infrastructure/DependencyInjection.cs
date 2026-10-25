@@ -99,6 +99,7 @@ public static class DependencyInjection
         services.AddScoped<IAppOpenRepository, AppOpenRepository>();
         services.AddScoped<IFunnelRepository, FunnelRepository>();
         services.AddScoped<IFeedbackRepository, FeedbackRepository>();
+        services.AddScoped<IRaceTickRepository, RaceTickRepository>();
         services.AddScoped<ITopPlayerRepository, TopPlayerRepository>();
         services.AddScoped<IMetaRepository, MetaRepository>();
         services.AddScoped<IChallengeRepository, ChallengeRepository>();
@@ -691,6 +692,43 @@ CREATE TABLE IF NOT EXISTS ""FeedbackAnswers"" (
 );");
         await db.Database.ExecuteSqlRawAsync(
             "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_FeedbackAnswers_TelegramUserId\" ON \"FeedbackAnswers\" (\"TelegramUserId\");");
+
+        // Разведка+: ход военного дня кланов гонки и дни их игроков
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""RaceTicks"" (
+    ""Id"" serial PRIMARY KEY,
+    ""ClanTag"" varchar(16) NOT NULL,
+    ""SeasonId"" integer NOT NULL,
+    ""SectionIndex"" integer NOT NULL,
+    ""DayIndex"" integer NOT NULL,
+    ""SlotUtc"" timestamptz NOT NULL,
+    ""Fame"" integer NOT NULL,
+    ""DecksUsedToday"" integer NOT NULL,
+    ""ActiveToday"" integer NOT NULL
+);");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_RaceTicks_ClanTag_SlotUtc\" ON \"RaceTicks\" (\"ClanTag\", \"SlotUtc\");");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_RaceTicks_SlotUtc\" ON \"RaceTicks\" (\"SlotUtc\");");
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""RacePlayerDays"" (
+    ""Id"" serial PRIMARY KEY,
+    ""ClanTag"" varchar(16) NOT NULL,
+    ""PlayerTag"" varchar(16) NOT NULL,
+    ""Name"" varchar(64) NOT NULL,
+    ""SeasonId"" integer NOT NULL,
+    ""SectionIndex"" integer NOT NULL,
+    ""DayIndex"" integer NOT NULL,
+    ""Decks"" integer NOT NULL,
+    ""WeekFame"" integer NOT NULL,
+    ""FirstPlayUtc"" timestamptz NULL,
+    ""LastPlayUtc"" timestamptz NULL,
+    ""UpdatedUtc"" timestamptz NOT NULL
+);");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_RacePlayerDays_ClanTag_SeasonId_SectionIndex_DayIndex_PlayerTag\" ON \"RacePlayerDays\" (\"ClanTag\", \"SeasonId\", \"SectionIndex\", \"DayIndex\", \"PlayerTag\");");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_RacePlayerDays_UpdatedUtc\" ON \"RacePlayerDays\" (\"UpdatedUtc\");");
 
         // Шаги к покупке: увидел предложение, нажал «Купить»
         await db.Database.ExecuteSqlRawAsync(@"

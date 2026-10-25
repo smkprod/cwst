@@ -122,7 +122,7 @@ public class GetPlayerSheetUseCase(
             WorldRank: worldRank,
             InBot: inBot,
             IsSponsor: sponsor,
-            BackgroundKey: sponsor ? SponsorBackground.NormalizePlayer(linked!.SponsorBackgroundKey) : null,
+            BackgroundKey: sponsor || withPlus ? SponsorBackground.NormalizePlayer(linked!.SponsorBackgroundKey) : null,
             BadgeKey: linked?.ShowcaseBadgeKey,
             BadgeLevel: linked?.ShowcaseBadgeLevel ?? 0,
             Deck: deck,

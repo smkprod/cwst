@@ -206,6 +206,7 @@ function PlusCard({ status, pay, onBuy, t }: {
         <Feature icon="pause" title={p.f3Title} text={p.f3} />
         <Feature icon="chart" title={p.f4Title} text={p.f4} />
         <Feature icon="star" title={p.f5Title} text={p.f5} />
+        <Feature icon="target" title={p.f6Title} text={p.f6} />
       </ul>
       {!canPay ? <p className="muted small">{p.unavailable}</p> : (
         <div className="plus-buttons">

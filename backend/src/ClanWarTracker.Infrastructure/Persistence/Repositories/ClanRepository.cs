@@ -66,6 +66,13 @@ public class PlayerRepository(AppDbContext db) : IPlayerRepository
             .Distinct()
             .ToListAsync(ct);
 
+    public async Task<HashSet<int>> SponsoredClanIdsAsync(DateTime utcNow, CancellationToken ct = default) =>
+        (await db.Players.AsNoTracking()
+            .Where(p => p.ClanId != null && p.SponsorUntilUtc != null && p.SponsorUntilUtc > utcNow)
+            .Select(p => p.ClanId!.Value)
+            .Distinct()
+            .ToListAsync(ct)).ToHashSet();
+
     public Task<Player?> GetByTagAsync(string playerTag, CancellationToken ct = default) =>
         db.Players
             .Include(p => p.Clan)

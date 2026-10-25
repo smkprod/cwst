@@ -37,6 +37,9 @@ public interface IPlayerRepository
     /// <summary>Telegram-id игроков, у которых сейчас идёт спонсорство. Только id, без строк игроков.</summary>
     Task<List<long>> SponsorTelegramIdsAsync(DateTime utcNow, CancellationToken ct = default);
 
+    /// <summary>Кланы, у которых сейчас есть спонсор, - у них включён Клан Про.</summary>
+    Task<HashSet<int>> SponsoredClanIdsAsync(DateTime utcNow, CancellationToken ct = default);
+
     /// <summary>
     /// Игрок по тегу — отслеживаемый, то есть пригодный к изменению.
     ///
@@ -152,6 +155,28 @@ public interface IWarBattleRepository
 
     Task AddRangeAsync(IEnumerable<WarBattle> battles, CancellationToken ct = default);
     Task SaveChangesAsync(CancellationToken ct = default);
+}
+
+/// <summary>Ход военного дня кланов гонки для «Разведки+» (см. RaceTick).</summary>
+public interface IRaceTickRepository
+{
+    /// <summary>Записать окно клана: в том же получасе - перезаписать.</summary>
+    Task UpsertTickAsync(RaceTick tick, CancellationToken ct = default);
+
+    /// <summary>
+    /// Обновить дни игроков клана по свежему составу гонки: колоды, медали и время,
+    /// когда колоды прибавились. Пишутся только те, кто за неделю сыграл хоть раз.
+    /// </summary>
+    Task UpsertPlayerDaysAsync(string clanTag, int seasonId, int sectionIndex, int dayIndex,
+        IReadOnlyList<RaceClanPlayer> players, DateTime utcNow, CancellationToken ct = default);
+
+    Task<List<RaceTick>> GetTicksAsync(IReadOnlyCollection<string> clanTags, DateTime sinceUtc, CancellationToken ct = default);
+
+    Task<List<RacePlayerDay>> GetPlayerDaysAsync(IReadOnlyCollection<string> clanTags, int seasonId, int sectionIndex,
+        CancellationToken ct = default);
+
+    /// <summary>Удалить всё старше указанного момента.</summary>
+    Task PruneAsync(DateTime beforeUtc, CancellationToken ct = default);
 }
 
 /// <summary>Ответы на опрос «что добавить» (см. FeedbackAnswer).</summary>

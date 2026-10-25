@@ -140,7 +140,7 @@ public class GetClanStatusUseCase(
                 DnaLabel: history.TryGetValue(x.Participant.PlayerTag, out var h2) ? h2.DnaLabel : null,
                 ReliabilityScore: history.TryGetValue(x.Participant.PlayerTag, out var h3) ? h3.Reliability : 0,
                 IsSponsor: byTag.TryGetValue(x.Participant.PlayerTag, out var lp) && lp.IsSponsor(now),
-                BackgroundKey: byTag.TryGetValue(x.Participant.PlayerTag, out var lp2) && lp2.IsSponsor(now)
+                BackgroundKey: byTag.TryGetValue(x.Participant.PlayerTag, out var lp2) && (lp2.IsSponsor(now) || PlusHolders.Has(plusHolders, lp2))
                     ? SponsorBackground.NormalizePlayer(lp2.SponsorBackgroundKey)
                     : null,
                 BadgeKey: byTag.TryGetValue(x.Participant.PlayerTag, out var lp3) ? lp3.ShowcaseBadgeKey : null,
