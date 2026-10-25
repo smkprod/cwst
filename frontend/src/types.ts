@@ -2232,6 +2232,8 @@ export interface DailyQuests {
   nextRewardDays: number
   /** Дней Плюса за сегодняшний день. */
   rewardDays: number
+  /** Потолок дней Плюса за серии на 30 дней; nextRewardDays 0 - он выбран. */
+  plusCap: number
   justCompleted: boolean
   remindOn: boolean
   clan: { doneToday: number; started: number; top: { name: string; streak: number; doneToday: boolean; me: boolean }[] } | null

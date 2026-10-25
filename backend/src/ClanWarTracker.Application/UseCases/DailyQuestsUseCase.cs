@@ -68,14 +68,33 @@ public class DailyQuestsUseCase(
     private const string RewardKind = "questreward";
     private const string RemindKind = "questremind";
 
-    /// <summary>Серия, за которую дают Плюс: третий день - день Плюса, каждый седьмой - три.</summary>
-    public static int RewardFor(int streak) => streak <= 0 ? 0 : streak % 7 == 0 ? 3 : streak == 3 ? 1 : 0;
+    /// <summary>
+    /// Больше стольких дней Плюса за серии за 30 дней не даём. Плюс здесь - попробовать,
+    /// а не получать бесплатно: самые активные - те же люди, что его покупают, и без
+    /// потолка идеальная серия давала бы им 13 дней из 30. И рвать серию ради новых
+    /// «третьих дней» потолок тоже не даёт.
+    /// </summary>
+    public const int PlusCapPer30 = 3;
+
+    /// <summary>Серия, за которую дают Плюс: третий день - день Плюса, каждый седьмой - два.</summary>
+    public static int RewardFor(int streak) => streak <= 0 ? 0 : streak % 7 == 0 ? 2 : streak == 3 ? 1 : 0;
+
+    /// <summary>Награда с учётом потолка: <paramref name="got30"/> - сколько уже дали за 30 дней.</summary>
+    public static int Capped(int reward, int got30) => Math.Max(0, Math.Min(reward, PlusCapPer30 - got30));
 
     /// <summary>Через сколько закрытых дней следующая награда и какая - от текущей серии.</summary>
     public static (int In, int Days) NextReward(int streak)
     {
         for (var s = streak + 1; ; s++)
             if (RewardFor(s) is > 0 and var d) return (s - streak, d);
+    }
+
+    /// <summary>Сколько дней Плюса за серии человек получил за 30 дней, считая день <paramref name="day"/>.</summary>
+    private async Task<int> Got30Async(long tg, string day, CancellationToken ct)
+    {
+        var from = DateTime.ParseExact(day, "yyyy-MM-dd", CultureInfo.InvariantCulture).AddDays(-29)
+            .ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        return (await quests.GetForUserSinceAsync(tg, from, ct)).Sum(d => d.RewardDays);
     }
 
     /// <summary>Местная дата, yyyy-MM-dd.</summary>
@@ -163,10 +182,11 @@ public class DailyQuestsUseCase(
     /// <param name="AtRisk">Серия есть, а сегодня ещё не закрыто - сгорит в полночь.</param>
     /// <param name="NextRewardIn">Через сколько закрытых дней следующая награда.</param>
     /// <param name="RewardDays">Дней Плюса, выданных за сегодняшний день.</param>
+    /// <param name="PlusCap">Потолок дней Плюса за серии на 30 дней. NextRewardDays 0 - выбран.</param>
     /// <param name="JustCompleted">День закрылся этим запросом - приложению праздновать.</param>
     public record QuestsDto(
         string Day, DateTime ResetsUtc, List<ItemDto> Items, bool Completed, int Streak, bool AtRisk, int BestStreak,
-        int NextRewardIn, int NextRewardDays, int RewardDays, bool JustCompleted, bool RemindOn, ClanDto? Clan);
+        int NextRewardIn, int NextRewardDays, int RewardDays, int PlusCap, bool JustCompleted, bool RemindOn, ClanDto? Clan);
 
     /// <summary>Задания на сегодня с проверкой по свежему журналу. null - аккаунт не привязан.</summary>
     public async Task<QuestsDto?> GetAsync(long tg, CancellationToken ct = default) => await RunAsync(tg, null, ct);
@@ -222,10 +242,12 @@ public class DailyQuestsUseCase(
         var streak = completed ? row.Streak : prev?.CompletedUtc is not null ? prev.Streak : 0;
         var best = Math.Max(streak, history.Select(d => d.Streak).DefaultIfEmpty(0).Max());
         var (nextIn, nextDays) = NextReward(completed ? row.Streak : streak);
+        // Потолок уже выбран - не обещаем того, чего не дадим (окно сдвинется - снова пообещаем)
+        nextDays = Capped(nextDays, await Got30Async(tg, today, ct));
         var clan = player.ClanId is int clanId ? await ClanAsync(clanId, tg, today, yesterday, ct) : null;
 
         return new QuestsDto(today, Window(today, tz).To, items, completed, streak, !completed && streak > 0, best,
-            nextIn, nextDays, row.RewardDays, just, prefs?.QuestRemindOff != true, clan);
+            nextIn, nextDays, row.RewardDays, PlusCapPer30, just, prefs?.QuestRemindOff != true, clan);
     }
 
     private async Task<QuestDay> TodayRowAsync(long tg, string tag, int? clanId, string today, CancellationToken ct) =>
@@ -295,6 +317,7 @@ public class DailyQuestsUseCase(
         row.Streak = prev?.CompletedUtc is not null ? prev.Streak + 1 : 1;
 
         var reward = RewardFor(row.Streak);
+        if (reward > 0) reward = Capped(reward, await Got30Async(row.TelegramUserId, row.Day, ct));
         // Отметка - до выдачи: два запроса разом закроют день оба, а Плюс выдаст один
         if (reward > 0 && await sentLog.TryClaimAsync(RewardKind, $"{row.TelegramUserId}:{row.Day}", ct))
         {

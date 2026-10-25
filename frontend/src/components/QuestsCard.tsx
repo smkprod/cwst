@@ -87,7 +87,10 @@ export function QuestsCard() {
     : q.atRisk ? s.riskLead.replace('{n}', String(q.streak)).replace('{h}', leftText)
     : s.lead
 
+  // Потолок Плюса за серии на месяц выбран - честно говорим, что дальше серия ради рекорда
+  const capped = q.rewardDays === 0 && q.nextRewardDays === 0
   const reward = q.rewardDays > 0 ? s.rewarded.replace('{d}', String(q.rewardDays))
+    : capped ? s.rewardCapped.replace('{d}', String(q.plusCap))
     : q.nextRewardIn === 1 ? (q.completed ? s.rewardNext : s.rewardToday).replace('{d}', String(q.nextRewardDays))
     : s.reward.replace('{n}', String(q.nextRewardIn)).replace('{d}', String(q.nextRewardDays))
 
@@ -156,7 +159,7 @@ export function QuestsCard() {
         <div className="qs-week">
           {Array.from({ length: 7 }, (_, i) => {
             const day = i + 1
-            const gift = day === 7 || (day === 3 && firstWeek)
+            const gift = !capped && (day === 7 || (day === 3 && firstWeek))
             return <span key={day} className={`qs-dot ${day <= cycle ? 'on' : ''} ${gift ? 'gift' : ''}`}>{gift ? '🎁' : ''}</span>
           })}
         </div>
