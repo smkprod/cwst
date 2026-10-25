@@ -52,6 +52,8 @@ builder.Services.AddScoped<GetMatchReportUseCase>();
 builder.Services.AddScoped<GetRaceScoutUseCase>();
 builder.Services.AddScoped<GetScoutPlusUseCase>();
 builder.Services.AddScoped<GetClanHqUseCase>();
+builder.Services.AddScoped<ClanAiUseCase>();
+builder.Services.AddScoped<TrainerAiUseCase>();
 builder.Services.AddScoped<GetPlayerStatsUseCase>();
 builder.Services.AddScoped<GetClanHistoryUseCase>();
 builder.Services.AddScoped<GetSeasonStatsUseCase>();

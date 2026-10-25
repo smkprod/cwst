@@ -6,6 +6,7 @@ import { haptic } from '../lib/telegram'
 import { useT, type Translations } from '../lib/i18n'
 import { Icon } from './ui/Icon'
 import { SectionHead } from './ui/Section'
+import { AiBox } from './AiBox'
 
 type ProT = Translations['clanPro']
 
@@ -54,8 +55,12 @@ export function ScoutPlusCard({ data }: { data: ScoutPlus }) {
 }
 
 function ClanScout({ clan, ours, data, p }: { clan: ScoutPlusClan; ours: ScoutPlusClan | null; data: ScoutPlus; p: ProT }) {
+  const { t, lang } = useT()
   return (
     <div className="sp-body fade-in">
+      {!clan.isOurClan && (
+        <AiBox label={t.ai.scoutBtn} hint={t.ai.scoutHint} load={() => api.getScoutBrief(clan.tag, lang)} />
+      )}
       {data.isWarDay && (
         <div className="sp-stats">
           <Stat value={fmt(clan.decksToday)} label={p.statDecks} />

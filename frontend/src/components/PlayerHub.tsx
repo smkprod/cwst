@@ -7,6 +7,8 @@ import { DeckBuilderView } from './DeckBuilderView'
 import { WorldTopView } from './WorldTopView'
 import { TrainerView } from './Trainer'
 import { TipsLibrary } from './TipSheet'
+import { TrainerPlanCard } from './TrainerPlanCard'
+import { OPEN_TRAINER } from '../lib/trainer'
 import { ChallengeView } from './ChallengeView'
 import { DuelView } from './DuelView'
 import { TournamentView } from './TournamentView'
@@ -72,14 +74,22 @@ export function DecksHub({ initial }: { initial?: DecksSection }) {
 export function TrainerHub({ top }: { top?: ReactNode }) {
   const { t } = useT()
   const [section, setSection] = useStored<TrainerSection>('cwst_hub_trainer', 'tasks', ['tasks', 'tips'])
+  // Открыли задачу из «тренер подобрал» или из профиля, уже стоя в тренажёре: он
+  // читает задачу при запуске, поэтому запускаем его заново
+  const [runKey, setRunKey] = useState(0)
   useEffect(() => { markTrainerSeen() }, [])
+  useEffect(() => {
+    const go = () => { setSection('tasks'); setRunKey(k => k + 1); window.scrollTo(0, 0) }
+    window.addEventListener(OPEN_TRAINER, go)
+    return () => window.removeEventListener(OPEN_TRAINER, go)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="fade-in">
       <HubTabs value={section} onChange={setSection} items={[
         { id: 'tasks', icon: 'target', label: t.hub.trainerTasks },
         { id: 'tips', icon: 'book', label: t.hub.trainerTips },
       ]} />
-      {section === 'tasks' ? <>{top}<TrainerView /></> : <TipsLibrary />}
+      {section === 'tasks' ? <>{top}<TrainerPlanCard /><TrainerView key={runKey} /></> : <TipsLibrary />}
     </div>
   )
 }

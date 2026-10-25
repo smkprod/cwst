@@ -2180,3 +2180,17 @@ export interface HqPlayer {
   lastMinute: number
   reasons: HqReason[]
 }
+
+/** Текст нейросети - всегда по нашим цифрам, см. ClanAiUseCase на сервере. */
+export interface AiText {
+  text: string
+  atUtc: string
+}
+
+/** «Тренер подобрал задачи»: против каких карт качаться, по журналу боёв. */
+export interface TrainerPlan {
+  focus: { card: string; games: number; winPercent: number; deltaPercent: number }[]
+  games: number
+  coach: string | null
+  locked: boolean
+}

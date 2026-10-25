@@ -1,5 +1,5 @@
 import { initData } from './telegram'
-import type { Dashboard, HalloweenView, OwnerFunnel, FeedbackMine, OwnerFeedback, LinkCandidates, OwnerEngagement, AppConfig, AppTab, BackgroundKey, ClanDesignKey, ClanPage, PlayerPage, HallOfFame, OwnerSponsor, Moderator, ServiceIdentity, ServicePermission, BroadcastTarget, TopStatus, SponsorSales, CampaignFunnel, ClanDiscipline, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, ScoutPlus, ScoutPlayerPlay, ClanHq, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, MetaDecks, BattleAnalysis, PlayerSheet, PlusStatus, OwnerPlus, TiltProfile, Challenge, OwnerChallenge, OwnerFoundPlayer, TrackerState, MatchHistory, MatchReport, TopPlayerRow, TopPlayerDetail, DuelLeague, Tournament, TournamentSummary, WarJournal, Studio, StudioChallengeRequest, CreatorChallengeCard, ChannelState, ChannelToggle, BuilderCard, BuilderDecks, BuilderWar, BuilderQuery, DeckLab } from '../types'
+import type { Dashboard, HalloweenView, OwnerFunnel, FeedbackMine, OwnerFeedback, LinkCandidates, OwnerEngagement, AppConfig, AppTab, BackgroundKey, ClanDesignKey, ClanPage, PlayerPage, HallOfFame, OwnerSponsor, Moderator, ServiceIdentity, ServicePermission, BroadcastTarget, TopStatus, SponsorSales, CampaignFunnel, ClanDiscipline, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, ScoutPlus, ScoutPlayerPlay, ClanHq, AiText, TrainerPlan, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, MetaDecks, BattleAnalysis, PlayerSheet, PlusStatus, OwnerPlus, TiltProfile, Challenge, OwnerChallenge, OwnerFoundPlayer, TrackerState, MatchHistory, MatchReport, TopPlayerRow, TopPlayerDetail, DuelLeague, Tournament, TournamentSummary, WarJournal, Studio, StudioChallengeRequest, CreatorChallengeCard, ChannelState, ChannelToggle, BuilderCard, BuilderDecks, BuilderWar, BuilderQuery, DeckLab } from '../types'
 
 // Адрес API вынесен в отдельный модуль: им же пользуются виджеты OBS, которым
 // нельзя тянуть сюда Telegram (см. apiBase.ts).
@@ -77,6 +77,8 @@ async function request<T>(path: string, init?: RequestInit, timeoutMs = REQUEST_
     const body = await res.json().catch(() => ({}))
     throw new ApiError(res.status, body.error ?? 'unknown', body.message)
   }
+  // 204 - ответа нет по делу (нейросети нечего сказать); тело пустое, разбирать нечего
+  if (res.status === 204) return null as T
   return res.json()
 }
 
@@ -353,6 +355,13 @@ export const api = {
   getScoutPlusPlayer: (tag: string) =>
     request<ScoutPlayerPlay>(`/api/clans/my/scoutplus/player?tag=${encodeURIComponent(tag)}`),
   getClanHq: () => request<ClanHq>('/api/clans/my/hq'),
+  /** Тексты нейросети (Клан Про). null - сказать нечего или дневной лимит клана. */
+  getScoutBrief: (tag: string, lang: string) =>
+    request<AiText | null>(`/api/clans/my/scoutplus/brief?tag=${encodeURIComponent(tag)}&lang=${lang}&tz=${-new Date().getTimezoneOffset()}`, undefined, 60_000),
+  getHqBrief: (lang: string) => request<AiText | null>(`/api/clans/my/hq/brief?lang=${lang}`, undefined, 60_000),
+  getHqTalk: (tag: string, lang: string) =>
+    request<AiText | null>(`/api/clans/my/hq/talk?tag=${encodeURIComponent(tag)}&lang=${lang}`, undefined, 60_000),
+  getTrainerPlan: (lang: string) => request<TrainerPlan>(`/api/plus/trainer-plan?lang=${lang}`, undefined, 60_000),
   getWarJournal: () => request<WarJournal>('/api/clans/my/war-journal'),
   getNotificationSettings: () =>
     request<NotificationSettings>('/api/clans/my/notification-settings'),
