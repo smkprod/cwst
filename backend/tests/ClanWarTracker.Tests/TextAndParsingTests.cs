@@ -81,3 +81,17 @@ public class TextAndParsingTests
         Assert.Null(MetaAnalystUseCase.Parse(raw, Keys, "d"));
     }
 }
+
+/// <summary>Нижнее меню: какие вкладки владелец может спрятать.</summary>
+public class MenuTabsTests
+{
+    [Fact]
+    public void ParseHidden_KeepsOnlyOptionalTabs()
+    {
+        Assert.Empty(ClanWarTracker.Domain.Entities.AppTabs.ParseHidden(null));
+        Assert.Empty(ClanWarTracker.Domain.Entities.AppTabs.ParseHidden("  "));
+        // Война и «Ещё» не прячутся, мусор и повторы отбрасываются
+        Assert.Equal(["rating", "shop"],
+            ClanWarTracker.Domain.Entities.AppTabs.ParseHidden("rating, war,shop,more,rating,xyz"));
+    }
+}

@@ -1,50 +1,44 @@
 namespace ClanWarTracker.Domain.Entities;
 
 /// <summary>
-/// Нижние вкладки приложения: какие вообще бывают и какие показываем по умолчанию.
+/// Нижнее меню приложения: какие вкладки владелец может убрать из панели.
 ///
-/// Набор задаётся владельцем из панели, но список допустимых ключей — здесь:
-/// вкладка, которой нет во фронте, превратилась бы в пустой экран, и заметить
-/// это было бы некому, кроме того, кто на неё нажал.
+/// Меню двух режимов («Клан» и «Игрок») собирает фронт; здесь - только список того,
+/// что можно спрятать. Хранится именно спрятанное, а не показанное: новая вкладка
+/// сразу появляется у всех, и сохранённый когда-то набор её не съедает.
+///
+/// Война, профиль и «Ещё» не прячутся: без них в режиме не остаётся ни главного
+/// экрана, ни настроек. Спрятанная вкладка не пропадает - она остаётся в «Ещё».
 /// </summary>
 public static class AppTabs
 {
-    public const string SettingKey = "tabs";
+    public const string SettingKey = "menu.hidden";
 
-    public const string Clan = "clan";
-    public const string Me = "me";
-    public const string Hall = "hall";
-    public const string Tournament = "tournament";
-    public const string Search = "search";
-    public const string More = "more";
-    public const string Challenge = "challenge";
-    public const string Duel = "duel";
-    /// <summary>Витрина Плюса и спонсорства - владелец может вынести её в нижнее меню.</summary>
-    public const string Plus = "plus";
+    // Режим «Клан»
+    public const string Hq = "hq";
+    public const string Roster = "roster";
+    public const string Rating = "rating";
+    public const string Halloween = "halloween";
 
-    /// <summary>Все вкладки, какие есть. Порядок — предлагаемый по умолчанию.</summary>
-    public static readonly string[] Known = [Clan, Me, Hall, Tournament, Search, More, Challenge, Duel, Plus];
+    // Режим «Игрок»
+    public const string Decks = "decks";
+    public const string Trainer = "trainer";
+    public const string Play = "play";
 
-    /// <summary>
-    /// Что показываем, пока владелец ничего не выбрал. Пять из шести: внизу больше
-    /// пяти значков на телефоне превращаются в неразличимую ленту.
-    /// </summary>
-    public static readonly string[] Default = [Clan, Me, Hall, Search, More];
+    /// <summary>«Донат» - витрина Плюса и Клан Про, в обоих режимах.</summary>
+    public const string Shop = "shop";
 
-    public static bool IsKnown(string? key) =>
-        key is not null && Array.IndexOf(Known, key) >= 0;
+    /// <summary>Что можно спрятать. Остальное в меню всегда.</summary>
+    public static readonly string[] Optional = [Hq, Roster, Rating, Halloween, Decks, Trainer, Play, Shop];
 
-    /// <summary>Сохранённая строка в набор вкладок. Пустая или битая — умолчание.</summary>
-    public static string[] Parse(string? stored)
-    {
-        if (string.IsNullOrWhiteSpace(stored)) return Default;
+    public static bool IsOptional(string? key) => key is not null && Array.IndexOf(Optional, key) >= 0;
 
-        var tabs = stored
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Where(IsKnown)
-            .Distinct()
-            .ToArray();
-
-        return tabs.Length > 0 ? tabs : Default;
-    }
+    /// <summary>Сохранённая строка в список спрятанных. Пустая или битая - не спрятано ничего.</summary>
+    public static string[] ParseHidden(string? stored) =>
+        string.IsNullOrWhiteSpace(stored)
+            ? []
+            : stored.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Where(IsOptional)
+                .Distinct()
+                .ToArray();
 }

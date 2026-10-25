@@ -41,7 +41,13 @@ interface Props {
   showStudio?: boolean
   /** Разделы, которые уже стоят в нижнем меню, - в списке их не повторяем. */
   hide?: MoreSection[]
+  /** Вкладки, которые владелец убрал из меню, - ссылками сюда, чтобы до них можно было дойти. */
+  links?: MoreLink[]
+  onOpenLink?: (id: string) => void
 }
+
+/** Ссылка на вкладку, убранную из нижнего меню: открывает её как обычную вкладку. */
+export interface MoreLink { id: string; icon: IconName; tone: Tone; title: string; hint: string }
 
 /**
  * «Ещё» — всё, что нужно изредка: настройки, справка, турниры, биржа.
@@ -56,7 +62,7 @@ interface Props {
  * становилась недостижимой. Открываются они здесь же, с кнопкой «Назад», — даже
  * если такая вкладка в баре есть: так «Ещё» ведёт себя одинаково при любом наборе.
  */
-export function MoreView({ canManage, isLeader, onOpenNotifications, initialSection = null, config = null, onConfigChanged, showStudio = false, hide = [] }: Props) {
+export function MoreView({ canManage, isLeader, onOpenNotifications, initialSection = null, config = null, onConfigChanged, showStudio = false, hide = [], links = [], onOpenLink }: Props) {
   const shown = (s: MoreSection) => !hide.includes(s)
   const { t } = useT()
   const [section, setSection] = useState<Section | null>(initialSection)
@@ -95,6 +101,10 @@ export function MoreView({ canManage, isLeader, onOpenNotifications, initialSect
         {showStudio && (
           <MoreRow icon="rocket" tone="orange" title={t.more.studio} hint={t.more.studioHint} onClick={() => open('studio')} />
         )}
+
+        {onOpenLink && links.map(l => (
+          <MoreRow key={l.id} icon={l.icon} tone={l.tone} title={l.title} hint={l.hint} onClick={() => { haptic('light'); onOpenLink(l.id) }} />
+        ))}
 
         {shown('trainer') && (
           <MoreRow icon="swords" tone="red" title={t.trainer.moreTitle} hint={t.trainer.moreHint} onClick={() => open('trainer')} />

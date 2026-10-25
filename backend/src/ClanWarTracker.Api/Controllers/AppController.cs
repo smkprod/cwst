@@ -45,9 +45,9 @@ public class AppController(
             }
         });
 
-        // Состав вкладок владелец меняет из панели, поэтому он приезжает сюда, а не
-        // зашит во фронт: иначе на каждую перестановку значка нужен был бы передеплой.
-        var tabs = AppTabs.Parse(await settings.GetAsync(AppTabs.SettingKey, ct));
+        // Какие вкладки владелец убрал из нижнего меню - приезжает сюда, а не зашито во
+        // фронт: иначе на каждое изменение меню нужен был бы передеплой.
+        var hiddenTabs = AppTabs.ParseHidden(await settings.GetAsync(AppTabs.SettingKey, ct));
 
         // Своё спонсорство фронт спрашивает здесь же: оно решает, показывать ли
         // выбор фона и рисовать ли ярлык, а отдельный запрос ради двух полей лишний.
@@ -69,7 +69,7 @@ public class AppController(
             // Идущий ивент: фронт сам добавляет его вкладку в нижнее меню, пока он идёт
             @event = HalloweenUseCase.Live(DateTime.UtcNow) is not null ? "halloween" : null,
             channelUsername = channel,
-            tabs,
+            hiddenTabs,
             playerBackgrounds = SponsorBackground.ForPlayers,
             clanBackgrounds = SponsorBackground.ForClans,
             isSponsor,

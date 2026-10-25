@@ -60,7 +60,8 @@ export function ModeHeader({ mode, plus }: { mode: AppMode; plus: PlusStatus | n
   )
 }
 
-export interface BarTab<T extends string> { id: T; icon: IconName; label: string; badge?: 'plus' | 'pro' | 'dot' }
+/** shop - «Донат»: цветная вкладка; plus - витрина Плюса (игрок), pro - Клан Про (клан). */
+export interface BarTab<T extends string> { id: T; icon: IconName; label: string; badge?: 'plus' | 'pro' | 'dot'; shop?: 'plus' | 'pro' }
 
 /**
  * Нижнее меню: первым - переключатель режима, дальше вкладки режима. Переключатель
@@ -88,7 +89,19 @@ export function TabBar<T extends string>({ tabs, active, onSelect, mode, onToggl
           <span className="tab-label">{mode === 'clan' ? t.mode.clan : t.mode.player}</span>
         </button>
       )}
-      {tabs.map(tb => (
+      {tabs.map(tb => tb.shop ? (
+        // «Донат» - того же размера, что все вкладки, но цветной: его видно сразу
+        <button
+          key={tb.id}
+          role="tab"
+          aria-selected={active === tb.id}
+          className={`tab tab-shop tab-shop-${tb.shop} ${active === tb.id ? 'tab-active' : ''}`}
+          onClick={() => { haptic('medium'); onSelect(tb.id) }}
+        >
+          <span className="tab-icon"><Icon name={tb.icon} size={20} /></span>
+          <span className="tab-label">{tb.label}</span>
+        </button>
+      ) : (
         <button
           key={tb.id}
           role="tab"

@@ -1349,8 +1349,11 @@ export type BackgroundKey =
   | 'sky' | 'arena' | 'sunset' | 'night' | 'ice' | 'lava'
   | 'kingdomSun' | 'kingdom' | 'kingdom2' | 'kingdomFire'
 
-/** Вкладки нижней панели. Состав задаёт владелец из админки. */
-export type AppTab = 'clan' | 'me' | 'hall' | 'tournament' | 'search' | 'more' | 'challenge' | 'duel' | 'plus'
+/**
+ * Вкладки нижнего меню, которые владелец может спрятать из панели. Война, профиль и
+ * «Ещё» не прячутся; спрятанное остаётся в «Ещё». shop - «Донат», в обоих режимах.
+ */
+export type MenuTab = 'hq' | 'roster' | 'rating' | 'halloween' | 'decks' | 'trainer' | 'play' | 'shop'
 
 export interface AppConfig {
   /** Своё оформление (фон игрока) открыто: Плюс или спонсорство. */
@@ -1360,7 +1363,8 @@ export interface AppConfig {
   event?: 'halloween' | null
   /** Канал бота без @; пусто - не подключён. */
   channelUsername?: string
-  tabs: AppTab[]
+  /** Что владелец убрал из нижнего меню. Нет поля (старый сервер) - показываем всё. */
+  hiddenTabs?: MenuTab[]
   /** Наборы разные: широкие сцены игроку в строку, вертикальные виды клану в блок. */
   playerBackgrounds: BackgroundKey[]
   clanBackgrounds: BackgroundKey[]
