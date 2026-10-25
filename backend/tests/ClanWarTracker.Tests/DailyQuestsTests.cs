@@ -55,13 +55,20 @@ public class DailyQuestsTests : IDisposable
     }
 
     [Fact]
-    public void Rewards_ThirdDayAndEverySeventh()
+    public void Rewards_ThirdDayAndEverySeventh_UnderMonthlyCap()
     {
-        Assert.Equal([0, 0, 1, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 3],
+        Assert.Equal([0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 2],
             Enumerable.Range(1, 14).Select(DailyQuestsUseCase.RewardFor).ToArray());
         Assert.Equal((3, 1), DailyQuestsUseCase.NextReward(0));
-        Assert.Equal((4, 3), DailyQuestsUseCase.NextReward(3));
-        Assert.Equal((7, 3), DailyQuestsUseCase.NextReward(7));
+        Assert.Equal((4, 2), DailyQuestsUseCase.NextReward(3));
+        Assert.Equal((7, 2), DailyQuestsUseCase.NextReward(7));
+
+        // Идеальная серия на 30 дней без потолка дала бы 1 + 2·4 = 9 дней, с потолком - 3
+        var got = 0;
+        for (var day = 1; day <= 30; day++) got += DailyQuestsUseCase.Capped(DailyQuestsUseCase.RewardFor(day), got);
+        Assert.Equal(DailyQuestsUseCase.PlusCapPer30, got);
+        Assert.Equal(1, DailyQuestsUseCase.Capped(2, 2));
+        Assert.Equal(0, DailyQuestsUseCase.Capped(2, 3));
     }
 
     [Fact]
@@ -145,6 +152,44 @@ public class DailyQuestsTests : IDisposable
         await using var check = _db.New();
         Assert.Equal(1, await check.Entitlements.CountAsync(e => e.TelegramUserId == tg && e.Source == Entitlement.Sources.Quest));
     }
+
+    [Fact]
+    public async Task SeventhDay_PaysNothing_WhenMonthlyCapIsUsed()
+    {
+        const long tg = 779;
+        var now = DateTime.UtcNow;
+        const int tz = 180;
+        using (var db = _db.New())
+        {
+            db.Players.Add(new Player { PlayerTag = "#P9", Name = "Solo", TelegramUserId = tg });
+            // Шесть закрытых дней подряд; за 3-й уже дали 1 день, и ещё 2 - за прошлую серию 20 дней назад
+            for (var d = 1; d <= 6; d++)
+                db.QuestDays.Add(Closed(tg, DailyQuestsUseCase.DayOf(now.AddDays(-d), tz), streak: 7 - d, reward: 7 - d == 3 ? 1 : 0));
+            db.QuestDays.Add(Closed(tg, DailyQuestsUseCase.DayOf(now.AddDays(-20), tz), streak: 7, reward: 2));
+            db.SaveChanges();
+        }
+
+        await using var ctx = _db.New();
+        var uc = Build(ctx, []);
+        var today = await uc.GetAsync(tg);
+        Assert.NotNull(today);
+        Assert.Equal(0, today.NextRewardDays);   // потолок выбран - не обещаем
+
+        // Закрываем сегодняшний день вручную: седьмой день серии
+        var row = await ctx.QuestDays.SingleAsync(q => q.TelegramUserId == tg && q.Day == today.Day);
+        row.DoneMask = 7;
+        await ctx.SaveChangesAsync();
+        var done = await uc.GetAsync(tg);
+        Assert.True(done!.Completed);
+        Assert.Equal(7, done.Streak);
+        Assert.Equal(0, done.RewardDays);
+    }
+
+    private static QuestDay Closed(long tg, string day, int streak, int reward) => new()
+    {
+        TelegramUserId = tg, PlayerTag = "#P9", Day = day, Quests = "win2,crowns3,trainer", DoneMask = 7,
+        CompletedUtc = DateTime.UtcNow, Streak = streak, RewardDays = reward, CreatedUtc = DateTime.UtcNow,
+    };
 
     [Fact]
     public async Task NotLinked_ReturnsNull()

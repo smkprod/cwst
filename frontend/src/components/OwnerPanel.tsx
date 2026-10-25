@@ -288,7 +288,8 @@ function Overview({ stats, clans, showFunnel }: { stats: OwnerStats; clans: Owne
       <Block title="Задания дня" icon="target" tone="violet" info={
         <p>
           День — по Киеву. Серия — сколько дней подряд человек закрывает все три задания;
-          за 3-й день серии даём день Плюса, за каждый 7-й — три.
+          за 3-й день серии даём день Плюса, за каждый 7-й — два, но не больше 3 дней
+          Плюса на человека за 30 дней.
         </p>
       }>
         <Row label="Открыли сегодня" value={stats.questsStartedToday ?? 0} />
