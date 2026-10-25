@@ -303,9 +303,9 @@ public class BotUpdateHandler(
                 charge, payload, reason);
             await TraceAsync(PaymentTrace.PaidKey, payload, charge, "НЕ ВЫДАНО — " + reason, ct);
             await TellAsync(msg.Chat.Id,
-                "Оплата прошла, но выдать спонсорство автоматически не получилось. " +
-                "Напиши владельцу бота и перешли это сообщение — по номеру платежа он выдаст " +
-                "спонсорство вручную:\n" + charge, ct);
+                "Оплата прошла, но включить Клан Про автоматически не получилось. " +
+                "Напиши владельцу бота и перешли это сообщение — по номеру платежа он включит " +
+                "Клан Про вручную:\n" + charge, ct);
             return;
         }
 
@@ -318,11 +318,12 @@ public class BotUpdateHandler(
         logger.LogInformation("Sponsor paid: {Name} +{Days}d for {Stars} XTR, charge {Charge}",
             applied.PlayerName, applied.Days, paid.TotalAmount, charge);
         await TraceAsync(PaymentTrace.PaidKey, payload, charge,
-            $"ok — {applied.PlayerName} спонсор до {applied.Until:dd.MM.yyyy}", ct);
+            $"ok — {applied.PlayerName}: Клан Про до {applied.Until:dd.MM.yyyy}", ct);
 
         await TellAsync(msg.Chat.Id,
-            $"★ Спасибо! Спонсорство для {applied.PlayerName} активно до {applied.Until:dd.MM.yyyy}.\n\n" +
-            "Фон себе и клану выбираются во вкладке «Я» → «Моё оформление».", ct);
+            $"👑 Спасибо! Клан Про от {applied.PlayerName} включён до {applied.Until:dd.MM.yyyy}.\n\n" +
+            "У всего клана открыт тренажёр, Разведка+ и Штаб клана; у тебя — весь Плюс и 2 недели Плюса в месяц в подарок своим.\n" +
+            "Фон себе и клану — в режиме «Игрок» → «Профиль» → «Моё оформление».", ct);
     }
 
     /// <summary>
