@@ -32,6 +32,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<FeedbackAnswer> FeedbackAnswers => Set<FeedbackAnswer>();
     public DbSet<RaceTick> RaceTicks => Set<RaceTick>();
     public DbSet<RacePlayerDay> RacePlayerDays => Set<RacePlayerDay>();
+    public DbSet<QuestDay> QuestDays => Set<QuestDay>();
     public DbSet<PlayerBattle> PlayerBattles => Set<PlayerBattle>();
     public DbSet<Entitlement> Entitlements => Set<Entitlement>();
     public DbSet<PlayerAlertPrefs> PlayerAlertPrefs => Set<PlayerAlertPrefs>();
@@ -347,6 +348,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(d => d.ClanTag).HasMaxLength(16);
             e.Property(d => d.PlayerTag).HasMaxLength(16);
             e.Property(d => d.Name).HasMaxLength(64);
+        });
+
+        mb.Entity<QuestDay>(e =>
+        {
+            e.HasIndex(q => new { q.TelegramUserId, q.Day }).IsUnique();
+            e.HasIndex(q => new { q.ClanId, q.Day });
+            e.HasIndex(q => q.Day);
+            e.Property(q => q.PlayerTag).HasMaxLength(16);
+            e.Property(q => q.Day).HasMaxLength(10);
+            e.Property(q => q.Quests).HasMaxLength(64);
         });
 
         mb.Entity<FunnelEvent>(e =>

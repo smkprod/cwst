@@ -4,6 +4,7 @@ import { useT } from '../lib/i18n'
 import { PLUS_CHANGED, usePlusSheet } from '../lib/plusSheet'
 import { haptic, hapticNotify } from '../lib/telegram'
 import { openTip } from '../lib/tipSheet'
+import { questDone } from '../lib/quests'
 import { useCardArt } from '../lib/cardArt'
 import {
   CARD_NAMES, FREE_PUZZLES, HINTS, PUZZLES, PUZZLE_TEXT, RESULT_TEXT, cardInfo, dailyIndex, explain, loadStars,
@@ -75,6 +76,7 @@ export function TrainerView() {
         onStars={n => {
           setStars(saveStars(PUZZLES[current].id, n))
           if (current === daily && n > 0) markDailySolved()
+          if (n > 0) questDone('trainer')
         }} />
     )
   }

@@ -5,6 +5,7 @@ import { ChallengePromo } from './components/ChallengePromo'
 import { HalloweenSplash } from './components/HalloweenSplash'
 import { FeedbackSheet } from './components/FeedbackSheet'
 import { TipSheet } from './components/TipSheet'
+import { QuestToast } from './components/QuestsCard'
 import { initTelegram } from './lib/telegram'
 import { ensureBotUsername } from './lib/botUsername'
 import { LangProvider } from './lib/i18n'
@@ -26,6 +27,7 @@ import './styles/ui-dashboard.css'
 import './styles/ui-clanpro.css'
 import './styles/ui-modes.css'
 import './styles/ui-ai.css'
+import './styles/ui-quests.css'
 
 initTelegram()
 
@@ -45,6 +47,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               <HalloweenSplash />
               <FeedbackSheet />
               <TipSheet />
+              <QuestToast />
               <ShowcaseHost />
             </ClanModalProvider>
           </PlayerSheetProvider>

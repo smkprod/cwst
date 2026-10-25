@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useT } from '../lib/i18n'
 import { OPEN_TIP } from '../lib/tipSheet'
 import { haptic } from '../lib/telegram'
+import { questDone } from '../lib/quests'
 import { ARENA_TIPS, TIP_IDS, isTipId, tipScene, tipText, type TipId } from '../lib/tips'
 import { ArenaAnim } from './ArenaAnim'
 import { Icon } from './ui/Icon'
@@ -15,7 +16,7 @@ export function TipSheet() {
   useEffect(() => {
     const open = (e: Event) => {
       const next = (e as CustomEvent<string>).detail
-      if (isTipId(next)) { haptic('light'); setId(next) }
+      if (isTipId(next)) { haptic('light'); setId(next); questDone('tip') }
     }
     window.addEventListener(OPEN_TIP, open)
     return () => window.removeEventListener(OPEN_TIP, open)

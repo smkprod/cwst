@@ -28,6 +28,13 @@ public record OwnerStatsDto(
     int Respects7d,
     double AvgLinkedPerClan,
 
+    // Задания дня (день по Киеву)
+    int QuestsStartedToday,     // открыли задания сегодня
+    int QuestsCompletedToday,   // закрыли все три
+    int QuestStreak3,           // живая серия от 3 дней
+    int QuestStreak7,           // от 7 дней
+    int QuestPlusDays30,        // дней Плюса выдано за серии за 30 дней
+
     /// <summary>Приход по дням за последние 90 суток, от старых к свежим, без пропусков.</summary>
     IReadOnlyList<SignupPointDto> Signups);
 

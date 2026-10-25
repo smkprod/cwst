@@ -541,6 +541,34 @@ public interface IEntitlementRepository
     Task SaveChangesAsync(CancellationToken ct = default);
 }
 
+public interface IQuestRepository
+{
+    /// <summary>День человека - отслеживаемый. null - заданий на этот день ему ещё не выдавали.</summary>
+    Task<QuestDay?> GetAsync(long telegramUserId, string day, CancellationToken ct = default);
+
+    /// <summary>
+    /// Заводит день. Если такой уже завёл параллельный запрос - возвращает тот,
+    /// отслеживаемый: задания одного дня у человека одни.
+    /// </summary>
+    Task<QuestDay> AddAsync(QuestDay day, CancellationToken ct = default);
+
+    /// <summary>Дни человека с даты (включительно), без отслеживания - для лучшей серии.</summary>
+    Task<List<QuestDay>> GetForUserSinceAsync(long telegramUserId, string fromDay, CancellationToken ct = default);
+
+    /// <summary>Дни клана за указанные даты, без отслеживания - «в клане сегодня закрыли».</summary>
+    Task<List<QuestDay>> GetForClanAsync(int clanId, IReadOnlyCollection<string> days, CancellationToken ct = default);
+
+    /// <summary>Все дни за указанные даты - отслеживаемые: вечерний проход их дозакрывает.</summary>
+    Task<List<QuestDay>> GetByDaysAsync(IReadOnlyCollection<string> days, CancellationToken ct = default);
+
+    /// <summary>Сколько дней Плюса выдано за серии с даты (включительно) - для панели.</summary>
+    Task<int> RewardDaysSinceAsync(string fromDay, CancellationToken ct = default);
+
+    Task PruneAsync(string beforeDay, CancellationToken ct = default);
+
+    Task SaveChangesAsync(CancellationToken ct = default);
+}
+
 public interface IPlayerAlertPrefsRepository
 {
     /// <summary>Настройки человека — отслеживаемые. null — он их ещё не трогал.</summary>
