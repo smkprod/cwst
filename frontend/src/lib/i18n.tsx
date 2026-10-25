@@ -2188,6 +2188,8 @@ const ru = {
     moreTitle: 'Тренажёр',
     moreHint: 'Задефай атаку: задачи с анимацией и задача дня',
     tryIt: 'Потренироваться',
+    cats: { defense: 'Защита', king: 'Разбуди короля', cheap: 'Отбейся дёшево', attack: 'Атака' },
+    catsLead: { defense: 'Куда ставить, чтобы башня осталась целой', king: 'Торнадо приводит короля в бой', cheap: '1–2 эликсира против 4–7', attack: 'Твой ход, чтобы снести башню' },
   },
   dash: {
     title: 'Мой профиль',
@@ -4460,6 +4462,8 @@ const uk: Translations = {
     moreTitle: 'Тренажер',
     moreHint: 'Задефай атаку: задачі з анімацією й задача дня',
     tryIt: 'Потренуватися',
+    cats: { defense: 'Захист', king: 'Розбуди короля', cheap: 'Відбийся дешево', attack: 'Атака' },
+    catsLead: { defense: 'Куди ставити, щоб вежа лишилася цілою', king: 'Торнадо вводить короля в бій', cheap: '1–2 еліксиру проти 4–7', attack: 'Твій хід, щоб знести вежу' },
   },
   dash: {
     title: 'Мій профіль',
@@ -6730,6 +6734,8 @@ const en: Translations = {
     moreTitle: 'Trainer',
     moreHint: 'Defend the push: animated puzzles and a daily one',
     tryIt: 'Practice it',
+    cats: { defense: 'Defense', king: 'Wake the King', cheap: 'Defend cheap', attack: 'Attack' },
+    catsLead: { defense: 'Where to place so the tower stays clean', king: 'Tornado brings your King into the fight', cheap: '1–2 elixir vs 4–7', attack: 'Your move to take the tower' },
   },
   dash: {
     title: 'My profile',

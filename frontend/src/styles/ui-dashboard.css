@@ -175,6 +175,23 @@
   background: radial-gradient(circle at 50% 40%, rgba(239, 68, 84, 0.35), rgba(16, 22, 46, 0.6)); border: 1px solid rgba(239, 68, 84, 0.4); }
 .tr-art img { width: 100%; height: 100%; object-fit: contain; }
 .tr-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+
+/* Разделы задач: защита, дёшево, король, атака - у каждого свой цвет полосы */
+.tr-cat { margin-top: 16px; }
+.tr-cat-head {
+  display: grid; grid-template-columns: 1fr auto; align-items: center; column-gap: 10px;
+  margin: 0 2px 10px; padding-left: 10px; border-left: 3px solid #3d8bff;
+}
+.tr-cat-head b { font-size: 16px; }
+.tr-cat-head small { grid-column: 1; color: var(--muted); font-size: 12px; }
+.tr-cat-stars {
+  grid-column: 2; grid-row: 1 / span 2; display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 9px; border-radius: var(--r-chip); background: rgba(255, 255, 255, 0.06);
+  font-size: 12px; font-weight: 800; color: var(--gold);
+}
+.tr-cat-cheap .tr-cat-head { border-left-color: #35d08a; }
+.tr-cat-king .tr-cat-head { border-left-color: var(--gold); }
+.tr-cat-attack .tr-cat-head { border-left-color: #ff5a5f; }
 .tr-tile { display: grid; justify-items: center; gap: 6px; padding: 12px 8px; border-radius: 16px; cursor: pointer; color: var(--text); font: inherit; text-align: center;
   background: linear-gradient(165deg, rgba(36, 54, 102, 0.75), rgba(16, 22, 46, 0.92)); border: 1px solid rgba(110, 150, 255, 0.22); }
 .tr-tile b { font-size: 13px; line-height: 1.25; }

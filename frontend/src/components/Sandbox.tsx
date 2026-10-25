@@ -17,8 +17,9 @@ import { Icon } from './ui/Icon'
  */
 
 /** Все карты, которые умеет движок, - в порядке «войска, здания, заклинания». */
-const PALETTE = ['Knight', 'Hog Rider', 'Skeletons', 'Goblins', 'Ice Spirit', 'Mini P.E.K.K.A', 'Musketeer', 'Miner', 'Ice Golem',
-  'Giant', 'Balloon', 'Mega Knight', 'P.E.K.K.A', 'Golem', 'Cannon', 'Mortar', 'X-Bow', 'The Log', 'Tornado', 'Fireball', 'Goblin Barrel']
+const PALETTE = ['Knight', 'Hog Rider', 'Skeletons', 'Goblins', 'Ice Spirit', 'Bats', 'Mini P.E.K.K.A', 'Musketeer', 'Archers', 'Minions',
+  'Valkyrie', 'Miner', 'Ice Golem', 'Giant', 'Balloon', 'Mega Knight', 'P.E.K.K.A', 'Golem', 'Cannon', 'Tesla', 'Mortar', 'X-Bow',
+  'The Log', 'Tornado', 'Fireball', 'Goblin Barrel']
 
 /** Куда встаёт карта стороны: здание 2×2 - на угол клеток, войско - в центр клетки, заклинание - на полклетки. */
 function snapFor(card: string, x: number, y: number): { x: number; y: number } {

@@ -34,6 +34,7 @@ public class TrainerAiUseCase(
     public static readonly HashSet<string> Covered = new(StringComparer.OrdinalIgnoreCase)
     {
         "Hog Rider", "Mega Knight", "Balloon", "P.E.K.K.A", "Giant", "X-Bow", "Mortar", "Goblin Barrel",
+        "Mini P.E.K.K.A", "Miner", "Golem",
     };
 
     public async Task<TrainerPlanDto?> ExecuteAsync(long telegramUserId, string lang, bool clanPro, CancellationToken ct = default)

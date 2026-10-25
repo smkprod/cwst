@@ -7,12 +7,13 @@ import { openTip } from '../lib/tipSheet'
 import { useCardArt } from '../lib/cardArt'
 import {
   CARD_NAMES, FREE_PUZZLES, HINTS, PUZZLES, PUZZLE_TEXT, RESULT_TEXT, cardInfo, dailyIndex, explain, loadStars,
-  loadStreak, markDailySolved, markSandboxUsed, sandboxUsedToday, saveStars, snap, takePendingPuzzle, type Puzzle,
+  loadStreak, markDailySolved, markSandboxUsed, sandboxUsedToday, saveStars, snap, takePendingPuzzle, type Puzzle, type PuzzleCat,
 } from '../lib/trainer'
 import { canDeploy, sideOf, type Entity, type Sim } from '../lib/sim/engine'
 import { emojiOf } from '../lib/sim/emoji'
+import { TOWER_STATS } from '../lib/sim/stats'
 import emblem from '../assets/clanify-emblem.webp'
-import { Watch, atPause, baseline, introSim, judge, pauseTime, playMine, type Outcome } from '../lib/sim/scenario'
+import { Watch, atPause, baseline, introSim, isAttack, judge, pauseTime, playMine, type Outcome } from '../lib/sim/scenario'
 import { ArenaSim, type SimGhost } from './ArenaSim'
 import { Sandbox } from './Sandbox'
 import { GameIcon } from './GameIcon'
@@ -110,19 +111,33 @@ export function TrainerView() {
         <span className="tr-play"><GameIcon name="play" size={34} /></span>
       </button>
 
-      <div className="tr-grid">
-        {PUZZLES.map((p, i) => {
-          const ok = isOpen(i)
-          return (
-            <button key={p.id} className={`tr-tile ${ok ? '' : 'tr-locked'}`}
-              onClick={() => { haptic('light'); setCurrent(i) }}>
-              <TargetArt card={p.icon ?? p.enemyCard} />
-              <b>{PUZZLE_TEXT[lang][p.id]?.title}</b>
-              {ok ? <Stars n={stars[p.id] ?? 0} /> : <span className="tr-lock"><GameIcon name="lock" size={16} /> {s.locked}</span>}
-            </button>
-          )
-        })}
-      </div>
+      {CATS.map(cat => {
+        const list = PUZZLES.map((p, i) => ({ p, i })).filter(x => x.p.cat === cat)
+        if (list.length === 0) return null
+        const got = list.reduce((a, x) => a + (stars[x.p.id] ?? 0), 0)
+        return (
+          <section key={cat} className={`tr-cat tr-cat-${cat}`}>
+            <div className="tr-cat-head">
+              <b>{s.cats[cat]}</b>
+              <small>{s.catsLead[cat]}</small>
+              <span className="tr-cat-stars"><GameIcon name="crown" size={14} /> {got}/{list.length * 3}</span>
+            </div>
+            <div className="tr-grid">
+              {list.map(({ p, i }) => {
+                const ok = isOpen(i)
+                return (
+                  <button key={p.id} className={`tr-tile ${ok ? '' : 'tr-locked'}`}
+                    onClick={() => { haptic('light'); setCurrent(i) }}>
+                    <TargetArt card={p.icon ?? p.enemyCard} />
+                    <b>{PUZZLE_TEXT[lang][p.id]?.title}</b>
+                    {ok ? <Stars n={stars[p.id] ?? 0} /> : <span className="tr-lock"><GameIcon name="lock" size={16} /> {s.locked}</span>}
+                  </button>
+                )
+              })}
+            </div>
+          </section>
+        )
+      })}
       {lockedCount > 0 && (
         <button className="pd-cta" onClick={() => { haptic('medium'); openPlus('plus') }}>
           <GameIcon name="gem" size={20} /> {s.unlock.replace('{n}', String(lockedCount))}
@@ -131,6 +146,9 @@ export function TrainerView() {
     </div>
   )
 }
+
+/** Порядок разделов в списке задач: от основ к приёмам и атаке. */
+const CATS: PuzzleCat[] = ['defense', 'cheap', 'king', 'attack']
 
 function TargetArt({ card }: { card: string }) {
   const art = useCardArt()
@@ -153,6 +171,9 @@ function Stars({ n }: { n: number }) {
 type Phase = 'demo-intro' | 'demo-show' | 'demo-battle' | 'demo-done' | 'intro' | 'choose' | 'battle' | 'result'
 
 const DEMO = new Set<Phase>(['demo-intro', 'demo-show', 'demo-battle', 'demo-done'])
+
+/** Здоровье башни принцессы - столько урона значит «башня снесена». */
+const TOWER_HP = TOWER_STATS.Princess.hp
 
 const FAST_KEY = 'cwst_trainer_fast'
 
@@ -246,8 +267,10 @@ function TrainerGame({ puzzle, daily, locked, details, onDetails, onPlus, onExit
     if (!b) return
     const rt = RESULT_TEXT[lang]
     const o = judge(sc, sim, b.watch, b.card, base, b.mine)
-    const parts = [o.dmg === 0 ? rt.tower0 : rt.tower.replace('{n}', String(o.dmg))]
-    if (o.killed && o.killIn !== null) parts.push(rt.stopped.replace('{s}', o.killIn.toFixed(1)))
+    const parts = isAttack(sc)
+      ? [o.dealt >= TOWER_HP ? rt.towerDown : rt.enemyTower.replace('{n}', String(o.dealt))]
+      : [o.dmg === 0 ? rt.tower0 : rt.tower.replace('{n}', String(o.dmg))]
+    if (!isAttack(sc) && o.killed && o.killIn !== null) parts.push(rt.stopped.replace('{s}', o.killIn.toFixed(1)))
     if (sc.goal === 'king' && o.kingAwake) parts.push(rt.kingAwake)
     setDemoNote(parts.join(' · '))
     setPhase('demo-done')
@@ -390,7 +413,18 @@ function TrainerGame({ puzzle, daily, locked, details, onDetails, onPlus, onExit
             <Stars n={stars} />
             <b>{grade === 'perfect' ? s.perfect : grade === 'ok' ? s.ok : s.fail}</b>
           </div>
-          {outcome && (
+          {outcome && isAttack(sc) && (
+            <div className="tr-facts">
+              <span className={outcome.dealt >= sc.limits[0] ? 'tr-fact-good' : 'tr-fact-bad'}>
+                🏰 {outcome.dealt >= TOWER_HP ? rt.towerDown : rt.enemyTower.replace('{n}', String(outcome.dealt))}
+                <small>{rt.noMove.replace('{n}', String(outcome.base))}</small>
+              </span>
+              <span className="tr-fact-good">
+                💧 {CARD_NAMES[lang][card ?? ''] ?? ''} · {outcome.myCost}
+              </span>
+            </div>
+          )}
+          {outcome && !isAttack(sc) && (
             <div className="tr-facts">
               <span className={outcome.dmg === 0 ? 'tr-fact-good' : 'tr-fact-bad'}>
                 🏰 {outcome.dmg === 0 ? rt.tower0 : rt.tower.replace('{n}', String(outcome.dmg))}
@@ -402,7 +436,7 @@ function TrainerGame({ puzzle, daily, locked, details, onDetails, onPlus, onExit
               {sc.goal === 'king' && (
                 <span className={outcome.kingAwake ? 'tr-fact-good' : 'tr-fact-bad'}>👑 {outcome.kingAwake ? rt.kingAwake : rt.kingAsleep}</span>
               )}
-              <span className={outcome.myCost <= outcome.enemyCost ? 'tr-fact-good' : 'tr-fact-bad'}>
+              <span className={outcome.myCost <= (sc.cost ?? outcome.enemyCost) ? 'tr-fact-good' : 'tr-fact-bad'}>
                 💧 {rt.trade.replace('{me}', String(outcome.myCost)).replace('{en}', String(outcome.enemyCost))}
                 <small>{outcome.enemyCost - outcome.myCost > 0 ? '+' : ''}{outcome.enemyCost - outcome.myCost}</small>
               </span>
