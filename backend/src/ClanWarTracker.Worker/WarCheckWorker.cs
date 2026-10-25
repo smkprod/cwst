@@ -207,6 +207,21 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
             {
                 logger.LogError(ex, "Clan day recap failed");
             }
+
+            // Задания дня: дозакрыть дни, доигранные без захода в приложение, и вечером
+            // напомнить тем, у кого серия сгорит в полночь
+            try
+            {
+                using var scope = scopeFactory.CreateScope();
+                var quests = scope.ServiceProvider.GetRequiredService<DailyQuestsUseCase>();
+                var sent = await quests.TickAsync(stoppingToken);
+                if (sent > 0) logger.LogInformation("Quest streak reminders sent: {Count}", sent);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { throw; }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Daily quests tick failed");
+            }
         }
         while (await timer.WaitForNextTickAsync(stoppingToken));
     }

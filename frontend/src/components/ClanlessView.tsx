@@ -17,6 +17,8 @@ import { MoreView } from './MoreView'
 import { ModeHeader, TabBar, usePlusState, type BarTab } from './AppChrome'
 import { DecksHub, PlayHub, TrainerHub, type DecksSection, type PlaySection } from './PlayerHub'
 import { OPEN_TRAINER } from '../lib/trainer'
+import { OPEN_DECKS, useQuestsSeen } from '../lib/quests'
+import { QuestsCard } from './QuestsCard'
 
 export type SoloTab = 'me' | 'decks' | 'trainer' | 'play' | 'clan' | 'more' | 'creatorChallenge'
 
@@ -63,6 +65,12 @@ export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection =
     window.addEventListener(OPEN_TRAINER, go)
     return () => window.removeEventListener(OPEN_TRAINER, go)
   }, [])
+  useEffect(() => {
+    const go = () => setTab('decks')
+    window.addEventListener(OPEN_DECKS, go)
+    return () => window.removeEventListener(OPEN_DECKS, go)
+  }, [])
+  const questsSeen = useQuestsSeen()
 
   const [profile, setProfile] = useState<PlayerProfile | null>(null)
   const [overview, setOverview] = useState<ClanOverview | null>(null)
@@ -108,7 +116,7 @@ export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection =
   const hasPlus = Boolean(plus?.active || plus?.isSponsor || plus?.unlocked)
   // Без клана - тот же режим игрока, что и у всех, плюс вкладка «Клан» с подключением
   const tabs: BarTab<SoloTab>[] = [
-    { id: 'me', icon: 'user', label: t.tabs.profile },
+    { id: 'me', icon: 'user', label: t.tabs.profile, badge: questsSeen ? undefined : 'dot' },
     { id: 'decks', icon: 'cards', label: t.tabs.decks },
     { id: 'trainer', icon: 'target', label: t.tabs.trainer, badge: plus && !hasPlus ? 'plus' : undefined },
     { id: 'play', icon: 'ticket', label: t.tabs.play },
@@ -122,6 +130,7 @@ export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection =
         {tab !== 'creatorChallenge' && <ModeHeader mode="player" plus={plus} />}
         {tab === 'me' && (
           <div className="fade-in">
+            <QuestsCard />
             <MyStatsView defaultSection={meSection} battlesView={battlesView} openMatchId={openMatchId} />
           </div>
         )}

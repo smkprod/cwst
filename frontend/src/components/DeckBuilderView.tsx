@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api, ApiError } from '../lib/api'
+import { questDone } from '../lib/quests'
 import type { BuilderCard, BuilderDeck, BuilderDecks, BuilderQuery, BuilderWar } from '../types'
 import { useT, type Translations } from '../lib/i18n'
 import { haptic } from '../lib/telegram'
@@ -69,7 +70,12 @@ export function DeckBuilderView() {
       ? api.builderDecks(query, lang).then(d => { if (alive) setDecks(d) })
       : api.builderWar(query, lang).then(w => { if (alive) setWar(w) })
     load
-      .then(() => { if (alive) setState('ready') })
+      .then(() => {
+        if (!alive) return
+        setState('ready')
+        // Колоды из своих карт подобраны - задание дня «подбери колоду» сделано
+        questDone('decks')
+      })
       .catch(e => { if (alive) setState(e instanceof ApiError && e.code === 'no_meta' ? 'nometa' : 'error') })
     return () => { alive = false }
   }, [tab, query, lang])

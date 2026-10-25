@@ -66,6 +66,8 @@ public class Entitlement
         public const string Sponsor = "sponsor";
         /// <summary>Награда за приглашённого друга, который привязал аккаунт.</summary>
         public const string Referral = "referral";
+        /// <summary>Награда за серию заданий дня.</summary>
+        public const string Quest = "quest";
     }
 }
 
@@ -157,6 +159,9 @@ public class PlayerAlertPrefs
     /// от дайджеста отказались, а от остального (трекер, Стоп-тильт) - нет.
     /// </summary>
     public bool DigestOff { get; set; }
+
+    /// <summary>Выключил вечернее «серия заданий сгорит» - в карточке заданий.</summary>
+    public bool QuestRemindOff { get; set; }
 
     // Личная скидка на Плюс (после челленджа): цена на себя до указанного момента.
     public int? PromoPrice7 { get; set; }

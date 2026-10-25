@@ -14,7 +14,8 @@ public class GetOwnerDashboardUseCase(
     IPlayerRepository players,
     IWarSnapshotRepository snapshots,
     IRespectRepository respects,
-    IActivityRepository activity)
+    IActivityRepository activity,
+    IQuestRepository quests)
 {
     /// <summary>Клан считается живым, если снимок войны обновлялся за это окно.</summary>
     private static readonly TimeSpan ActiveWindow = TimeSpan.FromDays(7);
@@ -37,6 +38,7 @@ public class GetOwnerDashboardUseCase(
         var usersDated = allPlayers.Where(p => p.CreatedAtUtc is not null).ToList();
 
         var respects7d = await respects.CountSinceAsync(week, ct);
+        var quest = await DailyQuestsUseCase.StatsAsync(quests, ct);
 
         return new OwnerStatsDto(
             TotalClans: allClans.Count,
@@ -61,6 +63,11 @@ public class GetOwnerDashboardUseCase(
             UsersWithKnownDate: usersDated.Count,
 
             Respects7d: respects7d,
+            QuestsStartedToday: quest.StartedToday,
+            QuestsCompletedToday: quest.CompletedToday,
+            QuestStreak3: quest.Streak3,
+            QuestStreak7: quest.Streak7,
+            QuestPlusDays30: quest.PlusDays30,
             AvgLinkedPerClan: allClans.Count == 0
                 ? 0
                 : Math.Round((double)allPlayers.Count(p => p.ClanId.HasValue) / allClans.Count, 1),

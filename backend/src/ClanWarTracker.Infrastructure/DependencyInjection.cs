@@ -100,6 +100,7 @@ public static class DependencyInjection
         services.AddScoped<IFunnelRepository, FunnelRepository>();
         services.AddScoped<IFeedbackRepository, FeedbackRepository>();
         services.AddScoped<IRaceTickRepository, RaceTickRepository>();
+        services.AddScoped<IQuestRepository, QuestRepository>();
         services.AddScoped<ITopPlayerRepository, TopPlayerRepository>();
         services.AddScoped<IMetaRepository, MetaRepository>();
         services.AddScoped<IChallengeRepository, ChallengeRepository>();
@@ -730,6 +731,28 @@ CREATE TABLE IF NOT EXISTS ""RacePlayerDays"" (
         await db.Database.ExecuteSqlRawAsync(
             "CREATE INDEX IF NOT EXISTS \"IX_RacePlayerDays_UpdatedUtc\" ON \"RacePlayerDays\" (\"UpdatedUtc\");");
 
+        // Задания дня: что выпало, что закрыто, серия
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""QuestDays"" (
+    ""Id"" serial PRIMARY KEY,
+    ""TelegramUserId"" bigint NOT NULL,
+    ""PlayerTag"" varchar(16) NOT NULL,
+    ""ClanId"" integer NULL,
+    ""Day"" varchar(10) NOT NULL,
+    ""Quests"" varchar(64) NOT NULL,
+    ""DoneMask"" integer NOT NULL DEFAULT 0,
+    ""CompletedUtc"" timestamptz NULL,
+    ""Streak"" integer NOT NULL DEFAULT 0,
+    ""RewardDays"" integer NOT NULL DEFAULT 0,
+    ""CreatedUtc"" timestamptz NOT NULL
+);");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_QuestDays_TelegramUserId_Day\" ON \"QuestDays\" (\"TelegramUserId\", \"Day\");");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_QuestDays_ClanId_Day\" ON \"QuestDays\" (\"ClanId\", \"Day\");");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_QuestDays_Day\" ON \"QuestDays\" (\"Day\");");
+
         // Шаги к покупке: увидел предложение, нажал «Купить»
         await db.Database.ExecuteSqlRawAsync(@"
 CREATE TABLE IF NOT EXISTS ""FunnelEvents"" (
@@ -1049,6 +1072,8 @@ CREATE TABLE IF NOT EXISTS ""PlayerAlertPrefs"" (
             "\"PromoUntilUtc\" timestamptz",
             // Отказ от утреннего дайджеста
             "\"DigestOff\" boolean NOT NULL DEFAULT FALSE",
+            // Отказ от вечернего «серия заданий сгорит»
+            "\"QuestRemindOff\" boolean NOT NULL DEFAULT FALSE",
         })
             await db.Database.ExecuteSqlRawAsync($"ALTER TABLE \"PlayerAlertPrefs\" ADD COLUMN IF NOT EXISTS {column};");
 

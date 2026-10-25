@@ -25,7 +25,8 @@ public class SendMorningDigestUseCase(
     IServiceSettingRepository settings,
     INotificationSender sender,
     ISentNotificationRepository sentLog,
-    ICardUrls cardUrls)
+    ICardUrls cardUrls,
+    IQuestRepository quests)
 {
     /// <summary>Вид отметки в общей таблице отправленного - тот же, что у воркера.</summary>
     public const string SentKind = "morningdigest";
@@ -133,9 +134,18 @@ public class SendMorningDigestUseCase(
                     return r;
                 }
 
-                var t = BotText.For(await TiltMessages.LangAsync(prefs, player, clans, ct));
+                var lang = await TiltMessages.LangAsync(prefs, player, clans, ct);
+                var t = BotText.For(lang);
                 var text = DigestText.Morning(t, day, history, Top, cat);
                 var buttons = DigestText.MorningButtons(t).ToList();
+
+                // Задания на сегодня - повод открыть бота уже утром, а не только к войне
+                try
+                {
+                    text += "\n\n" + await QuestLinesAsync(tg, player.ClanId is not null, now, tz, lang, ct);
+                    buttons.Insert(1, [new BotButton(QuestText.For(lang).Button, Url: "startapp:quests")]);
+                }
+                catch (Exception) when (!ct.IsCancellationRequested) { /* без заданий сводка всё равно уходит */ }
 
                 // Мягкая реклама - одна строка и раз в неделю: в понедельник канал, в четверг
                 // «позови друга». Сводка - личное сообщение, рекламой его делать нельзя.
@@ -185,6 +195,18 @@ public class SendMorningDigestUseCase(
             }
         }
         return new Summary(due, sent, skipped, blocked, failed);
+    }
+
+    /// <summary>Строки о заданиях дня: что выпало сегодня и серия, если она есть.</summary>
+    private async Task<string> QuestLinesAsync(long tg, bool inClan, DateTime now, int tz, string lang, CancellationToken ct)
+    {
+        var qt = QuestText.For(lang);
+        var today = DailyQuestsUseCase.DayOf(now, tz);
+        var keys = (await quests.GetAsync(tg, today, ct))?.Quests.Split(',') ?? DailyQuestsUseCase.Pick(today, tg, inClan);
+        var y = await quests.GetAsync(tg, DailyQuestsUseCase.DayOf(now.AddDays(-1), tz), ct);
+        var head = y?.CompletedUtc is not null ? string.Format(qt.DigestHeadStreak, y.Streak) : qt.DigestHead;
+        return head + "\n" + string.Join("\n", keys.Select(k =>
+            "• " + qt.Label(k, DailyQuestsUseCase.Target(k))));
     }
 
     private string? _channel;

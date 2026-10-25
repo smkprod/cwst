@@ -47,7 +47,9 @@ import { ScoutCard } from './components/ScoutCard'
 import { ClanHqView } from './components/ClanHqView'
 import { ModeHeader, TabBar, usePlusState, type BarTab } from './components/AppChrome'
 import { DecksHub, PlayHub, TrainerHub, type DecksSection, type PlaySection } from './components/PlayerHub'
-import { loadMode, saveMode, trainerSeenToday, type AppMode } from './lib/mode'
+import { loadMode, saveMode, type AppMode } from './lib/mode'
+import { OPEN_DECKS, useQuestsSeen } from './lib/quests'
+import { QuestsCard } from './components/QuestsCard'
 import { WorldTopEntry } from './components/WorldTopEntry'
 import { weekKing } from './lib/king'
 import { canUseOwnerPanel, canUseStudio } from './lib/serviceAccess'
@@ -127,7 +129,7 @@ function ClanSectionTabs({ value, onChange, t }: {
  * ch_<код> - в челлендж блогера (отдельный экран вне бара). Без параметра - туда,
  * где человек был в прошлый раз.
  */
-const START_PLAYER_TAB: Tab | null = startParam === 'review' || startToMatches ? 'profile'
+const START_PLAYER_TAB: Tab | null = startParam === 'review' || startToMatches || startParam === 'quests' ? 'profile'
   : startParam === 'meta' || startParam === 'builder' ? 'decks'
   : startParam === 'trainer' ? 'trainer'
   : startParam === 'challenge' || startParam === 'duel' ? 'play'
@@ -201,6 +203,13 @@ export default function App() {
     window.addEventListener(OPEN_TRAINER, go)
     return () => window.removeEventListener(OPEN_TRAINER, go)
   }, [goPlayer])
+  // Задание дня «подбери колоду» - в подбор колод режима игрока
+  useEffect(() => {
+    const go = () => goPlayer('decks')
+    window.addEventListener(OPEN_DECKS, go)
+    return () => window.removeEventListener(OPEN_DECKS, go)
+  }, [goPlayer])
+  const questsSeen = useQuestsSeen()
   // Заставка и баннер Хэллоуина ведут во вкладку босса
   useEffect(() => {
     const go = () => { setMode('clan'); setTab('halloween') }
@@ -447,7 +456,7 @@ export default function App() {
         ...owner,
       ]
       const playerTabs: BarTab<Tab>[] = [
-        { id: 'profile', icon: 'user', label: t.tabs.profile },
+        { id: 'profile', icon: 'user', label: t.tabs.profile, badge: questsSeen ? undefined : 'dot' },
         { id: 'decks', icon: 'cards', label: t.tabs.decks },
         { id: 'trainer', icon: 'target', label: t.tabs.trainer, badge: plus && !hasPlus ? 'plus' : undefined },
         { id: 'play', icon: 'ticket', label: t.tabs.play },
@@ -455,10 +464,10 @@ export default function App() {
         ...owner,
       ]
       // Точка на переключателе - в другом режиме тебя ждут: в клане - твои атаки
-      // на сегодня, у игрока - тренажёр, который сегодня ещё не открывали
+      // на сегодня, у игрока - задания дня, которые сегодня ещё не смотрели
       const modeDot = mode === 'player'
         ? data.periodType !== 'training' && Boolean(myRow) && (myRow?.decksUsedToday ?? 0) < 4
-        : !trainerSeenToday()
+        : !questsSeen
 
       return (
         <>
@@ -531,6 +540,8 @@ export default function App() {
             {tab === 'halloween' && <HalloweenView />}
             {tab === 'profile' && (
               <div className="fade-in">
+                {/* Задания дня - первыми: повод зайти сегодня, а не когда-нибудь */}
+                {!data.viewingAsAdmin && <QuestsCard />}
                 {/* Личное, что раньше стояло среди клановых карточек войны */}
                 <WhatsNewCard />
                 {iFinishedToday && !data.viewingAsAdmin && <InviteMomentCard />}

@@ -951,6 +951,11 @@ export interface OwnerStats {
   usersWithKnownDate: number
   // Вовлечённость
   respects7d: number
+  questsStartedToday: number
+  questsCompletedToday: number
+  questStreak3: number
+  questStreak7: number
+  questPlusDays30: number
   avgLinkedPerClan: number
   /** Приход по дням за 90 суток, от старых к свежим. Дни без привязок тоже здесь, с нулями. */
   signups: SignupPoint[]
@@ -2200,4 +2205,34 @@ export interface TrainerPlan {
   games: number
   coach: string | null
   locked: boolean
+}
+
+/** Задание дня: в игре проверяется по журналу боёв, в приложении - отметкой самого приложения. */
+export type QuestKey = 'war2' | 'win2' | 'play5' | 'crowns3' | 'flawless' | 'streak2' | 'trainer' | 'tip' | 'decks'
+
+export interface QuestItem {
+  key: QuestKey
+  kind: 'game' | 'war' | 'app'
+  progress: number
+  target: number
+  done: boolean
+}
+
+export interface DailyQuests {
+  day: string
+  resetsUtc: string
+  items: QuestItem[]
+  completed: boolean
+  /** Серия сейчас: с сегодняшним днём, если он закрыт, иначе до вчера. */
+  streak: number
+  /** Серия есть, а сегодня не закрыто - сгорит в полночь. */
+  atRisk: boolean
+  bestStreak: number
+  nextRewardIn: number
+  nextRewardDays: number
+  /** Дней Плюса за сегодняшний день. */
+  rewardDays: number
+  justCompleted: boolean
+  remindOn: boolean
+  clan: { doneToday: number; started: number; top: { name: string; streak: number; doneToday: boolean; me: boolean }[] } | null
 }

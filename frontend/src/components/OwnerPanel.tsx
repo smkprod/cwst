@@ -284,6 +284,19 @@ function Overview({ stats, clans, showFunnel }: { stats: OwnerStats; clans: Owne
       <Block title="Вовлечённость" icon="heart" tone="red">
         <Row label="Респектов за неделю" value={stats.respects7d} />
       </Block>
+
+      <Block title="Задания дня" icon="target" tone="violet" info={
+        <p>
+          День — по Киеву. Серия — сколько дней подряд человек закрывает все три задания;
+          за 3-й день серии даём день Плюса, за каждый 7-й — три.
+        </p>
+      }>
+        <Row label="Открыли сегодня" value={stats.questsStartedToday ?? 0} />
+        <Row label="Закрыли все три" value={stats.questsCompletedToday ?? 0} />
+        <Row label="Серия от 3 дней" value={stats.questStreak3 ?? 0} />
+        <Row label="Серия от 7 дней" value={stats.questStreak7 ?? 0} />
+        <Row label="Дней Плюса за серии (30 дн.)" value={stats.questPlusDays30 ?? 0} />
+      </Block>
     </>
   )
 }
@@ -348,6 +361,8 @@ const DEST_LABELS: Record<string, string> = {
   ch: 'Челлендж блогера',
   link: 'Привязка аккаунта',
   invite: 'Пригласить друга',
+  quests: 'Задания дня',
+  trainer: 'Тренажёр',
 }
 
 /**

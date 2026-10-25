@@ -1,0 +1,120 @@
+/* Задания дня: карточка в профиле и тост поверх экранов. Тёплые цвета - огонь серии. */
+
+.qs {
+  position: relative; overflow: hidden;
+  border: 1px solid rgba(255, 159, 67, 0.35);
+  background:
+    radial-gradient(120% 90% at 100% 0%, rgba(255, 138, 61, 0.20), transparent 60%),
+    linear-gradient(180deg, rgba(255, 211, 77, 0.07), rgba(255, 255, 255, 0.02));
+}
+.qs-risk { border-color: rgba(255, 90, 90, 0.55); }
+.qs-done { border-color: rgba(125, 255, 176, 0.45); }
+.qs-burst { animation: qs-pop 0.6s ease-out; }
+@keyframes qs-pop { 0% { transform: scale(0.97); } 50% { transform: scale(1.015); } 100% { transform: none; } }
+
+.qs-head { display: flex; align-items: center; gap: 10px; }
+.qs-icon {
+  flex: 0 0 auto; display: grid; place-items: center; width: 42px; height: 42px; border-radius: 14px;
+  background: linear-gradient(135deg, #ffb347, #ff6b3d); box-shadow: 0 6px 18px rgba(255, 107, 61, 0.35);
+}
+.qs-title { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.qs-title b { font-size: 16px; }
+.qs-title small { color: var(--muted); font-size: 12px; }
+
+.qs-flame {
+  display: inline-flex; align-items: center; gap: 4px; padding: 6px 10px; border-radius: 14px;
+  font-size: 18px; font-weight: 900; color: var(--muted);
+  background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08);
+  filter: grayscale(1); opacity: 0.75;
+}
+.qs-flame small { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.qs-flame.on {
+  color: #ffd34d; filter: none; opacity: 1;
+  background: linear-gradient(135deg, rgba(255, 138, 61, 0.28), rgba(255, 90, 90, 0.18));
+  border-color: rgba(255, 159, 67, 0.5);
+}
+.qs-risk .qs-flame.on { animation: qs-flicker 1.4s ease-in-out infinite; }
+@keyframes qs-flicker { 0%, 100% { box-shadow: 0 0 0 rgba(255, 90, 90, 0); } 50% { box-shadow: 0 0 16px rgba(255, 90, 90, 0.55); } }
+
+.qs-lead { margin: 10px 0 8px; font-size: 13.5px; line-height: 1.4; }
+.qs-risk .qs-lead { color: #ffb0a8; font-weight: 700; }
+.qs-done .qs-lead { color: #9dffc6; font-weight: 700; }
+
+.qs-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.qs-item {
+  display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 13px;
+  background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+.qs-item.done { background: rgba(125, 255, 176, 0.08); border-color: rgba(125, 255, 176, 0.25); }
+.qs-item.done .qs-item-body span:first-child { color: var(--muted); text-decoration: line-through; text-decoration-color: rgba(125, 255, 176, 0.6); }
+.qs-war:not(.done) { border-color: rgba(63, 198, 242, 0.35); }
+.qs-item-icon { flex: 0 0 auto; display: grid; place-items: center; width: 30px; height: 30px; }
+.qs-item-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; font-size: 13.5px; line-height: 1.3; }
+.qs-bar { display: block; height: 5px; border-radius: 3px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+.qs-bar i { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, #ffb347, #ff6b3d); transition: width 0.4s ease; }
+.qs-count { flex: 0 0 auto; font-size: 13px; font-weight: 800; color: var(--muted); min-width: 30px; text-align: right; }
+.qs-check {
+  flex: 0 0 auto; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%;
+  color: #0c2b18; background: #7dffb0; animation: qs-check 0.35s ease-out;
+}
+@keyframes qs-check { from { transform: scale(0.4); opacity: 0; } to { transform: none; opacity: 1; } }
+.qs-go {
+  flex: 0 0 auto; padding: 7px 12px; border: none; border-radius: 11px; cursor: pointer;
+  font: inherit; font-size: 12.5px; font-weight: 800; color: #fff;
+  background: linear-gradient(135deg, #ffb347, #ff6b3d); box-shadow: 0 4px 12px rgba(255, 107, 61, 0.35);
+}
+.qs-go:active { transform: scale(0.96); }
+
+.qs-refresh {
+  display: block; width: 100%; margin: 8px 0 0; padding: 6px 2px; border: none; background: none; cursor: pointer;
+  text-align: left; font: inherit; font-size: 11.5px; color: var(--text); line-height: 1.35;
+}
+.qs-refresh:disabled { opacity: 0.5; }
+.qs-refresh .ui-icon { vertical-align: -2px; }
+
+.qs-reward {
+  display: flex; align-items: center; gap: 10px; margin-top: 10px; padding: 9px 10px; border-radius: 13px;
+  background: rgba(255, 211, 77, 0.08); border: 1px dashed rgba(255, 211, 77, 0.35);
+}
+.qs-week { display: flex; gap: 4px; flex: 0 0 auto; }
+.qs-dot {
+  display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; font-size: 9px;
+  background: rgba(255, 255, 255, 0.10);
+}
+.qs-dot.on { background: linear-gradient(135deg, #ffb347, #ff6b3d); }
+.qs-dot.gift { width: 18px; height: 18px; font-size: 10px; background: rgba(255, 211, 77, 0.22); }
+.qs-dot.gift.on { background: linear-gradient(135deg, #ffd34d, #ff8a3d); }
+.qs-reward-text { font-size: 12.5px; font-weight: 700; color: #ffe08a; line-height: 1.3; }
+
+.qs-clan { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.qs-mates { display: flex; flex-wrap: wrap; gap: 5px; }
+.qs-mate {
+  padding: 3px 8px; border-radius: var(--r-chip, 999px); font-size: 12px;
+  background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.qs-mate b { font-weight: 800; color: #ffd34d; }
+.qs-mate.me { border-color: rgba(255, 159, 67, 0.55); }
+.qs-mate:not(.today) { opacity: 0.7; }
+
+.qs-remind { display: flex; align-items: center; gap: 9px; margin-top: 10px; cursor: pointer; color: var(--muted); }
+.qs-switch {
+  position: relative; flex: 0 0 auto; width: 34px; height: 20px; border-radius: 10px;
+  background: rgba(255, 255, 255, 0.15); transition: background 0.2s ease;
+}
+.qs-switch i {
+  position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff;
+  transition: transform 0.2s ease;
+}
+.qs-switch.on { background: #ff8a3d; }
+.qs-switch.on i { transform: translateX(14px); }
+
+/* Тост поверх экранов */
+.qs-toast {
+  position: fixed; left: 16px; right: 16px; bottom: calc(86px + env(safe-area-inset-bottom, 0px)); z-index: 250;
+  display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-radius: 16px; cursor: pointer;
+  font-size: 13.5px; font-weight: 700; color: #fff;
+  background: linear-gradient(135deg, rgba(40, 30, 60, 0.97), rgba(60, 35, 30, 0.97));
+  border: 1px solid rgba(255, 159, 67, 0.5); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+.qs-toast.big { background: linear-gradient(135deg, #ff8a3d, #ff5a5a); border-color: rgba(255, 255, 255, 0.35); font-size: 14.5px; }
