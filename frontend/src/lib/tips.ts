@@ -12,28 +12,38 @@ import type { Scene } from '../components/ArenaAnim'
  */
 
 export type TipId = 'anti_hog' | 'anti_tank' | 'kite' | 'log_barrel' | 'anti_air' | 'anti_siege' | 'anti_miner'
-  | 'elixir' | 'king_tornado' | 'tilt' | 'levels' | 'deck'
+  | 'elixir' | 'king_tornado' | 'cheap_def' | 'air_vs_ground' | 'tank_support' | 'clear_path' | 'siege_lock'
+  | 'tilt' | 'levels' | 'deck'
 
-export const TIP_IDS: TipId[] = ['anti_hog', 'king_tornado', 'kite', 'log_barrel', 'anti_tank', 'anti_air', 'anti_siege', 'anti_miner', 'elixir', 'tilt', 'levels', 'deck']
+export const TIP_IDS: TipId[] = ['anti_hog', 'king_tornado', 'cheap_def', 'kite', 'log_barrel', 'anti_tank', 'air_vs_ground', 'anti_air',
+  'anti_siege', 'anti_miner', 'tank_support', 'clear_path', 'siege_lock', 'elixir', 'tilt', 'levels', 'deck']
 
 /** Фишки, у которых есть схема арены. Остальные - советы без поля. */
-export const ARENA_TIPS: TipId[] = ['anti_hog', 'king_tornado', 'kite', 'log_barrel', 'anti_tank', 'anti_air', 'anti_siege', 'anti_miner', 'elixir']
+export const ARENA_TIPS: TipId[] = ['anti_hog', 'king_tornado', 'cheap_def', 'kite', 'log_barrel', 'anti_tank', 'air_vs_ground', 'anti_air',
+  'anti_siege', 'anti_miner', 'tank_support', 'clear_path', 'siege_lock', 'elixir']
 
 type Units = Record<'hog' | 'cannon' | 'mk' | 'skeletons' | 'barrel' | 'log' | 'goblins' | 'giant' | 'minipekka'
-  | 'counter' | 'balloon' | 'musk' | 'xbow' | 'knight' | 'miner' | 'golem' | 'here' | 'cells4' | 'tornado' | 'kingUp', string>
+  | 'counter' | 'balloon' | 'musk' | 'xbow' | 'knight' | 'miner' | 'golem' | 'here' | 'cells4' | 'tornado' | 'kingUp'
+  | 'minions' | 'oneVsFour' | 'noAir' | 'cells11' | 'towerHit' | 'yourGiant' | 'yourHog', string>
 
 export interface TipText { title: string; when: string; steps: string[] }
 
 const UNITS: Record<Lang, Units> = {
   ru: { hog: 'Хог', cannon: 'Пушка', mk: 'Мега-рыцарь', skeletons: 'Скелеты', barrel: 'Бочка', log: 'Бревно', goblins: 'Гоблины',
     giant: 'Гигант', minipekka: 'Мини-ПЕККА', counter: 'Контратака', balloon: 'Шар', musk: 'Мушкетёр', xbow: 'Икс-лук',
-    knight: 'Рыцарь', miner: 'Шахтёр', golem: 'Голем', here: 'сюда', cells4: '4 клетки', tornado: 'Торнадо', kingUp: 'Король проснулся!' },
+    knight: 'Рыцарь', miner: 'Шахтёр', golem: 'Голем', here: 'сюда', cells4: '4 клетки', tornado: 'Торнадо', kingUp: 'Король проснулся!',
+    minions: 'Миньоны', oneVsFour: '1 против 4 эликсира', noAir: 'Не бьёт по воздуху', cells11: '11,5 клетки', towerHit: 'Бьёт башню!',
+    yourGiant: 'Твой Гигант', yourHog: 'Твой Хог' },
   uk: { hog: 'Хог', cannon: 'Гармата', mk: 'Мега-лицар', skeletons: 'Скелети', barrel: 'Бочка', log: 'Колода', goblins: 'Гобліни',
     giant: 'Гігант', minipekka: 'Міні-ПЕККА', counter: 'Контратака', balloon: 'Куля', musk: 'Мушкетерка', xbow: 'Ікс-лук',
-    knight: 'Лицар', miner: 'Шахтар', golem: 'Голем', here: 'сюди', cells4: '4 клітинки', tornado: 'Торнадо', kingUp: 'Король прокинувся!' },
+    knight: 'Лицар', miner: 'Шахтар', golem: 'Голем', here: 'сюди', cells4: '4 клітинки', tornado: 'Торнадо', kingUp: 'Король прокинувся!',
+    minions: 'Міньйони', oneVsFour: '1 проти 4 еліксиру', noAir: 'Не б\'є по повітрю', cells11: '11,5 клітинки', towerHit: 'Б\'є вежу!',
+    yourGiant: 'Твій Гігант', yourHog: 'Твій Хог' },
   en: { hog: 'Hog', cannon: 'Cannon', mk: 'Mega Knight', skeletons: 'Skeletons', barrel: 'Barrel', log: 'Log', goblins: 'Goblins',
     giant: 'Giant', minipekka: 'Mini P.E.K.K.A', counter: 'Counter-push', balloon: 'Balloon', musk: 'Musketeer', xbow: 'X-Bow',
-    knight: 'Knight', miner: 'Miner', golem: 'Golem', here: 'here', cells4: '4 tiles', tornado: 'Tornado', kingUp: 'King is awake!' },
+    knight: 'Knight', miner: 'Miner', golem: 'Golem', here: 'here', cells4: '4 tiles', tornado: 'Tornado', kingUp: 'King is awake!',
+    minions: 'Minions', oneVsFour: '1 vs 4 elixir', noAir: 'Can\'t hit air', cells11: '11.5 tiles', towerHit: 'Hits the tower!',
+    yourGiant: 'Your Giant', yourHog: 'Your Hog' },
 }
 
 /** Сцены: (подписи юнитов на языке) → таймлайн. Клетки - как в игре, см. ArenaAnim. */
@@ -125,6 +135,64 @@ const SCENES: Partial<Record<TipId, (u: Units) => Scene>> = {
       { id: 'sk', kind: 'mine', card: 'Skeletons', label: u.skeletons, r: 0.5, to: 3.5, keys: [{ t: 1.3, x: 3.5, y: 22.2 }, { t: 3.5, x: 3.5, y: 22.5 }] },
     ],
   }),
+  // Скелеты на пути Мини-ПЕККА: три удара на скелетов - и башня её добивает
+  cheap_def: u => ({
+    duration: 6,
+    marks: [{ x: 3.5, y: 19.5, from: 0.7, to: 1.5, label: u.here }],
+    actors: [
+      { id: 'mp', kind: 'enemy', card: 'Mini P.E.K.K.A', label: u.minipekka, r: 0.7, to: 4.4,
+        keys: [{ t: 0, x: 3.5, y: 11.5 }, { t: 1.4, x: 3.5, y: 17.4 }, { t: 2.0, x: 3.5, y: 18.7 }, { t: 4.4, x: 3.5, y: 18.8 }] },
+      { id: 'sk', kind: 'mine', card: 'Skeletons', label: u.skeletons, r: 0.5, to: 3.6, keys: [{ t: 1.5, x: 3.5, y: 19.6 }, { t: 3.6, x: 3.5, y: 19.6 }] },
+      { id: 'tr', kind: 'text', label: u.oneVsFour, keys: [{ t: 3.4, x: 3.5, y: 21.6 }, { t: 5.6, x: 3.5, y: 21.6 }] },
+    ],
+  }),
+  // Гигант не бьёт по воздуху: Миньоны на его пути разбирают его, пока он идёт
+  air_vs_ground: u => ({
+    duration: 7,
+    marks: [{ x: 12.5, y: 20.5, from: 1.4, to: 2.2, label: u.here }],
+    actors: [
+      { id: 'giant', kind: 'enemy', card: 'Giant', label: u.giant, r: 1.05, to: 5.9,
+        keys: [{ t: 0, x: 14.5, y: 11.5 }, { t: 2.2, x: 14.5, y: 17.6 }, { t: 5.9, x: 14.5, y: 22.4 }] },
+      { id: 'mn', kind: 'mine', card: 'Minions', label: u.minions, r: 0.55, to: 6.0,
+        keys: [{ t: 2.2, x: 12.5, y: 20.5 }, { t: 3.0, x: 13.4, y: 19.6 }, { t: 6.0, x: 13.4, y: 21.6 }] },
+      { id: 'na', kind: 'text', label: u.noAir, keys: [{ t: 3.2, x: 12.5, y: 17.4 }, { t: 5.6, x: 12.5, y: 17.4 }] },
+    ],
+  }),
+  // Атака: Гигант впереди забирает башню на себя, Шар в той же линии сразу за ним
+  tank_support: u => ({
+    duration: 8,
+    noShots: true,
+    marks: [{ x: 3.5, y: 18.5, from: 1.2, to: 2.0, label: u.here }],
+    actors: [
+      { id: 'giant', kind: 'mine', card: 'Giant', label: u.yourGiant, r: 1.05, keys: [{ t: 0, x: 3.5, y: 21.5 }, { t: 4.4, x: 3.5, y: 9.8 }, { t: 8, x: 3.5, y: 9.8 }] },
+      { id: 'ball', kind: 'mine', card: 'Balloon', label: u.balloon, r: 0.9, keys: [{ t: 2.0, x: 3.5, y: 18.5 }, { t: 5.2, x: 3.5, y: 9.2 }, { t: 8, x: 3.5, y: 9.2 }] },
+      { id: 'hit', kind: 'text', label: u.towerHit, keys: [{ t: 5.4, x: 3.5, y: 4.2 }, { t: 7.6, x: 3.5, y: 4.2 }] },
+    ],
+  }),
+  // Атака: скелеты соперника на пути Хога - Бревно по его линии сметает их до встречи
+  clear_path: u => ({
+    duration: 6.5,
+    noShots: true,
+    marks: [{ x: 14.5, y: 16, from: 0.9, to: 1.6, label: u.here }],
+    actors: [
+      { id: 'hog', kind: 'mine', card: 'Hog Rider', label: u.yourHog, r: 0.75, keys: [{ t: 0, x: 14.5, y: 19 }, { t: 3.4, x: 14.5, y: 8.8 }, { t: 6.5, x: 14.5, y: 8.8 }] },
+      { id: 's1', kind: 'enemy', card: 'Skeletons', label: u.skeletons, r: 0.45, to: 2.6, keys: [{ t: 0.6, x: 14.5, y: 10.2 }, { t: 2.6, x: 14.5, y: 10.6 }] },
+      { id: 's2', kind: 'enemy', card: 'Skeletons', label: '', r: 0.45, to: 2.6, keys: [{ t: 0.6, x: 13.5, y: 10.6 }, { t: 2.6, x: 13.6, y: 11 }] },
+      { id: 'log', kind: 'log', card: 'The Log', label: u.log, r: 1.95, keys: [{ t: 1.5, x: 14.5, y: 16 }, { t: 3.3, x: 14.5, y: 6 }] },
+      { id: 'hit', kind: 'text', label: u.towerHit, keys: [{ t: 3.6, x: 14.5, y: 4.2 }, { t: 6.2, x: 14.5, y: 4.2 }] },
+    ],
+  }),
+  // Икс-лук в первом ряду у реки: 11,5 клетки - ровно до башни принцессы
+  siege_lock: u => ({
+    duration: 6,
+    noShots: true,
+    marks: [{ x: 3, y: 18, size: 2, from: 0.4, to: 1.4, label: u.here }],
+    rulers: [{ x: 5.4, y1: 6.5, y2: 18, label: u.cells11, from: 1.4, to: 5.6 }],
+    actors: [
+      { id: 'xb', kind: 'building', card: 'X-Bow', label: u.xbow, r: 0.95, keys: [{ t: 1.2, x: 3, y: 18 }, { t: 6, x: 3, y: 18 }] },
+      { id: 'hit', kind: 'text', label: u.towerHit, keys: [{ t: 2.2, x: 3.5, y: 4.2 }, { t: 5.8, x: 3.5, y: 4.2 }] },
+    ],
+  }),
   // За королём есть ряд: тяж оттуда идёт к мосту, а эликсир копится на поддержку (сбоку от короля - чтобы обойти его по своей линии)
   elixir: u => ({
     duration: 6.5,
@@ -173,7 +241,34 @@ const TEXT: Record<Lang, Record<TipId, TipText>> = {
     king_tornado: { title: 'Торнадо будит короля', when: 'Против Хога, Тарана, Рам, Гоблинской бочки — всех, кто идёт на башню принцессы.',
       steps: ['Дождись, пока Хог подойдёт к твоей башне принцессы — раньше Торнадо не дотянет его до короля.',
         'Кидай Торнадо на вторую клетку перед королём, на две клетки в сторону этой башни.',
-        'Хога затянет вплотную к королю — король проснётся, вместе с принцессой собьёт Хога и будет стрелять до конца боя.'] },
+        'Хога затянет вплотную к королю — король проснётся, вместе с принцессой собьёт Хога и будет стрелять до конца боя.',
+        'Так же — Мини-ПЕККА, Шахтёр, Шар и даже Гигант, прилипший к зданию в центре: Торнадо тянет всех, и летающих тоже.'] },
+    cheap_def: { title: 'Защита за 1–2 эликсира', when: 'Против Мини-ПЕККА, Хога, Мега-рыцаря и Шахтёра — когда дорогой ответ съедает эликсир на контратаку.',
+      steps: ['Считай размен: отбился дешевле, чем потратил соперник, — следующая атака твоя.',
+        'Мини-ПЕККА бьёт по одному: три скелета на её пути отнимают три удара, а башня добивает.',
+        'Хог не отвечает тем, кто не здание: мыши на его пути сбивают его вместе с башней.',
+        'Шахтёр бьёт ближайшего: Рыцарь прямо на нём забирает удары на себя.',
+        'Мега-рыцаря Ледяной голем уводит в центр — туда, где его достают обе башни.'] },
+    air_vs_ground: { title: 'Танк не бьёт по воздуху', when: 'Против Гиганта, Голема, Хога, Мега-рыцаря и ПЕККИ.',
+      steps: ['Проверь, бьёт ли танк по воздуху: Гигант, Голем, Хог, Мега-рыцарь и ПЕККА — нет.',
+        'Ставь Миньонов или Мышей прямо на пути танка, как только он перешёл мост.',
+        'Они разбирают его на ходу, а он идёт дальше и не может ответить.',
+        'Береги воздух от заклинаний: соперник с Бревном или Огненным шаром снимет его первым.'] },
+    tank_support: { title: 'Атака: танк впереди, урон сзади', when: 'Когда идёшь в атаку с Гигантом, Големом или Лавой.',
+      steps: ['Башня бьёт ближайшего — пусть это будет танк.',
+        'Ставь танк, а урон (Шар, Мушкетёр, Мини-ПЕККА) — в ту же линию сразу за ним, когда танк у реки.',
+        'Танк забирает башню и защитников на себя, а урон доходит до башни целым.',
+        'Не ставь урон раньше танка: он побежит вперёд и умрёт один.'] },
+    clear_path: { title: 'Атака: расчисти дорогу Хогу', when: 'Когда соперник встречает Хога скелетами, гоблинами или армией.',
+      steps: ['Мелочь у башни съедает Хога за пару секунд — он не отвечает тем, кто не здание.',
+        'Кидай Бревно по линии Хога, впереди него, — оно сметёт мелочь до встречи.',
+        'Огненный шар делает то же, но дороже: 4 эликсира против 2.',
+        'Держи Бревно до последнего: пусть соперник сначала выложит защиту.'] },
+    siege_lock: { title: 'Атака: Икс-лук у самой реки', when: 'Когда играешь Икс-луком.',
+      steps: ['Икс-лук бьёт на 11,5 клетки — ровно от первого ряда у реки до башни принцессы.',
+        'Ставь его в первый ряд у реки, в линии башни: тогда он сам бьёт по башне.',
+        'На ряд ниже он уже не достаёт и бьёт только тех, кто подошёл.',
+        'Прикрой лук: Рыцарь или Ледяной голем рядом, заклинание — на защитников.'] },
     elixir: { title: 'Не держи 10 эликсира', when: 'Если в поражениях у тебя течёт эликсир.',
       steps: ['10 эликсира — это потеря: всё, что набирается сверх, сгорает.',
         'При 9+ и тишине на поле ставь дорогую карту в самый тыл, у задней стенки.',
@@ -227,7 +322,34 @@ const TEXT: Record<Lang, Record<TipId, TipText>> = {
     king_tornado: { title: 'Торнадо будить короля', when: 'Проти Хога, Тарана, Рам, Гоблінської бочки — усіх, хто йде на вежу принцеси.',
       steps: ['Дочекайся, поки Хог підійде до твоєї вежі принцеси — раніше Торнадо не дотягне його до короля.',
         'Кидай Торнадо на другу клітинку перед королем, на дві клітинки в бік цієї вежі.',
-        'Хога затягне впритул до короля — король прокинеться, разом із принцесою зіб\'є Хога й стрілятиме до кінця бою.'] },
+        'Хога затягне впритул до короля — король прокинеться, разом із принцесою зіб\'є Хога й стрілятиме до кінця бою.',
+        'Так само — Міні-ПЕККА, Шахтар, Куля й навіть Гігант, що прилип до будівлі в центрі: Торнадо тягне всіх, і летючих теж.'] },
+    cheap_def: { title: 'Захист за 1–2 еліксиру', when: 'Проти Міні-ПЕККА, Хога, Мега-лицаря й Шахтаря — коли дорога відповідь з\'їдає еліксир на контратаку.',
+      steps: ['Рахуй розмін: відбився дешевше, ніж витратив суперник, — наступна атака твоя.',
+        'Міні-ПЕККА б\'є по одному: три скелети на її шляху забирають три удари, а вежа добиває.',
+        'Хог не відповідає тим, хто не будівля: кажани на його шляху збивають його разом із вежею.',
+        'Шахтар б\'є найближчого: Лицар просто на ньому забирає удари на себе.',
+        'Мега-лицаря Крижаний голем відводить у центр — туди, де його дістають обидві вежі.'] },
+    air_vs_ground: { title: 'Танк не б\'є по повітрю', when: 'Проти Гіганта, Голема, Хога, Мега-лицаря й ПЕККИ.',
+      steps: ['Перевір, чи б\'є танк по повітрю: Гігант, Голем, Хог, Мега-лицар і ПЕККА — ні.',
+        'Став Міньйонів або Кажанів просто на шляху танка, щойно він перейшов міст.',
+        'Вони розбирають його на ходу, а він іде далі й не може відповісти.',
+        'Бережи повітря від заклять: суперник із Колодою чи Вогняною кулею зніме його першим.'] },
+    tank_support: { title: 'Атака: танк попереду, урон ззаду', when: 'Коли йдеш в атаку з Гігантом, Големом чи Лавою.',
+      steps: ['Вежа б\'є найближчого — нехай це буде танк.',
+        'Став танк, а урон (Кулю, Мушкетерку, Міні-ПЕККА) — у ту саму лінію одразу за ним, коли танк біля річки.',
+        'Танк забирає вежу й захисників на себе, а урон доходить до вежі цілим.',
+        'Не став урон раніше за танк: він побіжить уперед і загине сам.'] },
+    clear_path: { title: 'Атака: розчисти шлях Хогу', when: 'Коли суперник зустрічає Хога скелетами, гоблінами чи армією.',
+      steps: ['Дрібнота біля вежі з\'їдає Хога за пару секунд — він не відповідає тим, хто не будівля.',
+        'Кидай Колоду по лінії Хога, попереду нього, — вона змете дрібноту до зустрічі.',
+        'Вогняна куля робить те саме, але дорожче: 4 еліксиру проти 2.',
+        'Тримай Колоду до останнього: хай суперник спершу викладе захист.'] },
+    siege_lock: { title: 'Атака: Ікс-лук біля самої річки', when: 'Коли граєш Ікс-луком.',
+      steps: ['Ікс-лук б\'є на 11,5 клітинки — рівно від першого ряду біля річки до вежі принцеси.',
+        'Став його в перший ряд біля річки, в лінії вежі: тоді він сам б\'є по вежі.',
+        'На ряд нижче він уже не дістає й б\'є лише тих, хто підійшов.',
+        'Прикрий лук: Лицар чи Крижаний голем поруч, закляття — на захисників.'] },
     elixir: { title: 'Не тримай 10 еліксиру', when: 'Якщо в поразках у тебе тече еліксир.',
       steps: ['10 еліксиру — це втрата: усе, що набирається понад, згорає.',
         'При 9+ і тиші на полі став дорогу карту в самий тил, біля задньої стінки.',
@@ -281,7 +403,34 @@ const TEXT: Record<Lang, Record<TipId, TipText>> = {
     king_tornado: { title: 'Tornado wakes the King', when: 'Against Hog, Battle Ram, Ram Rider, Goblin Barrel — anything going for your Princess Tower.',
       steps: ['Wait until the Hog reaches your Princess Tower — earlier and the Tornado won\'t drag it to the King.',
         'Drop Tornado on the second tile in front of your King, two tiles toward that tower.',
-        'The Hog gets pulled right up to your King — he wakes up, kills the Hog with the Princess and keeps shooting all match.'] },
+        'The Hog gets pulled right up to your King — he wakes up, kills the Hog with the Princess and keeps shooting all match.',
+        'Same with Mini PEKKA, Miner, Balloon and even a Giant locked onto a middle building: Tornado pulls everything, air included.'] },
+    cheap_def: { title: 'Defend for 1–2 elixir', when: 'Against Mini PEKKA, Hog, Mega Knight and Miner — when an expensive answer eats your counter-push elixir.',
+      steps: ['Count the trade: defend for less than they spent, and the next push is yours.',
+        'Mini PEKKA kills one unit per hit: three Skeletons in its path cost it three hits, and the tower finishes it.',
+        'The Hog ignores anything that isn\'t a building: Bats in its path take it down with the tower.',
+        'The Miner hits the closest target: a Knight right on top of it takes the hits.',
+        'An Ice Golem pulls the Mega Knight to the center — where both towers reach it.'] },
+    air_vs_ground: { title: 'The tank can\'t hit air', when: 'Against Giant, Golem, Hog, Mega Knight and P.E.K.K.A.',
+      steps: ['Check if the tank hits air: Giant, Golem, Hog, Mega Knight and P.E.K.K.A don\'t.',
+        'Drop Minions or Bats right in the tank\'s path as soon as it crosses the bridge.',
+        'They melt it on the move, and it keeps walking without hitting back.',
+        'Keep your air safe from spells: an opponent with Log or Fireball will clear it first.'] },
+    tank_support: { title: 'Attack: tank in front, damage behind', when: 'When you push with Giant, Golem or Lava.',
+      steps: ['The tower shoots the closest target — make it the tank.',
+        'Drop the tank, then the damage (Balloon, Musketeer, Mini PEKKA) in the same lane right behind it once the tank is at the river.',
+        'The tank takes the tower and defenders, and the damage reaches the tower intact.',
+        'Don\'t drop the damage before the tank: it runs ahead and dies alone.'] },
+    clear_path: { title: 'Attack: clear the Hog\'s path', when: 'When they meet your Hog with Skeletons, Goblins or an army.',
+      steps: ['Small units at the tower eat the Hog in seconds — it ignores anything that isn\'t a building.',
+        'Log down the Hog\'s lane, ahead of it — it sweeps them before they meet.',
+        'Fireball does the same but costs more: 4 elixir vs 2.',
+        'Hold the Log until they commit their defense.'] },
+    siege_lock: { title: 'Attack: X-Bow right at the river', when: 'When you play X-Bow.',
+      steps: ['The X-Bow hits 11.5 tiles — exactly from your first row at the river to their Princess Tower.',
+        'Place it in the first row at the river, in the tower\'s lane: then it hits the tower by itself.',
+        'One row lower it can\'t reach and only shoots whatever comes close.',
+        'Cover it: a Knight or Ice Golem nearby, a spell on the defenders.'] },
     elixir: { title: 'Don\'t sit at 10 elixir', when: 'If you leak elixir in your losses.',
       steps: ['10 elixir is a loss: everything above it burns.',
         'At 9+ with a quiet field, place your expensive card at the very back.',

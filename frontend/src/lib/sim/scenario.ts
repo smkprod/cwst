@@ -13,15 +13,29 @@ export interface Scenario {
   elixir: number
   /** Ходы соперника: секунда и клетка. */
   enemy: { at: number; card: string; x: number; y: number }[]
+  /**
+   * Свои карты по сценарию: здание, уже стоящее в защите, или атака, которую игрок
+   * поддерживает своим ходом. Игрок их не ставит - они часть условия.
+   */
+  mine?: { at: number; card: string; x: number; y: number }[]
   /** Когда встать на паузу: секунда или условие на состояние боя. */
   pause: number | ((sim: Sim) => boolean)
   /** Сколько секунд боя считать после хода игрока, самое большее. */
   horizon: number
   /** Урон по башне, при котором ещё «идеально» и ещё «сработало». */
   limits: [perfect: number, ok: number]
-  /** Особая цель: «король» - на три звезды нужно ещё и разбудить свою королевскую башню. */
-  goal?: 'king'
+  /**
+   * Особая цель: «король» - на три звезды нужно ещё и разбудить свою королевскую башню;
+   * «атака» - задача на нападение: считается урон по башням соперника, а пороги в
+   * limits - сколько нужно нанести на «идеально» и на «сработало».
+   */
+  goal?: 'king' | 'attack'
+  /** Потолок цены хода на «идеально», если он не равен цене атаки: «отбейся за 1-2 эликсира». */
+  cost?: number
 }
+
+/** Задача на атаку: оцениваем урон по сопернику, а не по себе. */
+export const isAttack = (sc: Scenario) => sc.goal === 'attack'
 
 /** Сколько секунд боя показываем до паузы. */
 export const INTRO = 2.6
@@ -30,6 +44,7 @@ const SETTLE = 1.0
 export function newSim(sc: Scenario): Sim {
   const sim = new Sim(sc.elixir)
   for (const e of sc.enemy) sim.schedule({ at: e.at, team: 'enemy', card: e.card, x: e.x, y: e.y })
+  for (const e of sc.mine ?? []) sim.schedule({ at: e.at, team: 'me', card: e.card, x: e.x, y: e.y })
   return sim
 }
 
@@ -64,15 +79,18 @@ export function atPause(sc: Scenario, sim: Sim, at: number): boolean {
 export class Watch {
   readonly start: number
   readonly dmg0: number
+  /** Урон по башням соперника на момент хода - для задач на атаку. */
+  readonly dealt0: number
   clearAt: number | null = null
   constructor(private sc: Scenario, sim: Sim) {
     this.start = sim.t
     this.dmg0 = sim.towerDamage.me
+    this.dealt0 = sim.towerDamage.enemy
   }
 
-  /** Бой окончен: соперник выбит и всё улеглось, либо вышло время. */
+  /** Бой окончен: атакующие выбиты и всё улеглось, либо вышло время. В атаке атакующие - свои. */
   done(sim: Sim): boolean {
-    if (this.clearAt === null && !sim.threat('enemy')) this.clearAt = sim.t
+    if (this.clearAt === null && !sim.threat(isAttack(this.sc) ? 'me' : 'enemy')) this.clearAt = sim.t
     if (this.clearAt !== null && sim.t - this.clearAt >= SETTLE) return true
     return sim.t - this.start >= this.sc.horizon
   }
@@ -85,7 +103,7 @@ export function baseline(sc: Scenario): number {
   while (sim.t < at - 1e-6) sim.tick()
   const w = new Watch(sc, sim)
   while (!w.done(sim)) sim.tick()
-  return sim.towerDamage.me - w.dmg0
+  return isAttack(sc) ? sim.towerDamage.enemy - w.dealt0 : sim.towerDamage.me - w.dmg0
 }
 
 export interface Outcome {
@@ -101,11 +119,14 @@ export interface Outcome {
   survived: boolean
   /** Своя королевская башня проснулась и стреляет. */
   kingAwake: boolean
+  /** Урон по башням соперника после хода - главное число в задаче на атаку. */
+  dealt: number
 }
 
 /** Оценка: идеально - выбил, башня почти цела и размен не в минус; сработало - башня потеряла немного. */
 export function judge(sc: Scenario, sim: Sim, w: Watch, card: string, base: number, mine: Entity[]): Outcome {
   const dmg = Math.round(sim.towerDamage.me - w.dmg0)
+  const dealt = Math.round(sim.towerDamage.enemy - w.dealt0)
   const killed = !sim.threat('enemy')
   const myCost = COST[card] ?? 0
   const enemyCost = sc.enemy.reduce((a, e) => a + (COST[e.card] ?? 0), 0)
@@ -113,11 +134,14 @@ export function judge(sc: Scenario, sim: Sim, w: Watch, card: string, base: numb
   const king = sim.tower('me', 'K')
   const kingAwake = king.alive && king.active
   const goalMet = sc.goal !== 'king' || kingAwake
-  const grade: Grade = killed && dmg <= perfect && myCost <= enemyCost && goalMet ? 'perfect'
+  // В атаке пороги - сколько нанести: на «идеально» и на «сработало» (и больше, чем без хода)
+  const grade: Grade = isAttack(sc)
+    ? dealt >= perfect ? 'perfect' : dealt >= ok && dealt > base ? 'ok' : 'fail'
+    : killed && dmg <= perfect && myCost <= (sc.cost ?? enemyCost) && goalMet ? 'perfect'
     : dmg <= ok && dmg < base ? 'ok' : 'fail'
   return {
     grade, dmg, base: Math.round(base), killed, killIn: killed && w.clearAt !== null ? w.clearAt - w.start : null,
-    myCost, enemyCost, survived: mine.some(e => e.alive), kingAwake,
+    myCost, enemyCost, survived: mine.some(e => e.alive), kingAwake, dealt,
   }
 }
 

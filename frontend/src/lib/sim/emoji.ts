@@ -22,6 +22,11 @@ export const EMOJI: Record<string, string> = {
   'P.E.K.K.A': '🦿',
   'Ice Golem': '🧊',
   'Ice Spirit': '❄️',
+  'Valkyrie': '🪓',
+  'Archers': '🏹',
+  'Minions': '🦇',
+  'Bats': '🦇',
+  'Tesla': '⚡',
 }
 
 export const emojiOf = (card: string) => EMOJI[card] ?? '⚔️'

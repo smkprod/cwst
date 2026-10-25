@@ -33,5 +33,5 @@ public class ClanAiTests
 
     [Fact]
     public void TrainerCovers_TheEnemyCardsOfThePuzzles() =>
-        Assert.Equal(8, TrainerAiUseCase.Covered.Count);
+        Assert.Equal(11, TrainerAiUseCase.Covered.Count);
 }
