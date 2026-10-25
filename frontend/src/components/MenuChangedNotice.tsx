@@ -4,7 +4,7 @@ import { useT } from '../lib/i18n'
 import { SectionHead } from './ui/Section'
 
 /** Ключ версии: если меню перестроят снова, достаточно поднять номер. */
-const SEEN_KEY = 'menuNoticeSeen:v2'
+const SEEN_KEY = 'menuNoticeSeen:v3'
 
 function alreadySeen(): boolean {
   try { return localStorage.getItem(SEEN_KEY) === '1' } catch { return false }

@@ -39,6 +39,8 @@ interface Props {
   onConfigChanged?: () => void
   /** Право блогера (lib/serviceAccess: canUseStudio) — «Студия» живёт здесь, а не в баре. */
   showStudio?: boolean
+  /** Разделы, которые уже стоят в нижнем меню, - в списке их не повторяем. */
+  hide?: MoreSection[]
 }
 
 /**
@@ -54,7 +56,8 @@ interface Props {
  * становилась недостижимой. Открываются они здесь же, с кнопкой «Назад», — даже
  * если такая вкладка в баре есть: так «Ещё» ведёт себя одинаково при любом наборе.
  */
-export function MoreView({ canManage, isLeader, onOpenNotifications, initialSection = null, config = null, onConfigChanged, showStudio = false }: Props) {
+export function MoreView({ canManage, isLeader, onOpenNotifications, initialSection = null, config = null, onConfigChanged, showStudio = false, hide = [] }: Props) {
+  const shown = (s: MoreSection) => !hide.includes(s)
   const { t } = useT()
   const [section, setSection] = useState<Section | null>(initialSection)
   const openShowcase = useShowcase()
@@ -93,17 +96,29 @@ export function MoreView({ canManage, isLeader, onOpenNotifications, initialSect
           <MoreRow icon="rocket" tone="orange" title={t.more.studio} hint={t.more.studioHint} onClick={() => open('studio')} />
         )}
 
-        <MoreRow icon="swords" tone="red" title={t.trainer.moreTitle} hint={t.trainer.moreHint} onClick={() => open('trainer')} />
+        {shown('trainer') && (
+          <MoreRow icon="swords" tone="red" title={t.trainer.moreTitle} hint={t.trainer.moreHint} onClick={() => open('trainer')} />
+        )}
 
-        <MoreRow icon="target" tone="orange" title={t.dash.tipsTitle} hint={t.dash.tipsLead} onClick={() => open('tips')} />
+        {shown('tips') && (
+          <MoreRow icon="target" tone="orange" title={t.dash.tipsTitle} hint={t.dash.tipsLead} onClick={() => open('tips')} />
+        )}
 
-        <MoreRow icon="cards" tone="violet" title={t.builder.title} hint={t.builder.hint} onClick={() => open('builder')} />
+        {shown('builder') && (
+          <MoreRow icon="cards" tone="violet" title={t.builder.title} hint={t.builder.hint} onClick={() => open('builder')} />
+        )}
 
-        <MoreRow icon="ticket" tone="green" title={t.more.challenge} hint={t.more.challengeHint} onClick={() => open('challenge')} />
+        {shown('challenge') && (
+          <MoreRow icon="ticket" tone="green" title={t.more.challenge} hint={t.more.challengeHint} onClick={() => open('challenge')} />
+        )}
 
-        <MoreRow icon="swords" tone="red" title={t.more.duel} hint={t.more.duelHint} onClick={() => open('duel')} />
+        {shown('duel') && (
+          <MoreRow icon="swords" tone="red" title={t.more.duel} hint={t.more.duelHint} onClick={() => open('duel')} />
+        )}
 
-        <MoreRow icon="trophy" tone="gold" title={t.more.tournaments} hint={t.more.tournamentsHint} onClick={() => open('tournament')} />
+        {shown('tournament') && (
+          <MoreRow icon="trophy" tone="gold" title={t.more.tournaments} hint={t.more.tournamentsHint} onClick={() => open('tournament')} />
+        )}
 
         {onConfigChanged && (
           <MoreRow icon="columns" tone="gold" title={t.more.hall} hint={t.more.hallHint} onClick={() => open('hall')} />
@@ -111,7 +126,9 @@ export function MoreView({ canManage, isLeader, onOpenNotifications, initialSect
 
         <MoreRow icon="search" tone="blue" title={t.more.search} hint={t.more.searchHint} onClick={() => open('search')} />
 
-        <MoreRow icon="globe" tone="blue" title={t.more.worldTop} hint={t.more.worldTopHint} onClick={() => open('worldTop')} />
+        {shown('worldTop') && (
+          <MoreRow icon="globe" tone="blue" title={t.more.worldTop} hint={t.more.worldTopHint} onClick={() => open('worldTop')} />
+        )}
 
         {/* Сначала витрина: что внутри, как выглядит, примерка фонов - а оттуда уже покупка */}
         <MoreRow icon="gem" tone="violet" title={t.more.plus} hint={t.more.plusHint} onClick={() => openShowcase('plus')} />

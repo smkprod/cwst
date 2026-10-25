@@ -12,7 +12,7 @@ const ru = {
   retry: 'Повторить',
   dateLocale: 'ru-RU',
 
-  tabs: { duel: 'Дуэли', challenge: 'Челлендж', war: 'Война', hq: 'Штаб', rating: 'Рейтинг', me: 'Я', search: 'Поиск', owner: 'Панель',
+  tabs: { duel: 'Дуэли', challenge: 'Челлендж', war: 'Война', hq: 'Штаб', profile: 'Профиль', decks: 'Колоды', trainer: 'Тренажёр', play: 'Турниры', rating: 'Рейтинг', me: 'Я', search: 'Поиск', owner: 'Панель',
           recruit: 'Биржа', tournament: 'Турнир', clan: 'Клан', more: 'Ещё', roster: 'Состав',
           hall: 'Аллея', studio: 'Студия', plus: 'Плюс', halloween: 'Хэллоуин' },
 
@@ -461,10 +461,10 @@ const ru = {
     gotIt: 'Понятно',
   },
   menuNotice: {
-    title: 'Клан стало удобнее смотреть',
-    clan: 'Война — гонка и журналы сразу под цифрами',
-    me: 'Состав — список игроков переехал в свою вкладку',
-    more: 'Дисциплина — кто пропускает войну и кого пинать',
+    title: 'Теперь два режима: Клан и Игрок',
+    clan: 'Клан — война, штаб, состав и рейтинг прямо в нижнем меню',
+    me: 'Игрок — твой профиль, подбор колод, тренажёр и турниры',
+    more: 'Переключатель — первая кнопка внизу, точка на нём значит «тебя там ждут»',
     gotIt: 'Понятно',
   },
 
@@ -598,6 +598,26 @@ const ru = {
     dayShort: 'Д',
   },
 
+  mode: {
+    clan: 'Клан',
+    player: 'Игрок',
+    clanCaption: 'режим клана',
+    playerCaption: 'режим игрока',
+    clanPro: 'Клан Про',
+    plus: 'Плюс',
+    from: 'от {p}★',
+    toPlayer: 'Перейти в режим игрока',
+    toClan: 'Перейти в режим клана',
+  },
+  hub: {
+    decksPick: 'Подбор колод',
+    decksMeta: 'Мета топа',
+    trainerTasks: 'Задачи',
+    trainerTips: 'Фишки',
+    playChallenge: 'Челлендж',
+    playDuel: 'Дуэли',
+    playTournament: 'Турниры',
+  },
   clanPro: {
     badge: 'Клан Про',
     scoutTitle: 'Разведка+',
@@ -2243,7 +2263,7 @@ const uk: Translations = {
   retry: 'Повторити',
   dateLocale: 'uk-UA',
 
-  tabs: { duel: 'Дуелі', challenge: 'Челендж', roster: 'Склад', war: 'Війна', hq: 'Штаб', rating: 'Рейтинг', me: 'Я', search: 'Пошук', owner: 'Панель',
+  tabs: { duel: 'Дуелі', challenge: 'Челендж', roster: 'Склад', war: 'Війна', hq: 'Штаб', profile: 'Профіль', decks: 'Колоди', trainer: 'Тренажер', play: 'Турніри', rating: 'Рейтинг', me: 'Я', search: 'Пошук', owner: 'Панель',
           recruit: 'Біржа', tournament: 'Турнір', clan: 'Клан', more: 'Ще',
           hall: 'Алея', studio: 'Студія', plus: 'Плюс', halloween: 'Хелловін' },
 
@@ -2692,10 +2712,10 @@ const uk: Translations = {
     gotIt: 'Зрозуміло',
   },
   menuNotice: {
-    title: 'Клан стало зручніше дивитися',
-    clan: 'Війна — гонка і журнали одразу під цифрами',
-    me: 'Склад — список гравців переїхав у свою вкладку',
-    more: 'Дисципліна — хто пропускає війну і кого нагадувати',
+    title: 'Тепер два режими: Клан і Гравець',
+    clan: 'Клан — війна, штаб, склад і рейтинг прямо в нижньому меню',
+    me: 'Гравець — твій профіль, підбір колод, тренажер і турніри',
+    more: 'Перемикач — перша кнопка внизу, крапка на ньому означає «тебе там чекають»',
     gotIt: 'Зрозуміло',
   },
 
@@ -2829,6 +2849,26 @@ const uk: Translations = {
     dayShort: 'Д',
   },
 
+  mode: {
+    clan: 'Клан',
+    player: 'Гравець',
+    clanCaption: 'режим клану',
+    playerCaption: 'режим гравця',
+    clanPro: 'Клан Про',
+    plus: 'Плюс',
+    from: 'від {p}★',
+    toPlayer: 'Перейти в режим гравця',
+    toClan: 'Перейти в режим клану',
+  },
+  hub: {
+    decksPick: 'Підбір колод',
+    decksMeta: 'Мета топу',
+    trainerTasks: 'Задачі',
+    trainerTips: 'Фішки',
+    playChallenge: 'Челендж',
+    playDuel: 'Дуелі',
+    playTournament: 'Турніри',
+  },
   clanPro: {
     badge: 'Клан Про',
     scoutTitle: 'Розвідка+',
@@ -4470,7 +4510,7 @@ const en: Translations = {
   retry: 'Retry',
   dateLocale: 'en-US',
 
-  tabs: { duel: 'Duels', challenge: 'Challenge', roster: 'Roster', war: 'War', hq: 'HQ', rating: 'Rating', me: 'Me', search: 'Search', owner: 'Panel',
+  tabs: { duel: 'Duels', challenge: 'Challenge', roster: 'Roster', war: 'War', hq: 'HQ', profile: 'Profile', decks: 'Decks', trainer: 'Trainer', play: 'Events', rating: 'Rating', me: 'Me', search: 'Search', owner: 'Panel',
           recruit: 'Market', tournament: 'Tournament', clan: 'Clan', more: 'More',
           hall: 'Hall', studio: 'Studio', plus: 'Plus', halloween: 'Halloween' },
 
@@ -4919,10 +4959,10 @@ const en: Translations = {
     gotIt: 'Got it',
   },
   menuNotice: {
-    title: 'The clan tab is easier to read',
-    clan: 'War — race and logs right under the numbers',
-    me: 'Roster — the player list moved to its own section',
-    more: 'Discipline — who skips the war and who needs nudging',
+    title: 'Two modes now: Clan and Player',
+    clan: 'Clan — war, HQ, roster and rating right in the bottom menu',
+    me: 'Player — your profile, deck picker, trainer and events',
+    more: 'The switch is the first button at the bottom; a dot on it means something is waiting there',
     gotIt: 'Got it',
   },
 
@@ -5056,6 +5096,26 @@ const en: Translations = {
     dayShort: 'D',
   },
 
+  mode: {
+    clan: 'Clan',
+    player: 'Player',
+    clanCaption: 'clan mode',
+    playerCaption: 'player mode',
+    clanPro: 'Clan Pro',
+    plus: 'Plus',
+    from: 'from {p}★',
+    toPlayer: 'Switch to player mode',
+    toClan: 'Switch to clan mode',
+  },
+  hub: {
+    decksPick: 'Deck picker',
+    decksMeta: 'Top meta',
+    trainerTasks: 'Puzzles',
+    trainerTips: 'Tips',
+    playChallenge: 'Challenge',
+    playDuel: 'Duels',
+    playTournament: 'Tournaments',
+  },
   clanPro: {
     badge: 'Clan Pro',
     scoutTitle: 'Scouting+',

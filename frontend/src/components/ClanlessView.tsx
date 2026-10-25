@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Icon, type IconName } from './ui/Icon'
+import { Icon } from './ui/Icon'
 import { SectionHead } from './ui/Section'
 import { api } from '../lib/api'
 import type { AppConfig, ClanOverview, PlayerProfile } from '../types'
@@ -7,19 +7,18 @@ import { useT } from '../lib/i18n'
 import { haptic, shareToTelegram, botStartLink } from '../lib/telegram'
 import { useBotUsername } from '../lib/botUsername'
 import { RecruitToggle } from './RecruitToggle'
-import { PlayerSearchView } from './PlayerSearchView'
 import { TopPlayersTeaser } from './TopPlayersTeaser'
 import { RegionTopCard } from './RegionTopCard'
 import { BotTourCard } from './BotTourCard'
-import { ChallengeView, CreatorChallengeScreen } from './ChallengeView'
-import { DuelView } from './DuelView'
+import { CreatorChallengeScreen } from './ChallengeView'
 import { OPEN_CHALLENGE } from '../lib/promo'
 import { MyStatsView, type BattlesView, type MeSection } from './MyStatsView'
-import { Showcase } from './Showcase'
-import { WorldTopView } from './WorldTopView'
 import { MoreView } from './MoreView'
+import { ModeHeader, TabBar, usePlusState, type BarTab } from './AppChrome'
+import { DecksHub, PlayHub, TrainerHub, type DecksSection, type PlaySection } from './PlayerHub'
+import { OPEN_TRAINER } from '../lib/trainer'
 
-export type SoloTab = 'me' | 'meta' | 'clan' | 'search' | 'more' | 'challenge' | 'duel' | 'plus' | 'creatorChallenge'
+export type SoloTab = 'me' | 'decks' | 'trainer' | 'play' | 'clan' | 'more' | 'creatorChallenge'
 
 /** Почему у игрока нет экрана войны: клан не подключён или у подключённого нет войны. */
 export type SoloReason = 'noClan' | 'noWar'
@@ -32,18 +31,15 @@ export type SoloReason = 'noClan' | 'noWar'
  * Теперь это то же приложение для игрока: разбор своих боёв первым, мета топа,
  * поиск, «Ещё» с языком и Плюсом. Клан — одна из вкладок, а не условие входа.
  */
-export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection = 'battles', battlesView = 'history', openMatchId = null, showChallenge = false, showDuel = false, showPlus = false, showStudio = false, challengeCode = null, config = null, onConfigChanged }: {
+export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection = 'battles', battlesView = 'history', openMatchId = null, decksInitial, playInitial, showStudio = false, challengeCode = null, config = null, onConfigChanged }: {
   reason?: SoloReason
   initialTab?: SoloTab
   meSection?: MeSection
   battlesView?: BattlesView
   openMatchId?: number | null
-  /** Владелец включил вкладку челленджа - она нужна и игрокам без клана: они и приходят с рекламы. */
-  showChallenge?: boolean
-  /** Вкладка лиги дуэлей - по тому же выбору владельца. */
-  showDuel?: boolean
-  /** Витрина Плюса и спонсорства в нижнем меню - тоже по выбору владельца. */
-  showPlus?: boolean
+  /** С какого раздела открыть колоды и соревнования - по ссылке из бота. */
+  decksInitial?: DecksSection
+  playInitial?: PlaySection
   /** «Студия» блогера — по праву, а не по выбору владельца. Клан блогеру не обязателен. Живёт в «Ещё». */
   showStudio?: boolean
   /** Челлендж блогера из ссылки со стрима (startapp=ch_<код>) — экран initialTab='creatorChallenge'. */
@@ -55,10 +51,17 @@ export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection =
   const { t } = useT()
   const botUsername = useBotUsername()
   const [tab, setTab] = useState<SoloTab>(initialTab)
+  const plus = usePlusState()
+  const [play, setPlay] = useState<{ initial?: PlaySection; key: number }>({ initial: playInitial, key: 0 })
   useEffect(() => {
-    const go = () => setTab('challenge')
+    const go = () => { setPlay(p => ({ initial: 'challenge', key: p.key + 1 })); setTab('play') }
     window.addEventListener(OPEN_CHALLENGE, go)
     return () => window.removeEventListener(OPEN_CHALLENGE, go)
+  }, [])
+  useEffect(() => {
+    const go = () => setTab('trainer')
+    window.addEventListener(OPEN_TRAINER, go)
+    return () => window.removeEventListener(OPEN_TRAINER, go)
   }, [])
 
   const [profile, setProfile] = useState<PlayerProfile | null>(null)
@@ -93,8 +96,8 @@ export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection =
   }, [])
 
   const switchTab = (next: SoloTab) => {
-    haptic('light')
     setTab(next)
+    window.scrollTo(0, 0)
   }
 
   const shareInstructions = () => {
@@ -102,29 +105,30 @@ export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection =
     shareToTelegram(t.clanless.shareText, botStartLink())
   }
 
-  const tabs: { id: SoloTab; icon: IconName; label: string }[] = [
-    { id: 'me', icon: 'user' as IconName, label: t.tabs.me },
-    { id: 'meta', icon: 'flame' as IconName, label: t.worldTop.tabMeta },
-    ...(showChallenge ? [{ id: 'challenge' as SoloTab, icon: 'ticket' as IconName, label: t.tabs.challenge }] : []),
-    ...(showDuel ? [{ id: 'duel' as SoloTab, icon: 'swords' as IconName, label: t.tabs.duel }] : []),
-    ...(showPlus ? [{ id: 'plus' as SoloTab, icon: 'gem' as IconName, label: t.tabs.plus }] : []),
-    { id: 'clan', icon: 'castle' as IconName, label: t.clanless.tabClan },
-    { id: 'search', icon: 'search' as IconName, label: t.tabs.search },
-    { id: 'more', icon: 'gear' as IconName, label: t.tabs.more },
+  const hasPlus = Boolean(plus?.active || plus?.isSponsor || plus?.unlocked)
+  // Без клана - тот же режим игрока, что и у всех, плюс вкладка «Клан» с подключением
+  const tabs: BarTab<SoloTab>[] = [
+    { id: 'me', icon: 'user', label: t.tabs.profile },
+    { id: 'decks', icon: 'cards', label: t.tabs.decks },
+    { id: 'trainer', icon: 'target', label: t.tabs.trainer, badge: plus && !hasPlus ? 'plus' : undefined },
+    { id: 'play', icon: 'ticket', label: t.tabs.play },
+    { id: 'clan', icon: 'castle', label: t.clanless.tabClan },
+    { id: 'more', icon: 'gear', label: t.tabs.more },
   ]
 
   return (
     <>
       <main className="with-tabbar fade-in">
+        {tab !== 'creatorChallenge' && <ModeHeader mode="player" plus={plus} />}
         {tab === 'me' && (
           <div className="fade-in">
             <MyStatsView defaultSection={meSection} battlesView={battlesView} openMatchId={openMatchId} />
           </div>
         )}
 
-        {tab === 'meta' && <div className="fade-in"><WorldTopView /></div>}
-        {tab === 'challenge' && <ChallengeView />}
-        {tab === 'duel' && <DuelView />}
+        {tab === 'decks' && <DecksHub initial={decksInitial} />}
+        {tab === 'trainer' && <TrainerHub />}
+        {tab === 'play' && <PlayHub key={play.key} initial={play.initial} />}
 
         {tab === 'clan' && (
           <div className="fade-in">
@@ -167,31 +171,17 @@ export function ClanlessView({ reason = 'noClan', initialTab = 'me', meSection =
           </div>
         )}
 
-        {tab === 'search' && <div className="fade-in"><PlayerSearchView /></div>}
-        {tab === 'plus' && <Showcase embedded onClose={() => setTab('me')} />}
         {tab === 'creatorChallenge' && challengeCode && (
           <CreatorChallengeScreen code={challengeCode} onBack={() => switchTab('me')} />
         )}
         {tab === 'more' && (
           <MoreView canManage={false} isLeader={false} onOpenNotifications={() => { /* уведомления — у клана */ }}
-            config={config} onConfigChanged={onConfigChanged} showStudio={showStudio} />
+            config={config} onConfigChanged={onConfigChanged} showStudio={showStudio}
+            hide={['trainer', 'tips', 'builder', 'worldTop', 'challenge', 'duel', 'tournament']} />
         )}
       </main>
 
-      <nav className="tabbar" role="tablist">
-        {tabs.map(x => (
-          <button
-            key={x.id}
-            role="tab"
-            aria-selected={tab === x.id}
-            className={`tab ${tab === x.id ? 'tab-active' : ''}`}
-            onClick={() => switchTab(x.id)}
-          >
-            <span className="tab-icon"><Icon name={x.icon} size={20} /></span>
-            <span className="tab-label">{x.label}</span>
-          </button>
-        ))}
-      </nav>
+      <TabBar tabs={tabs} active={tab} onSelect={switchTab} />
     </>
   )
 }
