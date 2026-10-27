@@ -90,7 +90,46 @@ public partial class DeckBuilderUseCase(
     public async Task<WarResult?> WarAsync(long tg, Filter f, string? lang, CancellationToken ct = default)
     {
         var ctx = await ContextAsync(tg, lang, ct);
-        if (ctx is null) return null;
+        return ctx is null ? null : War(ctx, f);
+    }
+
+    /// <summary>
+    /// Подбор четырёх колод КВ для любой коллекции - для «Военного штаба», который смотрит
+    /// весь клан разом: мету и справочник грузим один раз, а коллекции подставляем по
+    /// одной. Только колоды, которые игрок может собрать целиком. null - меты ещё нет.
+    /// </summary>
+    public async Task<Func<Dictionary<string, CrCard>, WarResult>?> WarPlannerAsync(CancellationToken ct = default)
+    {
+        var window = await MetaWindow.LoadAsync(meta, ct);
+        if (window is null) return null;
+        var catalog = await GetMetaDecksUseCase.SafeCatalogAsync(crApi, ct);
+        var all = new Filter([], [], null, OnlyOwned: true, "fit");
+        return mine => War(new Ctx(window, catalog, mine, [], null), all);
+    }
+
+    /// <summary>Колода из журнала (ключ из id карт) с уровнями по коллекции - для «чем играл».</summary>
+    public async Task<Func<string, Dictionary<string, CrCard>, DeckDto?>?> DeckReaderAsync(CancellationToken ct = default)
+    {
+        var window = await MetaWindow.LoadAsync(meta, ct);
+        var catalog = await GetMetaDecksUseCase.SafeCatalogAsync(crApi, ct);
+        var games = window?.Decks.Where(d => d.Games >= MinGames).ToDictionary(d => d.Key, d => d) ?? [];
+        return (key, mine) =>
+        {
+            var keys = MetaCard.ParseDeckKey(key);
+            if (keys.Length != 8) return null;
+            var cards = keys.Select(k => ToCard(Math.Abs(k), k < 0, catalog, mine)).ToList();
+            var owned = cards.Where(c => c.Owned).ToList();
+            var seen = games.TryGetValue(key, out var known);
+            return new DeckDto(key, cards, seen ? known.Games : 0,
+                seen ? Math.Round(100.0 * known.Wins / known.Games, 1) : 0, 0,
+                Math.Round(cards.Average(c => c.Elixir), 1), cards.Select(c => c.Elixir).OrderBy(e => e).Take(4).Sum(),
+                owned.Count, owned.Count == 0 ? 0 : Math.Round(owned.Average(c => c.Level), 1), 0,
+                GetMetaDecksUseCase.CopyLink(keys), null);
+        };
+    }
+
+    private WarResult War(Ctx ctx, Filter f)
+    {
         var cand = Candidates(ctx, f with { Include = [] })
             .OrderByDescending(d => d.Fit)
             .Take(WarCandidates)

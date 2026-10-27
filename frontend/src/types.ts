@@ -1861,7 +1861,7 @@ export interface CreatorChallengeCard {
 
 /* ---------- Канал бота ---------- */
 
-export type ChannelToggle = 'daily' | 'weekly' | 'challenge' | 'cards' | 'news' | 'newsauto' | 'recapai' | 'remindai' | 'column' | 'columnauto'
+export type ChannelToggle = 'daily' | 'weekly' | 'challenge' | 'cards' | 'news' | 'newsauto' | 'recapai' | 'remindai' | 'warprep' | 'column' | 'columnauto'
 
 export interface ChannelPost {
   id: number
@@ -2241,4 +2241,40 @@ export interface DailyQuests {
   justCompleted: boolean
   remindOn: boolean
   clan: { doneToday: number; started: number; top: { name: string; streak: number; doneToday: boolean; me: boolean }[] } | null
+}
+
+/** «Военный штаб»: готовность к КВ. none - профиль не открылся. */
+export type WarPrepStatus = 'ready' | 'better' | 'weak' | 'none'
+
+export interface WarPrepRow {
+  tag: string
+  name: string
+  role: string
+  linked: boolean
+  status: WarPrepStatus
+  /** no_cards, low_levels, played_lower, losing, no_war_games, no_profile */
+  reason: string | null
+  bestLevel: number
+  playedLevel: number
+  warGames: number
+  warWins: number
+  missedDecks: number
+}
+
+export interface WarPrepSummary {
+  total: number
+  ready: number
+  better: number
+  weak: number
+  unknown: number
+  clanBestLevel: number
+  weakCards: { name: string; iconUrl: string; players: number }[]
+  members: WarPrepRow[]
+  builtUtc: string
+}
+
+export interface WarPrepMember extends WarPrepRow {
+  best: BuilderDeck[]
+  played: { deck: BuilderDeck; games: number; wins: number }[]
+  upgrade: { name: string; iconUrl: string; level: number }[]
 }

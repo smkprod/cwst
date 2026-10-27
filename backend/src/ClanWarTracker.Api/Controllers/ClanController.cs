@@ -20,6 +20,7 @@ public class ClanController(
     GetRaceScoutUseCase getScout,
     GetScoutPlusUseCase getScoutPlus,
     GetClanHqUseCase getHq,
+    WarPrepUseCase warPrep,
     ClanAiUseCase clanAi,
     GetClanHistoryUseCase getHistory,
     GetSeasonStatsUseCase getSeason,
@@ -552,6 +553,62 @@ public class ClanController(
 
         var text = await clanAi.PlayerTalkAsync(clan!, tag.Trim(), PlusController.AiLang(lang), ct);
         return text is null ? NoContent() : Ok(text);
+    }
+
+    /// <summary>
+    /// GET /api/clans/my/warprep?fresh=1 — «Военный штаб» (Клан Про): готовность каждого
+    /// к КВ. Главе, замам и тому, кто включил Клан Про. 204 - меты ещё нет, собирать не из чего.
+    /// </summary>
+    [HttpGet("my/warprep")]
+    public async Task<IActionResult> GetWarPrep([FromQuery] bool fresh, CancellationToken ct)
+    {
+        var (player, clan, error) = await ResolvePlayerClanAsync(ct);
+        if (error is not null) return error;
+        if (!await IsClanProAsync(clan!, ct)) return StatusCode(403, new { error = "not_pro" });
+        if (!await CanSeeHqAsync(player!, clan!, ct)) return StatusCode(403, new { error = "not_leader" });
+        try
+        {
+            var s = await warPrep.SummaryAsync(clan!, fresh, ct);
+            return s is null ? NoContent() : Ok(s);
+        }
+        catch (HttpRequestException ex) when ((int)(ex.StatusCode ?? 0) is >= 500 or 429)
+            { return StatusCode(503, new { error = "cr_api_unavailable", message = ex.Message }); }
+    }
+
+    /// <summary>GET /api/clans/my/warprep/member?tag=… — один игрок с колодами (для главы).</summary>
+    [HttpGet("my/warprep/member")]
+    public async Task<IActionResult> GetWarPrepMember([FromQuery] string tag, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(tag) || tag.Length > 16) return BadRequest(new { error = "bad_tag" });
+        var (player, clan, error) = await ResolvePlayerClanAsync(ct);
+        if (error is not null) return error;
+        if (!await IsClanProAsync(clan!, ct)) return StatusCode(403, new { error = "not_pro" });
+        if (!await CanSeeHqAsync(player!, clan!, ct)) return StatusCode(403, new { error = "not_leader" });
+        var m = await warPrep.MemberAsync(clan!, tag.Trim(), ct);
+        return m is null ? NotFound(new { error = "not_in_clan" }) : Ok(m);
+    }
+
+    /// <summary>GET /api/clans/my/warprep/me — свои колоды на КВ для любого игрока клана с Клан Про.</summary>
+    [HttpGet("my/warprep/me")]
+    public async Task<IActionResult> GetMyWarPrep(CancellationToken ct)
+    {
+        var (player, clan, error) = await ResolvePlayerClanAsync(ct);
+        if (error is not null) return error;
+        if (!await IsClanProAsync(clan!, ct)) return StatusCode(403, new { error = "not_pro" });
+        var m = await warPrep.MemberAsync(clan!, player!.PlayerTag, ct);
+        return m is null ? NoContent() : Ok(m);
+    }
+
+    /// <summary>POST /api/clans/my/warprep/send — разослать соклановцам их колоды в личку (раз в неделю каждому).</summary>
+    [HttpPost("my/warprep/send")]
+    public async Task<IActionResult> SendWarPrep(CancellationToken ct)
+    {
+        var (player, clan, error) = await ResolvePlayerClanAsync(ct);
+        if (error is not null) return error;
+        if (!await IsClanProAsync(clan!, ct)) return StatusCode(403, new { error = "not_pro" });
+        if (!await CanSeeHqAsync(player!, clan!, ct)) return StatusCode(403, new { error = "not_leader" });
+        if (Acting is not null) return StatusCode(403, new { error = "read_only" });
+        return Ok(await warPrep.SendAsync(clan!, ct));
     }
 
     /// <summary>Штаб видят глава, замы и спонсор клана; владелец и зашедший из панели - всегда.</summary>

@@ -50,6 +50,7 @@ import { DecksHub, PlayHub, TrainerHub, type DecksSection, type PlaySection } fr
 import { loadMode, saveMode, type AppMode } from './lib/mode'
 import { OPEN_DECKS, useQuestsSeen } from './lib/quests'
 import { QuestsCard } from './components/QuestsCard'
+import { MyWarDecksCard } from './components/WarPrep'
 import { Showcase } from './components/Showcase'
 import { hiddenTabs, moreInBar, withShop } from './lib/menu'
 import { WorldTopEntry } from './components/WorldTopEntry'
@@ -136,9 +137,10 @@ const START_PLAYER_TAB: Tab | null = startParam === 'review' || startToMatches |
   : null
 const START_DECKS: DecksSection | undefined = startParam === 'meta' ? 'meta' : startParam === 'builder' ? 'pick' : undefined
 const START_PLAY: PlaySection | undefined = startParam === 'duel' ? 'duel' : startParam === 'challenge' ? 'challenge' : undefined
-const START_MODE: AppMode = START_PLAYER_TAB ? 'player' : startParam === 'halloween' ? 'clan' : loadMode() ?? 'clan'
+const START_MODE: AppMode = START_PLAYER_TAB ? 'player' : startParam === 'halloween' || startParam === 'warprep' ? 'clan' : loadMode() ?? 'clan'
 const START_TAB: Tab = startChallengeCode ? 'creatorChallenge'
   : startParam === 'halloween' ? 'halloween'
+  : startParam === 'warprep' ? 'war'
   : START_PLAYER_TAB ?? (startParam === 'invite' ? 'more' : START_MODE === 'player' ? 'profile' : 'war')
 
 /** «Разбор» из бота — разбор за 30 дней, трекер и «Все бои» — история. */
@@ -519,6 +521,8 @@ export default function App() {
                     Остальное личное (что нового, опрос, «позови друга») живёт во вкладке «Я»:
                     здесь только клан. */}
                 <MyActionBanner status={data} />
+                {/* Перед войной - свои 4 колоды от штаба (Клан Про), по ссылке из бота - всегда */}
+                {!data.viewingAsAdmin && (data.periodType === 'training' || startParam === 'warprep') && <MyWarDecksCard />}
                 <StatsStrip stats={data.stats} />
                 {/* Действие вперёд наблюдения: пока глава читает цифры, лентяи не отыграют.
                     Кнопка первой, чтобы пнуть можно было не пролистывая экран. */}

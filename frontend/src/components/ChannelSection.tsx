@@ -344,6 +344,9 @@ function NewsCard({ state, onState }: Props) {
           disabled={!state.ai.enabled}
           desc="Напоминания, последний звонок и «пнуть» начинаются с пары фраз от нейросети по цифрам дня: сколько отыграли, сколько медалей теряем, место в гонке. Тон выбирает глава в настройках клана. Не ответила - обычный шаблон."
           onToggle={() => flip('remindai')} />
+        <ToggleLine icon="shieldCheck" tone="gold" label="Проверка перед КВ в чатах кланов с Клан Про" on={state.toggles.warprep !== false}
+          desc="В среду вечером, накануне войны: сколько игроков готовы, кто может собрать колоды сильнее, какие карты клану качать - и кнопка «Мои колоды на КВ». Только кланам с Клан Про и подключённым чатом, раз в неделю."
+          onToggle={() => flip('warprep')} />
       </div>
       <label className="small muted">Ленты - по одной в строке</label>
       <div className="owner-bc-targets ch-suggest">
