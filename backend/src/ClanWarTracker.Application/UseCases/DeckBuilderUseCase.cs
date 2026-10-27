@@ -93,19 +93,49 @@ public partial class DeckBuilderUseCase(
         return ctx is null ? null : War(ctx, f);
     }
 
+    /// <summary>Своя колода игрока из его боёв - тоже кандидат в четвёрку КВ.</summary>
+    public record OwnDeck(string Key, int Games, int Wins);
+
     /// <summary>
     /// Подбор четырёх колод КВ для любой коллекции - для «Военного штаба», который смотрит
     /// весь клан разом: мету и справочник грузим один раз, а коллекции подставляем по
-    /// одной. Только колоды, которые игрок может собрать целиком. null - меты ещё нет.
+    /// одной. Кандидаты - колоды топа, которые игрок может собрать целиком, и его
+    /// собственные колоды из боёв. null - меты ещё нет.
     /// </summary>
-    public async Task<Func<Dictionary<string, CrCard>, WarResult>?> WarPlannerAsync(CancellationToken ct = default)
+    public async Task<Func<Dictionary<string, CrCard>, IReadOnlyCollection<OwnDeck>, WarResult>?> WarPlannerAsync(CancellationToken ct = default)
     {
         var window = await MetaWindow.LoadAsync(meta, ct);
         if (window is null) return null;
         var catalog = await GetMetaDecksUseCase.SafeCatalogAsync(crApi, ct);
         var all = new Filter([], [], null, OnlyOwned: true, "fit");
-        return mine => War(new Ctx(window, catalog, mine, [], null), all);
+        return (mine, own) => War(new Ctx(window, catalog, mine, [], null), all, own);
     }
+
+    /// <summary>Меньше игр в топе - колода редкая, её процент побед делают один-два игрока.</summary>
+    public const int WarMinGames = 30;
+
+    /// <summary>Сколько «нейтральных» игр (50%) подмешиваем к проценту побед - чтобы 90% на 40 играх не перевешивали.</summary>
+    private const double WarPriorGames = 100;
+
+    /// <summary>Сколько уровней стоит процент побед: 10 п.п. сверх 50% - полуровня, но не больше полуровня.</summary>
+    private const double WarWinWeight = 5;
+    private const double WarWinCap = 0.5;
+
+    /// <summary>
+    /// Оценка колоды для КВ: уровень прежде всего. На войне карты не выравниваются, и
+    /// уровень разницы - это примерно +10% здоровья и урона в каждом бою. Процент побед в
+    /// топе учитываем слабо и с поправкой на число игр: его делают топ-игроки, а не колода,
+    /// и у редких колод он доходит до 85-90%. Так колода на два уровня ниже не обгонит
+    /// свою, сколько бы она ни выигрывала в топе.
+    /// </summary>
+    public static double WarScore(double avgLevel, int wins, int games)
+    {
+        var shrunk = (wins + WarPriorGames / 2) / (games + WarPriorGames);
+        return avgLevel + Math.Clamp((shrunk - 0.5) * WarWinWeight, -WarWinCap, WarWinCap);
+    }
+
+    /// <summary>Средний уровень восьми карт; карты, которой нет, - ноль: её в колоду не положить.</summary>
+    private static double WarLevel(IEnumerable<CardDto> cards) => cards.Average(c => c.Owned ? c.Level : 0);
 
     /// <summary>Колода из журнала (ключ из id карт) с уровнями по коллекции - для «чем играл».</summary>
     public async Task<Func<string, Dictionary<string, CrCard>, DeckDto?>?> DeckReaderAsync(CancellationToken ct = default)
@@ -128,10 +158,34 @@ public partial class DeckBuilderUseCase(
         };
     }
 
-    private WarResult War(Ctx ctx, Filter f)
+    private WarResult War(Ctx ctx, Filter f, IReadOnlyCollection<OwnDeck>? own = null)
     {
-        var cand = Candidates(ctx, f with { Include = [] })
-            .OrderByDescending(d => d.Fit)
+        var meta = Candidates(ctx, f with { Include = [] })
+            .Where(d => d.Dto.Games >= WarMinGames)
+            .Select(d => (d.Dto, d.Keys,
+                Score: WarScore(WarLevel(d.Dto.Cards), (int)Math.Round(d.Dto.WinPercent * d.Dto.Games / 100), d.Dto.Games)))
+            .ToList();
+        var metaKeys = meta.Select(m => m.Dto.Key).ToHashSet();
+
+        // Свои колоды игрока - только те, что собираются из его карт целиком и которых нет в мете
+        var mine = new List<(DeckDto Dto, int[] Keys, double Score)>();
+        foreach (var o in own ?? [])
+        {
+            if (metaKeys.Contains(o.Key)) continue;
+            var keys = MetaCard.ParseDeckKey(o.Key);
+            if (keys.Length != 8) continue;
+            var cards = keys.Select(k => ToCard(Math.Abs(k), k < 0, ctx.Catalog, ctx.Mine)).ToList();
+            if (cards.Any(c => !c.Owned)) continue;
+            var avgElixir = Math.Round(cards.Average(c => c.Elixir), 1);
+            if (f.MaxElixir is double max && avgElixir > max + 0.001) continue;
+            mine.Add((new DeckDto(o.Key, cards, 0, 0, 0, avgElixir, cards.Select(c => c.Elixir).OrderBy(e => e).Take(4).Sum(),
+                8, Math.Round(cards.Average(c => c.Level), 1), 0, GetMetaDecksUseCase.CopyLink(keys), null),
+                keys, WarScore(WarLevel(cards), o.Wins, o.Games)));
+            metaKeys.Add(o.Key);
+        }
+
+        var cand = meta.Concat(mine)
+            .OrderByDescending(d => d.Score)
             .Take(WarCandidates)
             .Select(d => (Deck: d, Cards: d.Keys.Select(Math.Abs).ToHashSet()))
             .ToList();
@@ -154,11 +208,11 @@ public partial class DeckBuilderUseCase(
             for (var i = start; i < cand.Count; i++)
             {
                 var left = 4 - chosen.Count;
-                if (best.Count == 4 && sum + cand[i].Deck.Fit * left <= bestScore) break;
+                if (best.Count == 4 && sum + cand[i].Deck.Score * left <= bestScore) break;
                 if (cand[i].Cards.Overlaps(used)) continue;
                 chosen.Add(i);
                 used.UnionWith(cand[i].Cards);
-                Search(i + 1, sum + cand[i].Deck.Fit);
+                Search(i + 1, sum + cand[i].Deck.Score);
                 used.ExceptWith(cand[i].Cards);
                 chosen.RemoveAt(chosen.Count - 1);
             }
@@ -167,7 +221,7 @@ public partial class DeckBuilderUseCase(
 
         var picked = best.Select(i => cand[i].Deck.Dto).ToList();
         return new WarResult(ctx.Linked, picked.Count == 4, picked,
-            picked.Count == 0 ? 0 : Math.Round(picked.Average(d => d.WinPercent), 1),
+            picked.Any(d => d.Games > 0) ? Math.Round(picked.Where(d => d.Games > 0).Average(d => d.WinPercent), 1) : 0,
             picked.SelectMany(d => d.Cards.Select(c => c.CardId)).Distinct().Count());
     }
 

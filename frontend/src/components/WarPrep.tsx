@@ -205,8 +205,7 @@ function DeckSet({ title, decks, t }: { title: string; decks: BuilderDeck[]; t: 
     <>
       <p className="wp-sub">{title}</p>
       {decks.map(d => (
-        <DeckLine key={d.key} deck={d} t={t} copy
-          note={d.winPercent > 0 ? fill(t.warPrep.metaWin, { p: Math.round(d.winPercent) }) : undefined} />
+        <DeckLine key={d.key} deck={d} t={t} copy note={d.games > 0 ? t.warPrep.metaDeck : t.warPrep.ownDeck} />
       ))}
     </>
   )
@@ -300,8 +299,7 @@ export function MyWarDecksCard() {
       <SectionHead icon="shieldCheck" tone="gold" title={s.myTitle} />
       <p className="small wp-my-lead">{lead}</p>
       {m.best.map(d => (
-        <DeckLine key={d.key} deck={d} t={t} copy
-          note={d.winPercent > 0 ? fill(s.metaWin, { p: Math.round(d.winPercent) }) : undefined} />
+        <DeckLine key={d.key} deck={d} t={t} copy note={d.games > 0 ? s.metaDeck : s.ownDeck} />
       ))}
       {m.upgrade.length > 0 && <Upgrade items={m.upgrade} t={t} />}
     </section>
