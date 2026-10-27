@@ -82,7 +82,8 @@ export function TrainerView() {
   }
 
   const lockedCount = PUZZLES.filter((_, i) => !isOpen(i)).length
-  const totalStars = Object.values(stars).reduce((a, b) => a + b, 0)
+  // Только по задачам, что есть сейчас: звёзды за убранные задачи остаются в памяти телефона
+  const totalStars = PUZZLES.reduce((a, p) => a + (stars[p.id] ?? 0), 0)
 
   return (
     <div className="tr fade-in">
