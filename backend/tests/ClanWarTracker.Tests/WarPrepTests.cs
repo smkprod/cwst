@@ -75,3 +75,26 @@ public class WarPrepTests
         Assert.NotEqual(WarPrepUseCase.WeekKey(mon), WarPrepUseCase.WeekKey(mon.AddDays(7)));
     }
 }
+
+/// <summary>Подбор колод на КВ: уровень важнее процента побед в топе.</summary>
+public class WarScoreTests
+{
+    [Fact]
+    public void HigherLevelBeatsRareHighWinRateDeck()
+    {
+        // Своя колода 15.4 без статистики против колоды топа 12.2 с 85% побед на 400 играх
+        Assert.True(DeckBuilderUseCase.WarScore(15.4, 0, 0) > DeckBuilderUseCase.WarScore(12.2, 340, 400));
+        // Даже один уровень разницы не перебить процентом побед
+        Assert.True(DeckBuilderUseCase.WarScore(14.0, 50, 100) > DeckBuilderUseCase.WarScore(13.0, 900, 1000));
+    }
+
+    [Fact]
+    public void WinRateBreaksTiesAtEqualLevel()
+    {
+        Assert.True(DeckBuilderUseCase.WarScore(14.0, 600, 1000) > DeckBuilderUseCase.WarScore(14.0, 480, 1000));
+        // Редкая колода с большим процентом почти не отличается от обычной: её процент тянем к 50%
+        var rare = DeckBuilderUseCase.WarScore(14.0, 36, 40) - 14.0;
+        var common = DeckBuilderUseCase.WarScore(14.0, 5500, 10000) - 14.0;
+        Assert.True(rare < 0.5 + 1e-9 && common > 0.2);
+    }
+}

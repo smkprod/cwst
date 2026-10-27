@@ -160,14 +160,16 @@ public class WarPrepUseCase(
         }
         catch (Exception) when (!ct.IsCancellationRequested) { /* без дисциплины - без флага риска */ }
 
-        // Бои КВ привязанных - одним запросом из базы: контекст базы не терпит параллельных чтений
+        // Бои привязанных - одним запросом из базы: контекст базы не терпит параллельных чтений.
+        // Берём ладдер, Путь легенд и войну: колоды КВ - для «чем играл», все три - как его
+        // собственные кандидаты в четвёрку (своими колодами он и играет на высоких уровнях).
         var now = DateTime.UtcNow;
         var saved = linked.Count == 0
-            ? new Dictionary<string, List<(string DeckKey, bool Won)>>()
+            ? new Dictionary<string, List<Game>>()
             : (await battles.GetForTagsBetweenAsync(linked.ToList(), now - PlayedWindow, now, ct))
-                .Where(b => MatchReport.ModeKey(b.Type) == "war")
+                .Where(b => MatchReport.ModeKey(b.Type) is "war" or "ladder" or "pol")
                 .GroupBy(b => b.PlayerTag.ToUpperInvariant())
-                .ToDictionary(g => g.Key, g => g.Select(b => (b.DeckKey, Won: b.Result > 0)).ToList());
+                .ToDictionary(g => g.Key, g => g.Select(b => new Game(b.DeckKey, b.Result > 0, MatchReport.ModeKey(b.Type) == "war")).ToList());
 
         using var gate = new SemaphoreSlim(Parallelism);
         var raw = await Task.WhenAll(roster.Select(async m =>
@@ -222,9 +224,12 @@ public class WarPrepUseCase(
     private static MemberDto Empty(CrClanMember m, bool linked) =>
         new(m.Tag, m.Name, m.Role, linked, None, "no_profile", 0, 0, 0, 0, 0, [], [], []);
 
+    /// <summary>Бой игрока для штаба: колода, победа, война ли это.</summary>
+    private sealed record Game(string DeckKey, bool Won, bool War);
+
     private async Task<MemberDto> AssessAsync(
-        CrClanMember m, bool linked, IReadOnlyDictionary<string, List<(string DeckKey, bool Won)>> saved,
-        Func<Dictionary<string, CrCard>, DeckBuilderUseCase.WarResult> planner,
+        CrClanMember m, bool linked, IReadOnlyDictionary<string, List<Game>> saved,
+        Func<Dictionary<string, CrCard>, IReadOnlyCollection<DeckBuilderUseCase.OwnDeck>, DeckBuilderUseCase.WarResult> planner,
         Func<string, Dictionary<string, CrCard>, DeckBuilderUseCase.DeckDto?> reader, CancellationToken ct)
     {
         var info = await crApi.GetPlayerInfoAsync(m.Tag, ct);
@@ -233,21 +238,30 @@ public class WarPrepUseCase(
             .GroupBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
-        var war = planner(mine);
-        var best = war.Decks;
-        var bestLevel = best.Count == 0 ? 0 : Math.Round(best.Average(d => d.AvgLevel), 1);
-
-        // Чем играл на войне: свои сохранённые бои у привязанных, журнал игры - у остальных
-        List<(string DeckKey, bool Won)> games;
-        if (saved.TryGetValue(m.Tag.ToUpperInvariant(), out var own) && own.Count > 0) games = own;
+        // Его бои: сохранённые у привязанных, журнал игры (последние 25) - у остальных
+        List<Game> all;
+        if (saved.TryGetValue(m.Tag.ToUpperInvariant(), out var stored) && stored.Count > 0) all = stored;
         else
         {
             var since = DateTime.UtcNow - PlayedWindow;
-            games = (await crApi.GetRecentBattlesAsync(m.Tag, ct))
-                .Where(b => MatchReport.ModeKey(b.Type) == "war" && b.MyDeck.Count == 8 && b.BattleTimeUtc >= since)
-                .Select(b => (MetaCard.DeckKey(b.MyDeck.Select(MetaCard.Key)), b.Won))
+            all = (await crApi.GetRecentBattlesAsync(m.Tag, ct))
+                .Where(b => b.MyDeck.Count == 8 && b.BattleTimeUtc >= since
+                            && MatchReport.ModeKey(b.Type) is "war" or "ladder" or "pol")
+                .Select(b => new Game(MetaCard.DeckKey(b.MyDeck.Select(MetaCard.Key)), b.Won, MatchReport.ModeKey(b.Type) == "war"))
                 .ToList();
         }
+
+        // Его собственные колоды - тоже кандидаты: ими он играет, и они обычно самые прокачанные
+        var own = all
+            .GroupBy(g => g.DeckKey)
+            .Select(g => new DeckBuilderUseCase.OwnDeck(g.Key, g.Count(), g.Count(x => x.Won)))
+            .ToList();
+        var war = planner(mine, own);
+        var best = war.Decks;
+        var bestLevel = best.Count == 0 ? 0 : Math.Round(best.Average(d => d.AvgLevel), 1);
+
+        // Чем играл на войне
+        var games = all.Where(g => g.War).Select(g => (g.DeckKey, g.Won)).ToList();
 
         var played = games
             .GroupBy(g => g.DeckKey)
