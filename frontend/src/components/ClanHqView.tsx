@@ -9,6 +9,7 @@ import { SectionHead } from './ui/Section'
 import { ScoutPlusCard } from './ScoutPlusCard'
 import { DisciplineCard } from './DisciplineCard'
 import { AiBox } from './AiBox'
+import { MyWarDecksCard, WarPrepPanel } from './WarPrep'
 
 type Load<T> =
   | { kind: 'loading' }
@@ -70,8 +71,13 @@ export function ClanHqView() {
     )
   }
 
+  // С понедельника по среду главное в штабе - подготовка к войне, в дни войны - разведка
+  const prepFirst = [1, 2, 3].includes(new Date().getDay())
+  const prep = hq.kind === 'leaderOnly' ? <MyWarDecksCard /> : <WarPrepPanel />
+
   return (
     <div className="fade-in">
+      {prepFirst && prep}
       {scout.kind === 'loading' && <LoadingCard icon="radar" title={p.scoutTitle} />}
       {scout.kind === 'error' && <NoteCard icon="radar" title={p.scoutTitle} text={p.error} />}
       {scout.kind === 'empty' && <NoteCard icon="radar" title={p.scoutTitle} text={p.noWar} />}
@@ -81,6 +87,7 @@ export function ClanHqView() {
       {hq.kind === 'error' && <NoteCard icon="shieldCheck" title={p.hqTitle} text={p.error} />}
       {hq.kind === 'leaderOnly' && <NoteCard icon="lock" title={p.hqTitle} text={p.leaderOnly} />}
       {hq.kind === 'ready' && <HqCard data={hq.data} t={t} />}
+      {!prepFirst && prep}
     </div>
   )
 }

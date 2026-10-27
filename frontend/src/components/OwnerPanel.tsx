@@ -365,6 +365,7 @@ const DEST_LABELS: Record<string, string> = {
   link: 'Привязка аккаунта',
   invite: 'Пригласить друга',
   quests: 'Задания дня',
+  warprep: 'Колоды на КВ',
   trainer: 'Тренажёр',
 }
 

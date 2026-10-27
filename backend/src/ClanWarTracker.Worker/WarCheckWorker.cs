@@ -222,6 +222,20 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
             {
                 logger.LogError(ex, "Daily quests tick failed");
             }
+
+            // «Военный штаб»: в среду вечером - проверка перед КВ в чаты кланов с Клан Про
+            try
+            {
+                using var scope = scopeFactory.CreateScope();
+                var prep = scope.ServiceProvider.GetRequiredService<WarPrepUseCase>();
+                var posted = await prep.TickAsync(stoppingToken);
+                if (posted > 0) logger.LogInformation("Pre-war check posted to {Count} clan chats", posted);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { throw; }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Pre-war check failed");
+            }
         }
         while (await timer.WaitForNextTickAsync(stoppingToken));
     }

@@ -28,6 +28,7 @@ import './styles/ui-clanpro.css'
 import './styles/ui-modes.css'
 import './styles/ui-ai.css'
 import './styles/ui-quests.css'
+import './styles/ui-warprep.css'
 
 initTelegram()
 
