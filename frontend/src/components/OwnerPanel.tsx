@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, ApiError, adminClan } from '../lib/api'
-import type { OwnerEngagement, OwnerFeedback, OwnerFunnel, FunnelTotals, MenuTab, BroadcastTarget, Moderator, OwnerClan, OwnerClanDetail, OwnerPlus, OwnerChallenge, OwnerFoundPlayer, OwnerSponsor, OwnerStats, ServiceIdentity, ServicePermission, SponsorSales, TopStatus, CampaignFunnel } from '../types'
+import type { OwnerEngagement, OwnerFeedback, OwnerFunnel, FunnelTotals, MenuTab, BroadcastTarget, Moderator, OwnerClan, OwnerClanDetail, OwnerPlus, OwnerJar, OwnerChallenge, OwnerFoundPlayer, OwnerSponsor, OwnerStats, ServiceIdentity, ServicePermission, SponsorSales, TopStatus, CampaignFunnel } from '../types'
 
 /** «Можно ли мне вот это». Прокидывается вниз, чтобы правила жили в одном месте. */
 type Can = (p: ServicePermission) => boolean
@@ -149,7 +149,7 @@ export function OwnerPanel({ me }: { me: ServiceIdentity }) {
         <BroadcastBox dmCount={stats.usersReachableByDm} chatCount={stats.chatsWithBot} t={t} />
       )}
       {current.key === 'channel' && can('Broadcast') && <ChannelSection />}
-      {current.key === 'plus' && can('Sponsors') && <PlusSection t={t} />}
+      {current.key === 'plus' && can('Sponsors') && <><PlusSection t={t} /><JarSection t={t} /></>}
       {current.key === 'sponsors' && can('Sponsors') && <><SponsorSalesCard t={t} /><SponsorsSection t={t} /></>}
       {current.key === 'moderators' && can('ManageModerators') && <ModeratorsSection can={can} t={t} />}
       {current.key === 'settings' && can('AppSettings') && <TabsSection t={t} />}
@@ -1778,7 +1778,8 @@ function PlusSection({ t }: { t: Translations }) {
     }
   }
 
-  const src = (s: string) => s === 'purchase' ? o.srcPurchase : s === 'gift' ? o.srcGift : s === 'sponsor' ? o.kindSponsor : o.srcGrant
+  const src = (s: string) => s === 'purchase' ? o.srcPurchase : s === 'gift' ? o.srcGift : s === 'sponsor' ? o.kindSponsor
+    : s === 'jar' ? o.srcJar : o.srcGrant
 
   return (
     <>
@@ -1865,6 +1866,171 @@ function PlusSection({ t }: { t: Translations }) {
               </li>
             ))}
           </ul>
+        </div>
+      )}
+    </>
+  )
+}
+
+/**
+ * Банка Монобанка: выключатель, ссылка и цены в гривнах, заказы и переводы без заказа.
+ * Перевод без кода (или с недоплатой) засчитывается здесь - по коду заказа.
+ */
+function JarSection({ t }: { t: Translations }) {
+  const o = t.owner
+  const [data, setData] = useState<OwnerJar | null>(null)
+  const [on, setOn] = useState(false)
+  const [link, setLink] = useState('')
+  const [plus7, setPlus7] = useState('')
+  const [plus30, setPlus30] = useState('')
+  const [pro, setPro] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [note, setNote] = useState<string | null>(null)
+  const [codes, setCodes] = useState<Record<number, string>>({})
+
+  const load = useCallback(() => {
+    api.ownerGetJar()
+      .then(d => {
+        setData(d)
+        setOn(d.on)
+        setLink(d.link ?? '')
+        setPlus7(String(d.plus7))
+        setPlus30(String(d.plus30))
+        setPro(String(d.pro))
+      })
+      .catch(() => setData(null))
+  }, [])
+  useEffect(load, [load])
+
+  const save = async () => {
+    haptic('medium')
+    setBusy(true)
+    setNote(null)
+    try {
+      await api.ownerSetJar({ on, link: link.trim(), plus7: Number(plus7), plus30: Number(plus30), pro: Number(pro) })
+      hapticNotify('success')
+      setNote(o.jarSaved)
+      load()
+    } catch (e) {
+      hapticNotify('error')
+      const code = e instanceof ApiError ? e.code : ''
+      setNote(code === 'bad_link' ? o.jarBadLink : code === 'no_link' ? o.jarNoLink : code === 'bad_price' ? o.salesBad : o.error)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const confirm = async (code: string, incomingId?: number) => {
+    if (!code.trim()) return
+    haptic('medium')
+    try {
+      await api.ownerConfirmJar(code.trim(), incomingId)
+      hapticNotify('success')
+      load()
+    } catch {
+      hapticNotify('error')
+    }
+  }
+
+  const uah = (kop: number) => `${(kop / 100).toLocaleString(undefined, { maximumFractionDigits: 2 })} ₴`
+  const what = (r: OwnerJar['orders'][number]) => r.product === 'pro' ? o.kindSponsor : `${o.plusTitle} · ${r.days} ${o.sponsorDaysUnit}`
+  const who = (r: OwnerJar['orders'][number]) => r.name ? `${r.name} ${r.tag ?? ''}` : String(r.telegramUserId)
+  const pending = data?.orders.filter(r => !r.paidUtc) ?? []
+  const paid = data?.orders.filter(r => r.paidUtc) ?? []
+
+  return (
+    <>
+      <div className="card">
+        <SectionHead icon="wallet" tone="green" title={o.jarTitle} info={<p>{o.jarHint}</p>} />
+        {data && (
+          <>
+            <p className={`small ${data.tokenSet ? '' : 'muted'}`}>
+              {data.tokenSet ? o.jarTokenOk : o.jarTokenNo}
+              {data.tokenSet && data.link && <span className="muted"> · {data.jarFound ? o.jarFoundOk : o.jarFoundNo}</span>}
+            </p>
+            {data.lastPollUtc && (
+              <p className={`small ${data.lastPollStatus === 'ok' ? 'muted' : 'form-error'}`}>
+                {o.jarLastPoll.replace('{time}', new Date(data.lastPollUtc).toLocaleString()).replace('{status}', data.lastPollStatus ?? '')}
+              </p>
+            )}
+            <div className="adm-plus-stats">
+              <div className="adm-kv"><span className="muted small">{o.jarIncome}</span><b>{uah(data.paidKop30)}</b></div>
+              <div className="adm-kv"><span className="muted small">{o.jarPaidList}</span><b>{paid.length}</b></div>
+              <div className="adm-kv"><span className="muted small">{o.jarPending}</span><b>{pending.length}</b></div>
+            </div>
+          </>
+        )}
+
+        <label className="adm-switch-row">
+          <input type="checkbox" checked={on} onChange={e => setOn(e.target.checked)} />
+          <span>{o.jarOn}</span>
+        </label>
+        <div className="form-field">
+          <label className="muted small">{o.jarLink}</label>
+          <input className="search-input" value={link} placeholder={o.jarLinkPh} onChange={e => setLink(e.target.value)} />
+        </div>
+        <div className="adm-sales-row">
+          <div className="form-field">
+            <label className="muted small">{o.jarPlus7}</label>
+            <input className="search-input" inputMode="numeric" value={plus7} onChange={e => setPlus7(e.target.value.replace(/\D/g, ''))} maxLength={5} />
+          </div>
+          <div className="form-field">
+            <label className="muted small">{o.jarPlus30}</label>
+            <input className="search-input" inputMode="numeric" value={plus30} onChange={e => setPlus30(e.target.value.replace(/\D/g, ''))} maxLength={5} />
+          </div>
+          <div className="form-field">
+            <label className="muted small">{o.jarPro}</label>
+            <input className="search-input" inputMode="numeric" value={pro} onChange={e => setPro(e.target.value.replace(/\D/g, ''))} maxLength={5} />
+          </div>
+        </div>
+        <button className="btn" disabled={busy} onClick={save}>{busy ? o.saving : o.jarSave}</button>
+        {note && <p className="small adm-top-run">{note}</p>}
+      </div>
+
+      {data && data.unmatched.length > 0 && (
+        <div className="card">
+          <SectionHead icon="alert" tone="gold" title={o.jarUnmatched} info={<p>{o.jarUnmatchedHint}</p>} />
+          <ul className="owner-list adm-mod-list">
+            {data.unmatched.map(i => (
+              <li key={i.id} className="adm-pay adm-jar-in">
+                <span className="adm-pay-main">
+                  <b>{uah(i.amountKop)}</b>
+                  <span className="muted small"> · {new Date(i.timeUtc).toLocaleString()} · {i.sender ?? ''}</span>
+                  {i.comment && <span className="small adm-jar-comment">«{i.comment}»</span>}
+                </span>
+                <span className="adm-jar-attach">
+                  <input className="search-input" inputMode="numeric" placeholder={o.jarCodePh} maxLength={6}
+                    value={codes[i.id] ?? ''} onChange={e => setCodes(c => ({ ...c, [i.id]: e.target.value.replace(/\D/g, '') }))} />
+                  <button className="btn btn-ghost" disabled={(codes[i.id] ?? '').length !== 6} onClick={() => confirm(codes[i.id] ?? '', i.id)}>
+                    {o.jarConfirm}
+                  </button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {data && (
+        <div className="card">
+          <SectionHead icon="history" tone="gray" title={`${o.jarPending} · ${o.jarPaidList}`} />
+          {data.orders.length === 0 ? <p className="muted small">{o.jarNone}</p> : (
+            <ul className="owner-list adm-mod-list">
+              {[...pending, ...paid].map(r => (
+                <li key={r.id} className={`adm-pay ${r.paidUtc ? '' : 'adm-jar-pending'}`}>
+                  <span className="adm-pay-main">
+                    <b>{r.code}</b>
+                    <span className="muted small"> · {who(r)} · {what(r)} · {r.amountUah} ₴ · {new Date(r.createdUtc).toLocaleString()}</span>
+                  </span>
+                  {r.paidUtc ? (
+                    <span className="small">✅ {r.paidKop != null ? uah(r.paidKop) : ''}{r.manual ? ` · ${o.jarManual}` : ''}</span>
+                  ) : (
+                    <button className="btn btn-ghost" onClick={() => confirm(r.code)}>{o.jarConfirm}</button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
     </>

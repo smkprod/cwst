@@ -72,7 +72,34 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
             RunTournamentResultsLoopAsync(stoppingToken),
             RunTiltLoopAsync(stoppingToken),
             RunDailyDigestLoopAsync(stoppingToken),
-            RunChannelLoopAsync(stoppingToken));
+            RunChannelLoopAsync(stoppingToken),
+            RunJarLoopAsync(stoppingToken));
+    }
+
+    /// <summary>
+    /// Банка Монобанка: раз в минуту читаем выписку и выдаём оплаченное по коду в
+    /// комментарии. Без ключа или при выключенной оплате такт - один запрос к базе.
+    /// </summary>
+    private async Task RunJarLoopAsync(CancellationToken stoppingToken)
+    {
+        using var timer = new PeriodicTimer(JarPaymentUseCase.PollEvery);
+        do
+        {
+            try
+            {
+                using var scope = scopeFactory.CreateScope();
+                var jar = scope.ServiceProvider.GetRequiredService<JarPaymentUseCase>();
+                var r = await jar.TickAsync(stoppingToken);
+                if (r.Paid > 0 || r.NewTx > 0) logger.LogInformation("Jar: {New} new payments, {Paid} orders paid", r.NewTx, r.Paid);
+                if (r.Error is not null) logger.LogWarning("Jar poll failed: {Error}", r.Error);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { throw; }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Jar poll failed");
+            }
+        }
+        while (await timer.WaitForNextTickAsync(stoppingToken));
     }
 
     /// <summary>

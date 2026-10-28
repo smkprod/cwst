@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { api, ApiError } from '../lib/api'
-import type { PlusStatus } from '../types'
+import type { JarOrder, PlusStatus } from '../types'
 import { useShowcase } from '../lib/showcase'
-import { haptic, hapticNotify, openInvoice, shareToTelegram, tg } from '../lib/telegram'
+import { copyText, haptic, hapticNotify, openExternalLink, openInvoice, shareToTelegram, tg } from '../lib/telegram'
 import { useT, type Translations } from '../lib/i18n'
 import { PLUS_CHANGED } from '../lib/plusSheet'
 import { markOfferSeen } from '../lib/funnel'
@@ -29,6 +29,9 @@ export function PlusSheet({ focus, onClose }: { focus: PlusFocus; onClose: () =>
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading')
   const [pay, setPay] = useState<Pay>('idle')
   const [giftOpen, setGiftOpen] = useState(focus === 'gift')
+  // Оплата гривнами через банку: заказ с кодом для комментария к переводу
+  const [jar, setJar] = useState<JarOrder | null>(null)
+  const [jarBusy, setJarBusy] = useState(false)
   const sponsorRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -104,6 +107,24 @@ export function PlusSheet({ focus, onClose }: { focus: PlusFocus; onClose: () =>
     async () => (await api.createPlusInvoice(days, tag)).link,
     () => false, true)
 
+  const orderJar = async (product: 'plus' | 'pro', days: number) => {
+    haptic('medium')
+    setJarBusy(true)
+    try {
+      setJar(await api.jarOrder(product, days))
+    } catch {
+      hapticNotify('error')
+      setPay('failed')
+    } finally {
+      setJarBusy(false)
+    }
+  }
+
+  const jarPaid = async () => {
+    await load()
+    window.dispatchEvent(new Event(PLUS_CHANGED))
+  }
+
   // «Попросить в подарок»: счёт на себя, который пересылают тому, кто заплатит
   const ask = async () => {
     haptic('medium')
@@ -142,10 +163,16 @@ export function PlusSheet({ focus, onClose }: { focus: PlusFocus; onClose: () =>
               <p className="plus-status">{p.notLinked}</p>
             ) : (
               <>
-                <PlusCard status={status} pay={pay} onBuy={buyPlus} t={t} />
-                <div ref={sponsorRef}>
-                  <SponsorCard status={status} pay={pay} onBuy={buySponsor} t={t} />
-                </div>
+                {jar ? (
+                  <JarPanel key={jar.code} order={jar} onBack={() => setJar(null)} onPaid={jarPaid} t={t} />
+                ) : (
+                  <>
+                    <PlusCard status={status} pay={pay} onBuy={buyPlus} onJar={d => orderJar('plus', d)} jarBusy={jarBusy} t={t} />
+                    <div ref={sponsorRef}>
+                      <SponsorCard status={status} pay={pay} onBuy={buySponsor} onJar={() => orderJar('pro', status.sponsorDays)} jarBusy={jarBusy} t={t} />
+                    </div>
+                  </>
+                )}
 
                 <div className="plus-gift-row">
                   <button className="btn btn-ghost" onClick={() => { haptic('light'); setGiftOpen(o => !o) }}><Icon name="gift" size={16} /> {p.giftBtn}</button>
@@ -190,8 +217,8 @@ function StatusLine({ status, t }: { status: PlusStatus; t: Translations }) {
   return null
 }
 
-function PlusCard({ status, pay, onBuy, t }: {
-  status: PlusStatus; pay: Pay; onBuy: (days: number) => void; t: Translations
+function PlusCard({ status, pay, onBuy, onJar, jarBusy, t }: {
+  status: PlusStatus; pay: Pay; onBuy: (days: number) => void; onJar: (days: number) => void; jarBusy: boolean; t: Translations
 }) {
   const p = t.plus
   const canPay = status.onSale && Boolean(tg?.openInvoice)
@@ -208,7 +235,7 @@ function PlusCard({ status, pay, onBuy, t }: {
         <Feature icon="star" title={p.f5Title} text={p.f5} />
         <Feature icon="target" title={p.f6Title} text={p.f6} />
       </ul>
-      {!canPay ? <p className="muted small">{p.unavailable}</p> : (
+      {!canPay && !status.jar ? <p className="muted small">{p.unavailable}</p> : !canPay ? null : (
         <div className="plus-buttons">
           {status.promoUntil && (
             <span className="plus-promo">
@@ -226,13 +253,22 @@ function PlusCard({ status, pay, onBuy, t }: {
           </button>
         </div>
       )}
+      {status.jar && status.onSale && (
+        <div className="jar-offer">
+          <span className="jar-offer-title"><Icon name="wallet" size={14} /> {p.jarTitle}</span>
+          <div className="jar-offer-row">
+            <button className="btn btn-ghost jar-btn" disabled={jarBusy} onClick={() => onJar(30)}>{p.jarPlus30.replace('{uah}', String(status.jar.plus30))}</button>
+            <button className="btn btn-ghost jar-btn" disabled={jarBusy} onClick={() => onJar(7)}>{p.jarPlus7.replace('{uah}', String(status.jar.plus7))}</button>
+          </div>
+        </div>
+      )}
       {!status.active && !status.isSponsor && <p className="muted small plus-trial-note bt-inline"><Icon name="gift" size={14} /> {p.trialNote}</p>}
     </section>
   )
 }
 
-function SponsorCard({ status, pay, onBuy, t }: {
-  status: PlusStatus; pay: Pay; onBuy: () => void; t: Translations
+function SponsorCard({ status, pay, onBuy, onJar, jarBusy, t }: {
+  status: PlusStatus; pay: Pay; onBuy: () => void; onJar: () => void; jarBusy: boolean; t: Translations
 }) {
   const p = t.plus
   if (status.sponsorPrice <= 0) return null
@@ -251,6 +287,89 @@ function SponsorCard({ status, pay, onBuy, t }: {
             .replace('{days}', String(status.sponsorDays)).replace('{stars}', String(status.sponsorPrice))}
         </button>
       )}
+      {status.jar && (
+        <button className="btn btn-ghost jar-btn jar-btn-pro" disabled={jarBusy} onClick={onJar}>
+          <Icon name="wallet" size={15} /> {p.jarPro.replace('{uah}', String(status.jar.pro))}
+        </button>
+      )}
+    </section>
+  )
+}
+
+/**
+ * Оплата через банку Монобанка: сумма, код для комментария и кнопка в банку. Доступ
+ * выдаёт воркер по выписке банки - здесь только ждём, пока заказ станет оплаченным.
+ */
+function JarPanel({ order, onBack, onPaid, t }: {
+  order: JarOrder; onBack: () => void; onPaid: () => void; t: Translations
+}) {
+  const p = t.plus
+  const [copied, setCopied] = useState(false)
+  const [check, setCheck] = useState<'idle' | 'waiting' | 'notyet' | 'paid'>(order.paid ? 'paid' : 'idle')
+  const alive = useRef(true)
+  const polling = useRef(false)
+  const ref = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    ref.current?.scrollIntoView({ block: 'start' })
+    return () => { alive.current = false }
+  }, [])
+
+  const copy = async () => {
+    if (await copyText(order.code)) { setCopied(true); haptic('light') }
+  }
+
+  // Ждём перевод: бот читает выписку раз в минуту - смотрим каждые 6 секунд до четырёх минут
+  const poll = async () => {
+    if (polling.current) return
+    polling.current = true
+    setCheck('waiting')
+    for (let i = 0; i < 40 && alive.current; i++) {
+      const fresh = await api.jarGetOrder(order.code).catch(() => null)
+      if (fresh?.paid) {
+        if (!alive.current) return
+        setCheck('paid')
+        hapticNotify('success')
+        onPaid()
+        return
+      }
+      await new Promise(r => setTimeout(r, 6000))
+    }
+    polling.current = false
+    if (alive.current) setCheck('notyet')
+  }
+
+  const open = () => {
+    haptic('medium')
+    openExternalLink(order.link)
+    void poll()
+  }
+
+  return (
+    <section ref={ref} className="plus-card jar-panel">
+      <SectionHead icon="wallet" tone="green" title={order.product === 'pro' ? p.sponsorCardTitle.replace(/^(★|👑)\s*/u, '') : p.plusCardTitle}
+        aside={`${order.amountUah} ₴`} />
+      {check === 'paid' ? (
+        <p className="plus-status plus-status-ok">{p.jarPaid}</p>
+      ) : (
+        <>
+          <p className="small jar-step">{p.jarStep.replace('{uah}', String(order.amountUah))}</p>
+          <button className="jar-code" onClick={copy} aria-label={p.jarCopy}>
+            <b>{order.code}</b>
+            <span className="small">{copied ? p.jarCopied : p.jarCopy}</span>
+          </button>
+          <div className="plus-buttons">
+            <button className="btn plus-buy jar-open" onClick={open}>{p.jarOpen} · {order.amountUah} ₴</button>
+            <button className="btn btn-ghost plus-buy" disabled={check === 'waiting'} onClick={() => { haptic('light'); void poll() }}>{p.jarCheck}</button>
+          </div>
+          {check === 'waiting' && <p className="muted small jar-note">{p.jarWaiting}</p>}
+          {check === 'notyet' && <p className="muted small jar-note">{p.jarNotYet}</p>}
+          <p className="muted small jar-note">{p.jarAuto}</p>
+        </>
+      )}
+      <button className="btn btn-ghost jar-back" onClick={() => { haptic('light'); onBack() }}>
+        <Icon name="chevronLeft" size={15} /> {p.jarBack}
+      </button>
     </section>
   )
 }

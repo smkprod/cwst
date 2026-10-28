@@ -75,6 +75,8 @@ services:
       ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-}
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
       DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-}
+      # Необязательно: оплата через банку Монобанка подтверждается сама (см. .env.example)
+      MONOBANK_TOKEN: ${MONOBANK_TOKEN:-}
       DOTNET_gcServer: "0"
     depends_on:
       db:

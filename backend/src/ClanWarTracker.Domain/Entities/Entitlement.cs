@@ -68,6 +68,8 @@ public class Entitlement
         public const string Referral = "referral";
         /// <summary>Награда за серию заданий дня.</summary>
         public const string Quest = "quest";
+        /// <summary>Оплата гривнами через банку Монобанка.</summary>
+        public const string Jar = "jar";
     }
 }
 

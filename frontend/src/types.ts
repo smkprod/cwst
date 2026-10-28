@@ -787,6 +787,38 @@ export interface PlusStatus {
   promo7?: number | null
   promo30?: number | null
   promoUntil?: string | null
+  /** Оплата гривнами через банку Монобанка; null — выключена. */
+  jar?: { plus7: number; plus30: number; pro: number } | null
+}
+
+/** Заказ на оплату через банку: сумма, код для комментария, ссылка на банку. */
+export interface JarOrder {
+  code: string
+  product: 'plus' | 'pro'
+  days: number
+  amountUah: number
+  link: string
+  paid: boolean
+}
+
+/** Банка в панели владельца. */
+export interface OwnerJar {
+  on: boolean
+  link: string | null
+  plus7: number
+  plus30: number
+  pro: number
+  tokenSet: boolean
+  jarFound: boolean
+  lastPollUtc: string | null
+  lastPollStatus: string | null
+  orders: {
+    id: number; code: string; telegramUserId: number; name: string | null; tag: string | null
+    product: 'plus' | 'pro'; days: number; amountUah: number; createdUtc: string
+    paidUtc: string | null; paidKop: number | null; manual: boolean
+  }[]
+  unmatched: { id: number; amountKop: number; comment: string | null; sender: string | null; timeUtc: string }[]
+  paidKop30: number
 }
 
 /** Экран «🧊 Стоп-тильт». */

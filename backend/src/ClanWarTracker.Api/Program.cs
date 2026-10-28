@@ -37,6 +37,7 @@ builder.Services.AddScoped<TrackerActionsUseCase>();
 builder.Services.AddScoped<ChallengeUseCase>();
 builder.Services.AddScoped<HalloweenUseCase>();
 builder.Services.AddScoped<DailyQuestsUseCase>();
+builder.Services.AddScoped<JarPaymentUseCase>();
 builder.Services.AddScoped<WarPrepUseCase>();
 builder.Services.AddScoped<FeedbackUseCase>();
 builder.Services.AddScoped<GetPlayerDashboardUseCase>();

@@ -3760,3 +3760,25 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
   margin: 2px 0 0; padding: 9px 11px; border-radius: 12px; font-size: 13px; line-height: 1.4;
   background: rgba(255, 255, 255, 0.05); border-left: 3px solid var(--accent);
 }
+
+/* Оплата через банку Монобанка */
+.jar-offer { display: grid; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed rgba(255, 255, 255, 0.12); }
+.jar-offer-title { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: var(--text-muted, #9aa3b2); }
+.jar-offer-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.jar-btn { font-weight: 800; }
+.jar-btn-pro { width: 100%; margin-top: 8px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.jar-panel { display: grid; gap: 10px; }
+.jar-step { margin: 0; line-height: 1.4; }
+.jar-code { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; padding: 12px 16px;
+  border-radius: 14px; border: 1px dashed rgba(74, 222, 128, 0.55); background: rgba(74, 222, 128, 0.08); color: inherit; cursor: pointer; }
+.jar-code b { font-size: 28px; letter-spacing: 6px; font-variant-numeric: tabular-nums; }
+.jar-code span { color: #4ade80; font-weight: 700; }
+.jar-open { background: linear-gradient(135deg, #111 0%, #2b2b2b 100%); color: #fff; }
+.jar-note { margin: 0; }
+.jar-back { justify-self: start; display: inline-flex; align-items: center; gap: 4px; }
+.adm-pay.adm-jar-in { display: flex; flex-direction: column; align-items: stretch; }
+.adm-jar-comment { display: block; margin-top: 2px; }
+.adm-pay .adm-jar-attach { display: flex; align-items: center; gap: 6px; width: 100%; margin-top: 6px; }
+.adm-jar-attach .search-input { flex: 1; min-width: 0; }
+.adm-jar-attach .btn { flex: 0 0 auto; }
+.adm-jar-pending { border-left: 3px solid #fbbf24; }

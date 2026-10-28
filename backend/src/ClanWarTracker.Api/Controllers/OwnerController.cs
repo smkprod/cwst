@@ -640,6 +640,43 @@ public class OwnerController(
         return Ok(new { paywall = req.Paywall, price7 = req.Price7, price30 = req.Price30 });
     }
 
+    public record JarSettingsRequest(bool On, string? Link, int Plus7, int Plus30, int Pro);
+    public record JarConfirmRequest(string Code, int? IncomingId);
+
+    /// <summary>GET /api/owner/jar — банка Монобанка: настройки, заказы и переводы без заказа за 30 дней.</summary>
+    [HttpGet("jar")]
+    public async Task<IActionResult> GetJar(CancellationToken ct)
+    {
+        if (await DenyAsync(ServicePermission.Sponsors, ct) is { } deny) return deny;
+        using var scope = scopes.CreateScope();
+        return Ok(await scope.ServiceProvider.GetRequiredService<JarPaymentUseCase>().OwnerViewAsync(ct));
+    }
+
+    /// <summary>POST /api/owner/jar/settings — выключатель, ссылка на банку и цены в гривнах.</summary>
+    [HttpPost("jar/settings")]
+    public async Task<IActionResult> SetJar([FromBody] JarSettingsRequest req, CancellationToken ct)
+    {
+        if (await DenyAsync(ServicePermission.Sponsors, ct) is { } deny) return deny;
+        using var scope = scopes.CreateScope();
+        var error = await scope.ServiceProvider.GetRequiredService<JarPaymentUseCase>()
+            .SaveSettingsAsync(req.On, req.Link, req.Plus7, req.Plus30, req.Pro, ct);
+        return error is null ? Ok(new { saved = true }) : BadRequest(new { error });
+    }
+
+    /// <summary>
+    /// POST /api/owner/jar/confirm — засчитать заказ руками: перевод без кода, с ошибкой
+    /// в коде или с недоплатой. Body: { code, incomingId? } - incomingId привязывает перевод из выписки.
+    /// </summary>
+    [HttpPost("jar/confirm")]
+    public async Task<IActionResult> ConfirmJar([FromBody] JarConfirmRequest req, CancellationToken ct)
+    {
+        if (await DenyAsync(ServicePermission.Sponsors, ct) is { } deny) return deny;
+        using var scope = scopes.CreateScope();
+        var (ok, error) = await scope.ServiceProvider.GetRequiredService<JarPaymentUseCase>()
+            .ConfirmAsync(req.Code ?? "", req.IncomingId, ct);
+        return ok ? Ok(new { paid = true }) : BadRequest(new { error });
+    }
+
     /// <summary>
     /// POST /api/owner/tracker/settings — рубильник карточек трекера и закрытый тест.
     /// Body: { dm, beta }: dm=false - новых карточек нет; beta - id Telegram через запятую, пусто - у всех.
@@ -688,6 +725,14 @@ public class OwnerController(
         var payment = await sponsorPayments.GetByChargeAsync(req.ChargeId ?? "", ct);
         if (payment is null) return NotFound(new { error = "payment_not_found" });
         if (payment.RefundedAtUtc is not null) return Conflict(new { error = "already_refunded" });
+
+        // Оплата через банку: гривны владелец возвращает сам в приложении банка,
+        // здесь - только отозвать купленное
+        if (payment.TelegramChargeId.StartsWith("jar:", StringComparison.Ordinal))
+        {
+            await revokePurchase.MarkRefundedAsync(payment.TelegramChargeId, ct);
+            return Ok(new { refunded = true, note = "jar_revoked" });
+        }
 
         try
         {

@@ -85,6 +85,16 @@ public static class DependencyInjection
                     http, "DeepSeek", "https://api.deepseek.com", deepseekKey, deepseekModel)
                 : new ClanWarTracker.Infrastructure.News.AnthropicNewsTranslator(http, anthropicKey, anthropicModel);
         });
+        // Банка Монобанка: ключ личного API в .env. Без него оплата через банку
+        // подтверждается руками в панели.
+        var monoToken = CleanToken(config["MONOBANK_TOKEN"]);
+        services.AddHttpClient("monobank", http =>
+        {
+            http.BaseAddress = new Uri("https://api.monobank.ua/");
+            http.Timeout = TimeSpan.FromSeconds(20);
+        });
+        services.AddScoped<IMonobankClient>(sp => new ClanWarTracker.Infrastructure.Monobank.MonobankClient(
+            sp.GetRequiredService<IHttpClientFactory>().CreateClient("monobank"), monoToken));
         services.AddSingleton<ClanWarTracker.Application.Notifications.ICardUrls>(
             new CardUrls(config["PUBLIC_BASE_URL"]?.Trim().TrimEnd('/')));
         services.AddScoped<IClanRepository, ClanRepository>();
@@ -101,6 +111,7 @@ public static class DependencyInjection
         services.AddScoped<IFeedbackRepository, FeedbackRepository>();
         services.AddScoped<IRaceTickRepository, RaceTickRepository>();
         services.AddScoped<IQuestRepository, QuestRepository>();
+        services.AddScoped<IJarRepository, JarRepository>();
         services.AddScoped<ITopPlayerRepository, TopPlayerRepository>();
         services.AddScoped<IMetaRepository, MetaRepository>();
         services.AddScoped<IChallengeRepository, ChallengeRepository>();
@@ -752,6 +763,43 @@ CREATE TABLE IF NOT EXISTS ""QuestDays"" (
             "CREATE INDEX IF NOT EXISTS \"IX_QuestDays_ClanId_Day\" ON \"QuestDays\" (\"ClanId\", \"Day\");");
         await db.Database.ExecuteSqlRawAsync(
             "CREATE INDEX IF NOT EXISTS \"IX_QuestDays_Day\" ON \"QuestDays\" (\"Day\");");
+
+        // Оплата через банку Монобанка: заказы с кодом и переводы из выписки
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""JarOrders"" (
+    ""Id"" serial PRIMARY KEY,
+    ""Code"" varchar(8) NOT NULL,
+    ""TelegramUserId"" bigint NOT NULL,
+    ""PlayerId"" integer NULL,
+    ""Product"" varchar(8) NOT NULL,
+    ""Days"" integer NOT NULL,
+    ""AmountUah"" integer NOT NULL,
+    ""CreatedUtc"" timestamptz NOT NULL,
+    ""PaidUtc"" timestamptz NULL,
+    ""PaidKop"" bigint NULL,
+    ""Manual"" boolean NOT NULL DEFAULT false
+);");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_JarOrders_Code\" ON \"JarOrders\" (\"Code\");");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_JarOrders_TelegramUserId_CreatedUtc\" ON \"JarOrders\" (\"TelegramUserId\", \"CreatedUtc\");");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_JarOrders_CreatedUtc\" ON \"JarOrders\" (\"CreatedUtc\");");
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""JarIncomings"" (
+    ""Id"" serial PRIMARY KEY,
+    ""MonoTxId"" varchar(64) NOT NULL,
+    ""AmountKop"" bigint NOT NULL,
+    ""Comment"" varchar(500) NULL,
+    ""Sender"" varchar(200) NULL,
+    ""TimeUtc"" timestamptz NOT NULL,
+    ""OrderId"" integer NULL,
+    ""CreatedUtc"" timestamptz NOT NULL
+);");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_JarIncomings_MonoTxId\" ON \"JarIncomings\" (\"MonoTxId\");");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_JarIncomings_TimeUtc\" ON \"JarIncomings\" (\"TimeUtc\");");
 
         // Шаги к покупке: увидел предложение, нажал «Купить»
         await db.Database.ExecuteSqlRawAsync(@"

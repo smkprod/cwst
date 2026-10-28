@@ -1,5 +1,5 @@
 import { initData } from './telegram'
-import type { Dashboard, HalloweenView, OwnerFunnel, FeedbackMine, OwnerFeedback, LinkCandidates, OwnerEngagement, AppConfig, MenuTab, BackgroundKey, ClanDesignKey, ClanPage, PlayerPage, HallOfFame, OwnerSponsor, Moderator, ServiceIdentity, ServicePermission, BroadcastTarget, TopStatus, SponsorSales, CampaignFunnel, ClanDiscipline, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, ScoutPlus, ScoutPlayerPlay, ClanHq, AiText, TrainerPlan, DailyQuests, WarPrepSummary, WarPrepMember, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, MetaDecks, BattleAnalysis, PlayerSheet, PlusStatus, OwnerPlus, TiltProfile, Challenge, OwnerChallenge, OwnerFoundPlayer, TrackerState, MatchHistory, MatchReport, TopPlayerRow, TopPlayerDetail, DuelLeague, Tournament, TournamentSummary, WarJournal, Studio, StudioChallengeRequest, CreatorChallengeCard, ChannelState, ChannelToggle, BuilderCard, BuilderDecks, BuilderWar, BuilderQuery, DeckLab } from '../types'
+import type { Dashboard, HalloweenView, OwnerFunnel, FeedbackMine, OwnerFeedback, LinkCandidates, OwnerEngagement, AppConfig, MenuTab, BackgroundKey, ClanDesignKey, ClanPage, PlayerPage, HallOfFame, OwnerSponsor, Moderator, ServiceIdentity, ServicePermission, BroadcastTarget, TopStatus, SponsorSales, CampaignFunnel, ClanDiscipline, ClanHistory, ClanOverview, ClanRanking, ClanStatus, ClanWarLog, DeckSuggestions, GameTournament, GlobalTop, LinkedPlayer, MyStats, NotificationSettings, NudgeResult, OwnerClan, OwnerClanDetail, OwnerStats, PlayerHistory, PlayerProfile, PlayerTournamentHistory, RaceScout, ScoutPlus, ScoutPlayerPlay, ClanHq, AiText, TrainerPlan, DailyQuests, WarPrepSummary, WarPrepMember, TournamentMode, RecruitmentCandidates, RecruitmentStatus, Achievements, WhatsNew, RespectStatus, SeasonArchive, SeasonBreakdown, SeasonStats, TopMeta, MetaDecks, BattleAnalysis, PlayerSheet, PlusStatus, OwnerPlus, JarOrder, OwnerJar, TiltProfile, Challenge, OwnerChallenge, OwnerFoundPlayer, TrackerState, MatchHistory, MatchReport, TopPlayerRow, TopPlayerDetail, DuelLeague, Tournament, TournamentSummary, WarJournal, Studio, StudioChallengeRequest, CreatorChallengeCard, ChannelState, ChannelToggle, BuilderCard, BuilderDecks, BuilderWar, BuilderQuery, DeckLab } from '../types'
 
 // Адрес API вынесен в отдельный модуль: им же пользуются виджеты OBS, которым
 // нельзя тянуть сюда Telegram (см. apiBase.ts).
@@ -305,6 +305,27 @@ export const api = {
       body: JSON.stringify(prefs),
     }),
   ownerGetPlus: () => request<OwnerPlus>('/api/owner/plus'),
+  /** Заказ на оплату через банку Монобанка: сумма и код для комментария к переводу. */
+  jarOrder: (product: 'plus' | 'pro', days: number) =>
+    request<JarOrder>('/api/jar/order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ product, days }),
+    }),
+  jarGetOrder: (code: string) => request<JarOrder>(`/api/jar/order/${encodeURIComponent(code)}`),
+  ownerGetJar: () => request<OwnerJar>('/api/owner/jar'),
+  ownerSetJar: (body: { on: boolean; link: string; plus7: number; plus30: number; pro: number }) =>
+    request<{ saved: boolean }>('/api/owner/jar/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }),
+  ownerConfirmJar: (code: string, incomingId?: number) =>
+    request<{ paid: boolean }>('/api/owner/jar/confirm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, incomingId }),
+    }),
   ownerSetPlus: (paywall: boolean, price7: number, price30: number) =>
     request<{ paywall: boolean }>('/api/owner/plus/settings', {
       method: 'POST',

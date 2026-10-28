@@ -65,6 +65,7 @@ public class PlusController(
         var status = await access.GetAsync(UserId, ct);
         var offer = await PlusSales.ReadAsync(settings, ct);
         var sponsorOffer = await SponsorSales.ReadAsync(settings, ct);
+        var jarOffer = await JarSales.ReadAsync(settings, ct);
         var prefs = await alertPrefs.GetAsync(UserId, ct);
         var me = await players.GetByTelegramIdAsync(UserId, ct);
         var now = DateTime.UtcNow;
@@ -97,6 +98,8 @@ public class PlusController(
             isSponsor,
             sponsorUntil = isSponsor ? me!.SponsorUntilUtc : null,
             freeGiftsLeft = isSponsor ? await FreeGiftsLeftAsync(now, ct) : 0,
+            // Оплата гривнами через банку Монобанка - если включена в панели
+            jar = jarOffer.On ? new { plus7 = jarOffer.Plus7, plus30 = jarOffer.Plus30, pro = jarOffer.Pro } : null,
         });
     }
 
