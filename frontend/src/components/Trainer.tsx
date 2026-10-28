@@ -153,8 +153,8 @@ export function TrainerView() {
   )
 }
 
-/** Порядок разделов в списке задач: от основ к приёмам и атаке. */
-const CATS: PuzzleCat[] = ['defense', 'cheap', 'king', 'hero', 'evo', 'attack']
+/** Порядок разделов в списке задач: комбо-атаки - самое интересное, их первыми, дальше от основ к приёмам. */
+const CATS: PuzzleCat[] = ['attack', 'defense', 'cheap', 'king', 'hero', 'evo']
 
 function TargetArt({ card }: { card: string }) {
   const art = useCardArt()
@@ -175,9 +175,9 @@ function Stars({ n }: { n: number }) {
  * карта ставится сама, бой доигрывается - видно, куда и как. Потом то же самое делает
  * игрок: пауза, выбор карты и клетки, бой, итог.
  */
-type Phase = 'demo-intro' | 'demo-show' | 'demo-battle' | 'demo-done' | 'intro' | 'choose' | 'battle' | 'result'
+type Phase = 'demo-intro' | 'demo-show' | 'demo-battle' | 'demo-wait' | 'demo-done' | 'intro' | 'choose' | 'battle' | 'wait' | 'result'
 
-const DEMO = new Set<Phase>(['demo-intro', 'demo-show', 'demo-battle', 'demo-done'])
+const DEMO = new Set<Phase>(['demo-intro', 'demo-show', 'demo-battle', 'demo-wait', 'demo-done'])
 
 /** Здоровье башни принцессы - столько урона значит «башня снесена». */
 const TOWER_HP = TOWER_STATS.Princess.hp
@@ -229,13 +229,19 @@ function TrainerGame({ puzzle, daily, locked, details, onDetails, onPlus, onExit
   const [outcome, setOutcome] = useState<Outcome | null>(null)
   const [demoNote, setDemoNote] = useState<string | null>(null)
   const [lines, setLines] = useState<string[]>([])
-  const battle = useRef<{ watch: Watch; mine: Entity[]; card: string; t0: number; pressed: boolean } | null>(null)
+  // cards - все сыгранные карты (в комбо их несколько), since - секунда последнего хода
+  const battle = useRef<{ watch: Watch; mine: Entity[]; card: string; cards: string[]; t0: number; since: number; pressed: boolean } | null>(null)
+  // Сколько ходов уже сделано: в комбо следующий ход - эталон combo[step - 1]
+  const [step, setStep] = useState(0)
+  const moves = 1 + (puzzle.combo?.length ?? 0)
   // Показ решения нажал способность Героя - коротко подписать это на поле
   const [flash, setFlash] = useState<string | null>(null)
   const hasHero = Boolean(puzzle.abilityOnly || puzzle.hand.some(c => HEROES[c]))
   const resultRef = useRef<HTMLDivElement>(null)
   const demo = DEMO.has(phase)
   const sol = puzzle.solution
+  // Ход, который сейчас показываем или ждём: первый - solution, дальше - из комбо
+  const cur = step === 0 || !puzzle.combo ? sol : puzzle.combo[Math.min(step, puzzle.combo.length) - 1].move
 
   // Итог под доской - докручиваем к нему, чтобы не искать
   useEffect(() => {
@@ -245,7 +251,7 @@ function TrainerGame({ puzzle, daily, locked, details, onDetails, onPlus, onExit
   // Показ: подержать подсветку хода, чтобы успеть увидеть клетку и карту, - и поставить
   useEffect(() => {
     if (phase !== 'demo-show') return
-    const id = setTimeout(() => place(sol.card, sol.x, sol.y, 'demo-battle'), fast ? 1100 : 1800)
+    const id = setTimeout(() => place(cur.card, cur.x, cur.y, 'demo-battle'), fast ? 1100 : 1800)
     return () => clearTimeout(id)
     // place берёт бой текущего раунда - перезапуск нужен только при смене фазы или раунда
   }, [phase, round])
@@ -253,6 +259,7 @@ function TrainerGame({ puzzle, daily, locked, details, onDetails, onPlus, onExit
   const restart = (next: Phase) => {
     battle.current = null
     setPhase(next); setCard(null); setGhost(null); setHint(null); setOutcome(null); setLines([]); setDemoNote(null); setFlash(null)
+    setStep(0)
     setRound(r => r + 1)
   }
   const play = () => { haptic('medium'); restart('intro') }
@@ -261,9 +268,10 @@ function TrainerGame({ puzzle, daily, locked, details, onDetails, onPlus, onExit
   const finish = (sim: Sim) => {
     const b = battle.current
     if (!b) return
-    const o = judge(sc, sim, b.watch, b.card, base, b.mine)
+    const o = judge(sc, sim, b.watch, b.cards, base, b.mine)
     setOutcome(o)
-    setLines(explain(puzzle, o, b.card, sim.dealt[`me:${b.card}`] ?? 0, lang))
+    // В комбо разбор одной карты ни о чём: главное - приём, его объясняет подсказка ниже
+    setLines(puzzle.combo ? [] : explain(puzzle, o, b.card, sim.dealt[`me:${b.card}`] ?? 0, lang))
     const stars = o.grade === 'perfect' ? 3 : o.grade === 'ok' ? 2 : 0
     setPhase('result')
     onStars(stars)
@@ -276,7 +284,7 @@ function TrainerGame({ puzzle, daily, locked, details, onDetails, onPlus, onExit
     const b = battle.current
     if (!b) return
     const rt = RESULT_TEXT[lang]
-    const o = judge(sc, sim, b.watch, b.card, base, b.mine)
+    const o = judge(sc, sim, b.watch, b.cards, base, b.mine)
     const parts = isAttack(sc)
       ? [o.dealt >= TOWER_HP ? rt.towerDown : rt.enemyTower.replace('{n}', String(o.dealt))]
       : [o.dmg === 0 ? rt.tower0 : rt.tower.replace('{n}', String(o.dmg))]
@@ -289,7 +297,7 @@ function TrainerGame({ puzzle, daily, locked, details, onDetails, onPlus, onExit
 
   /** Бой без своего хода картой: Герой уже на поле, ход - нажать способность. */
   const startFight = (next: Phase) => {
-    battle.current = { watch: new Watch(sc, sim), mine: [], card: '', t0: sim.t, pressed: false }
+    battle.current = { watch: new Watch(sc, sim), mine: [], card: '', cards: [], t0: sim.t, since: sim.t, pressed: false }
     setPhase(next)
   }
 
@@ -312,6 +320,32 @@ function TrainerGame({ puzzle, daily, locked, details, onDetails, onPlus, onExit
       return true
     }
     const b = battle.current
+    // Комбо: бой идёт до момента следующего хода - и снова встаёт
+    if ((phase === 'wait' || phase === 'demo-wait') && b && puzzle.combo) {
+      const next = puzzle.combo[step - 1]
+      // Время боя вышло раньше, чем настал момент хода, - итог как есть
+      if (sim.t - b.watch.start >= sc.horizon) {
+        if (phase === 'wait') finish(sim); else finishDemo(sim)
+        return true
+      }
+      if (!next || !next.pause(sim, b.since)) return false
+      // Сыграть уже нечем (всё дорого или сыграно) - бой просто идёт дальше
+      const left = puzzle.hand.filter(c => !b.cards.includes(c) && cardInfo(c).cost <= sim.elixir.me + 1e-6)
+      if (phase === 'wait' && left.length === 0) {
+        setPhase('battle')
+        return false
+      }
+      if (phase === 'wait') {
+        setCard(null)
+        setPhase('choose')
+      } else {
+        setCard(next.move.card)
+        setGhost({ card: next.move.card, x: next.move.x, y: next.move.y, ok: true })
+        setPhase('demo-show')
+      }
+      haptic('medium')
+      return true
+    }
     if ((phase === 'battle' || phase === 'demo-battle') && b) {
       if (phase === 'demo-battle' && sol.ability !== undefined && !b.pressed && sim.t >= b.t0 + sol.ability - 1e-6) {
         const h = myHero(sim)
@@ -332,9 +366,22 @@ function TrainerGame({ puzzle, daily, locked, details, onDetails, onPlus, onExit
   const place = (c: string, x: number, y: number, next: Phase = 'battle') => {
     const mine = playMine(sim, c, x, y)
     if (!mine) return
-    battle.current = { watch: new Watch(sc, sim), mine, card: c, t0: sim.t, pressed: false }
+    const b = battle.current
+    if (b) {
+      // Следующий ход комбо: бой и счёт - те же, что с первого хода
+      b.mine.push(...mine)
+      b.cards.push(c)
+      b.since = sim.t
+      // Пока ждали хода, поле могло опустеть - бой считаем заново с этого хода
+      b.watch.clearAt = null
+    } else {
+      battle.current = { watch: new Watch(sc, sim), mine, card: c, cards: [c], t0: sim.t, since: sim.t, pressed: false }
+    }
+    const done = step + 1
+    setStep(done)
     setGhost(null)
-    setPhase(next)
+    // Ещё не все ходы комбо - ждём момента следующего
+    setPhase(done < moves ? (next === 'demo-battle' ? 'demo-wait' : 'wait') : next)
     haptic('heavy')
   }
 
@@ -363,7 +410,10 @@ function TrainerGame({ puzzle, daily, locked, details, onDetails, onPlus, onExit
   const grade = outcome?.grade ?? 'fail'
   const stars = grade === 'perfect' ? 3 : grade === 'ok' ? 2 : 0
   const rt = RESULT_TEXT[lang]
-  const running = phase === 'intro' || phase === 'battle' || phase === 'demo-intro' || phase === 'demo-battle'
+  const running = phase === 'intro' || phase === 'battle' || phase === 'demo-intro' || phase === 'demo-battle' || phase === 'wait' || phase === 'demo-wait'
+  // Сколько эликсира на этот ход: в комбо - сколько накопилось к нему
+  const elixirNow = step === 0 ? sc.elixir : Math.floor(sim.elixir.me + 1e-6)
+  const playedCards = battle.current?.cards ?? []
 
   return (
     <div className="tr-game fade-in">
@@ -384,7 +434,7 @@ function TrainerGame({ puzzle, daily, locked, details, onDetails, onPlus, onExit
         <div className={`tr-board ${phase === 'choose' ? 'tr-board-live' : ''} ${demo ? 'tr-board-demo' : ''}`}>
           <ArenaSim key={round} sim={sim} running={running} speed={fast ? 2.5 : 1}
             onTick={onTick} onTap={phase === 'choose' ? tap : undefined} ghost={ghost} zone={zone} names={n}
-            ghostLabel={phase === 'demo-show' ? s.demoHere.replace('{card}', n(sol.card)) : undefined}
+            ghostLabel={phase === 'demo-show' ? s.demoHere.replace('{card}', n(cur.card)) : undefined}
             camp={{ name: s.campName, clan: s.campClan, you: s.you }} details={details} />
           {demo && phase !== 'demo-done' && <div className="tr-turn tr-turn-demo">🎬 {locked ? s.lockedDemo : s.demo}</div>}
           {phase === 'choose' && puzzle.abilityOnly && (
@@ -395,6 +445,7 @@ function TrainerGame({ puzzle, daily, locked, details, onDetails, onPlus, onExit
           )}
           {phase === 'choose' && !puzzle.abilityOnly && !ghost?.ok && (
             <div className={`tr-turn ${hint && ghost ? 'tr-turn-bad' : ''}`}>
+              {moves > 1 && <b className="tr-move-of">{s.moveOf.replace('{n}', String(step + 1)).replace('{m}', String(moves))} · </b>}
               {hint ?? (card ? (kind === 'spell' ? s.pickSpell : s.pickTile) : `${s.yourTurn} · ${s.pickCard}`)}
             </div>
           )}
@@ -424,11 +475,12 @@ function TrainerGame({ puzzle, daily, locked, details, onDetails, onPlus, onExit
           {puzzle.hand.length > 0 && <div className="tr-hand">
             {puzzle.hand.map(c => {
               const info = cardInfo(c)
-              const tooDear = info.cost > sc.elixir
-              const shown = demo && c === sol.card && (phase === 'demo-show' || phase === 'demo-done')
+              const tooDear = info.cost > elixirNow
+              const used = playedCards.includes(c) && phase !== 'result'
+              const shown = demo && c === cur.card && (phase === 'demo-show' || phase === 'demo-done')
               return (
                 <button key={c} className={`tr-card ${card === c && !demo ? 'tr-card-on' : ''} ${shown ? 'tr-card-demo' : ''} ${HEROES[c] ? 'tr-card-hero' : EVOS[c] ? 'tr-card-evo' : ''}`}
-                  disabled={phase !== 'choose' || tooDear}
+                  disabled={phase !== 'choose' || tooDear || used}
                   onClick={() => {
                     haptic('light')
                     setCard(c)
@@ -459,7 +511,7 @@ function TrainerGame({ puzzle, daily, locked, details, onDetails, onPlus, onExit
                 <small>{rt.noMove.replace('{n}', String(outcome.base))}</small>
               </span>
               <span className="tr-fact-good">
-                💧 {CARD_NAMES[lang][card ?? ''] ?? ''} · {outcome.myCost}
+                💧 {(playedCards.length > 0 ? playedCards : [card ?? '']).map(c => CARD_NAMES[lang][c] ?? c).join(' + ')} · {outcome.myCost}
               </span>
             </div>
           )}

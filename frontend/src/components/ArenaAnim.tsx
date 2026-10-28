@@ -42,7 +42,8 @@ export interface Mark { x: number; y: number; from: number; to: number; label?: 
 /** Линейка «столько клеток»: от y1 до y2 по столбцу x. */
 export interface Ruler { x: number; y1: number; y2: number; label: string; from: number; to: number }
 
-export interface Scene { duration: number; actors: Actor[]; marks?: Mark[]; rulers?: Ruler[]; noShots?: boolean }
+/** rows - какие ряды поля показать в этой сцене: фишкам атаки нужна половина соперника. */
+export interface Scene { duration: number; actors: Actor[]; marks?: Mark[]; rulers?: Ruler[]; noShots?: boolean; rows?: [number, number] }
 
 /** Ширина клетки в пикселях схемы. */
 export const TILE = 20
@@ -99,7 +100,7 @@ const TIP_ROWS: [number, number] = [11, 32]
  * @param loop false - сыграть сцену один раз и встать на последнем кадре, позвав onEnd.
  * @param rows Какие ряды поля показать - то же поле, просто кадр.
  */
-export function ArenaAnim({ scene, paused = false, at: frameAt, loop = true, onEnd, rows = TIP_ROWS }: {
+export function ArenaAnim({ scene, paused = false, at: frameAt, loop = true, onEnd, rows = scene.rows ?? TIP_ROWS }: {
   scene: Scene
   paused?: boolean
   at?: number
