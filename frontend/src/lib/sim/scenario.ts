@@ -19,6 +19,12 @@ export interface Scenario {
    * поддерживает своим ходом. Игрок их не ставит - они часть условия.
    */
   mine?: { at: number; card: string; x: number; y: number }[]
+  /**
+   * Ответы соперника на ход игрока: проверяются каждый тик, каждый срабатывает один раз -
+   * вернул карту и клетку, и соперник её ставит. Так защита встречает атаку там, где она
+   * пришла, а Бревно летит в первую же кучу мелочи.
+   */
+  react?: ((sim: Sim) => { card: string; x: number; y: number } | null)[]
   /** Когда встать на паузу: секунда или условие на состояние боя. */
   pause: number | ((sim: Sim) => boolean)
   /** Сколько секунд боя считать после хода игрока, самое большее. */
@@ -46,6 +52,14 @@ export function newSim(sc: Scenario): Sim {
   const sim = new Sim(sc.elixir)
   for (const e of sc.enemy) sim.schedule({ at: e.at, team: 'enemy', card: e.card, x: e.x, y: e.y })
   for (const e of sc.mine ?? []) sim.schedule({ at: e.at, team: 'me', card: e.card, x: e.x, y: e.y })
+  for (const r of sc.react ?? []) {
+    sim.reactors.push(s => {
+      const m = r(s)
+      if (!m) return false
+      s.play('enemy', m.card, m.x, m.y)
+      return true
+    })
+  }
   return sim
 }
 
@@ -125,7 +139,7 @@ export interface Outcome {
 }
 
 /** Оценка: идеально - выбил, башня почти цела и размен не в минус; сработало - башня потеряла немного. */
-export function judge(sc: Scenario, sim: Sim, w: Watch, card: string, base: number, mine: Entity[]): Outcome {
+export function judge(sc: Scenario, sim: Sim, w: Watch, card: string | string[], base: number, mine: Entity[]): Outcome {
   const dmg = Math.round(sim.towerDamage.me - w.dmg0)
   const dealt = Math.round(sim.towerDamage.enemy - w.dealt0)
   const killed = !sim.threat('enemy')
@@ -133,7 +147,7 @@ export function judge(sc: Scenario, sim: Sim, w: Watch, card: string, base: numb
   const abilities = sim.entities
     .filter(e => e.team === 'me' && e.ability && e.ability !== 'ready')
     .reduce((a, e) => a + (HEROES[e.card]?.cost ?? 0), 0)
-  const myCost = (COST[card] ?? 0) + abilities
+  const myCost = (Array.isArray(card) ? card : [card]).reduce((a, c) => a + (COST[c] ?? 0), 0) + abilities
   const enemyCost = sc.enemy.reduce((a, e) => a + (COST[e.card] ?? 0), 0)
   const [perfect, ok] = sc.limits
   const king = sim.tower('me', 'K')

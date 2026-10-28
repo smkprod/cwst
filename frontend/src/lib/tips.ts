@@ -13,18 +13,22 @@ import type { Scene } from '../components/ArenaAnim'
 
 export type TipId = 'anti_hog' | 'anti_tank' | 'kite' | 'log_barrel' | 'anti_air' | 'anti_siege' | 'anti_miner'
   | 'elixir' | 'king_tornado' | 'cheap_def' | 'air_vs_ground' | 'tank_support' | 'clear_path' | 'siege_lock' | 'heroes' | 'evos'
-  | 'tilt' | 'levels' | 'deck'
+  | 'tilt' | 'levels' | 'deck' | 'loon_miner' | 'log_bait' | 'hog_log'
 
-export const TIP_IDS: TipId[] = ['anti_hog', 'king_tornado', 'cheap_def', 'kite', 'log_barrel', 'anti_tank', 'air_vs_ground', 'anti_air',
+export const TIP_IDS: TipId[] = ['loon_miner', 'log_bait', 'hog_log', 'anti_hog', 'king_tornado', 'cheap_def', 'kite', 'log_barrel', 'anti_tank', 'air_vs_ground', 'anti_air',
   'anti_siege', 'anti_miner', 'heroes', 'evos', 'tank_support', 'clear_path', 'siege_lock', 'elixir', 'tilt', 'levels', 'deck']
 
-/** Фишки, у которых есть схема арены. Остальные - советы без поля. */
-export const ARENA_TIPS: TipId[] = ['anti_hog', 'king_tornado', 'cheap_def', 'kite', 'log_barrel', 'anti_tank', 'air_vs_ground', 'anti_air',
-  'anti_siege', 'anti_miner', 'heroes', 'evos', 'tank_support', 'clear_path', 'siege_lock', 'elixir']
+/**
+ * Фишки библиотеки - со схемой арены. Азы вроде «здание в центр против Хога» в библиотеку
+ * не идут: их знает каждый, кто сыграл неделю. Они остаются только подсказкой в разборе
+ * профиля и в задачах, где к ним ведёт кнопка «Как это работает».
+ */
+export const ARENA_TIPS: TipId[] = ['loon_miner', 'log_bait', 'hog_log', 'king_tornado', 'cheap_def', 'kite', 'log_barrel', 'anti_tank', 'heroes', 'evos']
 
 type Units = Record<'hog' | 'cannon' | 'mk' | 'skeletons' | 'barrel' | 'log' | 'goblins' | 'giant' | 'minipekka'
   | 'counter' | 'balloon' | 'musk' | 'xbow' | 'knight' | 'miner' | 'golem' | 'here' | 'cells4' | 'tornado' | 'kingUp'
-  | 'minions' | 'oneVsFour' | 'noAir' | 'cells11' | 'towerHit' | 'yourGiant' | 'yourHog' | 'heroKnight' | 'taunt' | 'evoValk' | 'whirl', string>
+  | 'minions' | 'oneVsFour' | 'noAir' | 'cells11' | 'towerHit' | 'yourGiant' | 'yourHog' | 'heroKnight' | 'taunt' | 'evoValk' | 'whirl'
+  | 'yourBalloon' | 'yourMiner' | 'onMiner' | 'bait' | 'logGone' | 'yourBarrel' | 'answer' | 'yourLog', string>
 
 export interface TipText { title: string; when: string; steps: string[] }
 
@@ -33,21 +37,74 @@ const UNITS: Record<Lang, Units> = {
     giant: 'Гигант', minipekka: 'Мини-ПЕККА', counter: 'Контратака', balloon: 'Шар', musk: 'Мушкетёр', xbow: 'Икс-лук',
     knight: 'Рыцарь', miner: 'Шахтёр', golem: 'Голем', here: 'сюда', cells4: '4 клетки', tornado: 'Торнадо', kingUp: 'Король проснулся!',
     minions: 'Миньоны', oneVsFour: '1 против 4 эликсира', noAir: 'Не бьёт по воздуху', cells11: '11,5 клетки', towerHit: 'Бьёт башню!',
-    yourGiant: 'Твой Гигант', yourHog: 'Твой Хог', heroKnight: 'Герой Рыцарь', taunt: 'Насмешка!', evoValk: 'Эво-Валькирия', whirl: 'Вихрь!' },
+    yourGiant: 'Твой Гигант', yourHog: 'Твой Хог', heroKnight: 'Герой Рыцарь', taunt: 'Насмешка!', evoValk: 'Эво-Валькирия', whirl: 'Вихрь!',
+    yourBalloon: 'Твой Шар', yourMiner: 'Твой Шахтёр', onMiner: 'Башня бьёт Шахтёра', bait: 'Приманка', logGone: 'Бревно ушло!', yourBarrel: 'Твоя Бочка', answer: 'Ответ соперника', yourLog: 'Твоё Бревно' },
   uk: { hog: 'Хог', cannon: 'Гармата', mk: 'Мега-лицар', skeletons: 'Скелети', barrel: 'Бочка', log: 'Колода', goblins: 'Гобліни',
     giant: 'Гігант', minipekka: 'Міні-ПЕККА', counter: 'Контратака', balloon: 'Куля', musk: 'Мушкетерка', xbow: 'Ікс-лук',
     knight: 'Лицар', miner: 'Шахтар', golem: 'Голем', here: 'сюди', cells4: '4 клітинки', tornado: 'Торнадо', kingUp: 'Король прокинувся!',
     minions: 'Міньйони', oneVsFour: '1 проти 4 еліксиру', noAir: 'Не б\'є по повітрю', cells11: '11,5 клітинки', towerHit: 'Б\'є вежу!',
-    yourGiant: 'Твій Гігант', yourHog: 'Твій Хог', heroKnight: 'Герой Лицар', taunt: 'Глузування!', evoValk: 'Ево-Валькірія', whirl: 'Вихор!' },
+    yourGiant: 'Твій Гігант', yourHog: 'Твій Хог', heroKnight: 'Герой Лицар', taunt: 'Глузування!', evoValk: 'Ево-Валькірія', whirl: 'Вихор!',
+    yourBalloon: 'Твоя Куля', yourMiner: 'Твій Шахтар', onMiner: 'Вежа б\'є Шахтаря', bait: 'Приманка', logGone: 'Колода пішла!', yourBarrel: 'Твоя Бочка', answer: 'Відповідь суперника', yourLog: 'Твоя Колода' },
   en: { hog: 'Hog', cannon: 'Cannon', mk: 'Mega Knight', skeletons: 'Skeletons', barrel: 'Barrel', log: 'Log', goblins: 'Goblins',
     giant: 'Giant', minipekka: 'Mini P.E.K.K.A', counter: 'Counter-push', balloon: 'Balloon', musk: 'Musketeer', xbow: 'X-Bow',
     knight: 'Knight', miner: 'Miner', golem: 'Golem', here: 'here', cells4: '4 tiles', tornado: 'Tornado', kingUp: 'King is awake!',
     minions: 'Minions', oneVsFour: '1 vs 4 elixir', noAir: 'Can\'t hit air', cells11: '11.5 tiles', towerHit: 'Hits the tower!',
-    yourGiant: 'Your Giant', yourHog: 'Your Hog', heroKnight: 'Hero Knight', taunt: 'Taunt!', evoValk: 'Evo Valkyrie', whirl: 'Whirlwind!' },
+    yourGiant: 'Your Giant', yourHog: 'Your Hog', heroKnight: 'Hero Knight', taunt: 'Taunt!', evoValk: 'Evo Valkyrie', whirl: 'Whirlwind!',
+    yourBalloon: 'Your Balloon', yourMiner: 'Your Miner', onMiner: 'Tower on the Miner', bait: 'Bait', logGone: 'Log is gone!', yourBarrel: 'Your Barrel', answer: 'Their answer', yourLog: 'Your Log' },
 }
 
 /** Сцены: (подписи юнитов на языке) → таймлайн. Клетки - как в игре, см. ArenaAnim. */
 const SCENES: Partial<Record<TipId, (u: Units) => Scene>> = {
+  // Шар на мост, Шахтёр на башню, как только Шар перешёл реку: Шахтёр приходит первым и забирает башню
+  loon_miner: u => ({
+    rows: [0, 21],
+    duration: 8.5,
+    noShots: true,
+    marks: [{ x: 14.5, y: 17.5, from: 0.2, to: 0.9, label: u.here }, { x: 12.8, y: 9.9, from: 1.6, to: 2.4, label: u.here }],
+    actors: [
+      { id: 'ball', kind: 'mine', card: 'Balloon', label: u.yourBalloon, r: 0.9, keys: [{ t: 0.8, x: 14.5, y: 17.5 }, { t: 6.0, x: 15.6, y: 8.0 }, { t: 8.5, x: 15.6, y: 8.0 }] },
+      { id: 'dig', kind: 'spell', label: '', r: 0.3, from: 2.3, to: 3.9, keys: [{ t: 2.3, x: 9, y: 28 }, { t: 3.9, x: 12.8, y: 9.9 }] },
+      { id: 'miner', kind: 'mine', card: 'Miner', label: u.yourMiner, r: 0.7, to: 7.2, keys: [{ t: 3.9, x: 12.8, y: 9.9 }, { t: 7.2, x: 12.8, y: 9.9 }] },
+      { id: 'musk', kind: 'enemy', card: 'Musketeer', label: u.musk, r: 0.65, keys: [{ t: 3.4, x: 14.5, y: 3.4 }, { t: 8.5, x: 14.5, y: 3.4 }] },
+      { id: 'lock', kind: 'text', label: u.onMiner, keys: [{ t: 4.2, x: 6.6, y: 12.4 }, { t: 6.0, x: 6.6, y: 12.4 }] },
+      { id: 'hit', kind: 'text', label: u.towerHit, keys: [{ t: 6.2, x: 6.6, y: 12.4 }, { t: 8.2, x: 6.6, y: 12.4 }] },
+    ],
+  }),
+  // Против Бревна: дешёвая приманка у моста забирает Бревно, Бочка летит, когда встречать её нечем
+  log_bait: u => ({
+    rows: [0, 21],
+    duration: 8,
+    noShots: true,
+    marks: [{ x: 14.5, y: 17.5, from: 0.2, to: 0.9, label: u.here }, { x: 15.5, y: 6.3, from: 3.3, to: 4.0, label: u.here }],
+    actors: [
+      { id: 's1', kind: 'mine', card: 'Skeletons', label: u.bait, r: 0.42, to: 2.5, keys: [{ t: 0.8, x: 14.0, y: 17.6 }, { t: 2.3, x: 14.0, y: 13.4 }, { t: 2.5, x: 14.0, y: 13.4 }] },
+      { id: 's2', kind: 'mine', card: 'Skeletons', label: '', r: 0.42, to: 2.5, keys: [{ t: 0.8, x: 15.0, y: 17.6 }, { t: 2.3, x: 15.0, y: 13.4 }, { t: 2.5, x: 15.0, y: 13.4 }] },
+      { id: 'log', kind: 'log', card: 'The Log', label: u.log, r: 1.95, keys: [{ t: 2.1, x: 14.5, y: 10.6 }, { t: 3.0, x: 14.5, y: 16.0 }] },
+      { id: 'gone', kind: 'text', label: u.logGone, keys: [{ t: 2.9, x: 14.5, y: 12.4 }, { t: 4.3, x: 14.5, y: 12.4 }] },
+      { id: 'barrel', kind: 'barrel', card: 'Goblin Barrel', label: u.yourBarrel, keys: [{ t: 3.6, x: 9, y: 28 }, { t: 4.7, x: 15.5, y: 6.6 }] },
+      { id: 'g1', kind: 'mine', card: 'Goblins', label: u.goblins, r: 0.45, keys: [{ t: 4.7, x: 15.0, y: 7.4 }, { t: 8, x: 15.0, y: 7.4 }] },
+      { id: 'g2', kind: 'mine', card: 'Goblins', label: '', r: 0.45, keys: [{ t: 4.7, x: 16.0, y: 7.4 }, { t: 8, x: 16.0, y: 7.4 }] },
+      { id: 'g3', kind: 'mine', card: 'Goblins', label: '', r: 0.45, keys: [{ t: 4.7, x: 15.5, y: 8.2 }, { t: 8, x: 15.5, y: 8.2 }] },
+      { id: 'hit', kind: 'text', label: u.towerHit, keys: [{ t: 5.1, x: 8.4, y: 11.2 }, { t: 7.8, x: 8.4, y: 11.2 }] },
+    ],
+  }),
+  // Хог на мост, соперник встречает его Гоблинами - Бревно сразу по ним, и Хог доходит до башни
+  hog_log: u => ({
+    rows: [0, 21],
+    duration: 8,
+    noShots: true,
+    marks: [{ x: 14.5, y: 17.5, from: 0.2, to: 0.9, label: u.here }, { x: 14.5, y: 12.4, from: 2.5, to: 3.1, label: u.here }],
+    actors: [
+      { id: 'hog', kind: 'mine', card: 'Hog Rider', label: u.yourHog, r: 0.6, keys: [{ t: 0.8, x: 14.5, y: 17.5 }, { t: 5.2, x: 14.5, y: 8.6 }, { t: 8, x: 14.5, y: 8.6 }] },
+      { id: 'g1', kind: 'enemy', card: 'Goblins', label: '', r: 0.45, to: 3.9, keys: [{ t: 2.3, x: 14.0, y: 10.2 }, { t: 3.9, x: 14.0, y: 10.6 }] },
+      { id: 'g2', kind: 'enemy', card: 'Goblins', label: '', r: 0.45, to: 3.9, keys: [{ t: 2.3, x: 15.0, y: 10.2 }, { t: 3.9, x: 15.0, y: 10.6 }] },
+      { id: 'g3', kind: 'enemy', card: 'Goblins', label: '', r: 0.45, to: 3.9, keys: [{ t: 2.3, x: 14.5, y: 9.4 }, { t: 3.9, x: 14.5, y: 9.8 }] },
+      { id: 'log', kind: 'log', card: 'The Log', label: '', r: 1.95, keys: [{ t: 3.0, x: 14.5, y: 12.4 }, { t: 6.0, x: 14.5, y: 2.4 }] },
+      { id: 'ans', kind: 'text', label: u.answer, keys: [{ t: 2.3, x: 8.4, y: 11.2 }, { t: 3.0, x: 8.4, y: 11.2 }] },
+      { id: 'logT', kind: 'text', label: u.yourLog, keys: [{ t: 3.0, x: 8.4, y: 11.2 }, { t: 4.6, x: 8.4, y: 11.2 }] },
+      { id: 'hit', kind: 'text', label: u.towerHit, keys: [{ t: 5.4, x: 8.4, y: 11.2 }, { t: 7.8, x: 8.4, y: 11.2 }] },
+    ],
+  }),
   // Пушка 2×2 в центр: верхний край в 4 клетках ниже реки (река кончается на 17)
   anti_hog: u => ({
     duration: 6.5,
@@ -233,6 +290,21 @@ const SCENES: Partial<Record<TipId, (u: Units) => Scene>> = {
 
 const TEXT: Record<Lang, Record<TipId, TipText>> = {
   ru: {
+    loon_miner: { title: 'Шахтёр + Шар: кто первый у башни', when: 'Когда атакуешь Шаром, а у соперника есть чем сбить его: Мушкетёр, Лучницы, Миньоны.',
+      steps: ['Башня бьёт того, кто первым подошёл, и держит его, пока он жив.',
+        'Шар на мост, а как только он перешёл реку — Шахтёр на башню. Под землёй Шахтёр быстрее и успевает первым.',
+        'Башня и защитники бьют Шахтёра, а Шар долетает целым и сносит башню.',
+        'Шахтёр раньше Шара — плохо: он умрёт до прилёта, и башня переключится на Шар.'] },
+    log_bait: { title: 'Приманка для Бревна', when: 'Когда играешь Бочкой, а у соперника Бревно или другое заклинание против мелочи.',
+      steps: ['Соперник кидает Бревно в первую же мелочь — на этом и играем.',
+        'Сначала дешёвая приманка у моста: Скелеты или Гоблины. Бревно уходит на них.',
+        'Как только Бревно ушло — Бочку на башню: встретить её уже нечем.',
+        'Бочка первой — и Бревно встретит именно её. Следи, было ли Бревно в этом круге колоды.'] },
+    hog_log: { title: 'Хог + Бревно: бей по ответу', when: 'Когда идёшь Хогом, а соперник встречает его мелочью: Гоблины, Скелеты, Армия скелетов.',
+      steps: ['Мелочь у башни сносит Хога за пару секунд — одна башня его бы не остановила.',
+        'Не кидай Бревно заранее: соперник ещё ничего не поставил, и оно уйдёт впустую.',
+        'Хог на мост, и как только соперник выставил ответ — Бревно сразу по нему, пока он только встаёт.',
+        'Хог доходит до башни и бьёт её до конца — за 6 эликсира против их 2–3.'] },
     anti_hog: { title: 'Хог: здание в центр', when: 'Против Хога, Таранов и Рамы — всех, кто бьёт только по зданиям.',
       steps: ['Дождись, пока Хог перейдёт мост — раньше не ставь, иначе его пустят в другую линию.',
         'Ставь пушку или теслу в центр, примерно в 4 клетках ниже реки.',
@@ -326,6 +398,21 @@ const TEXT: Record<Lang, Record<TipId, TipText>> = {
         'Посмотри фишки против своих самых частых соперников.'] },
   },
   uk: {
+    loon_miner: { title: 'Шахтар + Куля: хто першим біля вежі', when: 'Коли атакуєш Кулею, а в суперника є чим її збити: Мушкетерка, Лучниці, Міньйони.',
+      steps: ['Вежа б\'є того, хто першим підійшов, і тримає його, поки він живий.',
+        'Куля на міст, а щойно вона перейшла річку — Шахтар на вежу. Під землею Шахтар швидший і встигає першим.',
+        'Вежа й захисники б\'ють Шахтаря, а Куля долітає цілою й зносить вежу.',
+        'Шахтар раніше за Кулю — погано: він загине до прильоту, і вежа перемкнеться на Кулю.'] },
+    log_bait: { title: 'Приманка для Колоди', when: 'Коли граєш Бочкою, а в суперника Колода чи інше закляття проти дрібноти.',
+      steps: ['Суперник кидає Колоду в першу ж дрібноту — на цьому й граємо.',
+        'Спершу дешева приманка біля мосту: Скелети чи Гобліни. Колода йде на них.',
+        'Щойно Колода пішла — Бочку на вежу: зустріти її вже нічим.',
+        'Бочка першою — і Колода зустріне саме її. Стеж, чи була Колода в цьому колі колоди.'] },
+    hog_log: { title: 'Хог + Колода: бий по відповіді', when: 'Коли йдеш Хогом, а суперник зустрічає його дрібнотою: Гобліни, Скелети, Армія скелетів.',
+      steps: ['Дрібнота біля вежі зносить Хога за пару секунд — сама вежа його б не зупинила.',
+        'Не кидай Колоду заздалегідь: суперник ще нічого не поставив, і вона піде намарно.',
+        'Хог на міст, і щойно суперник виставив відповідь — Колоду одразу по ній, поки вона тільки встає.',
+        'Хог доходить до вежі й б\'є її до кінця — за 6 еліксиру проти їхніх 2–3.'] },
     anti_hog: { title: 'Хог: будівля в центр', when: 'Проти Хога, Таранів і Рами — усіх, хто б\'є лише по будівлях.',
       steps: ['Дочекайся, поки Хог перейде міст — раніше не став, інакше його пустять іншою лінією.',
         'Став гармату чи теслу в центр, приблизно за 4 клітинки нижче річки.',
@@ -419,6 +506,21 @@ const TEXT: Record<Lang, Record<TipId, TipText>> = {
         'Подивись фішки проти своїх найчастіших суперників.'] },
   },
   en: {
+    loon_miner: { title: 'Miner + Balloon: who reaches the tower first', when: 'When you attack with a Balloon and they have anti-air: Musketeer, Archers, Minions.',
+      steps: ['A tower shoots whoever arrives first and stays on them while they live.',
+        'Balloon at the bridge, and the moment it crosses the river — Miner on the tower. Underground the Miner is faster and gets there first.',
+        'The tower and defenders shoot the Miner while the Balloon arrives intact and takes the tower.',
+        'Miner before the Balloon is a mistake: he dies before it lands and the tower switches to the Balloon.'] },
+    log_bait: { title: 'Bait the Log', when: 'When you play Goblin Barrel and they have a Log or another anti-swarm spell.',
+      steps: ['They throw the Log at the first swarm they see — use that.',
+        'Send a cheap bait to the bridge first: Skeletons or Goblins. The Log goes on them.',
+        'Once the Log is gone — Barrel on the tower: nothing left to meet it.',
+        'Barrel first — and the Log meets exactly that. Track whether their Log is in this cycle.'] },
+    hog_log: { title: 'Hog + Log: hit their answer', when: 'When you go Hog and they meet it with a swarm: Goblins, Skeletons, Skeleton Army.',
+      steps: ['A swarm at the tower kills the Hog in a couple of seconds — the tower alone would not stop it.',
+        'Don\'t throw the Log early: they haven\'t placed anything yet, and it is wasted.',
+        'Hog at the bridge, and the moment they drop the answer — Log straight on it while it is still deploying.',
+        'The Hog reaches the tower and keeps hitting it — 6 elixir against their 2–3.'] },
     anti_hog: { title: 'Hog: building in the middle', when: 'Against Hog, Rams and Ram Rider — anything that only hits buildings.',
       steps: ['Wait until the Hog crosses the bridge — earlier and they just switch lanes.',
         'Drop a Cannon or Tesla in the middle, about 4 tiles below the river.',

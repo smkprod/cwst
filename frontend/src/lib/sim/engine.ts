@@ -150,6 +150,11 @@ export class Sim {
   bombs: { id: number; x: number; y: number; t: number; at: number; r: number }[] = []
   private nextId = 1
   private later: { at: number; team: Team; fn: () => void }[] = []
+  /**
+   * Ответы на ход: проверяются каждый тик, true - сработал и больше не нужен. Так соперник
+   * в задаче отвечает на то, что сделал игрок, а не по секундомеру.
+   */
+  reactors: ((sim: Sim) => boolean)[] = []
 
   constructor(elixir = 5) {
     this.elixir = { me: elixir, enemy: 10 }
@@ -753,6 +758,7 @@ export class Sim {
     for (const l of [...this.later]) {
       if (l.at <= this.t) { this.later.splice(this.later.indexOf(l), 1); l.fn() }
     }
+    if (this.reactors.length > 0) this.reactors = this.reactors.filter(r => !r(this))
   }
 
   advance(seconds: number) {
