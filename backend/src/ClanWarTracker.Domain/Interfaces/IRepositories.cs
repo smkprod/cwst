@@ -569,6 +569,38 @@ public interface IQuestRepository
     Task SaveChangesAsync(CancellationToken ct = default);
 }
 
+/// <summary>Оплата через банку Монобанка: заказы с кодом и переводы из выписки.</summary>
+public interface IJarRepository
+{
+    /// <summary>Неоплаченный заказ человека на то же самое, не старше указанного момента, - отслеживаемый.</summary>
+    Task<JarOrder?> GetOpenOrderAsync(long telegramUserId, string product, int days, DateTime sinceUtc, CancellationToken ct = default);
+
+    /// <summary>Заказ по коду - отслеживаемый. Код повторяется только у давно закрытых заказов: берётся свежий.</summary>
+    Task<JarOrder?> GetByCodeAsync(string code, CancellationToken ct = default);
+
+    Task<JarOrder?> GetOrderAsync(int id, CancellationToken ct = default);
+
+    /// <summary>Код уже занят заказом не старше указанного момента.</summary>
+    Task<bool> CodeTakenAsync(string code, DateTime sinceUtc, CancellationToken ct = default);
+
+    Task AddOrderAsync(JarOrder order, CancellationToken ct = default);
+
+    /// <summary>Заказы с указанного момента, свежие первыми - для панели.</summary>
+    Task<List<JarOrder>> GetOrdersSinceAsync(DateTime sinceUtc, CancellationToken ct = default);
+
+    /// <summary>Номера операций, которые уже записаны, - из переданных.</summary>
+    Task<HashSet<string>> KnownTxAsync(IReadOnlyCollection<string> txIds, CancellationToken ct = default);
+
+    Task AddIncomingAsync(JarIncoming incoming, CancellationToken ct = default);
+
+    Task<JarIncoming?> GetIncomingAsync(int id, CancellationToken ct = default);
+
+    /// <summary>Переводы без заказа с указанного момента, свежие первыми.</summary>
+    Task<List<JarIncoming>> GetUnmatchedSinceAsync(DateTime sinceUtc, CancellationToken ct = default);
+
+    Task SaveChangesAsync(CancellationToken ct = default);
+}
+
 public interface IPlayerAlertPrefsRepository
 {
     /// <summary>Настройки человека — отслеживаемые. null — он их ещё не трогал.</summary>

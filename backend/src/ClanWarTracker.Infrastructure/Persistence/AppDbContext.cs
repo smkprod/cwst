@@ -33,6 +33,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<RaceTick> RaceTicks => Set<RaceTick>();
     public DbSet<RacePlayerDay> RacePlayerDays => Set<RacePlayerDay>();
     public DbSet<QuestDay> QuestDays => Set<QuestDay>();
+    public DbSet<JarOrder> JarOrders => Set<JarOrder>();
+    public DbSet<JarIncoming> JarIncomings => Set<JarIncoming>();
     public DbSet<PlayerBattle> PlayerBattles => Set<PlayerBattle>();
     public DbSet<Entitlement> Entitlements => Set<Entitlement>();
     public DbSet<PlayerAlertPrefs> PlayerAlertPrefs => Set<PlayerAlertPrefs>();
@@ -358,6 +360,24 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(q => q.PlayerTag).HasMaxLength(16);
             e.Property(q => q.Day).HasMaxLength(10);
             e.Property(q => q.Quests).HasMaxLength(64);
+        });
+
+        mb.Entity<JarOrder>(e =>
+        {
+            e.HasIndex(o => o.Code);
+            e.HasIndex(o => new { o.TelegramUserId, o.CreatedUtc });
+            e.HasIndex(o => o.CreatedUtc);
+            e.Property(o => o.Code).HasMaxLength(8);
+            e.Property(o => o.Product).HasMaxLength(8);
+        });
+
+        mb.Entity<JarIncoming>(e =>
+        {
+            e.HasIndex(i => i.MonoTxId).IsUnique();
+            e.HasIndex(i => i.TimeUtc);
+            e.Property(i => i.MonoTxId).HasMaxLength(64);
+            e.Property(i => i.Comment).HasMaxLength(500);
+            e.Property(i => i.Sender).HasMaxLength(200);
         });
 
         mb.Entity<FunnelEvent>(e =>
