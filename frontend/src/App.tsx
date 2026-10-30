@@ -39,6 +39,7 @@ import { HalloweenView } from './components/HalloweenView'
 import { HalloweenBanner } from './components/HalloweenBanner'
 import { FeedbackCard } from './components/FeedbackCard'
 import { OPEN_HALLOWEEN } from './lib/halloween'
+import { Pumpkin } from './components/Pumpkin'
 import { OPEN_TRAINER } from './lib/trainer'
 import type { MoreLink, MoreSection } from './components/MoreView'
 import { MenuChangedNotice } from './components/MenuChangedNotice'
@@ -504,6 +505,7 @@ export default function App() {
             )}
             {tab !== 'creatorChallenge' && tab !== 'owner' && tab !== 'shop' && <ModeHeader mode={mode} plus={plus} />}
             {/* «Донат»: витрина Плюса и Клан Про - в режиме клана сразу на Клан Про */}
+            {tab === 'shop' && <Pumpkin id={13} side="left" />}
             {tab === 'shop' && (
               <Showcase key={mode} embedded initialTab={mode === 'clan' ? 'sponsor' : 'plus'} onClose={() => setTab(mode === 'clan' ? 'war' : 'profile')} />
             )}
@@ -523,6 +525,7 @@ export default function App() {
                 <MyActionBanner status={data} />
                 {/* Перед войной - свои 4 колоды от штаба (Клан Про), по ссылке из бота - всегда */}
                 {!data.viewingAsAdmin && (data.periodType === 'training' || startParam === 'warprep') && <MyWarDecksCard />}
+                <Pumpkin id={2} side="left" />
                 <StatsStrip stats={data.stats} />
                 {/* Действие вперёд наблюдения: пока глава читает цифры, лентяи не отыграют.
                     Кнопка первой, чтобы пнуть можно было не пролистывая экран. */}
@@ -534,6 +537,7 @@ export default function App() {
                 {/* Разведка стоит вплотную к таблице гонки: таблица говорит, кто впереди
                     сейчас, разведка — чего эти кланы стоят вообще. Порознь они не работают. */}
                 <ScoutCard />
+                <Pumpkin id={3} />
                 <WarLogCard log={data.warLog} />
                 <WarJournalCard />
                 <InsightsCard insights={data.insights} players={data.players} dayLogs={data.dayLogs ?? []} warLog={data.warLog ?? []} race={data.race ?? []} periodType={data.periodType} periodIndex={data.periodIndex} hoursLeft={data.hoursLeft} />
@@ -541,17 +545,19 @@ export default function App() {
                     там же вкл/выкл, канал, часы и время окончания КВ. */}
               </div>
             )}
-            {tab === 'hq' && <ClanHqView />}
+            {tab === 'hq' && <><Pumpkin id={4} side="mid" /><ClanHqView /></>}
             {tab === 'roster' && (
               <div className="fade-in">
                 {canManage && (
                   <InviteUnlinkedCard unlinked={data.players.filter(p => !p.isLinked).length} hasChat={data.hasChat !== false} />
                 )}
+                <Pumpkin id={5} side="left" />
                 <PlayerList players={data.players} myPlayerTag={data.myPlayerTag} kingTag={king?.playerTag} canManage={canManage} />
               </div>
             )}
             {tab === 'rating' && (
               <div className="fade-in">
+                <Pumpkin id={6} />
                 <ClanWorldRankCard />
                 <Leaderboard players={data.players} myPlayerTag={data.myPlayerTag} periodType={data.periodType} warLog={data.warLog ?? []} canManage={canManage} />
                 <WorldTopEntry />
@@ -562,6 +568,7 @@ export default function App() {
               <div className="fade-in">
                 {/* Задания дня - первыми: повод зайти сегодня, а не когда-нибудь */}
                 {!data.viewingAsAdmin && <QuestsCard />}
+                <Pumpkin id={7} side="left" />
                 {/* Личное, что раньше стояло среди клановых карточек войны */}
                 <WhatsNewCard />
                 {iFinishedToday && !data.viewingAsAdmin && <InviteMomentCard />}
@@ -571,11 +578,14 @@ export default function App() {
                 {/* Мягкая реклама - под своей статистикой, а не над ней: сначала то, ради чего пришёл */}
                 <div style={{ height: 10 }} />
                 <ChannelCard dismissKey="me" />
+                <div style={{ height: 34 }} />
+                <Pumpkin id={8} side="mid" />
               </div>
             )}
-            {tab === 'decks' && <DecksHub initial={decksInitial} />}
-            {tab === 'trainer' && <TrainerHub />}
-            {tab === 'play' && <PlayHub key={playKey} initial={playInitial} />}
+            {tab === 'decks' && <><Pumpkin id={9} /><DecksHub initial={decksInitial} /></>}
+            {tab === 'trainer' && <><Pumpkin id={10} side="left" /><TrainerHub /></>}
+            {tab === 'play' && <><Pumpkin id={11} side="mid" /><PlayHub key={playKey} initial={playInitial} /></>}
+            {tab === 'more' && <Pumpkin id={12} />}
             {tab === 'more' && (
               <MoreView
                 canManage={canManage}

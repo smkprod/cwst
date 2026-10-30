@@ -34,6 +34,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<RacePlayerDay> RacePlayerDays => Set<RacePlayerDay>();
     public DbSet<QuestDay> QuestDays => Set<QuestDay>();
     public DbSet<JarOrder> JarOrders => Set<JarOrder>();
+    public DbSet<PumpkinFind> PumpkinFinds => Set<PumpkinFind>();
     public DbSet<JarIncoming> JarIncomings => Set<JarIncoming>();
     public DbSet<PlayerBattle> PlayerBattles => Set<PlayerBattle>();
     public DbSet<Entitlement> Entitlements => Set<Entitlement>();
@@ -361,6 +362,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(q => q.Day).HasMaxLength(10);
             e.Property(q => q.Quests).HasMaxLength(64);
         });
+
+        mb.Entity<PumpkinFind>(e => e.HasIndex(p => new { p.TelegramUserId, p.PumpkinId }).IsUnique());
 
         mb.Entity<JarOrder>(e =>
         {
