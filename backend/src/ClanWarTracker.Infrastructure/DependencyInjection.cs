@@ -112,6 +112,7 @@ public static class DependencyInjection
         services.AddScoped<IRaceTickRepository, RaceTickRepository>();
         services.AddScoped<IQuestRepository, QuestRepository>();
         services.AddScoped<IJarRepository, JarRepository>();
+        services.AddScoped<IPumpkinRepository, PumpkinRepository>();
         services.AddScoped<ITopPlayerRepository, TopPlayerRepository>();
         services.AddScoped<IMetaRepository, MetaRepository>();
         services.AddScoped<IChallengeRepository, ChallengeRepository>();
@@ -763,6 +764,17 @@ CREATE TABLE IF NOT EXISTS ""QuestDays"" (
             "CREATE INDEX IF NOT EXISTS \"IX_QuestDays_ClanId_Day\" ON \"QuestDays\" (\"ClanId\", \"Day\");");
         await db.Database.ExecuteSqlRawAsync(
             "CREATE INDEX IF NOT EXISTS \"IX_QuestDays_Day\" ON \"QuestDays\" (\"Day\");");
+
+        // Охота на тыквы: кто какие тыквы нашёл
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""PumpkinFinds"" (
+    ""Id"" serial PRIMARY KEY,
+    ""TelegramUserId"" bigint NOT NULL,
+    ""PumpkinId"" integer NOT NULL,
+    ""FoundUtc"" timestamptz NOT NULL
+);");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_PumpkinFinds_TelegramUserId_PumpkinId\" ON \"PumpkinFinds\" (\"TelegramUserId\", \"PumpkinId\");");
 
         // Оплата через банку Монобанка: заказы с кодом и переводы из выписки
         await db.Database.ExecuteSqlRawAsync(@"

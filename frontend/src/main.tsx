@@ -6,6 +6,7 @@ import { HalloweenSplash } from './components/HalloweenSplash'
 import { FeedbackSheet } from './components/FeedbackSheet'
 import { TipSheet } from './components/TipSheet'
 import { QuestToast } from './components/QuestsCard'
+import { PumpkinHost } from './components/Pumpkin'
 import { initTelegram } from './lib/telegram'
 import { ensureBotUsername } from './lib/botUsername'
 import { LangProvider } from './lib/i18n'
@@ -49,6 +50,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               <FeedbackSheet />
               <TipSheet />
               <QuestToast />
+              <PumpkinHost />
               <ShowcaseHost />
             </ClanModalProvider>
           </PlayerSheetProvider>

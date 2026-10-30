@@ -5,6 +5,7 @@ import { haptic } from '../lib/telegram'
 import { usePlayerSheet } from '../lib/playerSheet'
 import type { HalloweenHitter, HalloweenView as View } from '../types'
 import { Icon, type IconName } from './ui/Icon'
+import { Pumpkin, PumpkinHunt } from './Pumpkin'
 
 /**
  * Вкладка «Хэллоуин»: босс клана. Здоровье, урон за сегодня, как бить, своя строка,
@@ -76,6 +77,9 @@ export function HalloweenView() {
         </div>
       </section>
 
+      <Pumpkin id={1} side="mid" />
+      <PumpkinHunt />
+
       <MyDamage data={data} />
 
       <section className="hw-glass hw-rim-red">
@@ -106,13 +110,6 @@ export function HalloweenView() {
         </section>
       )}
 
-      <section className="hw-glass hw-soon">
-        <img className="hw-soon-ghost" src="/hw/ghost.webp" alt="" />
-        <div>
-          <b>{s.soonTitle}</b>
-          <div className="hw-muted">{s.soonText}</div>
-        </div>
-      </section>
     </div>
   )
 }

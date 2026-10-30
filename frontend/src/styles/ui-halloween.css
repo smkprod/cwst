@@ -220,3 +220,49 @@ html.hw-night .tab-active .tab-label { color: #fff; }
 .splash-hw .splash-glow { background: radial-gradient(circle, rgba(255, 140, 40, 0.3), rgba(255, 80, 20, 0.14) 45%, transparent 70%); }
 .splash-hw .splash-logo { width: min(74vw, 290px); }
 .splash-hw .splash-fill { background: linear-gradient(90deg, transparent, #ffb347, #ff6a1a, transparent); }
+
+/* --- Охота на тыквы --- */
+/* Тыква не занимает места: якорь нулевой высоты, тыква сидит на краю соседней карточки */
+.pk-anchor { position: relative; height: 0; z-index: 5; }
+.pk { position: absolute; top: -22px; width: 44px; height: 44px; padding: 0; border: 0; background: none; cursor: pointer;
+  animation: pkSway 2.6s ease-in-out infinite; filter: drop-shadow(0 0 10px rgba(255, 140, 40, 0.85)); -webkit-tap-highlight-color: transparent; }
+.pk img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+.pk-right .pk { right: 6px; }
+.pk-left .pk { left: 6px; }
+.pk-mid .pk { left: calc(50% + 40px); }
+.pk:active { transform: scale(0.85); }
+@keyframes pkSway { 0%, 100% { transform: rotate(-9deg) translateY(0); } 50% { transform: rotate(9deg) translateY(-3px); } }
+
+.pk-backdrop { z-index: 1200; display: grid; place-items: center; padding: 16px; }
+.pk-modal { position: relative; width: min(360px, 100%); padding: 26px 20px 18px; border-radius: 26px; text-align: center; overflow: hidden; color: #fff4ea;
+  background: radial-gradient(120% 90% at 50% 0%, #4a1f63 0%, #1d0f2b 60%, #120a1c 100%);
+  border: 1px solid rgba(255, 160, 70, 0.4); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(255, 120, 40, 0.25); }
+.pk-rays { position: absolute; inset: -40%; background: repeating-conic-gradient(from 0deg, rgba(255, 170, 70, 0.12) 0 10deg, transparent 10deg 20deg);
+  animation: pkSpin 14s linear infinite; pointer-events: none; }
+@keyframes pkSpin { to { transform: rotate(360deg); } }
+.pk-big { position: relative; width: 120px; height: 120px; object-fit: contain; filter: drop-shadow(0 0 24px rgba(255, 140, 40, 0.8)); animation: pkPop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1); }
+@keyframes pkPop { from { transform: scale(0.3) rotate(-20deg); opacity: 0; } to { transform: scale(1) rotate(0); opacity: 1; } }
+.pk-modal h2 { position: relative; margin: 6px 0 2px; font-size: 24px; font-weight: 900; color: #ffb35c; }
+.pk-count { position: relative; font-weight: 800; font-size: 15px; opacity: 0.9; }
+.pk-dots { position: relative; display: flex; justify-content: center; flex-wrap: wrap; gap: 5px; margin: 12px 0; }
+.pk-dot { width: 12px; height: 12px; border-radius: 50%; background: rgba(255, 255, 255, 0.14); }
+.pk-dot-on { background: radial-gradient(circle at 35% 35%, #ffd08a, #ff8a1e 60%, #c2410c); box-shadow: 0 0 8px rgba(255, 140, 40, 0.8); }
+.pk-hint, .pk-reward { position: relative; margin: 4px 0 14px; font-size: 14px; line-height: 1.45; }
+.pk-hint b { color: #e9d5ff; }
+.pk-reward { font-weight: 900; color: #86efac; font-size: 15px; }
+.pk-btns { position: relative; display: grid; gap: 8px; }
+.pk-btn { width: 100%; }
+
+.pk-hunt .hw-h { margin-bottom: 6px; }
+.pk-hunt-n { margin-left: auto; font-weight: 900; color: #ffb35c; font-variant-numeric: tabular-nums; }
+.pk-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin: 12px 0 10px; }
+.pk-slot { width: 100%; aspect-ratio: 1; object-fit: contain; filter: grayscale(1) brightness(0.25); opacity: 0.7; }
+.pk-slot-on { filter: drop-shadow(0 0 6px rgba(255, 140, 40, 0.7)); opacity: 1; }
+.pk-bar i { background: linear-gradient(90deg, #9a3412, #ff8a1e 60%, #ffd08a); box-shadow: 0 0 14px rgba(255, 140, 40, 0.8); }
+.pk-ghost { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding: 10px 12px; border-radius: 16px; background: rgba(233, 213, 255, 0.07); }
+.pk-ghost img { width: 46px; height: 46px; object-fit: contain; flex-shrink: 0; animation: pkSway 3.4s ease-in-out infinite; }
+.pk-ghost b { display: block; font-size: 14px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pk, .pk-rays, .pk-ghost img, .pk-big { animation: none; }
+}

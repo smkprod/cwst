@@ -61,7 +61,7 @@ export function HalloweenSplash() {
             text={s.bossNames[data.nextBossKey]} />
         )}
         <Feat img="/hw/pumpkin-s.webp" title={s.splashRewardTitle} text={s.splashRewardText.replace('{days}', days)} />
-        <Feat img="/hw/ghost.webp" title={s.splashSoonTitle} text={s.splashSoonText} />
+        <Feat img="/hw/ghost.webp" title={s.huntSoonTitle} text={s.huntSoonText.replace('{days}', '3')} />
         <button className="hw-cta" onClick={go}>
           <img src="/hw/pumpkin-s.webp" alt="" /> {s.splashGo}
         </button>

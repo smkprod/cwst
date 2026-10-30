@@ -2065,6 +2065,26 @@ export interface HalloweenHitter {
   ladderWins: number
 }
 
+/** «Охота на тыквы»: свои находки и общий счёт. */
+export interface PumpkinStatus {
+  open: boolean
+  endUtc: string
+  total: number
+  rewardPlusDays: number
+  found: number[]
+  hunters: number
+  finishers: number
+  firstFinishers: string[]
+}
+
+export interface PumpkinFindResult {
+  isNew: boolean
+  foundCount: number
+  completed: boolean
+  rewardUntil: string | null
+  found: number[]
+}
+
 export interface HalloweenView {
   clanName: string
   bossKey: HalloweenBossKey
