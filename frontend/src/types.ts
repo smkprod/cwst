@@ -1385,14 +1385,12 @@ export type BackgroundKey =
  * Вкладки нижнего меню, которые владелец может спрятать из панели. Война, профиль и
  * «Ещё» не прячутся; спрятанное остаётся в «Ещё». shop - «Донат», в обоих режимах.
  */
-export type MenuTab = 'hq' | 'roster' | 'rating' | 'halloween' | 'decks' | 'trainer' | 'play' | 'shop'
+export type MenuTab = 'hq' | 'roster' | 'rating' | 'decks' | 'trainer' | 'play' | 'shop'
 
 export interface AppConfig {
   /** Своё оформление (фон игрока) открыто: Плюс или спонсорство. */
   canLooks?: boolean
   botUsername: string
-  /** Идущий ивент: пока он идёт, у него своя вкладка в нижнем меню. */
-  event?: 'halloween' | null
   /** Канал бота без @; пусто - не подключён. */
   channelUsername?: string
   /** Что владелец убрал из нижнего меню. Нет поля (старый сервер) - показываем всё. */
@@ -2051,62 +2049,6 @@ export interface OwnerEngagement {
 export interface LinkCandidates {
   clanName: string
   members: { tag: string; name: string; role: string; trophies: number }[]
-}
-
-/** Босс клана на Хэллоуин: GET /api/clans/my/halloween. */
-export type HalloweenBossKey = 'vampire' | 'king'
-
-export interface HalloweenHitter {
-  tag: string
-  name: string
-  damage: number
-  warWins: number
-  threeCrowns: number
-  ladderWins: number
-}
-
-/** «Охота на тыквы»: свои находки и общий счёт. */
-export interface PumpkinStatus {
-  open: boolean
-  endUtc: string
-  total: number
-  rewardPlusDays: number
-  found: number[]
-  hunters: number
-  finishers: number
-  firstFinishers: string[]
-}
-
-export interface PumpkinFindResult {
-  isNew: boolean
-  foundCount: number
-  completed: boolean
-  rewardUntil: string | null
-  found: number[]
-}
-
-export interface HalloweenView {
-  clanName: string
-  bossKey: HalloweenBossKey
-  startUtc: string
-  endUtc: string
-  eventEndUtc: string
-  hp: number
-  damage: number
-  today: number
-  defeatedUtc: string | null
-  top: HalloweenHitter[]
-  me: HalloweenHitter | null
-  myRank: number | null
-  hitters: number
-  nextBossKey: HalloweenBossKey | null
-  nextStartUtc: string | null
-  previous: { key: HalloweenBossKey; hp: number; damage: number; defeatedUtc: string | null } | null
-  warWin: number
-  warThreeCrowns: number
-  ladderWin: number
-  ladderWinsPerDay: number
-  rewardPlusDays: number
 }
 
 /** Воронка покупки для панели: увидели → нажали «Купить» → заплатили. */

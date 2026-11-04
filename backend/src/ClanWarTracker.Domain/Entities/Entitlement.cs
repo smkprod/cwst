@@ -70,8 +70,6 @@ public class Entitlement
         public const string Quest = "quest";
         /// <summary>Оплата гривнами через банку Монобанка.</summary>
         public const string Jar = "jar";
-        /// <summary>Награда за все тыквы хэллоуинской охоты.</summary>
-        public const string Pumpkins = "pumpkins";
     }
 }
 

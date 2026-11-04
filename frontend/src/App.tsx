@@ -35,11 +35,7 @@ import { MoreView } from './components/MoreView'
 import { ConnectChatCard, InviteMomentCard, InviteUnlinkedCard } from './components/EngageCards'
 import { ChannelCard } from './components/ChannelCard'
 import { useShowcase } from './lib/showcase'
-import { HalloweenView } from './components/HalloweenView'
-import { HalloweenBanner } from './components/HalloweenBanner'
 import { FeedbackCard } from './components/FeedbackCard'
-import { OPEN_HALLOWEEN } from './lib/halloween'
-import { Pumpkin } from './components/Pumpkin'
 import { OPEN_TRAINER } from './lib/trainer'
 import type { MoreLink, MoreSection } from './components/MoreView'
 import { MenuChangedNotice } from './components/MenuChangedNotice'
@@ -77,11 +73,11 @@ const TRANSIENT_TOLERANCE = 3
  * тренажёр, турниры. «Ещё» и панель владельца - в обоих. Гость смотрит чужой клан
  * со стороны и живёт в упрощённом наборе: война, его статистика, турнир, поиск.
  */
-type Tab = 'war' | 'hq' | 'roster' | 'rating' | 'halloween'
+type Tab = 'war' | 'hq' | 'roster' | 'rating'
   | 'profile' | 'decks' | 'trainer' | 'play'
   | 'tournament' | 'search' | 'more' | 'owner' | 'creatorChallenge' | 'shop'
 
-const CLAN_TABS: Tab[] = ['war', 'hq', 'roster', 'rating', 'halloween']
+const CLAN_TABS: Tab[] = ['war', 'hq', 'roster', 'rating']
 const PLAYER_TABS: Tab[] = ['profile', 'decks', 'trainer', 'play']
 
 
@@ -138,9 +134,8 @@ const START_PLAYER_TAB: Tab | null = startParam === 'review' || startToMatches |
   : null
 const START_DECKS: DecksSection | undefined = startParam === 'meta' ? 'meta' : startParam === 'builder' ? 'pick' : undefined
 const START_PLAY: PlaySection | undefined = startParam === 'duel' ? 'duel' : startParam === 'challenge' ? 'challenge' : undefined
-const START_MODE: AppMode = START_PLAYER_TAB ? 'player' : startParam === 'halloween' || startParam === 'warprep' ? 'clan' : loadMode() ?? 'clan'
+const START_MODE: AppMode = START_PLAYER_TAB ? 'player' : startParam === 'warprep' ? 'clan' : loadMode() ?? 'clan'
 const START_TAB: Tab = startChallengeCode ? 'creatorChallenge'
-  : startParam === 'halloween' ? 'halloween'
   : startParam === 'warprep' ? 'war'
   : START_PLAYER_TAB ?? (startParam === 'invite' ? 'more' : START_MODE === 'player' ? 'profile' : 'war')
 
@@ -213,12 +208,6 @@ export default function App() {
     return () => window.removeEventListener(OPEN_DECKS, go)
   }, [goPlayer])
   const questsSeen = useQuestsSeen()
-  // Заставка и баннер Хэллоуина ведут во вкладку босса
-  useEffect(() => {
-    const go = () => { setMode('clan'); setTab('halloween') }
-    window.addEventListener(OPEN_HALLOWEEN, go)
-    return () => window.removeEventListener(OPEN_HALLOWEEN, go)
-  }, [])
   const plus = usePlusState()
   const openPlus = usePlusSheet()
 
@@ -263,11 +252,6 @@ export default function App() {
       .catch(() => { /* останемся на наборе вкладок по умолчанию */ })
   }, [])
   const { t } = useT()
-
-  // Ивент кончился, а приложение открыли старой ссылкой startapp=halloween - на первый экран
-  useEffect(() => {
-    if (config && config.event !== 'halloween' && tab === 'halloween') setTab('war')
-  }, [config, tab])
 
   // Сколько подряд неудачных обновлений терпим, прежде чем показать ошибку.
   // Разовый сбой сети или икота CR API не должны стирать рабочий экран.
@@ -456,7 +440,6 @@ export default function App() {
         hidden.has('shop') ? null : { id: 'shop', icon: kind === 'pro' ? 'crown' : 'gem', label: t.tabs.shop, shop: kind }
       const clanBody: BarTab<Tab>[] = [
         { id: 'war', icon: 'swords', label: t.tabs.war },
-        ...(config?.event === 'halloween' ? [{ id: 'halloween' as Tab, icon: 'gift' as IconName, label: t.tabs.halloween }] : []),
         { id: 'hq', icon: 'crown', label: t.tabs.hq, badge: plus && !hasPro ? 'pro' : undefined },
         { id: 'roster', icon: 'users', label: t.tabs.roster },
         { id: 'rating', icon: 'trophy', label: t.tabs.rating },
@@ -475,7 +458,6 @@ export default function App() {
         { id: 'hq', icon: 'crown', tone: 'gold', title: t.tabs.hq, hint: t.clanPro.hqLead },
         { id: 'roster', icon: 'users', tone: 'blue', title: t.tabs.roster, hint: t.more.rosterHint },
         { id: 'rating', icon: 'trophy', tone: 'gold', title: t.tabs.rating, hint: t.more.ratingHint },
-        ...(config?.event === 'halloween' ? [{ id: 'halloween', icon: 'gift', tone: 'orange', title: t.tabs.halloween, hint: t.more.halloweenHint } as MoreLink] : []),
       ]
       const clanLinks = allClanLinks.filter(l => hidden.has(l.id as MenuTab))
       // Точка на переключателе - в другом режиме тебя ждут: в клане - твои атаки
@@ -505,7 +487,6 @@ export default function App() {
             )}
             {tab !== 'creatorChallenge' && tab !== 'owner' && tab !== 'shop' && <ModeHeader mode={mode} plus={plus} />}
             {/* «Донат»: витрина Плюса и Клан Про - в режиме клана сразу на Клан Про */}
-            {tab === 'shop' && <Pumpkin id={13} side="left" />}
             {tab === 'shop' && (
               <Showcase key={mode} embedded initialTab={mode === 'clan' ? 'sponsor' : 'plus'} onClose={() => setTab(mode === 'clan' ? 'war' : 'profile')} />
             )}
@@ -514,7 +495,6 @@ export default function App() {
                 <MenuChangedNotice />
                 <UpdateNotice />
                 <WarHeader status={data} canManage={canManage} onOpenSettings={() => { haptic('light'); setSettingsOpen(true) }} />
-                {config?.event === 'halloween' && <HalloweenBanner />}
                 {/* Бот не в чате клана - главный канал не работает: лидеру кнопка «добавить», остальным «попросить» */}
                 {data.hasChat === false && !data.viewingAsAdmin && (
                   <ConnectChatCard clanTag={data.clanTag} isLeader={Boolean(data.isClanLeader)} />
@@ -525,7 +505,6 @@ export default function App() {
                 <MyActionBanner status={data} />
                 {/* Перед войной - свои 4 колоды от штаба (Клан Про), по ссылке из бота - всегда */}
                 {!data.viewingAsAdmin && (data.periodType === 'training' || startParam === 'warprep') && <MyWarDecksCard />}
-                <Pumpkin id={2} side="left" />
                 <StatsStrip stats={data.stats} />
                 {/* Действие вперёд наблюдения: пока глава читает цифры, лентяи не отыграют.
                     Кнопка первой, чтобы пнуть можно было не пролистывая экран. */}
@@ -537,7 +516,6 @@ export default function App() {
                 {/* Разведка стоит вплотную к таблице гонки: таблица говорит, кто впереди
                     сейчас, разведка — чего эти кланы стоят вообще. Порознь они не работают. */}
                 <ScoutCard />
-                <Pumpkin id={3} />
                 <WarLogCard log={data.warLog} />
                 <WarJournalCard />
                 <InsightsCard insights={data.insights} players={data.players} dayLogs={data.dayLogs ?? []} warLog={data.warLog ?? []} race={data.race ?? []} periodType={data.periodType} periodIndex={data.periodIndex} hoursLeft={data.hoursLeft} />
@@ -545,30 +523,26 @@ export default function App() {
                     там же вкл/выкл, канал, часы и время окончания КВ. */}
               </div>
             )}
-            {tab === 'hq' && <><Pumpkin id={4} side="mid" /><ClanHqView /></>}
+            {tab === 'hq' && <ClanHqView />}
             {tab === 'roster' && (
               <div className="fade-in">
                 {canManage && (
                   <InviteUnlinkedCard unlinked={data.players.filter(p => !p.isLinked).length} hasChat={data.hasChat !== false} />
                 )}
-                <Pumpkin id={5} side="left" />
                 <PlayerList players={data.players} myPlayerTag={data.myPlayerTag} kingTag={king?.playerTag} canManage={canManage} />
               </div>
             )}
             {tab === 'rating' && (
               <div className="fade-in">
-                <Pumpkin id={6} />
                 <ClanWorldRankCard />
                 <Leaderboard players={data.players} myPlayerTag={data.myPlayerTag} periodType={data.periodType} warLog={data.warLog ?? []} canManage={canManage} />
                 <WorldTopEntry />
               </div>
             )}
-            {tab === 'halloween' && <HalloweenView />}
             {tab === 'profile' && (
               <div className="fade-in">
                 {/* Задания дня - первыми: повод зайти сегодня, а не когда-нибудь */}
                 {!data.viewingAsAdmin && <QuestsCard />}
-                <Pumpkin id={7} side="left" />
                 {/* Личное, что раньше стояло среди клановых карточек войны */}
                 <WhatsNewCard />
                 {iFinishedToday && !data.viewingAsAdmin && <InviteMomentCard />}
@@ -579,13 +553,11 @@ export default function App() {
                 <div style={{ height: 10 }} />
                 <ChannelCard dismissKey="me" />
                 <div style={{ height: 34 }} />
-                <Pumpkin id={8} side="mid" />
               </div>
             )}
-            {tab === 'decks' && <><Pumpkin id={9} /><DecksHub initial={decksInitial} /></>}
-            {tab === 'trainer' && <><Pumpkin id={10} side="left" /><TrainerHub /></>}
-            {tab === 'play' && <><Pumpkin id={11} side="mid" /><PlayHub key={playKey} initial={playInitial} /></>}
-            {tab === 'more' && <Pumpkin id={12} />}
+            {tab === 'decks' && <DecksHub initial={decksInitial} />}
+            {tab === 'trainer' && <TrainerHub />}
+            {tab === 'play' && <PlayHub key={playKey} initial={playInitial} />}
             {tab === 'more' && (
               <MoreView
                 canManage={canManage}

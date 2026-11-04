@@ -43,7 +43,6 @@ builder.Services.AddScoped<PlusAccess>();
 builder.Services.AddScoped<ProcessPlusPaymentUseCase>();
 builder.Services.AddScoped<BattleTrackerUseCase>();
 builder.Services.AddScoped<ChallengeUseCase>();
-builder.Services.AddScoped<HalloweenUseCase>();
 builder.Services.AddScoped<DailyQuestsUseCase>();
 builder.Services.AddScoped<JarPaymentUseCase>();
 builder.Services.AddScoped<GetClanDisciplineUseCase>();

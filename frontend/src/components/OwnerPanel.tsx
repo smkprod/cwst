@@ -349,7 +349,6 @@ const SOURCE_LABELS: Record<string, string> = {
 }
 
 const DEST_LABELS: Record<string, string> = {
-  halloween: 'Хэллоуин',
   showcase: 'Витрина',
   home: 'Главный экран',
   review: 'Разбор боёв',
@@ -1235,13 +1234,12 @@ type MenuRow = { key: MenuTab | null; icon: IconName; label: string; hint?: stri
 function TabsSection({ t }: { t: Translations }) {
   const o = t.owner
   const [hidden, setHidden] = useState<Set<MenuTab> | null>(null)
-  const [event, setEvent] = useState(false)
   const [busy, setBusy] = useState(false)
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
     api.getAppConfig()
-      .then(c => { setHidden(new Set(c.hiddenTabs ?? [])); setEvent(c.event === 'halloween') })
+      .then(c => setHidden(new Set(c.hiddenTabs ?? [])))
       .catch(() => setHidden(new Set()))
   }, [])
 
@@ -1274,7 +1272,6 @@ function TabsSection({ t }: { t: Translations }) {
 
   const clanRows: MenuRow[] = [
     { key: null, icon: 'swords', label: t.tabs.war },
-    ...(event ? [{ key: 'halloween' as MenuTab, icon: 'gift' as IconName, label: t.tabs.halloween }] : []),
     { key: 'hq', icon: 'crown', label: t.tabs.hq },
     { key: 'roster', icon: 'users', label: t.tabs.roster },
     { key: 'rating', icon: 'trophy', label: t.tabs.rating },

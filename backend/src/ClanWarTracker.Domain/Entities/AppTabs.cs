@@ -18,7 +18,6 @@ public static class AppTabs
     public const string Hq = "hq";
     public const string Roster = "roster";
     public const string Rating = "rating";
-    public const string Halloween = "halloween";
 
     // Режим «Игрок»
     public const string Decks = "decks";
@@ -29,7 +28,7 @@ public static class AppTabs
     public const string Shop = "shop";
 
     /// <summary>Что можно спрятать. Остальное в меню всегда.</summary>
-    public static readonly string[] Optional = [Hq, Roster, Rating, Halloween, Decks, Trainer, Play, Shop];
+    public static readonly string[] Optional = [Hq, Roster, Rating, Decks, Trainer, Play, Shop];
 
     public static bool IsOptional(string? key) => key is not null && Array.IndexOf(Optional, key) >= 0;
 

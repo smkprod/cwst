@@ -110,9 +110,7 @@ export function TabBar<T extends string>({ tabs, active, onSelect, mode, onToggl
           onClick={() => { haptic('light'); onSelect(tb.id) }}
         >
           <span className="tab-icon">
-            {tb.id === 'halloween'
-              ? <img className="tab-img" src="/hw/pumpkin-s.webp" alt="" />
-              : <Icon name={tb.icon} size={20} />}
+            <Icon name={tb.icon} size={20} />
             {tb.badge === 'plus' && <span className="tab-plus"><Icon name="gem" size={9} /></span>}
             {tb.badge === 'pro' && <span className="tab-plus tab-pro"><Icon name="crown" size={9} /></span>}
             {tb.badge === 'dot' && <span className="tab-dot" />}
