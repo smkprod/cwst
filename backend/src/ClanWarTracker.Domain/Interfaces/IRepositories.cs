@@ -569,20 +569,16 @@ public interface IQuestRepository
     Task SaveChangesAsync(CancellationToken ct = default);
 }
 
-/// <summary>«Охота на тыквы»: кто какие тыквы нашёл.</summary>
-public interface IPumpkinRepository
+/// <summary>Живые карточки КВ (Telegram-виджеты): какие уже есть у кланов.</summary>
+public interface IWarWidgetRepository
 {
-    /// <summary>Номера тыкв, которые человек уже нашёл.</summary>
-    Task<List<int>> GetFoundAsync(long telegramUserId, CancellationToken ct = default);
+    Task<WarWidget?> GetAsync(int clanId, string lang, CancellationToken ct = default);
 
-    /// <summary>Записать находку. false - эта тыква у него уже есть.</summary>
-    Task<bool> TryAddAsync(long telegramUserId, int pumpkinId, DateTime foundUtc, CancellationToken ct = default);
+    /// <summary>Карточки, которые показывали после этого момента: их и обновляет воркер.</summary>
+    Task<List<WarWidget>> ShownSinceAsync(DateTime sinceUtc, CancellationToken ct = default);
 
-    /// <summary>Нашедшие все тыквы: аккаунт и момент последней находки, первые - раньше всех.</summary>
-    Task<List<(long TelegramUserId, DateTime FinishedUtc)>> FinishersAsync(int total, CancellationToken ct = default);
-
-    /// <summary>Сколько людей нашли хотя бы одну тыкву.</summary>
-    Task<int> HuntersAsync(CancellationToken ct = default);
+    Task AddAsync(WarWidget widget, CancellationToken ct = default);
+    Task SaveChangesAsync(CancellationToken ct = default);
 }
 
 /// <summary>Оплата через банку Монобанка: заказы с кодом и переводы из выписки.</summary>

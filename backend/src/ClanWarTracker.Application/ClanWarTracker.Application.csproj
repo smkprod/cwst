@@ -12,6 +12,10 @@
     <InternalsVisibleTo Include="ClanWarTracker.Tests" />
   </ItemGroup>
   <ItemGroup>
+    <!-- Код Telegram-виджетов: уходит в сообщение как есть, поэтому живёт отдельным файлом -->
+    <EmbeddedResource Include="Notifications\Widgets\*.html" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\ClanWarTracker.Domain\ClanWarTracker.Domain.csproj" />
   </ItemGroup>
 </Project>

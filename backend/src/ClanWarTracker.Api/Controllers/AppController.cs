@@ -66,8 +66,6 @@ public class AppController(
         return Ok(new
         {
             botUsername = username ?? "",
-            // Идущий ивент: фронт сам добавляет его вкладку в нижнее меню, пока он идёт
-            @event = HalloweenUseCase.Live(DateTime.UtcNow) is not null ? "halloween" : null,
             channelUsername = channel,
             hiddenTabs,
             playerBackgrounds = SponsorBackground.ForPlayers,

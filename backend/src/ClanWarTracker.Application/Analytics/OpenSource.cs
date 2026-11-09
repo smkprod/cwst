@@ -5,7 +5,7 @@ namespace ClanWarTracker.Application.Analytics;
 /// <summary>
 /// Метка источника в параметре запуска Mini App (startapp). Бот дописывает к разделу
 /// суффикс «-c» (пост в чате клана), «-d» (личное сообщение бота), «-b» (ответ на
-/// команду), «-k» (канал), ссылки «поделиться» - «-s». Так одна и та же кнопка «Разбор»
+/// команду), «-k» (канал), «-w» (живая карточка КВ), ссылки «поделиться» - «-s». Так одна и та же кнопка «Разбор»
 /// из чата и из лички считается раздельно, а раздел остаётся прежним. Фронтенд суффикс
 /// отрезает для навигации, а сырой параметр отправляет на сервер.
 /// </summary>
@@ -18,8 +18,9 @@ public static partial class OpenSource
     public const string Share = "share";
     public const string Link = "link";
     public const string Menu = "menu";
+    public const string Widget = "widget";
 
-    public static readonly string[] All = [Chat, Dm, Bot, Channel, Share, Link, Menu];
+    public static readonly string[] All = [Chat, Dm, Bot, Channel, Share, Link, Menu, Widget];
 
     /// <summary>Суффикс по чату: у групп id отрицательный - пост в чате клана, иначе личка.</summary>
     public static string For(long chatId) => chatId < 0 ? "c" : "d";
@@ -44,6 +45,7 @@ public static partial class OpenSource
                 "d" => Dm,
                 "b" => Bot,
                 "k" => Channel,
+                "w" => Widget,
                 _ => Share,
             };
             raw = m.Groups[1].Value;
@@ -61,7 +63,7 @@ public static partial class OpenSource
         return d.Length <= 20 ? d : d[..20];
     }
 
-    [GeneratedRegex("^(.*)-([cdbks])$")]
+    [GeneratedRegex("^(.*)-([cdbksw])$")]
     private static partial Regex SuffixRegex();
 
     [GeneratedRegex("^((?:m|ch|link)(?=_)|[a-z][a-z_]*)")]

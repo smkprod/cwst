@@ -65,6 +65,15 @@ public static class DependencyInjection
         services.AddSingleton<ITelegramBotClient>(new TelegramBotClient(botToken!));
 
         services.AddScoped<INotificationSender, TelegramNotificationSender>();
+
+        // Telegram-виджеты (Bot API 10.4): выключены, пока не задан TELEGRAM_WIDGETS=1
+        services.AddHttpClient(TelegramWidgetSender.HttpClientName, http => http.Timeout = TimeSpan.FromSeconds(15));
+        var widgetsOn = config["TELEGRAM_WIDGETS"]?.Trim() is "1" or "true" or "True";
+        services.AddSingleton<IWidgetSender>(sp => new TelegramWidgetSender(
+            sp.GetRequiredService<IHttpClientFactory>(),
+            sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<TelegramWidgetSender>>(),
+            botToken, widgetsOn, config["TELEGRAM_WIDGET_API"],
+            config["TELEGRAM_WIDGET_TEST_ENV"]?.Trim() is "1" or "true"));
         services.AddScoped<IChannelPublisher, TelegramChannelPublisher>();
 
         // Новости для канала: чтение лент и (по ключу в .env) пересказ по-русски
@@ -111,8 +120,8 @@ public static class DependencyInjection
         services.AddScoped<IFeedbackRepository, FeedbackRepository>();
         services.AddScoped<IRaceTickRepository, RaceTickRepository>();
         services.AddScoped<IQuestRepository, QuestRepository>();
+        services.AddScoped<IWarWidgetRepository, WarWidgetRepository>();
         services.AddScoped<IJarRepository, JarRepository>();
-        services.AddScoped<IPumpkinRepository, PumpkinRepository>();
         services.AddScoped<ITopPlayerRepository, TopPlayerRepository>();
         services.AddScoped<IMetaRepository, MetaRepository>();
         services.AddScoped<IChallengeRepository, ChallengeRepository>();
@@ -765,16 +774,23 @@ CREATE TABLE IF NOT EXISTS ""QuestDays"" (
         await db.Database.ExecuteSqlRawAsync(
             "CREATE INDEX IF NOT EXISTS \"IX_QuestDays_Day\" ON \"QuestDays\" (\"Day\");");
 
-        // Охота на тыквы: кто какие тыквы нашёл
+        // Живые карточки КВ (Telegram-виджеты): одна на клан и язык
         await db.Database.ExecuteSqlRawAsync(@"
-CREATE TABLE IF NOT EXISTS ""PumpkinFinds"" (
+CREATE TABLE IF NOT EXISTS ""WarWidgets"" (
     ""Id"" serial PRIMARY KEY,
-    ""TelegramUserId"" bigint NOT NULL,
-    ""PumpkinId"" integer NOT NULL,
-    ""FoundUtc"" timestamptz NOT NULL
+    ""ClanId"" integer NOT NULL,
+    ""Lang"" varchar(4) NOT NULL,
+    ""WidgetId"" varchar(64) NOT NULL,
+    ""Revision"" bigint NOT NULL DEFAULT 0,
+    ""LastData"" varchar(2048) NULL,
+    ""CreatedUtc"" timestamptz NOT NULL,
+    ""LastShownUtc"" timestamptz NOT NULL,
+    ""LastPushedUtc"" timestamptz NULL
 );");
         await db.Database.ExecuteSqlRawAsync(
-            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_PumpkinFinds_TelegramUserId_PumpkinId\" ON \"PumpkinFinds\" (\"TelegramUserId\", \"PumpkinId\");");
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_WarWidgets_ClanId_Lang\" ON \"WarWidgets\" (\"ClanId\", \"Lang\");");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_WarWidgets_LastShownUtc\" ON \"WarWidgets\" (\"LastShownUtc\");");
 
         // Оплата через банку Монобанка: заказы с кодом и переводы из выписки
         await db.Database.ExecuteSqlRawAsync(@"
@@ -1265,6 +1281,4 @@ internal sealed class CardUrls(string? baseUrl) : ClanWarTracker.Application.Not
         var bucket = DateTime.UtcNow.Ticks / TimeSpan.TicksPerMinute / 10;
         return $"{baseUrl}/api/img/{kind}/{playerTag.TrimStart('#')}.jpg?v={bucket}";
     }
-
-    public string? Asset(string path) => string.IsNullOrEmpty(baseUrl) ? null : $"{baseUrl}/{path.TrimStart('/')}";
 }

@@ -2,11 +2,9 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
 import { ChallengePromo } from './components/ChallengePromo'
-import { HalloweenSplash } from './components/HalloweenSplash'
 import { FeedbackSheet } from './components/FeedbackSheet'
 import { TipSheet } from './components/TipSheet'
 import { QuestToast } from './components/QuestsCard'
-import { PumpkinHost } from './components/Pumpkin'
 import { initTelegram } from './lib/telegram'
 import { ensureBotUsername } from './lib/botUsername'
 import { LangProvider } from './lib/i18n'
@@ -22,7 +20,6 @@ import './styles/ui-battles.css'
 import './styles/ui-misc.css'
 import './styles/ui-studio.css'
 import './styles/ui-showcase.css'
-import './styles/ui-halloween.css'
 import './styles/ui-feedback.css'
 import './styles/ui-dashboard.css'
 import './styles/ui-clanpro.css'
@@ -46,11 +43,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <ClanModalProvider>
               <App />
               <ChallengePromo />
-              <HalloweenSplash />
               <FeedbackSheet />
               <TipSheet />
               <QuestToast />
-              <PumpkinHost />
               <ShowcaseHost />
             </ClanModalProvider>
           </PlayerSheetProvider>
