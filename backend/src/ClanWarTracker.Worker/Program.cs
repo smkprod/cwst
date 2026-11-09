@@ -7,6 +7,7 @@ var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddSingleton<WarForecastService>();
 builder.Services.AddScoped<GetClanStatusUseCase>();
+builder.Services.AddScoped<WarWidgetUseCase>();
 builder.Services.AddScoped<GetPlayerStatsUseCase>();
 builder.Services.AddScoped<GetSeasonStatsUseCase>();
 builder.Services.AddScoped<CaptureWarSnapshotsUseCase>();

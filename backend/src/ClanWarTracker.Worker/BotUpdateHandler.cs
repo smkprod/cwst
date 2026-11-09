@@ -1137,8 +1137,19 @@ public class BotUpdateHandler(
                 case "/status":
                     var statusUseCase = sp.GetRequiredService<GetClanStatusUseCase>();
                     var clans = sp.GetRequiredService<IClanRepository>();
-                    var clan = await clans.GetByChatIdAsync(msg.Chat.Id, ct);
+                    // В личке - клан самого игрока: у многих кланов нет беседы, и карточку
+                    // лидер пересылает туда, где клан на самом деле общается
+                    var clan = msg.Chat.Type == ChatType.Private
+                        ? await sp.GetRequiredService<IPlayerRepository>().GetByTelegramIdAsync(msg.From!.Id, ct) is { ClanId: int myClanId }
+                            ? await clans.GetByIdAsync(myClanId, ct)
+                            : null
+                        : await clans.GetByChatIdAsync(msg.Chat.Id, ct);
                     if (clan is null) { await Reply(msg, t.ClanNotLinked, ct); return; }
+
+                    // Живая карточка (Telegram-виджет); где её нет - прежняя текстовая сводка
+                    if (await sp.GetRequiredService<WarWidgetUseCase>().ShowAsync(clan,
+                            WarWidgetUseCase.LangOf(t), msg.Chat.Id, msg.MessageThreadId, _botUsername, ct))
+                        return;
 
                     var status = await statusUseCase.ExecuteAsync(clan.ClanTag, ct);
                     if (status is null) { await Reply(msg, t.StatusNoWarData, ct); return; }

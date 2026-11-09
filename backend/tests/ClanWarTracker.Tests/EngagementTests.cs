@@ -20,6 +20,7 @@ public class EngagementTests : IDisposable
     [InlineData("m_12345-d", "dm", "m")]
     [InlineData("home-b", "bot", "home")]
     [InlineData("builder-k", "channel", "builder")]
+    [InlineData("home-w", "widget", "home")]
     [InlineData("ch_ABC123-s", "share", "ch")]
     [InlineData("ch_ABC123", "link", "ch")]
     [InlineData("link_2PYGQV-c", "chat", "link")]

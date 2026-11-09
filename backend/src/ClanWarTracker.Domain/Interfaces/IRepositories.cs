@@ -569,6 +569,18 @@ public interface IQuestRepository
     Task SaveChangesAsync(CancellationToken ct = default);
 }
 
+/// <summary>Живые карточки КВ (Telegram-виджеты): какие уже есть у кланов.</summary>
+public interface IWarWidgetRepository
+{
+    Task<WarWidget?> GetAsync(int clanId, string lang, CancellationToken ct = default);
+
+    /// <summary>Карточки, которые показывали после этого момента: их и обновляет воркер.</summary>
+    Task<List<WarWidget>> ShownSinceAsync(DateTime sinceUtc, CancellationToken ct = default);
+
+    Task AddAsync(WarWidget widget, CancellationToken ct = default);
+    Task SaveChangesAsync(CancellationToken ct = default);
+}
+
 /// <summary>Оплата через банку Монобанка: заказы с кодом и переводы из выписки.</summary>
 public interface IJarRepository
 {

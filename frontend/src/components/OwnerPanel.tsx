@@ -346,6 +346,7 @@ const SOURCE_LABELS: Record<string, string> = {
   share: 'Ссылки, которыми поделились',
   link: 'Прямые ссылки',
   menu: 'Кнопка меню и ярлык',
+  widget: 'Живая карточка КВ',
 }
 
 const DEST_LABELS: Record<string, string> = {

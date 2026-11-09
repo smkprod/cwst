@@ -235,6 +235,20 @@ public class WarCheckWorker(IServiceScopeFactory scopeFactory, ILogger<WarCheckW
                 logger.LogError(ex, "Clan day recap failed");
             }
 
+            // Живые карточки КВ (Telegram-виджеты): свежие цифры во всех чатах и пересылках
+            try
+            {
+                using var scope = scopeFactory.CreateScope();
+                var widgets = scope.ServiceProvider.GetRequiredService<WarWidgetUseCase>();
+                var pushed = await widgets.RefreshAsync(stoppingToken);
+                if (pushed > 0) logger.LogInformation("War widgets refreshed: {Count}", pushed);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { throw; }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "War widget refresh failed");
+            }
+
             // Задания дня: дозакрыть дни, доигранные без захода в приложение, и вечером
             // напомнить тем, у кого серия сгорит в полночь
             try

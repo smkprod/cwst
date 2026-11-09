@@ -1,0 +1,75 @@
+<!-- Clanify: живая карточка КВ клана (Telegram-виджет, Bot API 10.4). Данные - в publicData, см. WarWidgetCard.cs -->
+<style>
+:root{--h:var(--tg-theme-hint-color);--s:var(--tg-theme-secondary-bg-color);--g:light-dark(#1f9d4a,#3cc56b);--r:var(--tg-theme-destructive-text-color,#e5484d)}
+body{margin:0;padding:14px 16px 14px;font:15px/1.3 system-ui,sans-serif;font-variant-numeric:tabular-nums}
+.hd{display:flex;align-items:center;gap:10px}
+.lg{flex:none;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(150deg,#5aa9ff,#9c6bff);font-size:20px}
+.nm{flex:1;min-width:0}
+.nm b,.nm span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nm b{font-size:16px;font-weight:600}
+.nm span,.mu,.st span,h4{font-size:13px;color:var(--h)}
+.lv{display:flex;align-items:center;gap:6px;padding:4px 9px 4px 8px;border-radius:12px;background:var(--s);font-size:12px;font-weight:600;color:var(--h)}
+.lv i{position:relative;width:7px;height:7px;border-radius:50%;background:var(--g)}
+.lv i::after{content:'';position:absolute;inset:0;border-radius:50%;background:inherit;animation:pu 1.8s ease-out infinite}
+@keyframes pu{from{transform:scale(1);opacity:.55}to{transform:scale(3);opacity:0}}
+.big{display:flex;align-items:baseline;gap:8px;margin-top:12px}
+.big b{font-size:34px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
+.bar{height:8px;margin:8px 0 5px;border-radius:4px;background:var(--s);overflow:hidden}
+.bar i{display:block;height:100%;width:0;border-radius:4px;background:linear-gradient(90deg,#5aa9ff,#9c6bff);transition:width .7s cubic-bezier(.2,.8,.2,1)}
+.row{display:flex;gap:8px;margin-top:10px}
+.st{flex:1;min-width:0;padding:8px 10px;border-radius:10px;background:var(--s)}
+.st b{display:block;font-size:17px}
+h4{margin:12px 0 6px;font-weight:600}
+.ch{display:flex;flex-wrap:wrap;gap:5px}
+.ch span{max-width:100%;padding:3px 8px;border-radius:8px;background:var(--s);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ch em{margin-left:5px;font-style:normal;font-weight:600;color:var(--r)}
+.ok{color:var(--g);font-weight:600}
+button{display:block;width:100%;margin-top:12px;padding:10px;border:0;border-radius:10px;background:var(--tg-theme-button-color);color:var(--tg-theme-button-text-color);font:600 15px system-ui,sans-serif}
+.tr .wr,.nd .wr,.nd .row{display:none}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+<div class="hd"><div class="lg">⚔️</div><div class="nm"><b id="nm"></b><span id="ph"></span></div><div class="lv" id="lv"><i></i><span id="lt"></span></div></div>
+<div class="big"><b id="pd"></b><span class="mu" id="pt"></span></div>
+<div class="wr"><div class="bar"><i id="br"></i></div><div class="mu" id="dk"></div></div>
+<div class="row"><div class="st"><b id="tl"></b><span id="tll"></span></div><div class="st wr"><b id="ps"></b><span id="psl"></span></div></div>
+<div class="wr"><h4 id="xh"></h4><div class="ch" id="xs"></div></div>
+<button id="go"></button>
+<script>
+const L=/*L*/{},BOT=/*B*/"",T=window.TelegramWidget,$=i=>document.getElementById(i),B=document.body,
+J=s=>{try{return s?JSON.parse(s):null}catch(e){return null}},
+F=(s,o)=>s.replace(/\{(\w+)\}/g,(_,k)=>o[k]);
+let q=null;
+function left(){
+  if(!q||!q.e)return'—';
+  const m=Math.max(0,Math.round((q.e*1000-Date.now())/60000));
+  return m>=60?Math.floor(m/60)+L.h+' '+(m%60)+L.m:m+L.m;
+}
+function draw(){
+  const r=T?J(T.publicData):null;
+  if(r&&q&&(r.r|0)<(q.r|0))return;
+  B.classList.toggle('nd',!r);
+  if(!r){$('nm').textContent='Clanify';$('ph').textContent=L.wait;$('pd').textContent='…';return}
+  q=r;
+  B.classList.toggle('tr',r.k=='t');
+  $('nm').textContent=r.c||'';
+  $('ph').textContent=r.k=='t'?L.train:r.k=='c'?L.colo:r.d?F(L.day,{d:r.d}):L.war;
+  if(r.k=='t'){$('pd').textContent=L.trainBig;$('pt').textContent='';}
+  else{$('pd').textContent=r.p+'/'+r.n;$('pt').textContent=L.done;}
+  $('br').style.width=(r.m?Math.min(100,r.u/r.m*100):0).toFixed(1)+'%';
+  $('dk').textContent=F(L.decks,{u:r.u,m:r.m});
+  $('tl').textContent=left();$('tll').textContent=r.k=='t'?L.leftTrain:L.left;
+  $('ps').textContent=r.o?r.o+(r.oc?' / '+r.oc:''):'—';$('psl').textContent=L.place;
+  const x=(r.x||[]).slice(0,8),xs=$('xs');xs.textContent='';
+  $('xh').textContent=r.xn?F(L.notDone,{n:r.xn}):'';
+  if(!r.xn){const s=document.createElement('span');s.className='ok';s.textContent=L.all;xs.append(s)}
+  for(const[n,d]of x){const s=document.createElement('span'),e=document.createElement('em');s.textContent=n;e.textContent=d+'/4';s.append(e);xs.append(s)}
+  if(r.xn>x.length){const s=document.createElement('span');s.textContent=F(L.more,{n:r.xn-x.length});xs.append(s)}
+}
+const fw=T&&T.isForward;
+$('lt').textContent=L.live;$('lv').style.display=T&&!T.isPreview?'':'none';
+$('go').textContent=fw?L.join:L.open;
+$('go').addEventListener('click',()=>{if(T&&BOT)T.openTelegramLink('https://t.me/'+BOT+'?startapp=home-w')});
+draw();
+setInterval(()=>{if(q)$('tl').textContent=left()},30000);
+if(T){T.onEvent('publicDataChanged',draw);T.isPreview||T.watchPublicData();T.ready&&T.ready()}
+</script>
