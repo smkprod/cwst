@@ -77,8 +77,10 @@ services:
       DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-}
       # Необязательно: оплата через банку Монобанка подтверждается сама (см. .env.example)
       MONOBANK_TOKEN: ${MONOBANK_TOKEN:-}
-      # Необязательно: живая карточка КВ - Telegram-виджет вместо текста на /status (см. .env.example)
-      TELEGRAM_WIDGETS: ${TELEGRAM_WIDGETS:-}
+      # Живая карточка КВ - Telegram-виджет вместо текста на /status (см. .env.example).
+      # Включена по умолчанию: если Telegram виджет не принял, бот сам на час вернётся к тексту.
+      # Выключить - TELEGRAM_WIDGETS=0 в .env
+      TELEGRAM_WIDGETS: ${TELEGRAM_WIDGETS:-1}
       TELEGRAM_WIDGET_API: ${TELEGRAM_WIDGET_API:-}
       TELEGRAM_WIDGET_TEST_ENV: ${TELEGRAM_WIDGET_TEST_ENV:-}
       DOTNET_gcServer: "0"
