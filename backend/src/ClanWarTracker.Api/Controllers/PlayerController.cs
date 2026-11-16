@@ -13,6 +13,7 @@ public class PlayerController(
     IPlayerRepository players,
     IClanRepository clans,
     IWarSnapshotRepository snapshots,
+    IRaceLogRepository raceLog,
     IClashRoyaleApi crApi,
     GetPlayerStatsUseCase getStats,
     GetGlobalTopUseCase getGlobalTop,
@@ -489,6 +490,30 @@ public class PlayerController(
             }
         }
         catch { /* журнал недоступен — показываем только свои данные */ }
+
+        // Недели в чужих кланах - из журналов гонок, где эти кланы встречались с нашими.
+        // Так глава видит, как кандидат воевал в прошлых кланах. Своё (снимки и журнал
+        // текущего клана) приоритетнее: из чужих берём только недели, которых нет.
+        try
+        {
+            foreach (var r in await raceLog.GetForPlayerAsync(playerTag, 40, ct))
+            {
+                if (r.Fame == 0 || merged.Any(m => m.SeasonId == r.SeasonId && m.SectionIndex == r.SectionIndex)) continue;
+                merged.Add(new PlayerWeekHistoryDto(
+                    SeasonId: r.SeasonId,
+                    SectionIndex: r.SectionIndex,
+                    IsColosseum: r.IsColosseum,
+                    ClanTag: r.ClanTag,
+                    ClanName: r.ClanName,
+                    Fame: r.Fame,
+                    DecksUsed: r.DecksUsed,
+                    AvgFamePerAttack: r.DecksUsed > 0 ? Math.Round(Math.Clamp((double)r.Fame / r.DecksUsed, 100, 250), 1) : 0,
+                    ClanAvgFamePerAttack: r.ClanFame > 0 && r.ClanDecks > 0
+                        ? Math.Round(Math.Clamp((double)r.ClanFame / r.ClanDecks, 100, 250), 1)
+                        : 0));
+            }
+        }
+        catch { /* без чужих кланов - только свои данные */ }
 
         var dto = new PlayerHistoryDto(
             PlayerTag: playerTag,

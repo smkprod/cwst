@@ -35,6 +35,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<QuestDay> QuestDays => Set<QuestDay>();
     public DbSet<JarOrder> JarOrders => Set<JarOrder>();
     public DbSet<WarWidget> WarWidgets => Set<WarWidget>();
+    public DbSet<RaceLogPlayerWeek> RaceLogPlayerWeeks => Set<RaceLogPlayerWeek>();
     public DbSet<JarIncoming> JarIncomings => Set<JarIncoming>();
     public DbSet<PlayerBattle> PlayerBattles => Set<PlayerBattle>();
     public DbSet<Entitlement> Entitlements => Set<Entitlement>();
@@ -371,6 +372,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(w => w.WidgetId).HasMaxLength(64);
             e.Property(w => w.LastData).HasMaxLength(2048);
         });
+        mb.Entity<RaceLogPlayerWeek>(e =>
+        {
+            e.HasIndex(r => new { r.PlayerTag, r.ClanTag, r.SeasonId, r.SectionIndex }).IsUnique();
+            e.HasIndex(r => new { r.ClanTag, r.SeasonId, r.SectionIndex });
+            e.HasIndex(r => r.CreatedUtc);
+            e.Property(r => r.PlayerTag).HasMaxLength(16);
+            e.Property(r => r.ClanTag).HasMaxLength(16);
+            e.Property(r => r.ClanName).HasMaxLength(64);
+        });
+
 
         mb.Entity<JarOrder>(e =>
         {
