@@ -13,10 +13,14 @@ public class CaptureWarSnapshotsUseCase(
     IClanRepository clans,
     IWarSnapshotRepository snapshots,
     IPlayerRepository players,
-    IRaceTickRepository raceTicks)
+    IRaceTickRepository raceTicks,
+    IRaceLogRepository raceLog)
 {
     /// <summary>Сколько недель хода гонки храним: больше разведке не нужно.</summary>
     private static readonly TimeSpan RaceTicksKeep = TimeSpan.FromDays(35);
+
+    /// <summary>Сколько храним недели игроков из журналов: полгода истории для набора в клан.</summary>
+    private static readonly TimeSpan RaceLogKeep = TimeSpan.FromDays(180);
 
     public async Task<int> ExecuteAsync(CancellationToken ct = default)
     {
@@ -92,6 +96,8 @@ public class CaptureWarSnapshotsUseCase(
             try { await raceTicks.PruneAsync(now - RaceTicksKeep, ct); }
             catch { /* почистим в следующий раз */ }
         }
+        try { await raceLog.PruneAsync(now - RaceLogKeep, ct); }
+        catch { /* почистим в следующий раз */ }
         return captured;
     }
 
@@ -121,6 +127,44 @@ public class CaptureWarSnapshotsUseCase(
     }
 
     /// <summary>
+    /// Пофамильные итоги всех кланов гонки из журнала - и чужих тоже: так копится история
+    /// игроков в их прошлых кланах. Пишем только недели, которых ещё нет, и только тех,
+    /// кто сыграл хоть одну колоду.
+    /// </summary>
+    private async Task StoreRaceLogPlayersAsync(List<RiverRaceLogWeek> log, CancellationToken ct)
+    {
+        var tags = log.SelectMany(w => w.Standings).Select(s => s.ClanTag).Distinct().ToList();
+        var known = await raceLog.KnownWeeksAsync(tags, ct);
+        var now = DateTime.UtcNow;
+        var rows = new List<RaceLogPlayerWeek>();
+        foreach (var w in log)
+            foreach (var st in w.Standings)
+            {
+                if (st.Participants.Count == 0 || known.Contains((st.ClanTag, w.SeasonId, w.SectionIndex))) continue;
+                var clanDecks = st.Participants.Sum(p => p.DecksUsed);
+                rows.AddRange(st.Participants
+                    .Where(p => p.DecksUsed > 0)
+                    .GroupBy(p => p.PlayerTag, StringComparer.OrdinalIgnoreCase)
+                    .Select(g => g.First())
+                    .Select(p => new RaceLogPlayerWeek
+                    {
+                        PlayerTag = p.PlayerTag,
+                        ClanTag = st.ClanTag,
+                        ClanName = st.ClanName.Length > 64 ? st.ClanName[..64] : st.ClanName,
+                        SeasonId = w.SeasonId,
+                        SectionIndex = w.SectionIndex,
+                        IsColosseum = w.IsColosseum,
+                        Fame = p.Fame,
+                        DecksUsed = p.DecksUsed,
+                        ClanFame = st.Fame,
+                        ClanDecks = clanDecks,
+                        CreatedUtc = now,
+                    }));
+            }
+        await raceLog.AddRangeAsync(rows, ct);
+    }
+
+    /// <summary>
     /// Сохраняет в свою БД завершённые недели из официального журнала (/riverracelog),
     /// которых у нас ещё нет. Журнал отдаёт пофамильные медали последних ~10 войн,
     /// поэтому так подтягиваются даже недели до подключения бота. Финал недели пишем
@@ -130,6 +174,9 @@ public class CaptureWarSnapshotsUseCase(
     {
         var log = await crApi.GetRiverRaceLogAsync(clan.ClanTag, ct);
         if (log.Count == 0) return;
+
+        try { await StoreRaceLogPlayersAsync(log, ct); }
+        catch { /* история чужих кланов не критична */ }
 
         // Журнал — источник истины по завершённым неделям. Живой снимок мог не поймать
         // финал (день закончился между тиками, API моргнул, бот лежал), и такая неделя

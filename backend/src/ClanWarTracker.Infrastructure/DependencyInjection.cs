@@ -122,6 +122,7 @@ public static class DependencyInjection
         services.AddScoped<IQuestRepository, QuestRepository>();
         services.AddScoped<IWarWidgetRepository, WarWidgetRepository>();
         services.AddScoped<IJarRepository, JarRepository>();
+        services.AddScoped<IRaceLogRepository, RaceLogRepository>();
         services.AddScoped<ITopPlayerRepository, TopPlayerRepository>();
         services.AddScoped<IMetaRepository, MetaRepository>();
         services.AddScoped<IChallengeRepository, ChallengeRepository>();
@@ -773,6 +774,29 @@ CREATE TABLE IF NOT EXISTS ""QuestDays"" (
             "CREATE INDEX IF NOT EXISTS \"IX_QuestDays_ClanId_Day\" ON \"QuestDays\" (\"ClanId\", \"Day\");");
         await db.Database.ExecuteSqlRawAsync(
             "CREATE INDEX IF NOT EXISTS \"IX_QuestDays_Day\" ON \"QuestDays\" (\"Day\");");
+
+        // Недели КВ игроков из журналов войн - и в чужих кланах
+        await db.Database.ExecuteSqlRawAsync(@"
+CREATE TABLE IF NOT EXISTS ""RaceLogPlayerWeeks"" (
+    ""Id"" serial PRIMARY KEY,
+    ""PlayerTag"" varchar(16) NOT NULL,
+    ""ClanTag"" varchar(16) NOT NULL,
+    ""ClanName"" varchar(64) NOT NULL,
+    ""SeasonId"" integer NOT NULL,
+    ""SectionIndex"" integer NOT NULL,
+    ""IsColosseum"" boolean NOT NULL DEFAULT false,
+    ""Fame"" integer NOT NULL,
+    ""DecksUsed"" integer NOT NULL,
+    ""ClanFame"" integer NOT NULL,
+    ""ClanDecks"" integer NOT NULL,
+    ""CreatedUtc"" timestamptz NOT NULL
+);");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_RaceLogPlayerWeeks_PlayerTag_ClanTag_SeasonId_SectionIndex\" ON \"RaceLogPlayerWeeks\" (\"PlayerTag\", \"ClanTag\", \"SeasonId\", \"SectionIndex\");");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_RaceLogPlayerWeeks_ClanTag_SeasonId_SectionIndex\" ON \"RaceLogPlayerWeeks\" (\"ClanTag\", \"SeasonId\", \"SectionIndex\");");
+        await db.Database.ExecuteSqlRawAsync(
+            "CREATE INDEX IF NOT EXISTS \"IX_RaceLogPlayerWeeks_CreatedUtc\" ON \"RaceLogPlayerWeeks\" (\"CreatedUtc\");");
 
         // Живые карточки КВ (Telegram-виджеты): одна на клан и язык
         await db.Database.ExecuteSqlRawAsync(@"

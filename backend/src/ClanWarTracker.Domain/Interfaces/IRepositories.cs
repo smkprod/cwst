@@ -569,6 +569,21 @@ public interface IQuestRepository
     Task SaveChangesAsync(CancellationToken ct = default);
 }
 
+/// <summary>Недели КВ игроков из журналов войн - в том числе в чужих кланах.</summary>
+public interface IRaceLogRepository
+{
+    /// <summary>Какие недели этих кланов уже записаны: (тег клана, сезон, неделя).</summary>
+    Task<HashSet<(string ClanTag, int SeasonId, int SectionIndex)>> KnownWeeksAsync(
+        IReadOnlyCollection<string> clanTags, CancellationToken ct = default);
+
+    Task AddRangeAsync(IReadOnlyCollection<RaceLogPlayerWeek> rows, CancellationToken ct = default);
+
+    /// <summary>Недели игрока, свежие первыми.</summary>
+    Task<List<RaceLogPlayerWeek>> GetForPlayerAsync(string playerTag, int limit, CancellationToken ct = default);
+
+    Task PruneAsync(DateTime beforeUtc, CancellationToken ct = default);
+}
+
 /// <summary>Живые карточки КВ (Telegram-виджеты): какие уже есть у кланов.</summary>
 public interface IWarWidgetRepository
 {
