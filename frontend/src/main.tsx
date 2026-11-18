@@ -27,6 +27,7 @@ import './styles/ui-modes.css'
 import './styles/ui-ai.css'
 import './styles/ui-quests.css'
 import './styles/ui-warprep.css'
+import './styles/ui-vice.css'
 
 initTelegram()
 
