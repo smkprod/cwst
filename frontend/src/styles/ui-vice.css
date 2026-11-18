@@ -1,0 +1,35 @@
+/* --- Временная тема «Vice City» к выходу GTA VI (lib/vice.ts выключает её сама) --- */
+html.vice {
+  --accent: #ff3d8b;
+  --purple: #b14cff;
+  --vice-pink: #ff3d8b;
+  --vice-cyan: #3df0ff;
+  --vice-sun: #ffb347;
+  --bg: #160d2e;
+  --bg-card: #241638;
+}
+html.vice body { background: transparent; }
+html.vice {
+  min-height: 100%;
+  background:
+    radial-gradient(120% 60% at 50% 0%, rgba(255, 61, 139, 0.22), transparent 60%),
+    radial-gradient(90% 50% at 100% 100%, rgba(61, 240, 255, 0.10), transparent 60%),
+    linear-gradient(180deg, #1b0938 0%, #160d2e 45%, #121a2b 100%) fixed;
+}
+html.vice .card { border-color: rgba(255, 61, 139, 0.16); }
+html.vice .tabbar {
+  background: color-mix(in srgb, #140a26 92%, transparent);
+  border-top: 1px solid transparent;
+  border-image: linear-gradient(90deg, transparent, var(--vice-pink), var(--vice-cyan), transparent) 1;
+}
+html.vice .tab-active { color: var(--vice-cyan); text-shadow: 0 0 10px rgba(61, 240, 255, 0.6); }
+html.vice .tab-active .tab-icon { filter: drop-shadow(0 0 6px rgba(61, 240, 255, 0.7)); }
+/* Закатное солнце в полоску за шапкой - фоном, под всем содержимым */
+html.vice body::before {
+  content: ''; position: fixed; z-index: -1; pointer-events: none;
+  top: -120px; left: 50%; width: 360px; height: 360px; transform: translateX(-50%); border-radius: 50%;
+  background: linear-gradient(180deg, rgba(255, 230, 109, 0.35), rgba(255, 61, 139, 0.18) 60%, transparent 75%);
+  -webkit-mask: repeating-linear-gradient(180deg, #000 0 18px, transparent 18px 24px);
+  mask: repeating-linear-gradient(180deg, #000 0 18px, transparent 18px 24px);
+}
+html.vice .btn:not(.btn-ghost) { background: linear-gradient(90deg, #ff3d8b, #b14cff); box-shadow: 0 6px 18px rgba(255, 61, 139, 0.35); }

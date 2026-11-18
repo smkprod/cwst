@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
+import { useViceTheme } from './lib/vice'
 import { Icon, type IconName } from './components/ui/Icon'
 import { IconTile } from './components/ui/Section'
 import { api, ApiError, adminClan } from './lib/api'
@@ -252,6 +253,8 @@ export default function App() {
       .catch(() => { /* останемся на наборе вкладок по умолчанию */ })
   }, [])
   const { t } = useT()
+  // Неделя релиза GTA VI - тема «Vice City» на всё приложение, выключается сама
+  useViceTheme()
 
   // Сколько подряд неудачных обновлений терпим, прежде чем показать ошибку.
   // Разовый сбой сети или икота CR API не должны стирать рабочий экран.
