@@ -2202,14 +2202,6 @@ const ru = {
     inProgress: 'Турнир идёт',
     noParticipants: 'Пока никто не записался',
   },
-  vice: {
-    kicker: 'Выходит завтра · 19 ноября',
-    kickerOut: 'Уже вышла · 19 ноября',
-    soonText: 'До релиза {h} ч {m} мин. Новости, трейлеры и всё о Clash Royale — в нашем канале',
-    outText: 'Вайс-Сити ждёт. Новости, разборы и всё о Clash Royale — в нашем канале',
-    cta: 'Подписаться на канал',
-    fine: 'Clanify не связан с Rockstar Games',
-  },
   fb: {
     title: 'Что добавить в Clanify?',
     lead: 'Ответ читает автор бота — по ним решаем, что делать дальше. 30 секунд.',
@@ -4590,14 +4582,6 @@ const uk: Translations = {
     inProgress: 'Турнір триває',
     noParticipants: 'Поки ніхто не записався',
   },
-  vice: {
-    kicker: 'Виходить завтра · 19 листопада',
-    kickerOut: 'Уже вийшла · 19 листопада',
-    soonText: 'До релізу {h} год {m} хв. Новини, трейлери та все про Clash Royale — у нашому каналі',
-    outText: 'Вайс-Сіті чекає. Новини, розбори та все про Clash Royale — у нашому каналі',
-    cta: 'Підписатися на канал',
-    fine: 'Clanify не пов\'язаний з Rockstar Games',
-  },
   fb: {
     title: 'Що додати в Clanify?',
     lead: 'Відповідь читає автор бота — за ними вирішуємо, що робити далі. 30 секунд.',
@@ -6975,14 +6959,6 @@ const en: Translations = {
     standings: 'Final standings',
     inProgress: 'Tournament in progress',
     noParticipants: 'No one has signed up yet',
-  },
-  vice: {
-    kicker: 'Out tomorrow · November 19',
-    kickerOut: 'Out now · November 19',
-    soonText: '{h} h {m} min to release. News, trailers and everything Clash Royale — in our channel',
-    outText: 'Vice City is waiting. News, breakdowns and everything Clash Royale — in our channel',
-    cta: 'Join the channel',
-    fine: 'Clanify is not affiliated with Rockstar Games',
   },
   fb: {
     title: 'What should Clanify add?',

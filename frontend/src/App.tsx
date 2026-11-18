@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { ViceBanner, useViceTheme } from './components/ViceBanner'
+import { useViceTheme } from './lib/vice'
 import { Icon, type IconName } from './components/ui/Icon'
 import { IconTile } from './components/ui/Section'
 import { api, ApiError, adminClan } from './lib/api'
@@ -498,7 +498,6 @@ export default function App() {
                 <MenuChangedNotice />
                 <UpdateNotice />
                 <WarHeader status={data} canManage={canManage} onOpenSettings={() => { haptic('light'); setSettingsOpen(true) }} />
-                <ViceBanner />
                 {/* Бот не в чате клана - главный канал не работает: лидеру кнопка «добавить», остальным «попросить» */}
                 {data.hasChat === false && !data.viewingAsAdmin && (
                   <ConnectChatCard clanTag={data.clanTag} isLeader={Boolean(data.isClanLeader)} />
@@ -546,7 +545,6 @@ export default function App() {
             {tab === 'profile' && (
               <div className="fade-in">
                 {/* Задания дня - первыми: повод зайти сегодня, а не когда-нибудь */}
-                <ViceBanner />
                 {!data.viewingAsAdmin && <QuestsCard />}
                 {/* Личное, что раньше стояло среди клановых карточек войны */}
                 <WhatsNewCard />
